@@ -3,92 +3,123 @@
     top: 0;
     left: 0;
     width: 100%;
-    background: linear-gradient(90deg, 
-        rgba(30,58,138,0.95) 0%, 
-        rgba(59,130,246,0.95) 100%);
-    backdrop-filter: blur(10px);
-    padding: 15px 20px;
+    background: #F5F0E8;
+    padding: 6px 12px;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     z-index: 1000;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    animation: gradientShift 10s ease infinite;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
 }
 
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+.nav-logo {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    margin-right: 8px;
+}
+
+.nav-logo svg {
+    color: #1877F2;
+    height: 40px;
+    width: 40px;
 }
 
 .nav-buttons {
     display: flex;
-    gap: 25px;
+    gap: 6px;
     align-items: center;
-    max-width: 1200px;
-    width: 100%;
-    justify-content: space-between;
+    justify-content: center;
+    flex: 1 1 auto;
+    max-width: 600px;
 }
 
 .nav-button {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    padding: 12px 20px;
+    background: #F5F0E8;
+    color: #050505;
+    padding: 8px 12px;
     border: none;
-    border-radius: 15px;
-    font-weight: 600;
+    border-radius: 8px;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 8px;
-    position: relative;
-    overflow: hidden;
-}
-
-.nav-button::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-        120deg,
-        transparent,
-        rgba(255, 255, 255, 0.3),
-        transparent
-    );
-    transition: all 0.5s;
+    justify-content: center;
+    gap: 6px;
+    flex: 1;
+    max-width: 120px;
+    outline: none;
+    border: none;
 }
 
 .nav-button:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+    outline: none;
+    border: none;
 }
 
-.nav-button:hover::before {
-    left: 100%;
+.nav-button.active {
+    color: #D94C1A;
+    border-bottom: 3px solid #D94C1A;
+    border-radius: 0;
+    background: transparent;
+    outline: none;
+    border: none;
+   
+}
+
+.nav-button.active:hover {
+    background: rgba(217, 76, 26, 0.05);
+    outline: none;
+    border: none;
 }
 
 .button-icon {
-    font-size: 1.2em;
-    transition: transform 0.3s ease;
+    font-size: 1.1em;
+    line-height: 1;
 }
 
-.nav-button:hover .button-icon {
-    transform: scale(1.2) rotate(-15deg);
+.button-text {
+    white-space: nowrap;
+    font-size: 14px;
+}
+
+.nav-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 0 0 auto;
+    margin-left: 4px;
+}
+
+/* User profile and controls */
+.profile-button {
+    background: #F5F0E8;
+    border: none;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.profile-button:hover {
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .search-container {
     position: relative;
     display: flex;
     align-items: center;
-    flex-grow: 0.5;
-    max-width: 500px;
+    width: 200px;
 }
 
 .search-wrapper {
@@ -99,115 +130,66 @@
 }
 
 .search-wrapper input {
-    background: rgba(45, 47, 54, 0.8);
-    color: #fff;
-    padding: 12px 20px 12px 45px;
-    border: 2px solid transparent;
-    border-radius: 30px;
-    outline: none;
-    font-size: 16px;
+    background: rgba(0, 0, 0, 0.05);
+    color: #050505;
+    padding: 7px 7px 7px 30px;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
     width: 100%;
-    transition: all 0.3s ease;
-    backdrop-filter: blur(5px);
+    transition: all 0.2s ease;
 }
 
 .search-wrapper input:focus {
-    background: rgba(59, 61, 69, 0.9);
-    border-color: #3b82f6;
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+    background: #FFFFFF;
+    box-shadow: 0 0 0 2px rgba(217, 76, 26, 0.2);
+    outline: none;
 }
 
 .search-icon-wrapper {
     position: absolute;
-    left: 15px;
+    left: 10px;
     top: 50%;
     transform: translateY(-50%);
-    color: #ccc;
-    font-size: 20px;
+    color: #65676B;
+    font-size: 14px;
     pointer-events: none;
-    transition: all 0.3s ease;
 }
 
-.search-wrapper input:focus ~ .search-icon-wrapper {
-    color: #3b82f6;
-    transform: translateY(-50%) scale(1.2);
-}
-
+/* New search button */
 .search-button {
-    background: rgba(255, 255, 255, 0.1);
+    background: #F5F0E8;
     border: none;
     border-radius: 50%;
-    width: 45px;
-    height: 45px;
-    margin-left: 10px;
+    width: 38px;
+    height: 38px;
+    margin-left: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    font-size: 20px;
     cursor: pointer;
-    transition: all 0.3s ease;
-    
+    transition: all 0.2s ease;
     position: relative;
+    flex-shrink: 0;
 }
 
 .search-button:hover {
-    background: linear-gradient(
-        120deg,
-        transparent,
-        rgba(255, 255, 255, 0.3),
-        transparent
-    );
-    transition: all 0.5s;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    
+    background: rgba(0, 0, 0, 0.1);
 }
 
-.search-button.searching {
+.search-button:disabled {
     opacity: 0.7;
-    cursor: wait;
+    cursor: not-allowed;
 }
 
 .search-loader {
     position: absolute;
     width: 20px;
     height: 20px;
-    border: 3px solid white;
-    border-top: 3px solid transparent;
+    border: 2px solid #555;
+    border-top: 2px solid transparent;
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    display: none;
-}
-
-.search-button.searching .search-loader {
-    display: block;
-}
-
-.search-border {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 55px; /* Leave space for search button */
-    bottom: 0;
-    border-radius: 30px;
-    pointer-events: none;
-    background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
-    -webkit-mask: 
-       linear-gradient(#fff 0 0) content-box, 
-       linear-gradient(#fff 0 0);
-    mask: 
-       linear-gradient(#fff 0 0) content-box, 
-       linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    padding: 2px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.search-wrapper input:focus ~ .search-border {
-    opacity: 1;
 }
 
 @keyframes spin {
@@ -216,3 +198,82 @@
     }
 }
 
+/* Facebook-like notification button */
+.notification-button {
+    background: #F5F0E8;
+    border: none;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.notification-button:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #D94C1A;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+    .search-container {
+        width: 180px;
+    }
+    
+    .nav-button {
+        padding: 8px 10px;
+    }
+    
+    .button-text {
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        padding: 6px 8px;
+    }
+    
+    .nav-buttons {
+        gap: 4px;
+    }
+    
+    .nav-button {
+        padding: 6px;
+        max-width: none;
+    }
+    
+    .button-text {
+        display: none;
+    }
+    
+    .search-container {
+        width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .search-container {
+        width: 120px;
+    }
+}
