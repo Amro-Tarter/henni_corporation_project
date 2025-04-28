@@ -1,4 +1,3 @@
-import os
 import firebase_admin
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
@@ -6,11 +5,13 @@ from dotenv import load_dotenv
 # Load environment variables (if any)
 load_dotenv()
 
+
 def initialize_firebase():
     if not firebase_admin._apps:
         cred = credentials.Certificate("serviceAccountKey.json")
         firebase_admin.initialize_app(cred)
         print("✅ Firebase initialized.")
+
 
 def initialize_collections():
     try:
@@ -76,6 +77,6 @@ def initialize_collections():
     except Exception as e:
         print(f"❌ Error initializing collections: {e}")
 
+
 if __name__ == "__main__":
     initialize_collections()
-    
