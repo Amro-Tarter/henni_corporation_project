@@ -18,61 +18,152 @@ def initialize_collections():
         initialize_firebase()
         db = firestore.client()
 
-        # Initialize Users Collection
-        db.collection("users").document("placeholder_user").set({
-            "user_id": "",
-            "name": "",
+        # Initialize Participants Collection
+        db.collection("participants").document("placeholder_participant").set({
+            "first_name": "",
+            "last_name": "",
             "email": "",
+            "phone": "",
+            "birth_date": None,
+            "city": "",
+            "school": "",
+            "join_date": None,
+            "program_year": 1,
+            "art_focus": "",
+            "secondary_art": "",
+            "image": "",
+            "personal_statement": "",
+            "status": "active",
+            "region": "",
+            "gender": "",
+            "sector": ""
+        })
+        print("✅ Initialized 'participants' collection.")
+
+        # Initialize Families Collection
+        db.collection("families").document("placeholder_family").set({
+            "participant_id": "",
+            "parent1_name": "",
+            "parent1_phone": "",
+            "parent1_email": "",
+            "parent2_name": "",
+            "parent2_phone": "",
+            "parent2_email": "",
+            "address": "",
+            "engagement_level": "",
+            "family_notes": "",
+            "last_meeting": None,
+            "support_needs": ""
+        })
+        print("✅ Initialized 'families' collection.")
+
+        # Initialize Mentors Collection
+        db.collection("mentors").document("placeholder_mentor").set({
+            "first_name": "",
+            "last_name": "",
+            "email": "",
+            "phone": "",
+            "art_expertise": "",
+            "secondary_expertise": "",
+            "bio": "",
+            "profession": "",
+            "organization": "",
+            "start_date": None,
+            "image": "",
+            "availability": "",
+            "status": "active",
+            "max_participants": 5,
+            "current_participants": 0
+        })
+        print("✅ Initialized 'mentors' collection.")
+
+        # Initialize Programs Collection
+        db.collection("programs").document("placeholder_program").set({
+            "year_number": 1,
+            "name": "",
+            "description": "",
+            "focus_area": "",
+            "learning_outcomes": "",
+            "min_participants": 0,
+            "max_participants": 100,
+            "duration_months": 12,
+            "required_meetings": 10,
+            "community_hours": 20
+        })
+        print("✅ Initialized 'programs' collection.")
+
+        # Initialize Activities Collection
+        db.collection("activities").document("placeholder_activity").set({
+            "title": "",
+            "description": "",
+            "activity_type": "workshop",
+            "program_year": 1,
+            "domain_id": "",
+            "start_date": None,
+            "end_date": None,
+            "location": "",
+            "max_participants": 50,
+            "current_participants": 0,
+            "image": "",
+            "status": "planned",
+            "facilitator_id": "",
+            "leadership_focus": ""
+        })
+        print("✅ Initialized 'activities' collection.")
+
+        # Initialize Personal Projects Collection
+        db.collection("personal_projects").document("placeholder_project").set({
+            "participant_id": "",
+            "title": "",
+            "description": "",
+            "domain_id": "",
+            "start_date": None,
+            "end_date": None,
+            "status": "planned",
+            "program_year": 2,
+            "mentor_id": "",
+            "community_impact": "",
+            "materials": "",
+            "budget": 0.00,
+            "image": "",
+            "portfolio_link": "",
+            "public_display": False,
+            "leadership_skills": ""
+        })
+        print("✅ Initialized 'personal_projects' collection.")
+
+        # Initialize Staff Collection
+        db.collection("staff").document("placeholder_staff").set({
+            "first_name": "",
+            "last_name": "",
+            "email": "",
+            "phone": "",
             "role": "",
-            "profile_image": "",
+            "start_date": None,
+            "bio": "",
+            "image": "",
+            "expertise": "",
+            "is_active": True,
+            "region": "",
+            "art_background": ""
+        })
+        print("✅ Initialized 'staff' collection.")
+
+        # Initialize Users Collection (system users)
+        db.collection("users").document("placeholder_user").set({
+            "username": "",
+            "email": "",
+            "password_hash": "",
+            "role": "",
+            "associated_id": "",
             "created_at": firestore.SERVER_TIMESTAMP,
-            "followers": [],
-            "guide": None,
-            "parent": None
+            "last_login": None,
+            "is_active": True,
+            "reset_token": None
         })
         print("✅ Initialized 'users' collection.")
 
-        # Initialize Posts Collection
-        db.collection("posts").document("placeholder_post").set({
-            "post_ID": "",
-            "user_Id": "",
-            "content": "",
-            "media_Url": None,
-            "created_at": firestore.SERVER_TIMESTAMP,
-            "likes": []
-        })
-        print("✅ Initialized 'posts' collection.")
-
-        # Initialize Comments Subcollection under Posts
-        db.collection("posts").document("placeholder_post").collection("comments").document("placeholder_comment").set({
-            "commentId": "",
-            "text": "",
-            "user_Id": "",
-            "timestamp": firestore.SERVER_TIMESTAMP
-        })
-        print("✅ Initialized 'comments' subcollection under 'posts'.")
-
-        # Initialize Chat Collection
-        db.collection("chats").document("placeholder_chat").set({
-            "participants": [],
-            "type": "",
-            "createdAt": firestore.SERVER_TIMESTAMP,
-            "text": []
-        })
-        print("✅ Initialized 'chats' collection.")
-
-        # Initialize Report Collection
-        db.collection("reports").document("placeholder_report").set({
-            "report_Id": "",
-            "student_Id": "",
-            "content": "",
-            "guide_Id": "",
-            "status": "",
-            "createdAt": firestore.SERVER_TIMESTAMP
-        })
-        print("✅ Initialized 'reports' collection.")
-
-        print("🎉 All collections and fields have been initialized!")
+        print("🎉 All collections have been initialized successfully!")
 
     except Exception as e:
         print(f"❌ Error initializing collections: {e}")
