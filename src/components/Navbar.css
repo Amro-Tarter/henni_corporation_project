@@ -14,18 +14,6 @@
     box-sizing: border-box;
 }
 
-.nav-logo {
-    display: flex;
-    align-items: center;
-    flex: 0 0 auto;
-    margin-right: 8px;
-}
-
-.nav-logo svg {
-    color: #1877F2;
-    height: 40px;
-    width: 40px;
-}
 
 .nav-buttons {
     display: flex;
@@ -113,6 +101,8 @@
 
 .profile-button:hover {
     background: rgba(0, 0, 0, 0.1);
+    outline: none;
+    border: none;
 }
 
 .search-container {
@@ -175,6 +165,8 @@
 
 .search-button:hover {
     background: rgba(0, 0, 0, 0.1);
+    outline: none;
+    border: none;
 }
 
 .search-button:disabled {
@@ -216,6 +208,8 @@
 
 .notification-button:hover {
     background: rgba(0, 0, 0, 0.1);
+    outline: none;
+    border: none;
 }
 
 .notification-badge {

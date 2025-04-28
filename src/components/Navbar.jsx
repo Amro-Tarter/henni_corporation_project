@@ -16,13 +16,6 @@ const Navbar = () => {
 
   return (
     <div className="navbar">
-      {/* Logo section */}
-      <div className="nav-logo">
-        <svg viewBox="0 0 36 36">
-          {/*<path fill="currentColor" d="M20.181 35.87C29.094 34.791 36 27.202 36 18c0-9.941-8.059-18-18-18S0 8.059 0 18c0 8.442 5.811 15.526 13.652 17.471L14 24h-3v-6h3v-2.5c0-3.75 2.232-5.5 5.5-5.5 1.516 0 2.5.5 2.5.5v3h-2c-1.56 0-2 .943-2 2v2h4l-1 6h-3l.181 11.87z"></path>*/}
-        </svg>
-      </div>
-
       {/* Navigation buttons/tabs */}
       <div className="nav-buttons">
         <button 
