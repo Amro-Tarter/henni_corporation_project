@@ -1,12 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from '@/components/ui/carousel';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 const galleryItems = [
@@ -20,22 +13,26 @@ const galleryItems = [
     caption: 'פרויקט קהילתי',
     credit: 'צילום: צוות העמותה',
   },
-  {
-    image: 'https://images.unsplash.com/photo-1649972904349-6e44c42644a7',
-    caption: 'תערוכת אמנות',
-    credit: 'צילום: Unsplash',
-  },
-  {
-    image: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b',
-    caption: 'סדנת יצירה',
-    credit: 'צילום: Unsplash',
-  },
 ];
 
 const Gallery = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % galleryItems.length);
+    }, 10000); // Change every 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentItem = galleryItems[currentIndex];
+
   return (
     <section id="gallery" className="py-20 bg-gradient-to-b from-[#FAC000]/10 to-[#801100]/5">
       <div className="container mx-auto px-6">
+
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -51,45 +48,36 @@ const Gallery = () => {
           </p>
         </motion.div>
 
-        <div className="max-w-5xl mx-auto">
-          <Carousel
-            opts={{
-              align: 'start',
-              loop: true,
-              duration: 10,
-              watchDrag: false,
-            }}
-            className="w-full"
-          >
-            <CarouselContent>
-              {galleryItems.map((item, index) => (
-                <CarouselItem key={index}>
-                  <div className="flex flex-col items-center gap-6">
-                    <div className="w-full aspect-[4/3] relative overflow-hidden rounded-xl shadow-xl">
-                      <img
-                        src={item.image}
-                        alt={item.caption}
-                        className={cn(
-                          'object-cover w-full h-full transition-all duration-500',
-                          'hover:scale-105'
-                        )}
-                      />
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-title text-2xl md:text-3xl text-[#801100] mb-3">
-                        {item.caption}
-                      </h3>
-                      <p className="text-base text-[#B62203]/80">{item.credit}</p>
-                    </div>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
+        {/* Single Image Gallery */}
+        <div className="max-w-3xl mx-auto flex flex-col items-center gap-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentItem.image}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1 }}
+              className="w-full aspect-[4/3] relative overflow-hidden rounded-xl shadow-xl"
+            >
+              <img
+                src={currentItem.image}
+                alt={currentItem.caption}
+                className={cn(
+                  'object-cover w-full h-full transition-all duration-500',
+                  'hover:scale-105'
+                )}
+              />
+            </motion.div>
+          </AnimatePresence>
 
-            <CarouselPrevious className="hidden md:flex" />
-            <CarouselNext className="hidden md:flex" />
-          </Carousel>
+          <div className="text-center">
+            <h3 className="font-title text-2xl md:text-3xl text-[#801100] mb-3">
+              {currentItem.caption}
+            </h3>
+            <p className="text-base text-[#B62203]/80">{currentItem.credit}</p>
+          </div>
         </div>
+
       </div>
     </section>
   );
