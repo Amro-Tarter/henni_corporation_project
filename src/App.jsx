@@ -11,7 +11,6 @@ import AccessibilityStatement from './pages/AccessibilityStatement';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfUse from './pages/TermsOfUse';
 import SignIn from './pages/SignIn';
-import SocialPlatform from './pages/SocialPlatform';
 
 // Create a react-query client
 const queryClient = new QueryClient();
@@ -33,7 +32,6 @@ const App = () => {
               
               {/* New Pages */}
               <Route path="/signin" element={<SignIn />} />
-              <Route path="/social" element={<SocialPlatform />} />
 
               {/* 404 Page */}
               <Route path="*" element={<NotFound />} />
