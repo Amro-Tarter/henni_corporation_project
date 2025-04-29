@@ -1,15 +1,6 @@
 import React from 'react';
-import { Separator } from '@/components/ui/separator';
 import { motion } from 'framer-motion';
-import { 
-  BookOpen, 
-  Star, 
-  Users, 
-  HandHeart, 
-  Lightbulb, 
-  Sparkles 
-} from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { BookOpen, Star, Users, HandHeart, Lightbulb, Sparkles } from 'lucide-react';
 import ArtPanelCard from '@/components/ui/ArtPanelCard';
 
 const BACKGROUNDS = [
@@ -18,260 +9,138 @@ const BACKGROUNDS = [
   "linear-gradient(135deg, #FF8C00 10%, #FF4500 90%)",
 ];
 
-const TEXT_COLORS = [
-  "#ccf3ff", "#E0fbff", "#ffffff", "#f9ffe8", "#ebffc"
-];
-
-const BLOB_COLORS = [
-  "#FF4500", "#FF6347", "#FF8C00"
-];
+const TEXT_COLORS = ["#ccf3ff", "#E0fbff", "#ffffff", "#f9ffe8"];
+const BLOB_COLORS = ["#FF4500", "#FF6347", "#FF8C00"];
 
 const OurStory = () => {
   return (
-    <section id="our-story" className="relative py-20 overflow-hidden bg-fire/10 rounded-lg flex items-center justify-center">
-      <DecorativeDoodles />
-      <div className="container relative z-10 mx-auto px-4 space-y-20">
+    <section id="our-story" className="relative py-24 overflow-hidden bg-gradient-to-b from-fire/5 to-orange-100/20">
+      <FloatingDoodles />
+      <div className="container mx-auto px-6 space-y-32">
 
-        {/* Vision & Purpose */}
+        {/* Vision + Purpose (floating cards) */}
+        <div className="relative grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8 }}
+            className="-rotate-2"
+          >
+            <ArtPanelCard 
+              title="החזון שלנו"
+              icon={<Sparkles size={36} className="text-white" />}
+              bgGradient={BACKGROUNDS[0]}
+              blobColor={BLOB_COLORS[0]}
+              iconSide="right"
+              textColor={TEXT_COLORS[2]}
+            >
+              <p style={{ color: TEXT_COLORS[0] }}>אנחנו מאמינים בכוחה של היצירה להעצים בני נוער ולפתח מנהיגות צעירה...</p>
+            </ArtPanelCard>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="rotate-2"
+          >
+            <ArtPanelCard 
+              title="חזון דור צעיר"
+              icon={<Sparkles size={36} className="text-white" />}
+              bgGradient={BACKGROUNDS[1]}
+              blobColor={BLOB_COLORS[1]}
+              iconSide="left"
+              textColor={TEXT_COLORS[2]}
+            >
+              <p style={{ color: TEXT_COLORS[1] }}>יצירת דור של מנהיגים צעירים המחוברים לעצמם ולקהילה...</p>
+            </ArtPanelCard>
+          </motion.div>
+        </div>
+
+        {/* The Purpose */}
         <motion.div
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={{ animate: { transition: { staggerChildren: 0.13 } } }}
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="text-center max-w-3xl mx-auto"
         >
-          <Card className="mb-16 bg-white/90 shadow-lg">
-            <CardContent className="p-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <ArtPanelCard
-                  title="החזון שלנו"
-                  icon={<Sparkles size={40} className="text-white" />}
-                  bgGradient={BACKGROUNDS[0]}
-                  blobColor={BLOB_COLORS[0]}
-                  iconSide="right"
-                  doodles={<DoodleStars />}
-                  textColor={TEXT_COLORS[2]}
-                >
-                  <p className="text-lg" style={{ color: TEXT_COLORS[0] }}>
-                    אנחנו מאמינים בכוחה של היצירה להעצים בני נוער ולפתח מנהיגות צעירה...
-                  </p>
-                </ArtPanelCard>
-
-                <ArtPanelCard
-                  title="חזון דור צעיר"
-                  icon={<Sparkles size={40} className="text-white" />}
-                  bgGradient={BACKGROUNDS[1]}
-                  blobColor={BLOB_COLORS[1]}
-                  iconSide="left"
-                  doodles={<DoodleWave />}
-                  textColor={TEXT_COLORS[2]}
-                >
-                  <p className="text-lg" style={{ color: TEXT_COLORS[1] }}>
-                    החזון שלנו הוא ליצור דור של מנהיגים צעירים המחוברים לעצמם...
-                  </p>
-                </ArtPanelCard>
-              </div>
-            </CardContent>
-          </Card>
+          <ArtPanelCard
+            title="המטרה שלנו"
+            icon={<Lightbulb size={36} className="text-yellow-400" />}
+            bgGradient={BACKGROUNDS[2]}
+            blobColor={BLOB_COLORS[2]}
+            iconSide="right"
+            textColor={TEXT_COLORS[2]}
+          >
+            <p style={{ color: TEXT_COLORS[1] }}>להעניק לכל נער ונערה בישראל כלים לגלות ולהוביל מתוך תשוקה פנימית.</p>
+          </ArtPanelCard>
         </motion.div>
 
-        {/* Section Separator */}
-        <Separator className="my-10" />
-
-        {/* Purpose */}
-        <motion.div
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={{ animate: { transition: { staggerChildren: 0.13 } } }}
-        >
-          <Card className="mx-auto max-w-3xl bg-white/90 shadow-lg">
-            <CardContent className="p-8">
-              <ArtPanelCard
-                title="המטרה שלנו"
-                icon={<Lightbulb size={36} className="text-[#7E69AB]" />}
-                bgGradient={BACKGROUNDS[1]}
-                blobColor={BLOB_COLORS[1]}
-                iconSide="right"
-                doodles={<DoodleLightbulb />}
-                textColor={TEXT_COLORS[2]}
+        {/* Creative Leadership List */}
+        <div className="relative bg-white/80 backdrop-blur-md rounded-xl p-10 shadow-2xl">
+          <h2 className="text-3xl font-bold text-orange-600 mb-8 text-center">הכוח המשנה של יצירה ומנהיגות</h2>
+          <motion.ul 
+            initial="hidden" 
+            whileInView="visible" 
+            variants={{
+              hidden: {},
+              visible: { transition: { staggerChildren: 0.2 } }
+            }}
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+          >
+            {["אמנות פלסטית – פתרון אתגרים", "מוזיקה – הקשבה והרמוניה", "תיאטרון – ביטחון ותקשורת", "מחול – משמעת אישית", "כתיבה יוצרת – קול אישי"].map((item, i) => (
+              <motion.li
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                className="bg-orange-100 p-6 rounded-lg shadow-md"
               >
-                <p className="text-lg" style={{ color: TEXT_COLORS[1] }}>
-                  להעניק לכל נער ונערה מישראל מכל המגזרים את הכלים והבמה לגלות את קולם הייחודי ולהשפיע על החברה.
-                </p>
-              </ArtPanelCard>
-            </CardContent>
-          </Card>
-        </motion.div>
+                <p className="text-lg font-medium text-orange-700">✦ {item}</p>
+              </motion.li>
+            ))}
+          </motion.ul>
+        </div>
 
-        {/* Section Separator */}
-        <Separator className="my-10" />
-
-        {/* Leadership by Creativity */}
-        <motion.div
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={{ animate: { transition: { staggerChildren: 0.13 } } }}
-        >
-          <Card className="bg-white/90 shadow-lg">
-            <CardContent className="p-8">
-              <ArtPanelCard
-                title="הכוח המשנה של יצירה ומנהיגות"
-                icon={<Star size={38} className="text-theme-heading-accent" />}
-                bgGradient={BACKGROUNDS[2]}
-                blobColor={BLOB_COLORS[2]}
-                iconSide="left"
-                doodles={<DoodleMusic />}
-                textColor={TEXT_COLORS[2]}
+        {/* Timeline 4 years program */}
+        <div className="relative">
+          <div className="absolute top-0 left-0 w-1 bg-gradient-to-b from-orange-400 to-orange-200 h-full"></div>
+          <div className="grid gap-16 ml-8">
+            {["גילוי עצמי", "פיתוח יצירתי", "הובלת יוזמות", "בניית עתיד"].map((stage, idx) => (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.7, delay: idx * 0.2 }}
+                className="relative pl-6"
               >
-                <p className="mb-4 text-lg" style={{ color: TEXT_COLORS[2] }}>
-                  אנו יודעים כי כל תחום אמנותי מפתח יכולות ייחודיות:
-                </p>
-                <ul className="space-y-3 pl-4 text-base" style={{ color: TEXT_COLORS[2] }}>
-                  <li>✦ אמנות פלסטית – פתרון אתגרים</li>
-                  <li>✦ מוזיקה – הקשבה והרמוניה</li>
-                  <li>✦ תיאטרון – ביטחון ותקשורת</li>
-                  <li>✦ מחול – משמעת ודוגמה אישית</li>
-                  <li>✦ כתיבה יוצרת – מסרים משמעותיים</li>
-                </ul>
-              </ArtPanelCard>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Section Separator */}
-        <Separator className="my-10" />
-
-        {/* Four Year Program Timeline */}
-        <motion.div
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={{ animate: { transition: { staggerChildren: 0.11 } } }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-            {[1, 2, 3, 4].map((year, index) => (
-              <Card key={year} className="bg-white/90 shadow-lg">
-                <CardContent className="p-6">
-                  <ArtPanelCard
-                    title={`שנה ${year} - ${year === 1 ? "גילוי" : year === 2 ? "פיתוח" : year === 3 ? "יישום" : "מסע המשך"}`}
-                    icon={<BookOpen size={30} className="text-fire" />}
-                    bgGradient={BACKGROUNDS[index % 3]}
-                    blobColor={BLOB_COLORS[index % 3]}
-                    iconSide="left"
-                    textColor={TEXT_COLORS[2]}
-                  >
-                    <ul className="space-y-2 text-base" style={{ color: TEXT_COLORS[2] }}>
-                      <li>• שלב {year} - משימות ופעילויות מיוחדות</li>
-                      <li>• הדרכות אישיות וקהילתיות</li>
-                    </ul>
-                  </ArtPanelCard>
-                </CardContent>
-              </Card>
+                <div className="absolute -left-5 top-1 w-4 h-4 bg-orange-500 rounded-full shadow-lg"></div>
+                <h4 className="text-2xl font-semibold text-orange-800">שנה {idx + 1} – {stage}</h4>
+                <p className="text-gray-700 mt-2">שלב {idx + 1} – משימות ופעילויות לפיתוח אישי והעצמה קהילתית.</p>
+              </motion.div>
             ))}
           </div>
-        </motion.div>
-
-        {/* Section Separator */}
-        <Separator className="my-10" />
-
-        {/* Unique Benefits */}
-        <motion.div
-          initial="initial"
-          whileInView="animate"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={{ animate: { transition: { staggerChildren: 0.15 } } }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            <Card className="bg-white/90 shadow-lg">
-              <CardContent className="p-8">
-                <ArtPanelCard
-                  title="יתרונות ייחודיים"
-                  icon={<HandHeart size={36} className="text-fire drop-shadow-md" />}
-                  bgGradient={BACKGROUNDS[0]}
-                  blobColor={BLOB_COLORS[0]}
-                  iconSide="left"
-                  textColor={TEXT_COLORS[2]}
-                >
-                  <ul className="space-y-4 text-base md:text-lg leading-relaxed" style={{ color: TEXT_COLORS[2] }}>
-                    <li>• ליווי אישי בזום</li>
-                    <li>• ליווי משפחתי מותאם</li>
-                    <li>• מפגשים עם אמנים מובילים</li>
-                  </ul>
-                </ArtPanelCard>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/90 shadow-lg">
-              <CardContent className="p-8">
-                <ArtPanelCard
-                  title="הזדמנויות קהילתיות"
-                  icon={<Users size={34} className="text-air-dark drop-shadow-sm" />}
-                  bgGradient={BACKGROUNDS[1]}
-                  blobColor={BLOB_COLORS[1]}
-                  iconSide="left"
-                  textColor={TEXT_COLORS[2]}
-                >
-                  <ul className="space-y-5 text-base md:text-lg leading-relaxed" style={{ color: TEXT_COLORS[2] }}>
-                    <li>• רשת תמיכה קהילתית</li>
-                    <li>• יוזמות חברתיות</li>
-                  </ul>
-                </ArtPanelCard>
-              </CardContent>
-            </Card>
-          </div>
-        </motion.div>
+        </div>
 
       </div>
     </section>
   );
 };
 
-/* --- Decorative Doodles / SVGs for Section --- */
-function DecorativeDoodles() {
+function FloatingDoodles() {
   return (
     <>
-      {/* Doodle 1: floating star */}
-      <svg width={60} height={60} className="absolute left-4 top-10 opacity-30 animate-float" viewBox="0 0 60 60">
-        <text x="50%" y="50%" textAnchor="middle" dy=".35em" fontSize={36}>★</text>
-      </svg>
-      {/* Doodle 2: wavy line */}
-      <svg width={92} height={30} className="absolute right-6 bottom-16 opacity-30" viewBox="0 0 92 30">
-        <path d="M4 25c14-20 34 9 45 1 13-10 21-22 39 0" stroke="#D3E4FD" strokeWidth="3" fill="none" />
-      </svg>
-      {/* Doodle 3: paint splash */}
-      <svg width={60} height={60} className="absolute left-12 bottom-12 opacity-20" viewBox="0 0 60 60">
-        <ellipse cx="30" cy="30" rx="25" ry="14" fill="#FDE1D3"/>
-      </svg>
+      <div className="absolute top-10 left-10 animate-pulse-slow">
+        <span className="text-5xl opacity-30">✨</span>
+      </div>
+      <div className="absolute bottom-10 right-16 animate-bounce-slow">
+        <span className="text-6xl opacity-20">🎶</span>
+      </div>
+      <div className="absolute bottom-32 left-1/2 -translate-x-1/2 animate-wiggle">
+        <svg width="100" height="40">
+          <path d="M0 20 Q50 0 100 20" stroke="#FF8C00" strokeWidth="3" fill="none" />
+        </svg>
+      </div>
     </>
-  );
-}
-function DoodleStars() {
-  return (
-    <svg width="36" height="36" className="absolute top-5 left-5 opacity-40 z-10" viewBox="0 0 36 36">
-      <text x="50%" y="50%" textAnchor="middle" dy=".35em" fontSize={22}>✨</text>
-    </svg>
-  );
-}
-function DoodleWave() {
-  return (
-    <svg width="78" height="24" className="absolute bottom-4 right-8 opacity-40 z-10" viewBox="0 0 80 24">
-      <path d="M4 20c11-16 27 6 37 2 10-4 19-16 35 0" stroke="#D3E4FD" strokeWidth="2" fill="none" />
-    </svg>
-  );
-}
-function DoodleMusic() {
-  return (
-    <svg width="44" height="44" className="absolute left-6 top-8 opacity-30 z-10" viewBox="0 0 44 44">
-      <text x="50%" y="50%" textAnchor="middle" dy=".35em" fontSize={22}>🎶</text>
-    </svg>
-  );
-}
-function DoodleLightbulb() {
-  return (
-    <svg width="44" height="44" className="absolute left-1 top-8 opacity-30 z-10" viewBox="0 0 44 44">
-      <text x="50%" y="50%" textAnchor="middle" dy=".35em" fontSize={16}>💡</text>
-    </svg>
   );
 }
 

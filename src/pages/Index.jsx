@@ -2,7 +2,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Feather, Droplet, Leaf, Flame } from 'lucide-react';
 
-// Components
 import Hero from '../components/Hero';
 import Navigation from '../components/Navigation';
 import ElementSection from '../components/ElementSection';
@@ -11,162 +10,88 @@ import Footer from '../components/Footer';
 import OurStory from '../components/OurStory';
 import Gallery from '@/components/Gallery';
 
-// Animation configurations
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
   whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: "-100px" },
-  transition: { duration: 0.8, ease: "easeOut" }
+  transition: { duration: 0.8, ease: 'easeOut' },
 };
 
 const staggerChildren = {
-  initial: { opacity: 0 },
+  initial: {},
   whileInView: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.2
-    }
+    transition: { staggerChildren: 0.2 },
   },
-  viewport: { once: true, margin: "-100px" }
 };
 
 const HomePage = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-orange-100" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-b from-orange-50 via-rose-50 to-yellow-100" dir="rtl">
       <Navigation />
       <Hero />
 
-      <main>
+      <main className="relative overflow-hidden">
+        <FloatingElements />
         <Gallery />
         <OurStory />
 
-        {/* Elements Section */}
-        <motion.section 
-          id="what-we-do" 
-          className="py-12 bg-orange-50/80"
+        {/* Educational Initiatives Section */}
+        <motion.section
+          id="what-we-do"
+          className="py-24 bg-white/80 backdrop-blur-md relative"
           initial="initial"
           whileInView="whileInView"
-          viewport={{ once: true, margin: "-100px" }}
+          viewport={{ once: true, margin: '-100px' }}
           variants={staggerChildren}
         >
-          <motion.div 
-            className="container mx-auto px-4 text-center"
-            variants={fadeInUp}
-          >
-            <h2 className="font-gveret-levin text-3xl md:text-5xl text-fire-dark/90 mb-12">
-              מיזמים חינוכיים
-            </h2>
-            <p className="text-lg md:text-xl max-w-3xl mx-auto mb-12 text-fire-dark/80">
-              ארבעת היסודות - אש, אוויר, מים ואדמה - מהווים את הבסיס לעבודתנו החינוכית. 
-              כל יסוד מייצג היבט שונה של התפתחות אישית שאנחנו מטפחים אצל בני הנוער.
+          <motion.div className="container mx-auto px-4 text-center" variants={fadeInUp}>
+            <h2 className="font-gveret-levin text-4xl md:text-5xl text-fire-dark mb-6">מיזמים חינוכיים</h2>
+            <p className="text-lg md:text-xl max-w-3xl mx-auto text-gray-600">
+              ארבעת היסודות - אש, אוויר, מים ואדמה - מהווים את הבסיס לעשייה החינוכית שלנו.
+              כל יסוד מדגיש פן אחר בהתפתחות האישית שאנו מטפחים בבני הנוער.
             </p>
           </motion.div>
         </motion.section>
 
-        {/* Fire Element */}
-        <ElementSection 
-          id="fire-element" 
-          element="fire" 
-          title="אש - יצירה ותשוקה"
-          illustration={
-            <motion.div 
-              className="aspect-video bg-fire/10 rounded-lg flex items-center justify-center"
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <div className="relative p-8 md:p-12">
-                <div className="absolute inset-0 bg-fire/5 blur-xl rounded-full" />
-                <Flame size={120} className="text-fire mx-auto animate-flicker" />
-              </div>
-            </motion.div>
-          }
-        >
-          <p className="text-lg mb-4">
-            האש מייצגת את התשוקה והיצירתיות הבוערת בכל אחד ואחת מאיתנו. בסדנאות היצירה שלנו, 
-            בני הנוער מגלים את האור הפנימי שלהם ולומדים לבטא אותו דרך אמנות, מוזיקה, כתיבה ומגוון צורות ביטוי.
-          </p>
-          <p className="text-lg mb-4">
-            אנחנו מאמינים שכאשר בני נוער מתחברים לאש הפנימית שלהם, הם מוצאים כוח עצום שיכול להאיר 
-            את דרכם ולהשפיע על העולם סביבם.
-          </p>
-        </ElementSection>
+        {/* Elements - Fire, Air, Water, Earth */}
+        <div className="space-y-24">
+          <ElementSection
+            id="fire-element"
+            element="fire"
+            title="אש - יצירה ותשוקה"
+            illustration={<AnimatedIcon icon={<Flame size={120} className="text-fire" />} bgColor="bg-fire/10" />}
+          >
+            <FireText />
+          </ElementSection>
 
-        {/* Air Element */}
-        <ElementSection 
-          id="air-element" 
-          element="air" 
-          title="אוויר - חלומות ורעיונות"
-          reversed
-          illustration={
-            <motion.div 
-              className="aspect-video bg-air-light/50 rounded-lg flex items-center justify-center relative overflow-hidden"
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <Feather size={120} className="text-air-dark mx-auto animate-float" />
-            </motion.div>
-          }
-        >
-          <p className="text-lg mb-4">
-            האוויר מסמל את החופש לחלום, לחשוב ולדמיין. בסדנאות החשיבה היצירתית שלנו, 
-            אנחנו מעודדים בני נוער להרחיב את האופקים שלהם ולפתח רעיונות חדשים.
-          </p>
-          <p className="text-lg mb-4">
-            אנחנו מלמדים טכניקות לחשיבה מחוץ לקופסה, פתרון בעיות בצורה יצירתית, 
-            ובניית חזון אישי וקבוצתי כדי להפוך רעיונות למציאות.
-          </p>
-        </ElementSection>
+          <ElementSection
+            id="air-element"
+            element="air"
+            title="אוויר - חלומות ורעיונות"
+            reversed
+            illustration={<AnimatedIcon icon={<Feather size={120} className="text-air-dark" />} bgColor="bg-air-light/50" />}
+          >
+            <AirText />
+          </ElementSection>
 
-        {/* Water Element */}
-        <ElementSection 
-          id="water-element" 
-          element="water" 
-          title="מים - רגשות וזרימה"
-          illustration={
-            <motion.div 
-              className="aspect-video bg-water/10 rounded-lg flex items-center justify-center relative overflow-hidden"
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <Droplet size={120} className="text-water mx-auto animate-ripple" />
-            </motion.div>
-          }
-        >
-          <p className="text-lg mb-4">
-            המים מייצגים את הרגשות שלנו ואת היכולת שלנו לזרום עם החיים. בסדנאות ההתפתחות הרגשית, 
-            אנחנו מלמדים בני נוער להכיר, להבין ולנהל את הרגשות שלהם בצורה בריאה.
-          </p>
-          <p className="text-lg mb-4">
-            אנחנו מפתחים מיומנויות של אמפתיה, תקשורת בינאישית, ויכולת להתמודד עם אתגרים
-            רגשיים מתוך גמישות וחוסן נפשי.
-          </p>
-        </ElementSection>
+          <ElementSection
+            id="water-element"
+            element="water"
+            title="מים - רגשות וזרימה"
+            illustration={<AnimatedIcon icon={<Droplet size={120} className="text-water" />} bgColor="bg-water/10" />}
+          >
+            <WaterText />
+          </ElementSection>
 
-        {/* Earth Element */}
-        <ElementSection 
-          id="earth-element" 
-          element="earth" 
-          title="אדמה - יציבות וצמיחה"
-          reversed
-          illustration={
-            <motion.div 
-              className="aspect-video bg-earth-light rounded-lg flex items-center justify-center"
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <Leaf size={120} className="text-earth mx-auto" />
-            </motion.div>
-          }
-        >
-          <p className="text-lg mb-4">
-            האדמה מסמלת את היציבות והצמיחה. בתוכניות המנהיגות שלנו, אנחנו בונים בסיס איתן
-            של ערכים, אחריות חברתית ומיומנויות מעשיות שיסייעו לבני הנוער בהווה ובעתיד.
-          </p>
-          <p className="text-lg mb-4">
-            אנחנו מעודדים יוזמות קהילתיות שיוצרות שינוי חיובי ומלמדים כיצד לטפח את הסביבה הפיזית
-            והחברתית סביבנו כדי לאפשר צמיחה משותפת.
-          </p>
-        </ElementSection>
+          <ElementSection
+            id="earth-element"
+            element="earth"
+            title="אדמה - יציבות וצמיחה"
+            reversed
+            illustration={<AnimatedIcon icon={<Leaf size={120} className="text-earth" />} bgColor="bg-earth-light" />}
+          >
+            <EarthText />
+          </ElementSection>
+        </div>
 
         <JoinUs />
       </main>
@@ -175,5 +100,53 @@ const HomePage = () => {
     </div>
   );
 };
+
+const AnimatedIcon = ({ icon, bgColor }) => (
+  <motion.div
+    className={`aspect-video ${bgColor} rounded-2xl flex items-center justify-center relative shadow-md`}
+    whileHover={{ scale: 1.05 }}
+    transition={{ type: 'spring', stiffness: 300 }}
+  >
+    <div className="relative p-8 md:p-12">
+      {icon}
+    </div>
+  </motion.div>
+);
+
+const FloatingElements = () => (
+  <>
+    <div className="absolute top-32 left-12 w-24 h-24 bg-fire/20 rounded-full blur-2xl animate-pulse" />
+    <div className="absolute bottom-20 right-16 w-20 h-20 bg-air-dark/20 rounded-full blur-2xl animate-ping" />
+    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-water/10 rounded-full blur-3xl opacity-30 animate-float" />
+  </>
+);
+
+const FireText = () => (
+  <>
+    <p className="text-lg mb-4">האש מייצגת את התשוקה והיצירתיות הבוערת בכל אחד ואחת מאיתנו. בסדנאות היצירה שלנו, בני הנוער מגלים את האור הפנימי שלהם.</p>
+    <p className="text-lg">כשבני נוער מחוברים לאש הפנימית, הם מגלים כוח עצום לשנות את עולמם.</p>
+  </>
+);
+
+const AirText = () => (
+  <>
+    <p className="text-lg mb-4">האוויר מסמל את החופש לדמיין וליצור. אנו מעודדים מחשבה מקורית וחדשנית דרך סדנאות חשיבה פורצת גבולות.</p>
+    <p className="text-lg">כל רעיון קטן יכול להפוך לחזון גדול המניע קהילות שלמות.</p>
+  </>
+);
+
+const WaterText = () => (
+  <>
+    <p className="text-lg mb-4">המים מייצגים רגש וזרימה. אנו מלמדים להבין רגשות ולהתמודד עם אתגרים בלב פתוח ובאומץ.</p>
+    <p className="text-lg">החוסן הרגשי הוא מפתח לצמיחה בריאה ומשמעותית בעולם משתנה.</p>
+  </>
+);
+
+const EarthText = () => (
+  <>
+    <p className="text-lg mb-4">האדמה מסמלת שורשיות ובנייה יציבה. בסדנאות המנהיגות שלנו אנו מניחים את אבני הדרך להצלחה אמיתית.</p>
+    <p className="text-lg">אנו מאמינים בשיתוף פעולה, אחריות אישית וחזון קהילתי לעתיד טוב יותר.</p>
+  </>
+);
 
 export default HomePage;
