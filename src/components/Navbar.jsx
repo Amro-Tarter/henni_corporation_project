@@ -8,57 +8,47 @@ const Navbar = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    console.log('Searching for:', searchInput);
-    // Add your search logic here
+    console.log('מחפש:', searchInput);
     setIsSearching(true);
-    setTimeout(() => setIsSearching(false), 1000); // Simulate search completion
+    setTimeout(() => setIsSearching(false), 1000);
   };
 
   return (
-    <div className="navbar">
-      {/* Navigation buttons/tabs */}
+    <div className="navbar" dir="rtl">
+      {/* Right: Navigation buttons */}
       <div className="nav-buttons">
-        <button 
+        <button
           className={`nav-button ${activeTab === 'home' ? 'active' : ''}`}
           onClick={() => setActiveTab('home')}
         >
           <span className="button-icon">🏠</span>
-          <span className="button-text">Home</span>
+          <span className="button-text">דף הבית</span>
         </button>
 
-        <button 
-          className={`nav-button ${activeTab === 'profile' ? 'active' : ''}`}
-          onClick={() => setActiveTab('profile')}
-        >
-          <span className="button-icon">👤</span>
-          <span className="button-text">Profile</span>
-        </button>
-
-        <button 
+        <button
           className={`nav-button ${activeTab === 'messenger' ? 'active' : ''}`}
           onClick={() => setActiveTab('messenger')}
         >
           <span className="button-icon">💬</span>
-          <span className="button-text">Messenger</span>
+          <span className="button-text">הודעות</span>
         </button>
 
-        <button 
+        <button
           className={`nav-button ${activeTab === 'settings' ? 'active' : ''}`}
           onClick={() => setActiveTab('settings')}
         >
           <span className="button-icon">⚙️</span>
-          <span className="button-text">Settings</span>
+          <span className="button-text">הגדרות</span>
         </button>
       </div>
 
-      {/* Right side controls */}
-      <div className="nav-controls">
-        {/* Search form */}
+      {/* Center: Search bar */}
+      <div className="search-bar-wrapper">
         <form className="search-container" onSubmit={handleSearch}>
           <div className="search-wrapper">
             <input
               type="text"
-              placeholder="Search..."
+              placeholder="חפש..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -66,21 +56,21 @@ const Navbar = () => {
               <span className="search-icon">🔍</span>
             </div>
           </div>
-          {/* Search button */}
           <button type="submit" className="search-button" disabled={isSearching}>
             <span className="button-icon">🔍</span>
             {isSearching && <div className="search-loader"></div>}
           </button>
         </form>
+      </div>
 
-        {/* Notification button */}
-        <button className="notification-button">
+      {/* Left: Notification & Profile */}
+      <div className="nav-controls">
+        <button className="notification-button" aria-label="התראות">
           <span className="button-icon">🔔</span>
           <span className="notification-badge">3</span>
         </button>
 
-        {/* Profile button */}
-        <button className="profile-button">
+        <button className="profile-button" aria-label="פרופיל">
           <span className="button-icon">👤</span>
         </button>
       </div>
