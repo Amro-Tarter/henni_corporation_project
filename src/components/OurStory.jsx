@@ -10,7 +10,7 @@ import {
   Sparkles 
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
-import ArtPanelCard from './ArtPanelCard';
+import ArtPanelCard from '@/components/ui/ArtPanelCard';
 
 const BACKGROUNDS = [
   "linear-gradient(135deg, #FF4500 10%, #FF6347 90%)",
