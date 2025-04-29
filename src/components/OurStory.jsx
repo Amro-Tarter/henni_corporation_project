@@ -15,7 +15,6 @@ const BLOB_COLORS = ["#FF4500", "#FF6347", "#FF8C00"];
 const OurStory = () => {
   return (
     <section id="our-story" className="relative py-24 overflow-hidden bg-gradient-to-b from-fire/5 to-orange-100/20">
-      <FloatingDoodles />
       <div className="container mx-auto px-6 space-y-32">
 
         {/* Vision + Purpose (floating cards) */}
@@ -125,23 +124,5 @@ const OurStory = () => {
     </section>
   );
 };
-
-function FloatingDoodles() {
-  return (
-    <>
-      <div className="absolute top-10 left-10 animate-pulse-slow">
-        <span className="text-5xl opacity-30">✨</span>
-      </div>
-      <div className="absolute bottom-10 right-16 animate-bounce-slow">
-        <span className="text-6xl opacity-20">🎶</span>
-      </div>
-      <div className="absolute bottom-32 left-1/2 -translate-x-1/2 animate-wiggle">
-        <svg width="100" height="40">
-          <path d="M0 20 Q50 0 100 20" stroke="#FF8C00" strokeWidth="3" fill="none" />
-        </svg>
-      </div>
-    </>
-  );
-}
 
 export default OurStory;
