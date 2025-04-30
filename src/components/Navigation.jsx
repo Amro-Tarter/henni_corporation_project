@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Facebook, Instagram } from 'lucide-react';
 
-const Navbar = () => {
+const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -247,4 +247,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar;
+export default Navigation;
