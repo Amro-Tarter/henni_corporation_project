@@ -4,15 +4,22 @@ import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <footer className="bg-theme-text-primary text-white pt-16 pb-8 relative overflow-hidden">
-      {/* Fire effect in background */}
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-theme-heading-accent to-transparent"></div>
-      <div className="absolute bottom-0 left-1/4 w-2 h-2 ember bg-theme-bg-secondary"></div>
-      <div className="absolute bottom-0 left-2/4 w-3 h-3 ember bg-theme-bg-secondary" style={{ animationDelay: '1.2s' }}></div>
-      <div className="absolute bottom-0 left-3/4 w-2 h-2 ember bg-theme-bg-secondary" style={{ animationDelay: '0.7s' }}></div>
+      <footer className="bg-red-900 text-white pt-16 pb-8 relative overflow-hidden">
+        {/* Animated background elements */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-theme-heading-accent to-transparent" />
+      <div className="absolute bottom-0 left-1/4 w-2 h-2 ember bg-theme-bg-secondary" />
+      <div 
+        className="absolute bottom-0 left-2/4 w-3 h-3 ember bg-theme-bg-secondary" 
+        style={{ animationDelay: '1.2s' }} 
+      />
+      <div 
+        className="absolute bottom-0 left-3/4 w-2 h-2 ember bg-theme-bg-secondary" 
+        style={{ animationDelay: '0.7s' }} 
+      />
 
       <div className="container mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
+          {/* Brand Column */}
           <div className="md:col-span-1">
             <div className="flex items-center mb-6">
               <Flame className="mr-3 text-theme-heading-accent" size={24} />
@@ -21,11 +28,10 @@ const Footer = () => {
             <p className="text-white/80 mb-4 leading-relaxed">
               מיזם העצמה לנוער באמצעות יצירה, התפתחות רגשית ומנהיגות אמנותית בקהילה
             </p>
-            <p className="text-white/80">
-              מייסדת: ענת זיגרון
-            </p>
+            <p className="text-white/80">מייסדת: ענת זיגרון</p>
           </div>
 
+          {/* Links Column */}
           <div className="md:col-span-1">
             <h3 className="font-gveret-levin text-xl mb-6">קישורים</h3>
             <ul className="space-y-3 text-white/80">
@@ -57,6 +63,7 @@ const Footer = () => {
             </ul>
           </div>
           
+          {/* Legal Links Column */}
           <div className="md:col-span-1">
             <h3 className="font-gveret-levin text-xl mb-6">קישורים מהירים</h3>
             <ul className="space-y-3 text-white/80">
@@ -78,6 +85,7 @@ const Footer = () => {
             </ul>
           </div>
           
+          {/* Contact Column */}
           <div className="md:col-span-1">
             <h3 className="font-gveret-levin text-xl mb-6">צרו קשר</h3>
             <div className="space-y-4">
@@ -134,6 +142,7 @@ const Footer = () => {
           </div>
         </div>
 
+        {/* Copyright Section */}
         <div className="border-t border-theme-text-secondary/20 mt-16 pt-8 text-center text-white/80 text-sm">
           <p>© {new Date().getFullYear()} לגלות את האור – הנני. כל הזכויות שמורות.</p>
         </div>
