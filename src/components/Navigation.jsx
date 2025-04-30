@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { cn } from "@/lib/utils";
 import { Facebook, Instagram } from 'lucide-react';
 
 const Navigation = () => {
@@ -17,8 +16,13 @@ const Navigation = () => {
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
+  // Helper function to conditionally join classnames (similar to cn from @/lib/utils)
+  const cn = (...classes) => {
+    return classes.filter(Boolean).join(' ');
+  };
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-theme-text-primary shadow-sm">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-red-900 shadow-sm">
       <nav className="container mx-auto flex items-center justify-between px-6 py-4">
         {/* Logo */}
         <a href="/" className="flex items-center">
@@ -52,7 +56,7 @@ const Navigation = () => {
                 href="https://mrng.to/pFaSV3RKqT" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="bg-white text-[#ff7500] px-4 py-2 rounded-md hover:bg-white/90 transition-all duration-300 shadow-md hover:shadow-lg text-lg font-medium"
+                className="bg-white text-orange-500 px-4 py-2 rounded-md hover:bg-white/90 transition-all duration-300 shadow-md hover:shadow-lg text-lg font-medium"
               >
                 תרמו
               </a>
@@ -65,7 +69,7 @@ const Navigation = () => {
               href="https://www.instagram.com/anatzigron" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-white hover:text-theme-bg-secondary transition-colors duration-200"
+              className="text-white hover:text-orange-300 transition-colors duration-200"
               aria-label="Instagram"
             >
               <Instagram size={20} />
@@ -74,7 +78,7 @@ const Navigation = () => {
               href="https://www.facebook.com/share/19ap5ErBo5/"
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-white hover:text-theme-bg-secondary transition-colors duration-200"
+              className="text-white hover:text-orange-300 transition-colors duration-200"
               aria-label="Facebook"
             >
               <Facebook size={20} />
@@ -83,7 +87,7 @@ const Navigation = () => {
               href="https://chat.whatsapp.com/EdpRKYWJk6NCRXynXKS091" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-white hover:text-theme-bg-secondary transition-colors duration-200"
+              className="text-white hover:text-orange-300 transition-colors duration-200"
               aria-label="WhatsApp"
             >
               <svg 
@@ -153,7 +157,7 @@ const Navigation = () => {
         {/* Mobile Navigation */}
         <div 
           className={cn(
-            "md:hidden absolute top-full left-0 right-0 bg-theme-text-primary shadow-sm transition-all duration-300 overflow-hidden",
+            "md:hidden absolute top-full left-0 right-0 bg-red-900 shadow-sm transition-all duration-300 overflow-hidden",
             isMenuOpen ? "max-h-96" : "max-h-0"
           )}
         >
@@ -178,7 +182,7 @@ const Navigation = () => {
                 href="https://mrng.to/pFaSV3RKqT" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="block py-2 bg-white text-[#ff7500] rounded-md text-center shadow-lg text-lg font-medium"
+                className="block py-2 bg-white text-orange-500 rounded-md text-center shadow-lg text-lg font-medium"
                 onClick={toggleMenu}
               >
                 תרמו
@@ -189,7 +193,7 @@ const Navigation = () => {
                 href="https://www.instagram.com/anatzigron" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-white hover:text-theme-bg-secondary transition-colors duration-200"
+                className="text-white hover:text-orange-300 transition-colors duration-200"
                 onClick={toggleMenu}
                 aria-label="Instagram"
               >
@@ -199,7 +203,7 @@ const Navigation = () => {
                 href="https://www.facebook.com/share/19ap5ErBo5/"
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-white hover:text-theme-bg-secondary transition-colors duration-200"
+                className="text-white hover:text-orange-300 transition-colors duration-200"
                 onClick={toggleMenu}
                 aria-label="Facebook"
               >
@@ -209,7 +213,7 @@ const Navigation = () => {
                 href="https://chat.whatsapp.com/EdpRKYWJk6NCRXynXKS091" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-white hover:text-theme-bg-secondary transition-colors duration-200"
+                className="text-white hover:text-orange-300 transition-colors duration-200"
                 onClick={toggleMenu}
                 aria-label="WhatsApp"
               >

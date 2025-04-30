@@ -1,242 +1,243 @@
 /* Navbar container */
 .navbar {
-  direction: rtl;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  background: #F5F0E8;
-  padding: 10px 16px; /* increased padding */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  box-sizing: border-box;
-  z-index: 1000;
-  outline: none;
-}
-
-/* Shared section styles */
-.nav-buttons,
-.search-bar-wrapper,
-.nav-controls {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  outline: none;
-  border: none;
-}
-
-/* Center alignment for search bar */
-.nav-buttons {
-  justify-content: flex-start;
-  gap: 6px;
-  outline: none;
-  border: none;
-}
-
-.search-bar-wrapper {
-  justify-content: center;
-}
-
-.nav-controls {
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* Nav buttons */
-.nav-button {
-  background: #F5F0E8;
-  color: #050505;
-  padding: 10px 16px; /* increased padding */
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 15px; /* increased font size */
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  outline: none;
-  border: none;
-}
-
-.nav-button:hover {
-  background: rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
-  outline: none;
-  border: none;
-}
-
-.nav-button.active {
-  color: #D94C1A;
-  border-bottom: 3px solid #D94C1A;
-  border-radius: 0;
-  background: transparent;
-  outline: none;
-}
-
-.button-icon {
-  font-size: 1.2em;
-}
-
-.button-text {
-  font-size: 15px; /* slightly bigger */
-  white-space: nowrap;
-}
-
-/* Search container */
-.search-container {
-  display: flex;
-  align-items: center;
-}
-
-.search-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-wrapper input {
-  background: rgba(0, 0, 0, 0.05);
-  color: #050505;
-  height: 36px;
-  padding: 0 40px 0 16px;
-  border: none;
-  border-radius: 18px;
-  font-size: 15px;
-  width: 350px; /* ⬅️ increase this for more width */
-  transition: all 0.2s ease;
-  box-sizing: border-box;
-}
-
-.search-icon-wrapper {
-  left: auto;
-  right: 10px;
-}
-
-.search-wrapper input:focus {
-  background: #FFFFFF;
-  box-shadow: 0 0 0 2px rgba(217, 76, 26, 0.2);
-  outline: none;
-}
-
-.search-icon-wrapper {
-  position: absolute;
-  left: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #65676B;
-  font-size: 15px;
-  pointer-events: none;
-}
-
-.search-button {
-  background: #F5F0E8;
-  border: none;
-  border-radius: 50%;
-  width: 42px; /* increased size */
-  height: 42px;
-  margin-left: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
-}
-
-.search-button:hover {
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.search-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.search-loader {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border: 2px solid #555;
-  border-top: 2px solid transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+    direction: rtl;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: #F5F0E8;
+    padding: 10px 16px; /* increased padding */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    z-index: 1000;
+    outline: none;
   }
-}
-
-/* Notification and profile buttons */
-.notification-button,
-.profile-button {
-  background: #F5F0E8;
-  border: none;
-  border-radius: 50%;
-  width: 42px; /* increased size */
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  position: relative;
-  transition: background 0.2s ease;
-}
-
-.notification-button:hover,
-.profile-button:hover {
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.notification-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  background: #D94C1A;
-  color: white;
-  border-radius: 50%;
-  width: 16px;
-  height: 16px;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-}
-
-/* Responsive adjustments */
-@media (max-width: 900px) {
-  .search-wrapper input {
-    width: 180px;
+  
+  /* Shared section styles */
+  .nav-buttons,
+  .search-bar-wrapper,
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    outline: none;
+    border: none;
   }
-
-  .button-text {
-    font-size: 14px;
-  }
-}
-
-@media (max-width: 768px) {
+  
+  /* Center alignment for search bar */
   .nav-buttons {
-    gap: 4px;
+    justify-content: flex-start;
+    gap: 6px;
+    outline: none;
+    border: none;
   }
-
+  
+  .search-bar-wrapper {
+    justify-content: center;
+  }
+  
+  .nav-controls {
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  
+  /* Nav buttons */
+  .nav-button {
+    background: #F5F0E8;
+    color: #050505;
+    padding: 10px 16px; /* increased padding */
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 15px; /* increased font size */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    outline: none;
+    border: none;
+  }
+  
+  .nav-button:hover {
+    background: rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+    outline: none;
+    border: none;
+  }
+  
+  .nav-button.active {
+    color: #D94C1A;
+    border-bottom: 3px solid #D94C1A;
+    border-radius: 0;
+    background: transparent;
+    outline: none;
+  }
+  
+  .button-icon {
+    font-size: 1.2em;
+  }
+  
   .button-text {
-    display: none;
+    font-size: 15px; /* slightly bigger */
+    white-space: nowrap;
   }
-
+  
+  /* Search container */
+  .search-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
   .search-wrapper input {
-    width: 150px;
+    background: rgba(0, 0, 0, 0.05);
+    color: #050505;
+    height: 36px;
+    padding: 0 40px 0 16px;
+    border: none;
+    border-radius: 18px;
+    font-size: 15px;
+    width: 350px; /* ⬅️ increase this for more width */
+    transition: all 0.2s ease;
+    box-sizing: border-box;
   }
-}
-
-@media (max-width: 480px) {
-  .search-wrapper input {
-    width: 120px;
+  
+  .search-icon-wrapper {
+    left: auto;
+    right: 10px;
   }
-}
+  
+  .search-wrapper input:focus {
+    background: #FFFFFF;
+    box-shadow: 0 0 0 2px rgba(217, 76, 26, 0.2);
+    outline: none;
+  }
+  
+  .search-icon-wrapper {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #65676B;
+    font-size: 15px;
+    pointer-events: none;
+  }
+  
+  .search-button {
+    background: #F5F0E8;
+    border: none;
+    border-radius: 50%;
+    width: 42px; /* increased size */
+    height: 42px;
+    margin-left: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+  
+  .search-button:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  
+  .search-button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  .search-loader {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #555;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Notification and profile buttons */
+  .notification-button,
+  .profile-button {
+    background: #F5F0E8;
+    border: none;
+    border-radius: 50%;
+    width: 42px; /* increased size */
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s ease;
+  }
+  
+  .notification-button:hover,
+  .profile-button:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+  
+  .notification-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #D94C1A;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 900px) {
+    .search-wrapper input {
+      width: 180px;
+    }
+  
+    .button-text {
+      font-size: 14px;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .nav-buttons {
+      gap: 4px;
+    }
+  
+    .button-text {
+      display: none;
+    }
+  
+    .search-wrapper input {
+      width: 150px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .search-wrapper input {
+      width: 120px;
+    }
+  }
+  
