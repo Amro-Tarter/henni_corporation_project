@@ -14,19 +14,19 @@ const CreatePost = ({ addPost }) => {
   };
 
   return (
-    <div className="create-post">
+    <div className="create-post" dir="rtl">
       {/* Header with profile and text input */}
       <div className="create-post-header">
         <img
           src="https://via.placeholder.com/40"
-          alt="Profile"
+          alt="פרופיל"
           className="profile-pic"
         />
         <textarea
           className="post-textarea"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="What's on your mind...?"
+          placeholder="על מה אתה חושב...?"
           rows="3"
         />
       </div>
@@ -34,19 +34,25 @@ const CreatePost = ({ addPost }) => {
       {/* Facebook-style action buttons */}
       <div className="post-actions">
         <button className="action-button">
-          <FaVideo color="red" /> Live video
+          <FaVideo color="red" /> שידור חי
         </button>
         <button className="action-button">
-          <FaPhotoVideo color="green" /> Photo/video
+          <FaPhotoVideo color="green" /> תמונה/וידאו
         </button>
         <button className="action-button">
-          <FaSmile color="orange" /> Feeling/activity
+          <FaSmile color="orange" /> תחושה/פעילות
         </button>
       </div>
 
       {/* Submit post */}
       <form onSubmit={handleSubmit} className="submit-form">
-        
+        <button
+          className="post-button"
+          type="submit"
+          disabled={!text.trim()}
+        >
+          פרסם
+        </button>
       </form>
     </div>
   );

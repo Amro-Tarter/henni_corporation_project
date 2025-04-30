@@ -19,10 +19,12 @@ body {
 
 .create-post-header {
   display: flex;
+  flex-direction: row-reverse; /* 👈 Add this line for RTL layout */
   align-items: flex-start;
   gap: 10px;
   margin-bottom: 16px;
 }
+
 
 .profile-pic {
   width: 40px;
@@ -103,3 +105,9 @@ body {
 .post-button:hover:not(:disabled) {
   background-color: #166fe5;
 }
+
+[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+

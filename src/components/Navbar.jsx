@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import './Navbar.css';
 
 const Navbar = () => {
   const [searchInput, setSearchInput] = useState('');
@@ -14,64 +13,73 @@ const Navbar = () => {
   };
 
   return (
-    <div className="navbar" dir="rtl">
+    <div className="fixed top-0 left-0 w-full bg-[#F5F0E8] px-4 py-2 flex items-center justify-between shadow-md border-b border-black/10 z-50" dir="rtl">
       {/* Right: Navigation buttons */}
-      <div className="nav-buttons">
-        <button
-          className={`nav-button ${activeTab === 'home' ? 'active' : ''}`}
-          onClick={() => setActiveTab('home')}
-        >
-          <span className="button-icon">🏠</span>
-          <span className="button-text">דף הבית</span>
-        </button>
-
-        <button
-          className={`nav-button ${activeTab === 'messenger' ? 'active' : ''}`}
-          onClick={() => setActiveTab('messenger')}
-        >
-          <span className="button-icon">💬</span>
-          <span className="button-text">הודעות</span>
-        </button>
-
-        <button
-          className={`nav-button ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
-        >
-          <span className="button-icon">⚙️</span>
-          <span className="button-text">הגדרות</span>
-        </button>
+      <div className="flex items-center gap-2 flex-1 justify-start">
+        {[
+          { tab: 'home', icon: '🏠', text: 'דף הבית' },
+          { tab: 'messenger', icon: '💬', text: 'הודעות' },
+          { tab: 'settings', icon: '⚙️', text: 'הגדרות' },
+        ].map(({ tab, icon, text }) => (
+          <button
+            key={tab}
+            className={`flex items-center gap-1 px-4 py-2 rounded-md font-medium text-sm transition-all ${
+              activeTab === tab
+                ? 'text-[#D94C1A] border-b-2 border-[#D94C1A] bg-transparent rounded-none'
+                : 'bg-[#F5F0E8] text-black hover:bg-black/10 hover:-translate-y-[1px]'
+            }`}
+            onClick={() => setActiveTab(tab)}
+          >
+            <span className="text-lg">{icon}</span>
+            <span className="hidden sm:inline">{text}</span>
+          </button>
+        ))}
       </div>
 
       {/* Center: Search bar */}
-      <div className="search-bar-wrapper">
-        <form className="search-container" onSubmit={handleSearch}>
-          <div className="search-wrapper">
+      <div className="flex-1 flex justify-center">
+        <form className="flex items-center" onSubmit={handleSearch}>
+          <div className="relative flex items-center">
             <input
               type="text"
               placeholder="חפש..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
+              className="bg-black/5 text-black h-9 pl-10 pr-4 rounded-full text-sm w-[350px] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D94C1A]/30 transition-all max-w-full"
             />
-            <div className="search-icon-wrapper">
-              <span className="search-icon">🔍</span>
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm pointer-events-none">
+              🔍
             </div>
           </div>
-          <button type="submit" className="search-button" disabled={isSearching}>
-            <span className="button-icon">🔍</span>
-            {isSearching && <div className="search-loader"></div>}
+          <button
+            type="submit"
+            className="ml-2 w-10 h-10 rounded-full bg-[#F5F0E8] flex items-center justify-center hover:bg-black/10 transition disabled:opacity-70 disabled:cursor-not-allowed relative"
+            disabled={isSearching}
+          >
+            <span className="text-lg">🔍</span>
+            {isSearching && (
+              <div className="absolute w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+            )}
           </button>
         </form>
       </div>
 
       {/* Left: Notification & Profile */}
-      <div className="nav-controls">
-        <button className="notification-button" aria-label="התראות">
-          <span className="button-icon">🔔</span>
-          <span className="notification-badge">3</span>
+      <div className="flex items-center gap-2 flex-1 justify-end">
+        <button
+          className="relative w-10 h-10 rounded-full bg-[#F5F0E8] flex items-center justify-center hover:bg-black/10"
+          aria-label="התראות"
+        >
+          <span className="text-lg">🔔</span>
+          <span className="absolute -top-1 -right-1 bg-[#D94C1A] text-white rounded-full w-4 h-4 text-[11px] flex items-center justify-center font-bold">
+            3
+          </span>
         </button>
-
-        <button className="profile-button" aria-label="פרופיל">
-          <span className="button-icon">👤</span>
+        <button
+          className="w-10 h-10 rounded-full bg-[#F5F0E8] flex items-center justify-center hover:bg-black/10"
+          aria-label="פרופיל"
+        >
+          <span className="text-lg">👤</span>
         </button>
       </div>
     </div>
