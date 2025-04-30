@@ -14,7 +14,7 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[#FDF0DC]">
       <Navbar />
       <div className="p-4 max-w-2xl mx-auto">
         <CreatePost addPost={addPost} />
