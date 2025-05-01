@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import './Navbar.css';
+import { Button } from './ui/button';
 
 const Navbar = () => {
   const [searchInput, setSearchInput] = useState('');
@@ -14,65 +14,84 @@ const Navbar = () => {
   };
 
   return (
-    <div className="navbar" dir="rtl">
-      {/* Right: Navigation buttons */}
-      <div className="nav-buttons">
-        <button
-          className={`nav-button ${activeTab === 'home' ? 'active' : ''}`}
-          onClick={() => setActiveTab('home')}
-        >
-          <span className="button-icon">🏠</span>
-          <span className="button-text">דף הבית</span>
-        </button>
-
-        <button
-          className={`nav-button ${activeTab === 'messenger' ? 'active' : ''}`}
-          onClick={() => setActiveTab('messenger')}
-        >
-          <span className="button-icon">💬</span>
-          <span className="button-text">הודעות</span>
-        </button>
-
-        <button
-          className={`nav-button ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
-        >
-          <span className="button-icon">⚙️</span>
-          <span className="button-text">הגדרות</span>
-        </button>
+    <div className="fixed top-0 left-0 w-full bg-red-900 px-4 py-2 flex flex-wrap items-center justify-between shadow-md border-b border-black/10 z-50" dir="rtl">
+      
+      {/* Navigation buttons - Consistent borders */}
+      <div className="flex items-center gap-2 flex-1 justify-start">
+        {[
+          { tab: 'home', icon: '🏠', text: 'דף הבית' },
+          { tab: 'messenger', icon: '💬', text: 'הודעות' },
+          { tab: 'settings', icon: '⚙️', text: 'הגדרות' },
+        ].map(({ tab, icon, text }) => (
+          <Button
+            key={tab}
+            variant="ghost"
+            size="sm"
+            className={`gap-1 text-white border border-transparent rounded-md hover:bg-red-800 ${
+              activeTab === tab 
+                ? 'bg-red-800' 
+                : ''
+            }`}
+            onClick={() => setActiveTab(tab)}
+          >
+            <span className="text-lg">{icon}</span>
+            <span className="hidden sm:inline">{text}</span>
+          </Button>
+        ))}
       </div>
 
-      {/* Center: Search bar */}
-      <div className="search-bar-wrapper">
-        <form className="search-container" onSubmit={handleSearch}>
-          <div className="search-wrapper">
+      {/* Search bar */}
+      <div className="flex-1 flex justify-center mt-2 sm:mt-0">
+        <form className="flex items-center w-full sm:w-auto px-2" onSubmit={handleSearch}>
+          <div className="relative flex items-center w-full sm:w-[350px]">
             <input
               type="text"
               placeholder="חפש..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
+              className="bg-white/20 text-white h-9 pl-10 pr-4 rounded-full text-sm w-full focus:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all placeholder:text-white/70"
             />
-            <div className="search-icon-wrapper">
-              <span className="search-icon">🔍</span>
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 text-sm pointer-events-none">
+              🔍
             </div>
           </div>
-          <button type="submit" className="search-button" disabled={isSearching}>
-            <span className="button-icon">🔍</span>
-            {isSearching && <div className="search-loader"></div>}
-          </button>
+          <Button
+            type="submit"
+            variant="ghost"
+            size="icon"
+            className="ml-2 text-white border border-transparent rounded-md hover:bg-red-800"
+            disabled={isSearching}
+          >
+            {isSearching ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <span className="text-lg">🔍</span>
+            )}
+          </Button>
         </form>
       </div>
 
-      {/* Left: Notification & Profile */}
-      <div className="nav-controls">
-        <button className="notification-button" aria-label="התראות">
-          <span className="button-icon">🔔</span>
-          <span className="notification-badge">3</span>
-        </button>
-
-        <button className="profile-button" aria-label="פרופיל">
-          <span className="button-icon">👤</span>
-        </button>
+      {/* Notification & Profile */}
+      <div className="flex items-center gap-2 flex-1 justify-end mt-2 sm:mt-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative text-white border border-transparent rounded-md hover:bg-red-800"
+          aria-label="התראות"
+        >
+          <span className="text-lg">🔔</span>
+          <span className="absolute -top-1 -right-1 bg-white text-red-900 rounded-full w-4 h-4 text-[11px] flex items-center justify-center font-bold">
+            3
+          </span>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-white border border-transparent rounded-md hover:bg-red-800"
+          aria-label="פרופיל"
+        >
+          <span className="text-lg">👤</span>
+        </Button>
       </div>
     </div>
   );
