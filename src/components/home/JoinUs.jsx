@@ -1,5 +1,5 @@
 import React from 'react';
-import CTAButton from './CTAButton';
+import CTAButton from '../CTAButton';
 
 const JoinUs = () => {
   return (

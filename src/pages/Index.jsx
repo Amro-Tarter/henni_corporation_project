@@ -2,15 +2,15 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Feather, Droplet, Leaf, Flame } from 'lucide-react';
 
-import Hero from '../components/Hero';
+import Hero from '../components/home/Hero';
 import Navigation from '../components/layout/Navigation';
-import ElementSection from '../components/ElementSection';
+import ElementSection from '../components/home/ElementSection';
 import EventsSection from '../components/home/EventsSection';
 import ProgramSection from '../components/home/ProgramSection';
-import JoinUs from '../components/JoinUs';
+import JoinUs from '../components/home/JoinUs';
 import Footer from '../components/layout/Footer';
-import OurStory from '../components/OurStory';
-import Gallery from '@/components/Gallery';
+import OurStory from '@/components/home/OurStory';
+import Gallery from '@/components/home/Gallery';
 import AboutSection from '../components/home/AboutSection';
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
