@@ -45,7 +45,7 @@ const ProfilePage = () => {
   };
 
   return (
-    <div dir="rtl" className="min-h-screen flex flex-col bg-[#FDF0DC]">
+    <div dir="rtl" className="min-h-screen flex flex-col bg-white">
       <Navbar />
       <div className="flex flex-1 pt-[56.8px]">
         {/* Fixed Left Sidebar */}

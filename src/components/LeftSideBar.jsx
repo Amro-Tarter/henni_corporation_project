@@ -17,7 +17,7 @@ const onlineFriends = [
 
 const LeftSidebar = () => {
   return (
-    <aside className="flex flex-col h-full w-64 bg-[#FDF0DC] text-gray-900 border-r border-black p-6 overflow-y-auto">
+    <aside className="flex flex-col h-full w-64 bg-white text-gray-900 border-r border-black p-6 overflow-y-auto">
 
       {/* Friend Suggestions */}
       <section className="mb-8">
