@@ -13,7 +13,7 @@ const CreatePost = ({ addPost }) => {
   };
 
   return (
-    <div className="mb-10 flex justify-center items-start bg-[#FDF0DC] pt-20 px-4 sm:px-6 md:px-8">
+    <div className="mb-10 flex justify-center items-start bg-[#FDF0DC] pt-5 px-4 sm:px-6 md:px-8">
       <div className="bg-white  w-[800px] rounded-xl p-4 shadow-md" dir="rtl">
         {/* Header with profile and text input */}
         <div className="flex flex-row-reverse items-start gap-2 mb-4">
