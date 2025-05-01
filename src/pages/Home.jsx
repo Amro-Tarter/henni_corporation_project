@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
+<<<<<<< HEAD
 import Navbar from '../components/Navbar';
 import CreatePost from '../components/createpost';
 import PostList from '../components/Postlist';
 import Sidebar from '../components/Rightsidebar';
+=======
+import Navbar from '../components/social/Navbar';
+import CreatePost from '../components/social/createpost';
+import PostList from '../components/social/Postlist';
+>>>>>>> ee409a721170ac85a8bbe606b64927bec090779f
 
 const Home = () => {
   const [posts, setPosts] = useState([
