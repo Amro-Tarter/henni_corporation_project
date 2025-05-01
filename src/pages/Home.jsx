@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Navbar from '../components/social/Navbar';
 import CreatePost from '../components/social/createpost';
 import PostList from '../components/social/Postlist';
+import Sidebar from '../components/social/RightSidebar';
 
 
 const Home = () => {

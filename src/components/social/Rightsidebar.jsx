@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from './ui/button';
+import { Button } from '../ui/button';
 import { ChevronRight, ChevronLeft, Search, Bell, Home, MessageSquare, Settings, User } from 'lucide-react';
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
