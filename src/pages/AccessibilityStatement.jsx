@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import Navigation from '../components/Navigation';
-import Footer from '../components/Footer';
+import Navigation from '../components/layout/Navigation';
+import Footer from '../components/layout/Footer';
 
 const AccessibilityStatement = () => {
   return (

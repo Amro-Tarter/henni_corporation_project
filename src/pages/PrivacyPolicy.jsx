@@ -1,11 +1,9 @@
 import React from 'react';
-import Navigation from '../components/Navigation';
-import Footer from '../components/Footer';
+import Layout from '../components/layout/layout';
 
 const PrivacyPolicy = () => {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navigation />
+    <Layout>
       <main className="flex-grow">
         <div className="container mx-auto px-6 py-16">
           <h1 className="text-3xl font-bold mb-8">הצהרת פרטיות</h1>
@@ -17,8 +15,7 @@ const PrivacyPolicy = () => {
           </div>
         </div>
       </main>
-      <Footer />
-    </div>
+      </Layout>
   );
 };
 

@@ -12,7 +12,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfUse from './pages/TermsOfUse';
 import SignIn from './pages/SignIn';
 import Home from './pages/Home';
-
+import Contact from './pages/Contact'; 
 // Create a react-query client
 const queryClient = new QueryClient();
 
@@ -30,7 +30,7 @@ const App = () => {
               <Route path="/accessibility" element={<AccessibilityStatement />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfUse />} />
-              
+              <Route path="/contact" element={<Contact />} />
               {/* New Pages */}
               <Route path="/signin" element={<SignIn />} />
               <Route path="/home" element={<Home />} />
