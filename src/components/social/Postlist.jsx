@@ -3,9 +3,14 @@ import Post from './Post';
 
 const PostList = ({ posts }) => {
   return (
-    <div>
+    <div className="space-y-4">
       {posts.map((post, idx) => (
-        <Post key={idx} text={post.text} author={post.author} />
+        <Post 
+          key={idx} 
+          text={post.text} 
+          author={post.author || { name: 'Anonymous', avatar: '' }}
+          media={post.media}
+        />
       ))}
     </div>
   );
