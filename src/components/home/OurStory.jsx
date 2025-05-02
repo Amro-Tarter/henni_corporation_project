@@ -14,7 +14,8 @@ const BLOB_COLORS = ["#FF4500", "#FF6347", "#FF8C00"];
 
 const OurStory = () => {
   return (
-    <section id="our-story" className="relative py-24 overflow-hidden bg-gradient-to-b from-fire/5 to-orange-100/20">
+    <section id="our-story"       className="relative py-20 md:py-28 bg-gradient-to-br from-orange-100 via-orange-200 to-yellow-100 overflow-hidden"
+>
       <div className="container mx-auto px-6 space-y-32">
         {/* Creative Leadership List */}
         <div className="relative bg-white/80 backdrop-blur-md rounded-xl p-10 shadow-2xl">

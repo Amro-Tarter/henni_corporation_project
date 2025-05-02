@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import {fadeSlideUp} from '@/lib/animations'; 
 
 const Hero = () => {
   return (
@@ -22,14 +23,14 @@ const Hero = () => {
 
       {/* Hero Content */}
       <div className="relative z-10 text-center px-4 sm:px-6 md:px-8 max-w-6xl mx-auto">
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="font-title text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white mb-6 sm:mb-8 drop-shadow-lg leading-tight"
-        >
-          לגלות את האור – הנני
-        </motion.h1>
+          <motion.h1
+            variants={fadeSlideUp}
+            initial="hidden"
+            animate="visible"
+            className="font-title text-6xl text-white mb-6 drop-shadow-lg"
+          >
+             לגלות את האור – הנני
+          </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
