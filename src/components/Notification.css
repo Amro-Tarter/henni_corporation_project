@@ -1,0 +1,28 @@
+.notification {
+    position: relative; /* ✅ stays inside auth-container */
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: #f8d7da; /* red background for error */
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  text-align: center;
+  }
+  
+  .notification.success {
+    background-color: #daf5d4;
+    color: #256029;
+    border-left: 6px solid #4caf50;
+  }
+  
+  .notification.error {
+    background-color: #fbe2e5;
+    color: #9b1c1c;
+    border-left: 6px solid #f44336;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  
