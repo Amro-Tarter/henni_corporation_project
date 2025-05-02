@@ -99,6 +99,7 @@
   body {
     @apply bg-background text-foreground font-heebo;
     direction: rtl;
+    display: block !important;
   }
 
   h1, h2, h3, h4, .font-title {
@@ -139,4 +140,6 @@
   .fixed-carousel {
     @apply sticky top-1/2 -translate-y-1/2;
   }
+
+
 }

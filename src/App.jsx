@@ -12,7 +12,9 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfUse from './pages/TermsOfUse';
 import SignIn from './pages/SignIn';
 import Home from './pages/Home';
+import ProfilePage from './pages/profilePage'; 
 import Contact from './pages/Contact'; 
+
 // Create a react-query client
 const queryClient = new QueryClient();
 
@@ -34,6 +36,7 @@ const App = () => {
               {/* New Pages */}
               <Route path="/signin" element={<SignIn />} />
               <Route path="/home" element={<Home />} />
+              <Route path="/profile" element={<ProfilePage />} />
               {/* 404 Page */}
               <Route path="*" element={<NotFound />} />
             </Routes>
