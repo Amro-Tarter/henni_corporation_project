@@ -31,7 +31,7 @@ const App = () => {
               <Route path="/accessibility" element={<AccessibilityStatement />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfUse />} />
-              
+              <Route path="/contact" element={<Contact />} />
               {/* New Pages */}
               <Route path="/signin" element={<SignIn />} />
               <Route path="/home" element={<Home />} />

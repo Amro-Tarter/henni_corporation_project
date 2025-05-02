@@ -21,12 +21,12 @@ const Hero = () => {
       </div>
 
       {/* Hero Content */}
-      <div className="relative z-10 text-center px-6 max-w-6xl mx-auto">
+      <div className="relative z-10 text-center px-4 sm:px-6 md:px-8 max-w-6xl mx-auto">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="font-title text-5xl md:text-7xl lg:text-8xl text-white mb-8 drop-shadow-lg leading-tight"
+          className="font-title text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-white mb-6 sm:mb-8 drop-shadow-lg leading-tight"
         >
           לגלות את האור – הנני
         </motion.h1>
@@ -35,7 +35,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-2xl md:text-3xl lg:text-4xl text-orange-400 font-medium mb-12 max-w-4xl mx-auto drop-shadow-md leading-relaxed"
+          className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-orange-400 font-medium mb-8 sm:mb-12 max-w-4xl mx-auto drop-shadow-md leading-relaxed"
         >
           בעמותה אנו מאמינים ביצירת דור חדש של מנהיגים צעירים ואותנטיים דרך עולם האמנות והיצירה
         </motion.p>
@@ -44,17 +44,17 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="flex flex-col md:flex-row items-center justify-center gap-6"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6"
         >
           <a
             href="#join-us"
-            className="bg-orange-500 text-white px-10 py-4 rounded-lg text-xl font-medium hover:bg-orange-600 transition-colors duration-300 shadow-lg hover:shadow-xl"
+            className="bg-orange-500 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-lg text-lg sm:text-xl font-medium hover:bg-orange-600 transition-colors duration-300 shadow-lg hover:shadow-xl"
           >
             הצטרפו אלינו
           </a>
           <Link
             to="/signin"
-            className="flex items-center gap-3 text-white hover:text-orange-400 transition-colors duration-300 text-xl font-medium"
+            className="flex items-center gap-2 sm:gap-3 text-white hover:text-orange-400 transition-colors duration-300 text-lg sm:text-xl font-medium"
           >
             לפלטפורמה שלנו
           </Link>
