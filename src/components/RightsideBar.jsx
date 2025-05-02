@@ -43,13 +43,12 @@ const RightSidebar = () => {
 
       {/* Sidebar */}
       <aside
-        dir="rtl"
         className={`fixed top-[56.8px] bottom-0 right-0 w-64 bg-white shadow-xl transition-transform duration-500 ease-in-out z-40 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         } flex flex-col overflow-hidden`}
       >
         {/* Search */}
-        <form onSubmit={handleSearch} className="px-4 pt-6">
+        <form onSubmit={handleSearch} className="px-4 pt-16">
           <div className="relative">
             <input
               type="text"

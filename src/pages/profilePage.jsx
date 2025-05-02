@@ -7,8 +7,8 @@ import CreatePost from '../components/CreatePost';
 import Post from '../components/ProfilePost';
 
 const ProfilePage = () => {
-  const [profilePic] = useState('/default_user_pic.jpg');
-  const [username] = useState('Mohamad Dweik');
+  const [profilePic] = useState('/laith.jpg');
+  const [username] = useState('Laith Mimi');
   const [location] = useState('Jerusalem');
   const [bio] = useState('Software engineer, tech enthusiast, love bitches.');
   const [postsCount] = useState(10);
@@ -18,8 +18,8 @@ const ProfilePage = () => {
   const posts = [
     {
       id: 1,
-      userAvatar: '/default_user_pic.jpg',
-      username: 'Mohamad Dweik',
+      userAvatar: profilePic,
+      username: username,
       timeAgo: '2h ago',
       mediaType: 'image',
       media: '/sculpture.jpg',
@@ -29,8 +29,8 @@ const ProfilePage = () => {
     },
     {
       id: 2,
-      userAvatar: '/default_user_pic.jpg',
-      username: 'Mohamad Dweik',
+      userAvatar: profilePic,
+      username: username,
       timeAgo: '1d ago',
       mediaType: 'video',
       media: '/video/background vid.mp4',
@@ -65,11 +65,11 @@ const ProfilePage = () => {
             followingCount={followingCount}
           />
 
-          <CreatePost addPost={addPost} />
+          <CreatePost addPost={addPost} profilePic={profilePic} />
 
           <section className="space-y-6">
             {posts.map((post) => (
-              <Post key={post.id} post={post} />
+              <Post key={post.id} post={post} profilePic={profilePic} />
             ))}
           </section>
         </main>

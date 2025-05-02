@@ -1,99 +1,84 @@
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 
+const navTabs = [
+  { id: 'home', icon: '🏠', label: 'דף הבית' },
+  { id: 'messenger', icon: '💬', label: 'הודעות' },
+  { id: 'settings', icon: '⚙️', label: 'הגדרות' },
+];
+
 const Navbar = () => {
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [activeTab, setActiveTab] = useState('settings');
+  const [activeTab, setActiveTab] = useState('home');
 
   const handleSearch = (e) => {
     e.preventDefault();
-    console.log('מחפש:', searchInput);
     setIsSearching(true);
     setTimeout(() => setIsSearching(false), 1000);
   };
 
   return (
-    <div className="fixed top-0 left-0 w-full bg-red-900 px-4 py-2 flex flex-wrap items-center justify-between shadow-md border-b border-black/10 z-50" dir="rtl">
-      
-      {/* Navigation buttons - Consistent borders */}
-      <div className="flex items-center gap-2 flex-1 justify-start">
-        {[
-          { tab: 'home', icon: '🏠', text: 'דף הבית' },
-          { tab: 'messenger', icon: '💬', text: 'הודעות' },
-          { tab: 'settings', icon: '⚙️', text: 'הגדרות' },
-        ].map(({ tab, icon, text }) => (
-          <Button
-            key={tab}
-            variant="ghost"
-            size="sm"
-            className={`gap-1 text-white border border-transparent rounded-md hover:bg-red-800 ${
-              activeTab === tab 
-                ? 'bg-red-800' 
-                : ''
-            }`}
-            onClick={() => setActiveTab(tab)}
-          >
-            <span className="text-lg">{icon}</span>
-            <span className="hidden sm:inline">{text}</span>
-          </Button>
-        ))}
-      </div>
+    <header
+      dir="rtl"
+      className="fixed top-0 left-0 w-full bg-orange-500 border-b border-orange-600 z-50"
+    >
+      <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
 
-      {/* Search bar */}
-      <div className="flex-1 flex justify-center mt-2 sm:mt-0">
-        <form className="flex items-center w-full sm:w-auto px-2" onSubmit={handleSearch}>
-          <div className="relative flex items-center w-full sm:w-[350px]">
+        {/* Navigation Tabs */}
+        <nav className="flex flex-row-reverse items-center space-x-4 space-x-reverse">
+          {navTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1 px-3 py-1 rounded-md text-white text-sm transition-colors duration-200 hover:bg-orange-400 ${
+                activeTab === tab.id ? 'bg-orange-700 font-semibold' : ''
+              }`}
+            >
+              <span className="text-lg leading-none">{tab.icon}</span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Search Bar */}
+        <form onSubmit={handleSearch} className="flex-1 mx-6 max-w-md">
+          <div className="relative">
             <input
               type="text"
               placeholder="חפש..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="bg-white/20 text-white h-9 pl-10 pr-4 rounded-full text-sm w-full focus:bg-white/30 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all placeholder:text-white/70"
+              className="w-full border border-orange-300 rounded-full py-2 pl-10 pr-4 text-gray-800 placeholder-gray-600 focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400 transition"
             />
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70 text-sm pointer-events-none">
-              🔍
-            </div>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600">🔍</span>
           </div>
-          <Button
-            type="submit"
-            variant="ghost"
-            size="icon"
-            className="ml-2 text-white border border-transparent rounded-md hover:bg-red-800"
-            disabled={isSearching}
-          >
-            {isSearching ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <span className="text-lg">🔍</span>
-            )}
-          </Button>
         </form>
-      </div>
 
-      {/* Notification & Profile */}
-      <div className="flex items-center gap-2 flex-1 justify-end mt-2 sm:mt-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative text-white border border-transparent rounded-md hover:bg-red-800"
-          aria-label="התראות"
-        >
-          <span className="text-lg">🔔</span>
-          <span className="absolute -top-1 -right-1 bg-white text-red-900 rounded-full w-4 h-4 text-[11px] flex items-center justify-center font-bold">
-            3
-          </span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-white border border-transparent rounded-md hover:bg-red-800"
-          aria-label="פרופיל"
-        >
-          <span className="text-lg">👤</span>
-        </Button>
+        {/* Actions */}
+        <div className="flex flex-row-reverse items-center space-x-4 space-x-reverse">
+          <Button
+            variant="ghost"
+            className="relative text-white hover:bg-orange-400 p-2 rounded-full transition"
+            aria-label="התראות"
+            onClick={() => setActiveTab('notifications')}
+          >
+            <span className="text-lg">🔔</span>
+            <span className="absolute -top-1 -left-1 bg-orange-700 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center">
+              3
+            </span>
+          </Button>
+          <Button
+            variant="ghost"
+            className="text-white hover:bg-orange-400 p-2 rounded-full transition"
+            aria-label="פרופיל"
+            onClick={() => setActiveTab('profile')}
+          >
+            <span className="text-lg">👤</span>
+          </Button>
+        </div>
       </div>
-    </div>
+    </header>
   );
 };
 

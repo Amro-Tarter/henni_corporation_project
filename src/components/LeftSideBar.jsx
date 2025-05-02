@@ -17,11 +17,12 @@ const onlineFriends = [
 
 const LeftSidebar = () => {
   return (
-    <aside className="flex flex-col h-full w-64 bg-white text-gray-900 border-r border-black p-6 overflow-y-auto">
+    <aside className="flex flex-col h-full w-64 bg-white text-gray-900 border-r border-gray-200 p-6 overflow-y-auto">
 
       {/* Friend Suggestions */}
       <section className="mb-8">
-        <h2 className="text-xl font-bold mb-4">הצעות לחברים</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">הצעות לחברים</h2>
+        <div className="h-0.5 w-12 bg-orange-500 rounded mb-4" />
         <div className="space-y-4">
           {friendSuggestions.map(user => (
             <div key={user.id} className="flex items-center justify-between">
@@ -36,7 +37,7 @@ const LeftSidebar = () => {
                   <p className="text-xs text-gray-500">{user.location}</p>
                 </div>
               </div>
-              <button className="px-3 py-1 text-xs font-semibold text-white bg-[#D94C1A] rounded hover:bg-blue-600">
+              <button className="px-3 py-1 text-xs font-semibold text-white bg-orange-500 rounded-full hover:bg-orange-600 transition">
                 לעקוב
               </button>
             </div>
@@ -46,7 +47,8 @@ const LeftSidebar = () => {
 
       {/* Online Friends */}
       <section className="mb-8">
-        <h2 className="text-xl font-bold mb-4">חברים מקוונים</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">חברים מקוונים</h2>
+        <div className="h-0.5 w-12 bg-orange-500 rounded mb-4" />
         <div className="grid grid-cols-4 gap-3">
           {onlineFriends.map(friend => (
             <div key={friend.id} className="relative">
@@ -62,13 +64,27 @@ const LeftSidebar = () => {
       </section>
 
       {/* Trending Topics */}
-      <section>
-        <h2 className="text-xl font-bold mb-4">נושאים פופולריים</h2>
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">נושאים פופולריים</h2>
+        <div className="h-0.5 w-12 bg-orange-500 rounded mb-4" />
         <ul className="space-y-2">
-          <li className="text-sm hover:text-blue-500 cursor-pointer">#WebDevelopment</li>
-          <li className="text-sm hover:text-blue-500 cursor-pointer">#ReactJS</li>
-          <li className="text-sm hover:text-blue-500 cursor-pointer">#TechNews</li>
+          <li className="text-sm hover:text-orange-600 cursor-pointer transition">#WebDevelopment</li>
+          <li className="text-sm hover:text-orange-600 cursor-pointer transition">#ReactJS</li>
+          <li className="text-sm hover:text-orange-600 cursor-pointer transition">#TechNews</li>
         </ul>
+      </section>
+
+      {/* Suggested Tags */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">תגים מומלצים</h2>
+        <div className="h-0.5 w-12 bg-orange-500 rounded mb-4" />
+        <div className="flex flex-wrap gap-2">
+          {['#Design', '#JavaScript', '#UIUX', '#Algorithms'].map(tag => (
+            <span key={tag} className="text-xs text-gray-700 bg-orange-100 px-2 py-1 rounded-full hover:bg-orange-200 transition cursor-pointer">
+              {tag}
+            </span>
+          ))}
+        </div>
       </section>
 
     </aside>
