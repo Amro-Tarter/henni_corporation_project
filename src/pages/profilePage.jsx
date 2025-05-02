@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import Navbar from '../components/Navbar';
+import Navbar from '../components/social/Navbar';
 import LeftSidebar from '../components/LeftSideBar';
 import RightSidebar from '../components/RightsideBar';
 import ProfileInfo from '../components/profileInfo';
-import CreatePost from '../components/CreatePost';
 import Post from '../components/ProfilePost';
+import CreatePost from '../components/social/createpost';
 
 const ProfilePage = () => {
   const [profilePic] = useState('/laith.jpg');

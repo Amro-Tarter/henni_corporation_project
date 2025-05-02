@@ -12,7 +12,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfUse from './pages/TermsOfUse';
 import SignIn from './pages/SignIn';
 import Home from './pages/Home';
-import ProfilePage from './pages/profilePage';  
+import ProfilePage from './pages/profilePage'; 
+import Contact from './pages/Contact'; 
 
 // Create a react-query client
 const queryClient = new QueryClient();
