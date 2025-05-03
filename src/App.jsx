@@ -11,7 +11,9 @@ import NotFound from './pages/NotFound';
 import AccessibilityStatement from './pages/AccessibilityStatement';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfUse from './pages/TermsOfUse';
-import SignIn from './pages/SignIn';
+import LogIn from './pages/logIn';
+import SignUp from './pages/signUp';
+import ForgotPassword from './pages/forgotPassword';
 import Home from './pages/Home';
 import ProfilePage from './pages/profilePage'; 
 import Contact from './pages/Contact'; 
@@ -49,6 +51,5 @@ const App = () => {
     </React.StrictMode>
   );
 };
->>>>>>> main
 
 export default App;
