@@ -17,7 +17,9 @@ const Login = () => {
       await signInWithEmailAndPassword(auth, form.email, form.password);
       setNotification({ message: "התחברת בהצלחה!", type: "success" });
       setForm({ email: "", password: "" });
-      // Redirect user if needed
+      setTimeout(() => {
+        window.location.href = "/home"; // Redirect user to the home page
+      }, 200);
     } catch (error) {
       let message = "שגיאה בהתחברות";
       if (error.code === "auth/user-not-found") {

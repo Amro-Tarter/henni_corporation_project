@@ -54,7 +54,7 @@ const Hero = () => {
             הצטרפו אלינו
           </a>
           <Link
-            to="/signin"
+            to="/login"
             className="flex items-center gap-2 sm:gap-3 text-white hover:text-orange-400 transition-colors duration-300 text-lg sm:text-xl font-medium"
           >
             לפלטפורמה שלנו

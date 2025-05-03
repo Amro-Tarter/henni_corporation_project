@@ -49,7 +49,7 @@ const ForgotPassword = () => {
           <button type="submit">שלח קישור</button>
         </form>
         <div className="auth-links">
-          <a href="/">חזרה להתחברות</a>
+          <a href="/logIn">חזרה להתחברות</a>
         </div>
       </div>
     </div>
