@@ -105,7 +105,7 @@ const ProgramSection = () => {
               </TabsTrigger>
             ))}
           </TabsList>
-
+            
           {years.map((yearData, index) => (
             <TabsContent key={index} value={`year${yearData.year}`} className="mt-0">
               <YearTab {...yearData} />

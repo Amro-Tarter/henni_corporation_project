@@ -63,7 +63,8 @@ const ElementsSection = () => {
   ];
 
   return (
-    <section className="py-24 bg-gradient-to-b from-white to-slate-100" id="elements">
+    <section       className="relative py-20 md:py-28 bg-gradient-to-br from-orange-100 via-orange-200 to-yellow-100 overflow-hidden"
+    id="elements">
       <div className="container mx-auto px-6">
         <div className="text-center mb-16" dir="rtl">
           <h2 className="font-gveret-levin text-4xl md:text-5xl text-fire-dark mb-4">

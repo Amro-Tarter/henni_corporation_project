@@ -76,7 +76,7 @@ const EventsSection = () => {
   ];
 
   return (
-    <section className="py-24 bg-gradient-to-b from-orange-50 to-orange-100" id="events" dir="rtl">
+    <section className="py-24 bg-gradient-to-b from-white to-slate-100" id="events" dir="rtl">
       <div className="container mx-auto px-4">
         <div className="text-center mb-20">
           <h2 className="font-gveret-levin text-4xl md:text-5xl text-fire-dark mb-6">
