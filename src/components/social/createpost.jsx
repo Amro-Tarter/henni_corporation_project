@@ -1,60 +1,73 @@
 import React, { useState } from 'react';
 import { FaVideo, FaPhotoVideo, FaSmile } from 'react-icons/fa';
 
-const CreatePost = ({ addPost }) => {
+const CreatePost = ({ addPost, profilePic }) => {
   const [text, setText] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (text.trim()) {
-      addPost(text);
+      addPost(text.trim());
       setText('');
     }
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md">
-      {/* Header with profile and text input */}
-      <div className="flex items-start space-x-4">
-        <img
-          src="https://via.placeholder.com/40"
-          alt="Profile"
-          className="w-10 h-10 rounded-full"
-        />
-        <textarea
-          className="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="What's on your mind...?"
-          rows="3"
-        />
-      </div>
+    <div className="flex justify-center px-4 sm:px-6 md:px-8 pt-10">
+      <div className="w-full max-w-3xl bg-white rounded-2xl p-6 space-y-4 border border-orange-200" dir="rtl">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Header: Avatar + Textarea */}
+          <div className="flex items-start gap-4">
+            <img
+              src={profilePic}
+              alt="Profile"
+              className="w-12 h-12 rounded-full object-cover border-2 border-orange-500"
+            />
+            <textarea
+              className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-800 resize-none h-24 focus:outline-none focus:ring-2 focus:ring-orange-300 transition"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="What's on your mind?"
+            />
+          </div>
 
-      {/* Facebook-style action buttons */}
-      <div className="flex justify-between mt-4">
-        <button className="flex items-center space-x-2 text-red-500 hover:bg-red-100 px-4 py-2 rounded-lg">
-          <FaVideo />
-          <span>Live video</span>
-        </button>
-        <button className="flex items-center space-x-2 text-green-500 hover:bg-green-100 px-4 py-2 rounded-lg">
-          <FaPhotoVideo />
-          <span>Photo/video</span>
-        </button>
-        <button className="flex items-center space-x-2 text-orange-500 hover:bg-orange-100 px-4 py-2 rounded-lg">
-          <FaSmile />
-          <span>Feeling/activity</span>
-        </button>
-      </div>
+          {/* Media Options */}
+          <div className="flex flex-wrap gap-4 justify-between">
+            <button
+              type="button"
+              className="flex items-center gap-2 flex-1 sm:flex-auto justify-center bg-orange-50 text-orange-600 rounded-lg px-4 py-2 hover:bg-orange-100 transition"
+            >
+              <FaVideo className="h-5 w-5" />
+              מסך חי
+            </button>
+            <button
+              type="button"
+              className="flex items-center gap-2 flex-1 sm:flex-auto justify-center bg-orange-50 text-orange-600 rounded-lg px-4 py-2 hover:bg-orange-100 transition"
+            >
+              <FaPhotoVideo className="h-5 w-5" />
+              תמונה/וידאו
+            </button>
+            <button
+              type="button"
+              className="flex items-center gap-2 flex-1 sm:flex-auto justify-center bg-orange-50 text-orange-600 rounded-lg px-4 py-2 hover:bg-orange-100 transition"
+            >
+              <FaSmile className="h-5 w-5" />
+              הרגשה/פעילות
+            </button>
+          </div>
 
-      {/* Submit post */}
-      <form onSubmit={handleSubmit} className="mt-4">
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
-        >
-          Post
-        </button>
-      </form>
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={!text.trim()}
+              className="bg-orange-500 text-white font-semibold rounded-full px-6 py-2 text-sm disabled:bg-gray-200 disabled:cursor-not-allowed hover:bg-orange-600 transition"
+            >
+              פוסט
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
