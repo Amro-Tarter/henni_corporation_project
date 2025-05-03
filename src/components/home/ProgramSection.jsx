@@ -85,8 +85,8 @@ const ProgramSection = () => {
   ];
 
   return (
-<section className="py-24 bg-gradient-to-b from-white to-slate-100" dir="rtl">
-<div className="container mx-auto px-6">
+    <section className="py-24 bg-gradient-to-b from-white to-orange-50 rtl">
+      <div className="container mx-auto px-6">
         <div className="text-center mb-20">
           <h2 className="font-gveret-levin text-4xl md:text-5xl text-red-800 mb-4">
             תכנית ארבע השנים שלנו
@@ -105,7 +105,7 @@ const ProgramSection = () => {
               </TabsTrigger>
             ))}
           </TabsList>
-
+            
           {years.map((yearData, index) => (
             <TabsContent key={index} value={`year${yearData.year}`} className="mt-0">
               <YearTab {...yearData} />
