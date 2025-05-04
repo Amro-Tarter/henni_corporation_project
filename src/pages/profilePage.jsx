@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import Navbar from '../components/social/Navbar';
-import LeftSidebar from '../components/LeftSideBar';
-import RightSidebar from '../components/RightsideBar';
-import ProfileInfo from '../components/profileInfo';
-import Post from '../components/ProfilePost';
-import CreatePost from '../components/social/createpost';
+import Navbar from '../components/social/Navbar.jsx';
+import LeftSidebar from '../components/social/LeftSideBar';
+import RightSidebar from '../components/social/Rightsidebar.jsx';
+import ProfileInfo from '../components/social/profileInfo.jsx';
+import CreatePost from '../components/social/CreatePost';
+import Post from '../components/social/ProfilePost.jsx';
 
 const ProfilePage = () => {
   const [profilePic] = useState('/laith.jpg');
