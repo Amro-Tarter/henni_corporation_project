@@ -1,7 +1,6 @@
 import React from 'react';
 import { FaThumbsUp, FaComment, FaShare } from 'react-icons/fa';
 
-// Now accepts a `profilePic` prop from the page
 const Post = ({ post, profilePic }) => (
   <div className="bg-white border border-orange-200 rounded-2xl overflow-hidden mb-6 max-w-3xl mx-auto" dir="rtl">
     {/* Header */}
@@ -17,9 +16,16 @@ const Post = ({ post, profilePic }) => (
       </div>
     </div>
 
+   {/* Description */}
+   {post.description && (
+      <div className="px-4 py-3">
+        <p className="text-gray-700 text-sm sm:text-base leading-relaxed">{post.description}</p>
+      </div>
+    )}
+
     {/* Media */}
     {post.mediaType && (
-      <div className="w-full bg-gray-100 rounded-lg overflow-hidden h-[600px]">
+      <div className="w-full bg-gray-100 overflow-hidden h-[600px]">
         {post.mediaType === 'image' ? (
           <img
             src={post.media}
@@ -35,15 +41,8 @@ const Post = ({ post, profilePic }) => (
       </div>
     )}
 
-    {/* Description */}
-    {post.description && (
-      <div className="px-4 py-3">
-        <p className="text-gray-700 text-sm sm:text-base leading-relaxed">{post.description}</p>
-      </div>
-    )}
-
     {/* Actions */}
-    <div className="px-4 py-2 border-t border-orange-200 flex justify-between text-base">
+    <div className="px-4 py-2 border-t border-orange-200  gap-8 flex text-base">
       <button className="flex items-center gap-2 text-orange-600 hover:text-orange-700 transition">
         <FaThumbsUp className="text-l" />
         <span className="text-lg">{post.likes}</span>

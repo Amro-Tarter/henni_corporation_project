@@ -17,12 +17,11 @@ const tabs = [
   { id: 'settings', icon: <Settings size={20} />, label: 'הגדרות' },
 ];
 
-const RightSidebar = () => {
+const RightSidebar = ({ isOpen, toggle }) => {
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [activeTab, setActiveTab] = useState('settings');
-  const [isOpen, setIsOpen] = useState(true);
-
+  
   const handleSearch = (e) => {
     e.preventDefault();
     setIsSearching(true);
@@ -33,19 +32,25 @@ const RightSidebar = () => {
     <>
       {/* Toggle Button */}
       <Button
-        onClick={() => setIsOpen((o) => !o)}
-        className={`fixed top-16 right-4 z-50 h-12 w-12 rounded-full bg-white text-gray-900 shadow-md transition-transform duration-300 ${
-          isOpen ? 'rotate-180' : 'rotate-0'
-        }`}
+        onClick={toggle}
+        className={`
+          fixed top-16 right-4 z-50 h-12 w-12 rounded-full
+          bg-white text-gray-900 shadow-md
+          transition-transform duration-300
+          ${isOpen ? 'rotate-180' : 'rotate-0'}
+        `}
       >
         {isOpen ? <ChevronRight size={24} /> : <ChevronLeft size={24} />}
       </Button>
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-[56.8px] bottom-0 right-0 w-64 bg-white shadow-xl transition-transform duration-500 ease-in-out z-40 ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        } flex flex-col overflow-hidden`}
+        className={`
+          fixed top-[56.8px] bottom-0 right-0 w-64 bg-white shadow-xl
+          transition-transform duration-500 ease-in-out z-40
+          flex flex-col overflow-hidden
+          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+        `}
       >
         {/* Search */}
         <form onSubmit={handleSearch} className="px-4 pt-16">

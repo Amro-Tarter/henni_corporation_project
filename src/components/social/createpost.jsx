@@ -38,14 +38,14 @@ const CreatePost = ({ addPost, profilePic }) => {
               className="flex items-center gap-2 flex-1 sm:flex-auto justify-center bg-orange-50 text-orange-600 rounded-lg px-4 py-2 hover:bg-orange-100 transition"
             >
               <FaVideo className="h-5 w-5" />
-              מסך חי
+              וידאו
             </button>
             <button
               type="button"
               className="flex items-center gap-2 flex-1 sm:flex-auto justify-center bg-orange-50 text-orange-600 rounded-lg px-4 py-2 hover:bg-orange-100 transition"
             >
               <FaPhotoVideo className="h-5 w-5" />
-              תמונה/וידאו
+              תמונה
             </button>
             <button
               type="button"
