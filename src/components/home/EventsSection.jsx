@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
+import CTAButton from "@/components/CTAButton";
 
 // Motion variants
 const cardVariants = {
@@ -59,7 +60,7 @@ const EventsSection = () => {
       title: "ערב הופעות - תיאטרון ומוזיקה",
       date: "12 במאי, 2025",
       location: "מרכז אמנויות הבמה, תל אביב",
-      image: "https://images.unsplash.com/photo-1508767297656-1356ca851008?auto=format&fit=crop&w=800&q=80",
+      image: "./theater.jpg",
     },
     {
       title: "תערוכת אמנות - יצירות חניכים",
@@ -95,12 +96,18 @@ const EventsSection = () => {
         </div>
 
         <div className="mt-16 text-center">
-          <Link to="/events">
-          <Button className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg rounded-xl shadow-lg transition-transform hover:scale-105 duration-300">
+          <CTAButton
+            href="/events"
+            variant="fire"
+            size="lg"
+            className="px-6 py-3"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="צפו בכל האירועים שלנו – ייפתח בכרטיסייה חדשה"
+            disabled
+          >
             צפו בכל האירועים שלנו
-           </Button>
-
-          </Link>
+          </CTAButton>
         </div>
       </div>
     </section>

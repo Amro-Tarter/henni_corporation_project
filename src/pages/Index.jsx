@@ -1,17 +1,15 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Feather, Droplet, Leaf, Flame } from 'lucide-react';
-
 import Hero from '../components/home/Hero';
 import Navigation from '../components/layout/Navigation';
-import ElementSection from '../components/home/ElementSection';
 import EventsSection from '../components/home/EventsSection';
 import ProgramSection from '../components/home/ProgramSection';
 import JoinUs from '../components/home/JoinUs';
 import Footer from '../components/layout/Footer';
-import OurStory from '@/components/home/OurStory';
 import Gallery from '@/components/home/Gallery';
 import AboutSection from '../components/home/AboutSection';
+import CommunitySection from '../components/home/CommunitySection';
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
   whileInView: { opacity: 1, y: 0 },
@@ -33,19 +31,9 @@ const HomePage = () => {
       <AboutSection/>
       <main className="relative overflow-hidden">
         <FloatingElements />
-        <Gallery />
-        <OurStory />
         <ProgramSection/>
-        {/* Elements - Fire, Air, Water, Earth */}
-        <div className="space-y-24">
-          <ElementSection
-            id="fire-element"
-            element="fire"
-            title="אש - יצירה ותשוקה"
-            illustration={<AnimatedIcon icon={<Flame size={120} className="text-fire" />} bgColor="bg-fire/10" />}
-          >
-          </ElementSection>
-        </div>
+        <Gallery />
+        <CommunitySection/>
         <EventsSection/>
         <JoinUs />
       </main>
@@ -54,18 +42,6 @@ const HomePage = () => {
     </div>
   );
 };
-
-const AnimatedIcon = ({ icon, bgColor }) => (
-  <motion.div
-    className={`aspect-video ${bgColor} rounded-2xl flex items-center justify-center relative shadow-md`}
-    whileHover={{ scale: 1.05 }}
-    transition={{ type: 'spring', stiffness: 300 }}
-  >
-    <div className="relative p-8 md:p-12">
-      {icon}
-    </div>
-  </motion.div>
-);
 
 const FloatingElements = () => (
   <>
