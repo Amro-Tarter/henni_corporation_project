@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "react-router-dom";
+import { Search, Hammer, Activity, Sparkles } from "lucide-react";
 
 const colorMap = {
   red: "#DC2626",
@@ -16,13 +17,13 @@ const getRandomColor = () => {
   return colorMap[keys[Math.floor(Math.random() * keys.length)]];
 };
 
-const YearTab = ({ year, title, description, features }) => {
+const YearTab = ({ icon, title, description, features }) => {
   const [color, setColor] = useState(getRandomColor());
 
   const handleColorChange = () => {
     let newColor = getRandomColor();
     while (newColor === color) {
-      newColor = getRandomColor(); // avoid same color
+      newColor = getRandomColor();
     }
     setColor(newColor);
   };
@@ -37,7 +38,7 @@ const YearTab = ({ year, title, description, features }) => {
     >
       <div className="text-right">
         <h3 style={{ color }} className="text-3xl md:text-4xl font-bold mb-5">
-          שנה {year} – {title}
+          {title}
         </h3>
         <p className="mb-6 text-lg leading-relaxed text-gray-700">{description}</p>
         <ul className="space-y-4 text-base text-gray-600">
@@ -59,9 +60,9 @@ const YearTab = ({ year, title, description, features }) => {
         <button
           onClick={handleColorChange}
           style={{ backgroundColor: color }}
-          className="w-36 h-36 md:w-44 md:h-44 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-xl hover:scale-105 transition-transform duration-300"
+          className="w-36 h-36 md:w-44 md:h-44 rounded-full flex items-center justify-center text-white shadow-xl hover:scale-105 transition-transform duration-300"
         >
-          {year}
+          {icon}
         </button>
       </div>
     </motion.div>
@@ -72,7 +73,8 @@ const ProgramSection = () => {
   const years = [
     {
       year: 1,
-      title: "גילוי – הקול האישי מתעורר",
+      icon: <Search size={48} />,
+      title: "שנה 1 – גילוי: הקול האישי מתעורר",
       description:
         "השלב הראשון במסע הוא שלב הגילוי – בו החניכים לומדים לזהות את הכישרונות הייחודיים שלהם ואת הקול הפנימי שאותו הם רוצים לבטא. זהו הבסיס לכל מסע מנהיגותי.",
       features: [
@@ -83,35 +85,38 @@ const ProgramSection = () => {
     },
     {
       year: 2,
-      title: "פיתוח – הכלים מתחדדים",
+      icon: <Hammer size={48} />,
+      title: "שנה 2 – פיתוח: הכלים מתחדדים",
       description:
-        "בשלב זה מתרחשת העמקה בתחום האמנותי הנבחר. החניכים מתחילים לפתח מיומנויות מתקדמות ומתחילים להרגיש כשולטים בחומר – ומתוך כך, מסוגלים גם להוביל.",
+        "בשלב זה מתרחשת העמקה בתחום האמנותי הנבחר. החניכים מפתחים מיומנויות מתקדמות ומתחילים להרגיש כשולטים בחומר – ומתוך כך, מסוגלים גם להוביל.",
       features: [
         "העמקה אישית בתחומי האמנות",
-        "סדנאות ייחודיות לפיתוח כישורי מנהיגות",
+        "סדנאות לפיתוח כישורי מנהיגות",
         "בניית זהות אמנותית מובחנת",
       ],
     },
     {
       year: 3,
-      title: "יישום – מהשראה לפעולה",
+      icon: <Activity size={48} />,
+      title: "שנה 3 – יישום: מהשראה לפעולה",
       description:
-        "כעת מגיע שלב היישום: החניכים פועלים בשטח, יוזמים פרויקטים אמנותיים-חברתיים, עובדים בצוותים ומתחילים להשפיע על הסביבה דרך העשייה היצירתית שלהם.",
+        "בשלב הזה החניכים לוקחים את הכלים שרכשו ומתחילים לפעול. הם יוזמים פרויקטים, משתפים פעולה ומשפיעים באמצעות האמנות.",
       features: [
-        "ניהול פרויקטים אמנותיים עם ערך חברתי",
-        "הנחיה של קבוצות צעירות",
-        "עבודת צוות, עמידה בזמנים והתמדה",
+        "הובלת פרויקטים אמנותיים עם ערך חברתי",
+        "עבודת צוות והנחיית קבוצות צעירות",
+        "יזמות תרבותית בשטח",
       ],
     },
     {
       year: 4,
-      title: "השפעה – להיות השראה לאחרים",
+      icon: <Sparkles size={48} />,
+      title: "שנה 4 – השפעה: להיות השראה לאחרים",
       description:
-        "בשנה הרביעית, המשתתפים יוצרים פרויקט מסכם אישי או קבוצתי, מתנסים בליווי כמנטורים לדור הבא – ומסכמים מסע שלם של התפתחות, השפעה וזהות.",
+        "המסע מגיע לשיאו: החניכים יוצרים פרויקט גמר משמעותי, מתנסים בהנחיה של אחרים ומתכוננים להמשך הדרך כמנהיגים יצירתיים.",
       features: [
-        "יצירת פרויקט אמנותי משמעותי",
-        "מעבר מתלמיד למנטור",
-        "עיצוב המשך הדרך האישית לאחר התכנית",
+        "יצירת פרויקט אמנותי מסכם",
+        "ליווי מנטורינג לדור הבא",
+        "עיצוב אישי של הדרך קדימה",
       ],
     },
   ];
@@ -125,21 +130,22 @@ const ProgramSection = () => {
           </h2>
           <div className="h-1 w-24 bg-red-600 mx-auto rounded-full mb-6"></div>
           <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-            בדומה למתכת שמתעצבת באש, כך גם תהליך ההתפתחות בתכנית – ארבע שנות עומק, תרגול והובלה דרך אמנות. כל שנה מצמיחה שכבת חוסן חדשה, כלי נוסף, וקול ברור יותר.
+            בדומה למתכת שמתעצבת באש, כך גם תהליך ההתפתחות בתכנית – ארבע שנות עומק, תרגול והובלה דרך אמנות.
+            כל שנה מצמיחה שכבת חוסן חדשה, כלי נוסף, וקול ברור יותר.
           </p>
         </div>
 
         <Tabs defaultValue="year1" className="w-full">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto mb-12 bg-gray-100 p-2 rounded-full shadow-inner rtl">
-            {years.map((yearData, index) => (
-              <TabsTrigger key={index} value={`year${yearData.year}`} className="rounded-full px-4 py-2">
+          <TabsList dir="rtl" className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto mb-12 bg-gray-100 p-2 rounded-full shadow-inner">
+            {years.map((yearData) => (
+              <TabsTrigger key={yearData.year} value={`year${yearData.year}`} className="rounded-full px-4 py-2">
                 שנה {yearData.year}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          {years.map((yearData, index) => (
-            <TabsContent key={index} value={`year${yearData.year}`} className="mt-0">
+          {years.map((yearData) => (
+            <TabsContent key={yearData.year} value={`year${yearData.year}`} className="mt-0">
               <YearTab {...yearData} />
             </TabsContent>
           ))}
