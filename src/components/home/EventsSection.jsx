@@ -59,7 +59,7 @@ const EventsSection = () => {
       title: "ערב הופעות - תיאטרון ומוזיקה",
       date: "12 במאי, 2025",
       location: "מרכז אמנויות הבמה, תל אביב",
-      image: "https://images.unsplash.com/photo-1508767297656-1356ca851008?auto=format&fit=crop&w=800&q=80",
+      image: "./theater.jpg",
     },
     {
       title: "תערוכת אמנות - יצירות חניכים",
