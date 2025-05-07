@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Facebook, Instagram, MessageCircle } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faLeaf,
+  faHammer,
+  faWind,
+  faWater,
+  faFire,
+} from '@fortawesome/free-solid-svg-icons';
 
 const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -14,37 +22,42 @@ const Navigation = () => {
   }, []);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-
   const cn = (...classes) => classes.filter(Boolean).join(' ');
 
   return (
     <header
-      className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-        isScrolled ? 'bg-red-900 shadow-md' : 'bg-red-900 shadow-sm'
-      )}
-      dir="rtl"
+    className={cn(
+      'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+      isScrolled 
+        ? 'bg-red-900 shadow-lg py-2' 
+        : 'bg-gradient-to-b from-red-900/90 to-red-900/70 backdrop-blur-sm py-3'
+    )}
+    dir="rtl"
     >
       <nav className="container mx-auto flex items-center justify-between px-6 py-4">
-        {/* Logo */}
         <a href="/" className="flex items-center">
-          <span className="font-title text-2xl md:text-3xl text-white">
+          <span className="font-title text-xl md:text-2xl lg:text-3xl text-white block">
             לגלות את האור – הנני
           </span>
         </a>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-6 space-x-reverse">
-          <ul className="flex items-center space-x-6 space-x-reverse text-white text-lg">
+        <div className="hidden lg:flex items-center">
+        <ul className="flex items-center space-x-1 space-x-reverse text-white">
             {[
-              { href: '#what-we-do', label: 'מיזמים חינוכיים' },
-              { href: '#our-vision', label: 'החזון שלנו' },
-              { href: '#join-us', label: 'הצטרפו אלינו' },
-              { href: '/Contact', label: 'צרו קשר' },
+              { href: '#about-us', label: 'אדמאודות העמותה', icon: faLeaf },
+              { href: '#leadership-program', label: 'תכנית המנהיגות', icon: faHammer },
+              { href: '#projects', label: 'יצירות ופרויקטים', icon: faWind },
+              { href: '#community', label: 'קהילת העמותה', icon: faWater },
+              { href: '#events', label: 'הצטרפו אלינו', icon: faFire },
             ].map((item, i) => (
               <li key={i}>
-                <a href={item.href} className="hover:text-white/80 transition-colors px-3 py-2">
-                  {item.label}
+                <a
+                  href={item.href}
+                  className="flex items-center px-3 py-2 rounded-lg transition-all duration-300 text-sm font-medium gap-2 hover:bg-white/10"
+
+                >
+                  <FontAwesomeIcon icon={item.icon} className="text-xl" />
+                  <span>{item.label}</span>
                 </a>
               </li>
             ))}
@@ -60,7 +73,6 @@ const Navigation = () => {
             </li>
           </ul>
 
-          {/* Social Icons */}
           <div className="flex items-center space-x-4 space-x-reverse border-r border-white/20 pr-6">
             <a
               href="https://wa.me/972500000000"
@@ -92,7 +104,6 @@ const Navigation = () => {
           </div>
         </div>
 
-        {/* Mobile Menu Toggle */}
         <button
           onClick={toggleMenu}
           className="md:hidden text-white focus:outline-none"
@@ -113,7 +124,6 @@ const Navigation = () => {
         </button>
       </nav>
 
-      {/* Mobile Dropdown Menu */}
       <div
         className={cn(
           'md:hidden bg-red-900 overflow-hidden transition-all duration-300',
