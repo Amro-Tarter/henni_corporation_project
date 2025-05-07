@@ -246,8 +246,8 @@ const ProgramSection = () => {
 
         <div className="mt-20 text-center">
           <Link to="/program">
-            <Button className="bg-red-600 hover:bg-red-700 text-white text-lg px-6 py-3 rounded-xl shadow-md transition-all duration-300">
-              גלו את התכנית המלאה שלנו
+        <Button className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300">
+          גלו את התכנית המלאה שלנו
             </Button>
           </Link>
         </div>

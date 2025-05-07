@@ -119,7 +119,7 @@ const Gallery = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8 }}
-            className="col-span-1 w-[800px] max-w-6xl h-[400px] md:h-[400px] rounded-3xl overflow-hidden shadow-2xl mx-auto"
+            className="col-span-1 w-[700px] max-w-6xl h-[400px] md:h-[400px] rounded-3xl overflow-hidden shadow-2xl mx-auto"
           >
             <video
               autoPlay

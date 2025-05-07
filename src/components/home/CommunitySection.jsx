@@ -152,7 +152,6 @@ const CommunitySection = () => {
                       <div className="p-6 text-right">
                         <h4 className="text-2xl font-bold text-sky-700 mb-2">{story.name}, גיל {story.age}</h4>
                         <p className="text-sky-600 mb-4">{story.story}</p>
-                        <button className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-2 rounded-full transition-colors">קרא/י עוד</button>
                       </div>
                       <div className="h-full flex items-center justify-center p-6">
                     <img
@@ -172,13 +171,13 @@ const CommunitySection = () => {
               onClick={prevStory}
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 bg-white/80 hover:bg-white shadow-md p-2 rounded-full z-10"
             >
-              <ChevronRight className="text-sky-700" />
+              <ChevronLeft className="text-sky-700" />
             </button>
             <button 
               onClick={nextStory}
               className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 bg-white/80 hover:bg-white shadow-md p-2 rounded-full z-10"
             >
-              <ChevronLeft className="text-sky-700" />
+              <ChevronRight className="text-sky-700" />
             </button>
             
             {/* Indicators */}

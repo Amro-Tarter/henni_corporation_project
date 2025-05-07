@@ -96,8 +96,8 @@ const EventsSection = () => {
 
         <div className="mt-16 text-center">
           <Link to="/events">
-          <Button className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 text-lg rounded-xl shadow-lg transition-transform hover:scale-105 duration-300">
-            צפו בכל האירועים שלנו
+          <Button className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300">
+          צפו בכל האירועים שלנו
            </Button>
 
           </Link>

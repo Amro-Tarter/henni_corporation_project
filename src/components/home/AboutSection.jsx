@@ -97,7 +97,7 @@ const AboutSection = () => {
             כמו שתיל שמקבל את כל מה שצריך כדי לצמוח לעץ מלא פירות – כך אנו רואים את תהליך ההתפתחות של בני הנוער.
           </p>
           <Link to="/about">
-            <Button className="bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300">
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300">
               קראו עוד על העמותה שלנו
             </Button>
           </Link>
