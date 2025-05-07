@@ -82,7 +82,6 @@ const CommunitySection = () => {
           <div className="inline-block">
             <h2 className="text-4xl md:text-5xl font-bold text-sky-800 mb-4 relative">
               קהילה זורמת של יוצרים ומשפיעים 
-              <span className="absolute -top-0 left-1 animate-bounce text-4xl">💧</span>
             </h2>
           </div>
           <p className="text-lg text-sky-600 max-w-2xl mx-auto">
