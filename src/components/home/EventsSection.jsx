@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
+import CTAButton from "@/components/CTAButton";
 
 // Motion variants
 const cardVariants = {
@@ -95,12 +96,18 @@ const EventsSection = () => {
         </div>
 
         <div className="mt-16 text-center">
-          <Link to="/events">
-          <Button className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300">
-          צפו בכל האירועים שלנו
-           </Button>
-
-          </Link>
+          <CTAButton
+            href="/events"
+            variant="fire"
+            size="lg"
+            className="px-6 py-3"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="צפו בכל האירועים שלנו – ייפתח בכרטיסייה חדשה"
+            disabled
+          >
+            צפו בכל האירועים שלנו
+          </CTAButton>
         </div>
       </div>
     </section>

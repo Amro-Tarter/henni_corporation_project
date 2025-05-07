@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { Search, Hammer, Activity, Sparkles, Paintbrush, Music, Move3D, Pen } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMasksTheater } from "@fortawesome/free-solid-svg-icons";
+import CTAButton from '@/components/CTAButton';
 
 // תיאטרון - SVG מותאם (אין ב-lucide-react)
 const TheaterIcon = () => (
@@ -246,9 +247,14 @@ const ProgramSection = () => {
 
         <div className="mt-20 text-center">
           <Link to="/program">
-        <Button className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300">
-          גלו את התכנית המלאה שלנו
-            </Button>
+          <CTAButton
+            variant="fire"
+            size="lg"
+            className="shadow-2xl"
+          >
+            גלו את התכנית המלאה שלנו
+          </CTAButton>
+
           </Link>
         </div>
       </div>

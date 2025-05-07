@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {fadeSlideUp} from '@/lib/animations'; 
+import CTAButton from '@/components/CTAButton';
 
 const Hero = () => {
   return (
@@ -47,12 +48,15 @@ const Hero = () => {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6"
         >
-          <a
+          <CTAButton
             href="#join-us"
-            className="bg-orange-500 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-lg text-lg sm:text-xl font-medium hover:bg-orange-600 transition-colors duration-300 shadow-lg hover:shadow-xl"
+            variant="fire"
+            size="lg"
+            className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-lg sm:text-xl font-medium shadow-lg hover:shadow-xl px-8 sm:px-10 py-3 sm:py-4"
           >
             הצטרפו למסע
-          </a>
+          </CTAButton>
+
           <Link
             to="/login"
             className="flex items-center gap-2 sm:gap-3 text-white hover:text-orange-400 transition-colors duration-300 text-lg sm:text-xl font-medium"
