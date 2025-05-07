@@ -51,7 +51,7 @@ const Hero = () => {
             href="#join-us"
             className="bg-orange-500 text-white px-8 sm:px-10 py-3 sm:py-4 rounded-lg text-lg sm:text-xl font-medium hover:bg-orange-600 transition-colors duration-300 shadow-lg hover:shadow-xl"
           >
-            הצטרפו אלינו
+            הצטרפו למסע
           </a>
           <Link
             to="/login"
