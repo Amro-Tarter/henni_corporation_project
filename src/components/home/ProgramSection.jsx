@@ -17,71 +17,103 @@ const getRandomColor = () => {
 };
 
 const YearTab = ({ year, title, description, features }) => {
-    const colorMap = {
-      red: "#DC2626",
-      blue: "#2563EB",
-      orange: "#EA580C",
-      green: "#16A34A",
-    };
-  
-    const [color, setColor] = useState(getRandomColor());
-  
-    const handleColorChange = () => {
-      let newColor = getRandomColor();
-      while (newColor === color) {
-        newColor = getRandomColor(); // avoid same color
-      }
-      setColor(newColor);
-    };
-  
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        viewport={{ once: true, amount: 0.3 }}
-        className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center rtl"
-      >
-        <div className="text-right">
-          <h3 style={{ color }} className="text-3xl md:text-4xl font-bold mb-5">
-            שנה {year} – {title}
-          </h3>
-          <p className="mb-6 text-lg leading-relaxed text-gray-700">{description}</p>
-          <ul className="space-y-4 text-base text-gray-600">
-            {features.map((feature, index) => (
-              <li key={index} className="flex flex-row-reverse items-start">
-                <span
-                  style={{ backgroundColor: color }}
-                  className="mt-1 h-4 w-4 rounded-full flex-shrink-0 shadow-sm ml-3"
-                ></span>
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div
-          style={{ backgroundColor: `${color}10` }}
-          className="rounded-3xl p-10 h-full flex items-center justify-center"
-        >
-          <button
-            onClick={handleColorChange}
-            style={{ backgroundColor: color }}
-            className="w-36 h-36 md:w-44 md:h-44 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-xl hover:scale-105 transition-transform duration-300"
-          >
-            {year}
-          </button>
-        </div>
-      </motion.div>
-    );
+  const [color, setColor] = useState(getRandomColor());
+
+  const handleColorChange = () => {
+    let newColor = getRandomColor();
+    while (newColor === color) {
+      newColor = getRandomColor(); // avoid same color
+    }
+    setColor(newColor);
   };
-  
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      viewport={{ once: true, amount: 0.3 }}
+      className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center rtl"
+    >
+      <div className="text-right">
+        <h3 style={{ color }} className="text-3xl md:text-4xl font-bold mb-5">
+          שנה {year} – {title}
+        </h3>
+        <p className="mb-6 text-lg leading-relaxed text-gray-700">{description}</p>
+        <ul className="space-y-4 text-base text-gray-600">
+          {features.map((feature, index) => (
+            <li key={index} className="flex flex-row-reverse items-start">
+              <span
+                style={{ backgroundColor: color }}
+                className="mt-1 h-4 w-4 rounded-full flex-shrink-0 shadow-sm ml-3"
+              ></span>
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div
+        style={{ backgroundColor: `${color}10` }}
+        className="rounded-3xl p-10 h-full flex items-center justify-center"
+      >
+        <button
+          onClick={handleColorChange}
+          style={{ backgroundColor: color }}
+          className="w-36 h-36 md:w-44 md:h-44 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-xl hover:scale-105 transition-transform duration-300"
+        >
+          {year}
+        </button>
+      </div>
+    </motion.div>
+  );
+};
 
 const ProgramSection = () => {
   const years = [
-    { year: 1, title: "המוכשר מגלה את הקול האישי שבתוכו", description: "בשנה הראשונה, החניכים מתחילים את המסע בגילוי הכישרונות והחוזקות האישיות שלהם.", features: ["זיהוי חוזקות אמנותיות", "פיתוח ביטחון עצמי ויכולת יצירתית", "התנסות במגוון תחומי אמנות"] },
-    { year: 2, title: "המוכשר מפתח מיומנויות", description: "השנה השנייה מוקדשת להעמקה במיומנויות נבחרות והתחלת תהליך של פיתוח פרויקטים אישיים.", features: ["העמקה בתחום האמנותי הנבחר", "סדנאות מנהיגות דרך אמנות", "התחלת עבודה על פרויקט אישי"] },
-    { year: 3, title: "המוכשר מיישם מנהיגות", description: "בשנה השלישית, החניכים מתחילים להוביל פרויקטים ולהשפיע על סביבתם דרך היצירה והאמנות.", features: ["הובלת פרויקטים קהילתיים", "חניכת יוצרים צעירים", "פיתוח יוזמות אמנותיות חברתיות"] },
-    { year: 4, title: "המוכשר משפיע וממשיך דרך", description: "השנה הרביעית היא שנת הסיכום וההשפעה, בה החניכים הופכים למנטורים ומתכננים את המשך דרכם.", features: ["יצירת פרויקט מסכם משמעותי", "בניית תכנית המשך אישית", "הפיכה למנטורים לדור הבא"] },
+    {
+      year: 1,
+      title: "גילוי – הקול האישי מתעורר",
+      description:
+        "השלב הראשון במסע הוא שלב הגילוי – בו החניכים לומדים לזהות את הכישרונות הייחודיים שלהם ואת הקול הפנימי שאותו הם רוצים לבטא. זהו הבסיס לכל מסע מנהיגותי.",
+      features: [
+        "זיהוי חוזקות אישיות וביטוי אמנותי",
+        "התנסות בסדנאות יצירה מגוונות",
+        "פיתוח ביטחון עצמי והקשבה פנימית",
+      ],
+    },
+    {
+      year: 2,
+      title: "פיתוח – הכלים מתחדדים",
+      description:
+        "בשלב זה מתרחשת העמקה בתחום האמנותי הנבחר. החניכים מתחילים לפתח מיומנויות מתקדמות ומתחילים להרגיש כשולטים בחומר – ומתוך כך, מסוגלים גם להוביל.",
+      features: [
+        "העמקה אישית בתחומי האמנות",
+        "סדנאות ייחודיות לפיתוח כישורי מנהיגות",
+        "בניית זהות אמנותית מובחנת",
+      ],
+    },
+    {
+      year: 3,
+      title: "יישום – מהשראה לפעולה",
+      description:
+        "כעת מגיע שלב היישום: החניכים פועלים בשטח, יוזמים פרויקטים אמנותיים-חברתיים, עובדים בצוותים ומתחילים להשפיע על הסביבה דרך העשייה היצירתית שלהם.",
+      features: [
+        "ניהול פרויקטים אמנותיים עם ערך חברתי",
+        "הנחיה של קבוצות צעירות",
+        "עבודת צוות, עמידה בזמנים והתמדה",
+      ],
+    },
+    {
+      year: 4,
+      title: "השפעה – להיות השראה לאחרים",
+      description:
+        "בשנה הרביעית, המשתתפים יוצרים פרויקט מסכם אישי או קבוצתי, מתנסים בליווי כמנטורים לדור הבא – ומסכמים מסע שלם של התפתחות, השפעה וזהות.",
+      features: [
+        "יצירת פרויקט אמנותי משמעותי",
+        "מעבר מתלמיד למנטור",
+        "עיצוב המשך הדרך האישית לאחר התכנית",
+      ],
+    },
   ];
 
   return (
@@ -89,11 +121,11 @@ const ProgramSection = () => {
       <div className="container mx-auto px-6">
         <div className="text-center mb-20">
           <h2 className="font-gveret-levin text-4xl md:text-5xl text-red-800 mb-4">
-            תכנית ארבע השנים שלנו
+            מסע המנהיגות היצירתית – ארבע שנות התחשלות
           </h2>
           <div className="h-1 w-24 bg-red-600 mx-auto rounded-full mb-6"></div>
           <p className="text-lg text-gray-700 max-w-3xl mx-auto">
-            התכנית המשולבת שלנו מורכבת ממסלול פיתוח של ארבע שנים המשלב בין יצירה, העצמה והשפעה חברתית
+            בדומה למתכת שמתעצבת באש, כך גם תהליך ההתפתחות בתכנית – ארבע שנות עומק, תרגול והובלה דרך אמנות. כל שנה מצמיחה שכבת חוסן חדשה, כלי נוסף, וקול ברור יותר.
           </p>
         </div>
 
@@ -105,7 +137,7 @@ const ProgramSection = () => {
               </TabsTrigger>
             ))}
           </TabsList>
-            
+
           {years.map((yearData, index) => (
             <TabsContent key={index} value={`year${yearData.year}`} className="mt-0">
               <YearTab {...yearData} />
