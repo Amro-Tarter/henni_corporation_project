@@ -47,15 +47,15 @@ const ProfileInfo = ({
         <div className="mt-4 grid grid-cols-3 text-center bg-orange-50 rounded-lg p-3 gap-4">
           <div>
             <p className="text-xl font-bold text-gray-900">{postsCount}</p>
-            <p className="text-xs text-gray-500">Posts</p>
+            <p className="text-xs text-gray-500">פוסטים</p>
           </div>
           <div>
             <p className="text-xl font-bold text-gray-900">{followersCount}</p>
-            <p className="text-xs text-gray-500">Followers</p>
+            <p className="text-xs text-gray-500">עוקבים</p>
           </div>
           <div>
             <p className="text-xl font-bold text-gray-900">{followingCount}</p>
-            <p className="text-xs text-gray-500">Following</p>
+            <p className="text-xs text-gray-500">עוקב אחרי</p>
           </div>
         </div>
 

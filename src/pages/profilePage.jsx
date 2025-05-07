@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
-import Navbar from '../components/social/Navbar';
-import LeftSidebar from '../components/LeftSideBar';
-import RightSidebar from '../components/RightsideBar';
-import ProfileInfo from '../components/profileInfo';
-import Post from '../components/ProfilePost';
-import CreatePost from '../components/social/createpost';
+import Navbar from '../components/social/Navbar.jsx';
+import LeftSidebar from '../components/social/LeftSideBar';
+import RightSidebar from '../components/social/Rightsidebar.jsx';
+import ProfileInfo from '../components/social/profileInfo.jsx';
+import CreatePost from '../components/social/CreatePost';
+import Post from '../components/social/ProfilePost.jsx';
 
 const ProfilePage = () => {
-  const [profilePic] = useState('/laith.jpg');
-  const [username] = useState('Laith Mimi');
-  const [location] = useState('Jerusalem');
-  const [bio] = useState('Software engineer, tech enthusiast, love bitches.');
-  const [postsCount] = useState(10);
-  const [followersCount] = useState(150);
-  const [followingCount] = useState(100);
+  // Controls whether the right sidebar is visible
+  const [isRightOpen, setIsRightOpen] = useState(true);
 
+  // Profile data
+  const profilePic = '/laith.jpg';
+  const username = 'Laith Mimi';
+  const location = 'Jerusalem';
+  const bio = 'Software engineer, tech enthusiast, love bitches.';
+  const postsCount = 10;
+  const followersCount = 150;
+  const followingCount = 100;
+
+  // Example posts
   const posts = [
     {
       id: 1,
@@ -23,7 +28,7 @@ const ProfilePage = () => {
       timeAgo: '2h ago',
       mediaType: 'image',
       media: '/sculpture.jpg',
-      description: 'This is a cool post!',
+      description: 'איזה פיסול מדהים!',
       likes: 120,
       comments: 10,
     },
@@ -34,7 +39,7 @@ const ProfilePage = () => {
       timeAgo: '1d ago',
       mediaType: 'video',
       media: '/video/background vid.mp4',
-      description: 'Check out my latest project!',
+      description: 'הנה סרטון מהטיול שלי!',
       likes: 85,
       comments: 14,
     },
@@ -48,13 +53,23 @@ const ProfilePage = () => {
     <div dir="rtl" className="min-h-screen flex flex-col bg-white">
       <Navbar />
       <div className="flex flex-1 pt-[56.8px]">
-        {/* Fixed Left Sidebar */}
+
+        {/* Left Sidebar */}
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 border-r border-gray-200">
           <LeftSidebar />
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 p-6 w-full space-y-12 lg:ml-[16rem] lg:mr-[16rem]">
+        {/* Main Content: margin adjusts when sidebar toggles */}
+        <main
+          className={
+            `
+            flex-1 p-6 space-y-12
+            transition-all duration-300 ease-in-out
+            lg:ml-[16rem]
+            ${isRightOpen ? 'lg:mr-[16rem]' : 'lg:mr-0'}
+            `
+          }
+        >
           <ProfileInfo
             profilePic={profilePic}
             username={username}
@@ -74,9 +89,12 @@ const ProfilePage = () => {
           </section>
         </main>
 
-        {/* Fixed Right Sidebar */}
+        {/* Right Sidebar */}
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 right-0">
-          <RightSidebar />
+          <RightSidebar
+            isOpen={isRightOpen}
+            toggle={() => setIsRightOpen((o) => !o)}
+          />
         </aside>
       </div>
     </div>
