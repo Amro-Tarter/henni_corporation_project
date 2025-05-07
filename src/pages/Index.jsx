@@ -9,6 +9,7 @@ import JoinUs from '../components/home/JoinUs';
 import Footer from '../components/layout/Footer';
 import Gallery from '@/components/home/Gallery';
 import AboutSection from '../components/home/AboutSection';
+import CommunitySection from '../components/home/CommunitySection';
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
   whileInView: { opacity: 1, y: 0 },
@@ -32,6 +33,7 @@ const HomePage = () => {
         <FloatingElements />
         <ProgramSection/>
         <Gallery />
+        <CommunitySection/>
         <EventsSection/>
         <JoinUs />
       </main>
