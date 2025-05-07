@@ -122,7 +122,18 @@ def initialize_collections():
         })
         print("✅ Initialized 'programs' collection.")
 
-       
+       # Initialize Profiles Collection
+        db.collection("profiles").document("placeholder_profile").set({
+            "displayName":     "",
+            "photoURL":        "",
+            "bio":             "",
+            "location":        "",
+            "postsCount":      0,
+            "followersCount":  0,
+            "followingCount":  0,
+            "updatedAt":       firestore.SERVER_TIMESTAMP
+        })
+        print("✅ Initialized 'profiles' collection.")
 
         # Initialize Activity Participation Collection
         db.collection("activity_participation").document("placeholder_participation").set({
