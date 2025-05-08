@@ -11,7 +11,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 const sections = [
-  { id: 'about-us', label: 'אדמאודות העמותה', icon: faLeaf },
+  { id: 'about-us', label: 'אודות העמותה', icon: faLeaf },
   { id: 'leadership-program', label: 'תכנית המנהיגות', icon: faHammer },
   { id: 'projects', label: 'יצירות ופרויקטים', icon: faWind },
   { id: 'community', label: 'קהילת העמותה', icon: faWater },

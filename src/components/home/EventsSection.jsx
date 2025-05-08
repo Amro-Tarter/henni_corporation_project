@@ -97,7 +97,7 @@ const EventsSection = () => {
 
         <div className="mt-16 text-center">
           <CTAButton
-            href="/events"
+            href="/projects"
             variant="fire"
             size="lg"
             className="px-6 py-3"
