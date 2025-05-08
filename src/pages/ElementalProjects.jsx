@@ -8,7 +8,7 @@ import { ChevronRight, MapPin, Calendar, Plus, X } from 'lucide-react';
 import Particles from '@tsparticles/react';
 import { loadFull } from 'tsparticles';
 import Tilt from 'react-parallax-tilt';
-
+import { onSnapshot } from 'firebase/firestore';
 import { db } from "../config/firbaseConfig";
 
 import {
@@ -68,42 +68,6 @@ const ELEMENTS = [
   },
 ];
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 50 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.1, duration: 0.7 },
-  }),
-  exit: { opacity: 0, y: -30, transition: { duration: 0.5 } },
-};
-
-const tabVariants = {
-  inactive: { scale: 0.95, opacity: 0.7 },
-  active: { scale: 1, opacity: 1 },
-};
-
-const particlesInit = async (main) => {
-  await loadFull(main);
-};
-
-const ElementCircle = ({ emoji, isActive, element }) => {
-  const elementData = ELEMENTS.find((el) => el.key === element);
-  return (
-    <motion.div
-      className={cn(
-        "flex items-center justify-center rounded-full w-10 h-10 text-xl shadow-md",
-        isActive ? `bg-gradient-to-br ${elementData.color} text-white` : "bg-white"
-      )}
-      variants={tabVariants}
-      initial="inactive"
-      animate={isActive ? "active" : "inactive"}
-    >
-      {emoji}
-    </motion.div>
-  );
-};
-
 const ElementalProjects = () => {
   const { user } = useUser();
   const isAdmin = user?.role === 'admin';
@@ -117,63 +81,70 @@ const ElementalProjects = () => {
   useEffect(() => {
     const audio = new Audio(elementData.sound);
     audio.volume = 0.25;
-    audio.play();
+  
+    const playAudio = () => {
+      audio.play().catch((e) => {
+        console.warn("🔇 Autoplay blocked, waiting for user interaction.");
+      });
+    };
+  
+    document.addEventListener("click", playAudio, { once: true });
+  
+    return () => {
+      document.removeEventListener("click", playAudio);
+    };
   }, [selectedElement]);
+  
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      const q = query(
-        collection(db, 'elemental_projects'),
-        where('element', '==', selectedElement),
-        orderBy('created_at', 'desc')
-      );
-      const snapshot = await getDocs(q);
-      const docs = snapshot.docs.map(doc => doc.data());
-
+    const q = query(
+      collection(db, 'elemental_projects'),
+      where('element', '==', selectedElement),
+      orderBy('created_at', 'desc')
+    );
+  
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map((doc) => doc.data());
+      console.log(`📡 Real-time: ${docs.length} projects for "${selectedElement}"`);
       setProjectsMap((prev) => ({
         ...prev,
-        [selectedElement]: docs,
+        [selectedElement]: docs
       }));
-    };
-
-    fetchProjects();
+    });
+  
+    return () => unsubscribe(); // ✅ Clean up listener
   }, [selectedElement]);
+  
 
   const handleAddProject = async () => {
     if (!newProject.title) return;
 
-    try {
-      await addDoc(collection(db, "elemental_projects"), {
-        ...newProject,
-        element: selectedElement,
-        created_at: new Date().toISOString(),
-        created_by: user?.email || "anonymous",
-      });
+    const projectData = {
+      ...newProject,
+      element: selectedElement,
+      created_at: Timestamp.now(),
+      created_by: user?.email || "anonymous"
+    };
 
+    try {
+      await addDoc(collection(db, "elemental_projects"), projectData);
       setProjectsMap((prev) => ({
         ...prev,
-        [selectedElement]: [...(prev[selectedElement] || []), newProject],
+        [selectedElement]: [...(prev[selectedElement] || []), projectData],
       }));
       setNewProject({ title: '', location: '', date: '', image: '' });
       setIsFormVisible(false);
     } catch (error) {
-      console.error("Error saving project:", error);
-      alert("שגיאה בעת שמירת הפרויקט");
+      console.error("❌ Error saving project:", error);
     }
   };
 
   return (
     <Layout>
-      <div
-        dir="rtl"
-        className={cn(
-          "min-h-screen pt-20 pb-10 px-4 transition-colors duration-700 relative overflow-hidden",
-          "bg-gradient-to-br", elementData.color
-        )}
-      >
+      <div className={`min-h-screen pt-20 pb-10 px-4 bg-gradient-to-br ${elementData.color} relative`} dir="rtl">
         <Particles
           id="particles"
-          init={particlesInit}
+          init={loadFull}
           options={{
             fullScreen: false,
             background: { color: "transparent" },
@@ -190,80 +161,39 @@ const ElementalProjects = () => {
 
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="p-6 text-white mb-6">
-            <motion.h1 className="text-3xl md:text-5xl font-bold font-[Assistant] mb-2">
-              {elementData.emoji} {elementData.title}
-            </motion.h1>
-            <motion.p className="text-lg md:text-xl max-w-2xl opacity-90">
-              {elementData.description}
-            </motion.p>
+            <motion.h1 className="text-3xl md:text-5xl font-bold">{elementData.emoji} {elementData.title}</motion.h1>
+            <motion.p className="text-lg md:text-xl opacity-90">{elementData.description}</motion.p>
           </div>
 
+          {/* Tabs */}
           <div className="flex justify-center mb-6">
-            <div className="bg-white/80 backdrop-blur-lg p-2 rounded-full shadow-lg flex gap-2">
+            <div className="bg-white/80 p-2 rounded-full shadow-lg flex gap-2">
               {ELEMENTS.map(({ key, emoji, title }) => (
-                <button
-                  key={key}
-                  onClick={() => setSelectedElement(key)}
-                  className={cn(
-                    'relative flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm md:text-base transition-all',
-                    selectedElement === key ? 'text-white shadow-md' : 'text-gray-700 hover:bg-gray-100'
-                  )}
+                <button key={key} onClick={() => setSelectedElement(key)}
+                  className={cn('px-4 py-2 rounded-full font-bold text-sm transition-all',
+                    selectedElement === key ? 'text-white bg-gradient-to-br ' + ELEMENTS.find(el => el.key === key).color : 'text-gray-700 hover:bg-gray-100')}
                 >
-                  {selectedElement === key && (
-                    <motion.div
-                      className={`absolute inset-0 rounded-full bg-gradient-to-br ${ELEMENTS.find(el => el.key === key).color}`}
-                      layoutId="activeTabBackground"
-                      initial={false}
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-1">
-                    <ElementCircle emoji={emoji} isActive={selectedElement === key} element={key} />
-                    <span>{title}</span>
-                  </span>
+                  {emoji} {title}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Admin Project Form */}
+          {/* Admin Form */}
           {isAdmin && isFormVisible && (
-            <div className="max-w-2xl mx-auto mt-4 bg-white p-6 rounded-xl shadow-md border mb-8">
-              <h2 className="text-xl font-bold mb-4">פרויקט חדש ({elementData.title})</h2>
+            <div className="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow mb-6">
+              <h2 className="text-xl font-bold mb-4">פרויקט חדש</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <input
-                  type="text"
-                  placeholder="כותרת"
-                  className="p-3 border rounded"
-                  value={newProject.title}
-                  onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="מיקום"
-                  className="p-3 border rounded"
-                  value={newProject.location}
-                  onChange={(e) => setNewProject({ ...newProject, location: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="תאריך"
-                  className="p-3 border rounded"
-                  value={newProject.date}
-                  onChange={(e) => setNewProject({ ...newProject, date: e.target.value })}
-                />
-                <input
-                  type="text"
-                  placeholder="קישור לתמונה"
-                  className="p-3 border rounded"
-                  value={newProject.image}
-                  onChange={(e) => setNewProject({ ...newProject, image: e.target.value })}
-                />
+                <input type="text" placeholder="כותרת" className="p-3 border rounded"
+                  value={newProject.title} onChange={(e) => setNewProject({ ...newProject, title: e.target.value })} />
+                <input type="text" placeholder="מיקום" className="p-3 border rounded"
+                  value={newProject.location} onChange={(e) => setNewProject({ ...newProject, location: e.target.value })} />
+                <input type="text" placeholder="תאריך" className="p-3 border rounded"
+                  value={newProject.date} onChange={(e) => setNewProject({ ...newProject, date: e.target.value })} />
+                <input type="text" placeholder="תמונה (URL)" className="p-3 border rounded"
+                  value={newProject.image} onChange={(e) => setNewProject({ ...newProject, image: e.target.value })} />
               </div>
-              <button
-                onClick={handleAddProject}
-                className={`mt-2 px-6 py-2 bg-gradient-to-r ${elementData.color} text-white rounded font-bold`}
-              >
+              <button onClick={handleAddProject} className={`bg-gradient-to-r ${elementData.color} text-white px-6 py-2 rounded font-bold`}>
                 הוסף פרויקט
               </button>
             </div>
@@ -271,59 +201,44 @@ const ElementalProjects = () => {
 
           {/* Projects Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence mode="wait">
-              {(projectsMap[selectedElement] || []).map((project, index) => (
-                <motion.div
-                  key={index}
-                  custom={index}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  variants={cardVariants}
-                  layout
-                >
-                  <Tilt glareEnable={true} scale={1.02} glareMaxOpacity={0.1}>
-                    <Card className="h-full overflow-hidden rounded-2xl bg-white shadow-md hover:shadow-xl transition-all duration-300 group border-0">
-                      <div className="h-48 relative overflow-hidden">
-                        <img src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
-                        <div className={`absolute top-4 right-4 ${elementData.lightColor} p-2 rounded-full`}>
-                          <span className="text-xl">{elementData.emoji}</span>
-                        </div>
-                      </div>
-                      <CardContent className="p-5">
-                        <h3 className="text-xl font-bold text-gray-800">{project.title}</h3>
-                        <div className="mt-2 text-gray-600 space-y-1 text-sm">
-                          <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-500" />{project.location}</div>
-                          <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-500" />{project.date}</div>
-                        </div>
-                        <div className="mt-4">
-                          <button className={`w-full px-4 py-2 text-sm bg-gradient-to-r ${elementData.color} text-white rounded-xl font-bold flex items-center justify-center gap-2 group-hover:shadow-lg transition-all duration-300 hover:translate-y-[-2px]`}>
-                            <span>לקריאה נוספת</span>
-                            <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                          </button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Tilt>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            {(projectsMap[selectedElement] || []).map((project, idx) => (
+              <Card key={idx} className="rounded-xl bg-white shadow group overflow-hidden">
+                <div className="h-48 relative overflow-hidden">
+                  <img src={project.image} alt={project.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <div className={`absolute top-4 right-4 ${elementData.lightColor} p-2 rounded-full`}>
+                    <span className="text-xl">{elementData.emoji}</span>
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-bold text-gray-800">{project.title}</h3>
+                  <div className="mt-2 text-sm text-gray-600">
+                    <div className="flex items-center gap-2"><MapPin className="w-4 h-4" />{project.location}</div>
+                    <div className="flex items-center gap-2"><Calendar className="w-4 h-4" />{project.date}</div>
+                  </div>
+                  <button className={`mt-4 w-full bg-gradient-to-r ${elementData.color} text-white py-2 rounded font-bold`}>
+                    לקריאה נוספת <ChevronRight className="inline w-4 h-4" />
+                  </button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
+
+          {/* Fallback UI */}
+          {(projectsMap[selectedElement] || []).length === 0 && (
+            <div className="text-center text-white mt-6 text-lg">
+              לא נמצאו פרויקטים עבור האלמנט הנבחר.
+            </div>
+          )}
         </div>
 
         {/* Floating Add FAB */}
         {isAdmin && (
           <button
             onClick={() => setIsFormVisible(!isFormVisible)}
-            className={cn(
-              'fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-xl transition-all duration-300',
-              isFormVisible
-                ? 'bg-gray-300 text-gray-800 hover:bg-gray-400'
-                : `bg-gradient-to-br ${elementData.color} text-white hover:scale-110`
-            )}
-            aria-label="Add Project"
+            className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-xl flex items-center justify-center 
+              ${isFormVisible ? 'bg-gray-300 text-gray-800' : `bg-gradient-to-br ${elementData.color} text-white`} transition-transform hover:scale-110`}
           >
-            {isFormVisible ? <X className="w-6 h-6 mx-auto" /> : <Plus className="w-6 h-6 mx-auto" />}
+            {isFormVisible ? <X className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
           </button>
         )}
       </div>
