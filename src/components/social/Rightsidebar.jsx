@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-<<<<<<< HEAD
 import { useNavigate } from 'react-router-dom';
-=======
 import { Button } from '../ui/button';
->>>>>>> main
 import {
   ChevronRight,
   ChevronLeft,
@@ -21,16 +18,12 @@ const tabs = [
   { id: 'settings', icon: <Settings size={20} />, label: 'הגדרות' },
 ];
 
-<<<<<<< HEAD
-const RightSidebar = ({ isOpen }) => {
-  const navigate = useNavigate();
-=======
 const RightSidebar = ({ isOpen, toggle }) => {
->>>>>>> main
+  const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [activeTab, setActiveTab] = useState('settings');
-  
+
   const handleSearch = (e) => {
     e.preventDefault();
     setIsSearching(true);
@@ -110,44 +103,14 @@ const RightSidebar = ({ isOpen, toggle }) => {
           >
             <Bell size={20} />
             <span className="flex-1 text-right">התראות</span>
-            <span className="rounded-full bg-gray-200 px-2 py-1 text-xs text-gray-700">
-              3
-            </span>
+            <span className="rounded-full bg-gray-200 px-2 py-1 text-xs text-gray-700">3</span>
           </button>
 
-<<<<<<< HEAD
-      {/* Bottom Actions */}
-      <div className="px-4 pb-6 space-y-2">
-        <button
-          onClick={() => {
-            setActiveTab('notifications');
-          }}
-          className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-gray-900 transition-colors duration-200 hover:bg-orange-50 ${
-            activeTab === 'notifications' ? 'bg-orange-100' : ''
-          }`}
-        >
-          <Bell size={20} />
-          <span className="flex-1 text-right">התראות</span>
-          <span className="rounded-full bg-gray-200 px-2 py-1 text-xs text-gray-700">3</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab('profile');
-            navigate('/profile');
-          }}
-          className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-gray-900 transition-colors duration-200 hover:bg-orange-50 ${
-            activeTab === 'profile' ? 'bg-orange-100' : ''
-          }`}
-        >
-          <User size={20} />
-          <span className="font-medium">פרופיל</span>
-        </button>
-      </div>
-    </aside>
-=======
           <button
-            onClick={() => setActiveTab('profile')}
+            onClick={() => {
+              setActiveTab('profile');
+              navigate('/profile');
+            }}
             className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-gray-900 transition-colors duration-200 hover:bg-orange-50 ${
               activeTab === 'profile' ? 'bg-orange-100' : ''
             }`}
@@ -158,7 +121,6 @@ const RightSidebar = ({ isOpen, toggle }) => {
         </div>
       </aside>
     </>
->>>>>>> main
   );
 };
 
