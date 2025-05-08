@@ -1,6 +1,13 @@
 import React, { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../config/firbaseConfig"; // adjust the path as needed
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  serverTimestamp
+} from "firebase/firestore";
+import { auth, db } from "../config/firbaseConfig"; // make sure db is exported
 import "./auth.css";
 
 const Login = () => {
@@ -8,18 +15,46 @@ const Login = () => {
   const [notification, setNotification] = useState(null);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, form.email, form.password);
+      // 1. Sign in
+      const { user } = await signInWithEmailAndPassword(
+        auth,
+        form.email,
+        form.password
+      );
+
+      // 2. Firestore user doc ref
+      const userRef = doc(db, "users", user.uid);
+      const snap = await getDoc(userRef);
+
+      if (!snap.exists()) {
+        // 3a. If not there, create it
+        await setDoc(userRef, {
+          username: user.email.split("@")[0],    // or "" if you don’t want to infer
+          email: user.email,
+          role: "user",
+          associated_id: "",
+          created_at: serverTimestamp(),
+          last_login: serverTimestamp(),
+          is_active: true,
+          reset_token: null
+        });
+      } else {
+        // 3b. If it exists, just update last_login
+        await updateDoc(userRef, {
+          last_login: serverTimestamp()
+        });
+      }
+
+      // 4. Notify & redirect
       setNotification({ message: "התחברת בהצלחה!", type: "success" });
       setForm({ email: "", password: "" });
-      setTimeout(() => {
-        window.location.href = "/home"; // Redirect user to the home page
-      }, 200);
+      setTimeout(() => (window.location.href = "/home"), 200);
     } catch (error) {
       let message = "שגיאה בהתחברות";
       if (error.code === "auth/user-not-found") {
@@ -66,7 +101,8 @@ const Login = () => {
           <button type="submit">התחבר</button>
         </form>
         <div className="auth-links">
-          <a href="/forgotPassword">שכחת סיסמה?</a> | <a href="/signUp">אין לך חשבון? הרשמה</a>
+          <a href="/forgotPassword">שכחת סיסמה?</a> |{" "}
+          <a href="/signUp">אין לך חשבון? הרשמה</a>
         </div>
       </div>
     </div>
