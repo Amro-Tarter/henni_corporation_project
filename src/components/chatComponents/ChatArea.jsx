@@ -41,6 +41,17 @@ export default function ChatArea({
     messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
+  // Position scroll at the latest messages but not at the very bottom
+  const scrollToLatestMessages = () => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      
+      // Set scroll position to show the latest messages
+      // but leave space at the bottom (about 150px or as needed)
+      container.scrollTop = container.scrollHeight - container.clientHeight - 20;
+    }
+  };
+
   useEffect(() => {
     if (!selectedConversation?.id || !currentUser.uid || newMessage === '') return;
 
@@ -69,15 +80,26 @@ export default function ChatArea({
     };
   }, [newMessage, selectedConversation?.id, currentUser.uid]);
 
+  // Initial load - position at latest messages but don't scroll to bottom
   useEffect(() => {
     if (!messagesContainerRef.current) return;
-
+    
+    // When conversation changes or messages load, position at latest messages
+    if (messages.length > 0) {
+      // Small timeout to ensure DOM is ready
+      setTimeout(() => {
+        scrollToLatestMessages();
+      }, 100);
+    }
+    
     const container = messagesContainerRef.current;
-    scrollToBottom("smooth");
-
+    
     resizeObserverRef.current = new ResizeObserver(() => {
-      const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
-      if (isNearBottom) scrollToBottom("auto");
+      // Only auto-scroll when user is already near bottom
+      const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
+      if (isNearBottom) {
+        scrollToBottom("auto");
+      }
     });
 
     resizeObserverRef.current.observe(container);
@@ -90,9 +112,19 @@ export default function ChatArea({
   const handleMediaLoad = () => {
     const container = messagesContainerRef.current;
     if (container) {
-      const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+      // Only auto-scroll if user was already near the bottom
+      const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 50;
       if (isNearBottom) scrollToBottom("smooth");
     }
+  };
+
+  // Function to handle sending a message and scroll to bottom afterward
+  const handleSendMessage = () => {
+    sendMessage();
+    // Give a moment for the message to be added to the UI
+    setTimeout(() => {
+      scrollToBottom("smooth");
+    }, 100);
   };
 
   return (
@@ -131,8 +163,8 @@ export default function ChatArea({
                   <div
                     className={`inline-block p-3 rounded-lg max-w-[70%] ${
                       msg.sender === currentUser.uid
-                        ? `bg-[${elementColors.primary}] text-white`
-                        : `bg-[${elementColors.light}] text-gray-800`
+                        ? "text-white"
+                        : "text-gray-800"
                     }`}
                     style={{
                       backgroundColor: msg.sender === currentUser.uid ? elementColors.primary : elementColors.light
@@ -190,7 +222,11 @@ export default function ChatArea({
             {/* Audio preview */}
             {audioURL && (
               <div className="relative mb-2">
-                <audio controls className="w-full rounded bg-${elementColors.primary}">
+                <audio 
+                  controls 
+                  className="w-full rounded"
+                  style={{ background: elementColors.primary }}
+                >
                   <source src={audioURL} type="audio/webm" />
                   הדפדפן שלך אינו תומך בנגן אודיו.
                 </audio>
@@ -205,7 +241,7 @@ export default function ChatArea({
   
             <div className="flex items-center gap-2">
               {/* File Upload Button */}
-              <label className={`cursor-pointer p-2 text-gray-500 hover:text-[${elementColors.primary}]`} style={{ '&:hover': { color: elementColors.primary } }}>
+              <label className="cursor-pointer p-2 text-gray-500 hover:text-blue-500 transition-colors duration-200">
                 <input
                   type="file"
                   className="hidden"
@@ -220,16 +256,18 @@ export default function ChatArea({
               {/* Record Button */}
               <button
                 onClick={isRecording ? stopRecording : startRecording}
-                className={`p-2 rounded-full ${isRecording ? `bg-[${elementColors.primary}] text-white` : `text-gray-500 hover:text-[${elementColors.primary}]`}`}
+                className={`p-2 rounded-full transition-colors duration-200 ${
+                  isRecording 
+                    ? "text-white" 
+                    : "text-gray-500 hover:text-blue-500"
+                }`}
                 style={{
                   backgroundColor: isRecording ? elementColors.primary : 'transparent',
-                  color: isRecording ? 'white' : 'gray',
-                  '&:hover': { color: !isRecording ? elementColors.primary : 'white' }
                 }}
                 title={isRecording ? "עצור הקלטה" : "הקלט הודעה קולית"}
               >
                 {isRecording ? (
-                  <svg className={`h-6 w-6 text-[${elementColors.light}]`} fill="white" viewBox="0 0 24 24">
+                  <svg className="h-6 w-6" fill="white" viewBox="0 0 24 24">
                     <rect x="6" y="6" width="12" height="12" rx="2" />
                   </svg>
                 ) : (
@@ -242,22 +280,28 @@ export default function ChatArea({
               {/* Text Input */}
               <input
                 type="text"
-                className={`flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-[${elementColors.primary}] text-right`}
-                style={{ '&:focus': { borderColor: elementColors.primary } }}
+                className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 text-right"
+                style={{ 
+                  borderColor: 'rgb(209, 213, 219)',
+                  '&:focus': { 
+                    borderColor: elementColors.primary,
+                    ringColor: elementColors.primary 
+                  }
+                }}
                 placeholder={file ? "הוסף כיתוב (אופציונלי)" : "הקלד הודעה..."}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
               />
   
               {/* Send Button */}
               <button
-                className={`bg-[${elementColors.primary}] text-white px-4 py-2 rounded-lg hover:bg-[${elementColors.hover}] disabled:opacity-50 flex items-center gap-2`}
+                className="text-white px-4 py-2 rounded-lg disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
                 style={{ 
                   backgroundColor: elementColors.primary,
                   '&:hover': { backgroundColor: elementColors.hover }
                 }}
-                onClick={sendMessage}
+                onClick={handleSendMessage}
                 disabled={(!newMessage.trim() && !file && !audioURL) || isSending || isUploading}
               >
                 {isUploading ? (
@@ -280,7 +324,7 @@ export default function ChatArea({
             <p className="text-lg">בחר צ'אט או צור חדש כדי להתחיל</p>
             <button
               onClick={() => setShowNewChatDialog(true)}
-              className={`mt-4 bg-[${elementColors.primary}] text-white px-4 py-2 rounded-lg hover:bg-[${elementColors.hover}]`}
+              className="mt-4 text-white px-4 py-2 rounded-lg transition-colors duration-200"
               style={{ 
                 backgroundColor: elementColors.primary,
                 '&:hover': { backgroundColor: elementColors.hover }
