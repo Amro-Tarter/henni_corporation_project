@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const navTabs = [
   { id: 'home', icon: '🏠', label: 'דף הבית', href: '/Home' },
-  { id: 'messenger', icon: '💬', label: 'הודעות', href: '/messenger' },
+  { id: 'messenger', icon: '💬', label: 'הודעות', href: '/chat' },
   { id: 'settings', icon: '⚙️', label: 'הגדרות', href: '/settings' },
 ];
 
@@ -16,6 +17,7 @@ const Navbar = () => {
     if (path.startsWith('/settings')) return 'settings';
     if (path.startsWith('/notifications')) return 'notifications';
     if (path.startsWith('/profile')) return 'profile';
+    if (path.startsWith('/chat')) return 'chat';
     return 'home';
   };
 
