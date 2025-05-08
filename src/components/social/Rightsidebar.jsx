@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Bell,
@@ -15,6 +16,7 @@ const tabs = [
 ];
 
 const RightSidebar = ({ isOpen }) => {
+  const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [activeTab, setActiveTab] = useState('settings');
@@ -73,20 +75,23 @@ const RightSidebar = ({ isOpen }) => {
       {/* Bottom Actions */}
       <div className="px-4 pb-6 space-y-2">
         <button
-          onClick={() => setActiveTab('notifications')}
+          onClick={() => {
+            setActiveTab('notifications');
+          }}
           className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-gray-900 transition-colors duration-200 hover:bg-orange-50 ${
             activeTab === 'notifications' ? 'bg-orange-100' : ''
           }`}
         >
           <Bell size={20} />
           <span className="flex-1 text-right">התראות</span>
-          <span className="rounded-full bg-gray-200 px-2 py-1 text-xs text-gray-700">
-            3
-          </span>
+          <span className="rounded-full bg-gray-200 px-2 py-1 text-xs text-gray-700">3</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('profile')}
+          onClick={() => {
+            setActiveTab('profile');
+            navigate('/profile');
+          }}
           className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-gray-900 transition-colors duration-200 hover:bg-orange-50 ${
             activeTab === 'profile' ? 'bg-orange-100' : ''
           }`}
