@@ -6,7 +6,9 @@ service cloud.firestore {
     match /elemental_projects/{document=**} {
       allow read, write: if true; // DEV ONLY
     }
-
+    match /events/{document=**} {
+      allow read, write: if true; // DEV ONLY
+    }
     // 🚫 Optional: Default deny fallback
     match /{document=**} {
       allow read, write: if false;
