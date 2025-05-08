@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { MapPin, Pencil, Camera } from 'lucide-react';
+import { MapPin, Pencil, Camera, MessageSquare, Users, Image } from 'lucide-react';
 
-// Define element options with Hebrew labels and emoji icons
+// Element options
 const elementOptions = [
   { value: 'fire',  label: 'אש',   icon: '🔥'  },
   { value: 'water', label: 'מים',  icon: '💧'  },
@@ -10,11 +10,20 @@ const elementOptions = [
   { value: 'metal', label: 'מתכת', icon: '⚙️'  },
 ];
 
-// Lookup helper by value
-const findOption = (value) => elementOptions.find(o => o.value === value) || { icon: '', label: '' };
+const findOption = v => elementOptions.find(o => o.value === v) || { icon: '', label: '' };
+
+// Small reusable stat tile component
+const Stat = ({ icon, count, label }) => (
+  <div className="flex flex-col items-center">
+    {icon && <div className="text-orange-500 mb-1">{icon}</div>}
+    <div className="text-2xl sm:text-3xl font-bold text-gray-900">{count}</div>
+    <div className="text-sm text-gray-500">{label}</div>
+  </div>
+);
 
 const ProfileInfo = ({
   profilePic,
+  backgroundPic,
   username,
   location,
   bio,
@@ -23,7 +32,8 @@ const ProfileInfo = ({
   followersCount,
   followingCount,
   onUpdateField,
-  onUpdateProfilePic
+  onUpdateProfilePic,
+  onUpdateBackgroundPic,
 }) => {
   const [editing, setEditing] = useState(null);
   const [tempValue, setTempValue] = useState('');
@@ -42,156 +52,154 @@ const ProfileInfo = ({
     const file = e.target.files[0];
     if (file) onUpdateProfilePic(file);
   };
+  const handleBackgroundChange = e => {
+    const file = e.target.files[0];
+    if (file) onUpdateBackgroundPic(file);
+  };
 
   return (
-    <div className="bg-white rounded-3xl p-6 flex flex-col md:flex-row items-center w-full max-w-3xl mx-auto gap-8">
-      {/* Profile Picture */}
-      <div className="relative group flex-shrink-0 -mt-6">
-        <img
-          src={profilePic}
-          alt="Profile"
-          className="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
-        <div className="absolute inset-0 bg-black bg-opacity-30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <label className="cursor-pointer">
-            <Camera className="text-white w-6 h-6" />
-            <input type="file" accept="image/*" className="hidden" onChange={handlePicChange} />
-          </label>
+    <section className="w-full overflow-visible">
+      {/* Cover & Profile */}
+      <div className="relative w-full h-48 sm:h-64 bg-white rounded-t-3xl overflow-visible">
+        {backgroundPic && (
+          <img src={backgroundPic} alt="Cover background" className="object-cover w-full h-full" />
+        )}
+        <label className="absolute bottom-3 left-3 flex items-center justify-center p-2 bg-black bg-opacity-50 hover:bg-opacity-70 rounded-full cursor-pointer group">
+          <Image className="text-white w-5 h-5" />
+          <span className="absolute left-full ml-2 bg-black bg-opacity-75 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 whitespace-nowrap">
+            שינוי תמונת רקע
+          </span>
+          <input type="file" accept="image/*" className="hidden" onChange={handleBackgroundChange} />
+        </label>
+
+        <div className="absolute -bottom-16 right-24 z-10">
+          <div className="relative w-40 h-40 border-4 border-orange-500 rounded-full overflow-hidden shadow-lg bg-white">
+            <img src={profilePic} alt={`${username} avatar`} className="object-cover w-full h-full rounded-full" />
+            <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20 opacity-0 hover:opacity-100 transition-opacity cursor-pointer rounded-full">
+              <Camera className="text-white w-6 h-6" />
+              <input type="file" accept="image/*" className="hidden" onChange={handlePicChange} />
+            </label>
+            {!editing && (
+              <div className="absolute -bottom-2 -left-2 bg-white rounded-full p-1 shadow-md">
+                <span className="text-xl" title={findOption(element).label}>
+                  {findOption(element).icon}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Details Section */}
-      <div className="flex-1 flex flex-col gap-6 w-full">
-        {/* Header: Username & Element */}
-        <div className="flex items-center justify-between w-full gap-4">
-          {/* Username */}
+      {/* User Info Card */}
+      <div className="pr-20 pt-14 pl-20 mt-6 overflow-visible text-right">
+        {/* Username & Element */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           {editing === 'username' ? (
-            <div className="flex items-center space-x-3">
+            <div className="flex justify-end items-center gap-3">
               <input
                 type="text"
                 value={tempValue}
                 onChange={e => setTempValue(e.target.value)}
-                className="border-b-2 border-gray-300 focus:outline-none focus:border-orange-500 text-2xl font-semibold text-gray-900 transition-all duration-200"
+                className="border-b-2 border-gray-300 focus:border-orange-500 focus:outline-none text-3xl sm:text-4xl font-bold text-gray-900"
+                dir="rtl"
               />
-              <button onClick={saveEditing} className="px-4 py-1 bg-orange-500 text-white rounded-full text-sm hover:bg-orange-600 transition-colors duration-200">
-                שמור
-              </button>
-              <button onClick={cancelEditing} className="px-4 py-1 bg-gray-200 text-gray-700 rounded-full text-sm hover:bg-gray-300 transition-colors duration-200">
-                ביטול
-              </button>
+              <div className="flex gap-2">
+                <button onClick={saveEditing} className="px-3 py-1 bg-orange-500 text-white rounded-full text-sm">שמור</button>
+                <button onClick={cancelEditing} className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm">ביטול</button>
+              </div>
             </div>
           ) : (
-            <div className="flex items-center group space-x-2">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">{username}</h2>
-              <Pencil onClick={() => startEditing('username', username)} className="opacity-0 group-hover:opacity-100 cursor-pointer w-5 h-5 text-gray-500 transition-opacity duration-200" />
+            <div className="relative group inline-flex items-center space-x-reverse space-x-2">
+              <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">{username}</h1>
+              <Pencil onClick={() => startEditing('username', username)} className="opacity-0 group-hover:opacity-100 cursor-pointer w-5 h-5 text-gray-500" />
             </div>
           )}
 
-          {/* Element */}
           {editing === 'element' ? (
-            <div className="flex flex-col w-full">
-              <div className="grid grid-cols-5 gap-3 bg-gray-50 p-3 rounded-lg mb-3">
+            <div className="mt-4 sm:mt-0">
+              <div className="grid grid-cols-5 gap-2 bg-gray-50 p-2 rounded-xl">
                 {elementOptions.map(opt => (
                   <button
                     key={opt.value}
                     onClick={() => setTempValue(opt.value)}
-                    className={`flex flex-col items-center p-2 rounded-lg cursor-pointer transition-transform duration-200 ease-out ${
-                      tempValue === opt.value ? 'bg-orange-500 text-white transform scale-105' : 'bg-white text-gray-700 hover:bg-gray-100'
-                    }`}
+                    className={`flex flex-col items-center p-2 rounded-lg transition-transform ${tempValue === opt.value ? 'bg-orange-500 text-white scale-110' : 'bg-white text-gray-700 hover:bg-gray-100'}`}
                   >
                     <span className="text-2xl mb-1">{opt.icon}</span>
                     <span className="text-sm font-medium">{opt.label}</span>
                   </button>
                 ))}
               </div>
-              <div className="flex space-x-3">
-                <button onClick={saveEditing} className="px-4 py-1 bg-orange-500 text-white rounded-full text-sm hover:bg-orange-600 transition-colors duration-200">
-                  שמור
-                </button>
-                <button onClick={cancelEditing} className="px-4 py-1 bg-gray-200 text-gray-700 rounded-full text-sm hover:bg-gray-300 transition-colors duration-200">
-                  ביטול
-                </button>
+              <div className="flex justify-end gap-2 mt-2">
+                <button onClick={saveEditing} className="px-3 py-1 bg-orange-500 text-white rounded-full text-sm">שמור</button>
+                <button onClick={cancelEditing} className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm">ביטול</button>
               </div>
             </div>
           ) : (
-            <div className="flex items-center group bg-orange-100 px-4 py-2 rounded-xl transition-colors duration-200 hover:bg-orange-200 space-x-2">
+            <div className="relative group inline-flex items-center bg-orange-100 px-4 py-2 rounded-full space-x-reverse space-x-2">
               <span className="text-2xl">{findOption(element).icon}</span>
-              <span className="text-lg font-semibold text-gray-800">{findOption(element).label}</span>
-              <Pencil onClick={() => startEditing('element', element)} className="opacity-0 group-hover:opacity-100 cursor-pointer w-5 h-5 text-gray-500 transition-opacity duration-200" />
+              <span className="text-lg font-medium text-gray-800">{findOption(element).label}</span>
+              <Pencil onClick={() => startEditing('element', element)} className="opacity-0 group-hover:opacity-100 cursor-pointer w-5 h-5 text-gray-500" />
             </div>
           )}
         </div>
 
         {/* Location */}
-        <div className="relative group flex items-center text-gray-500 text-sm">
+        <div className="mt-6 group inline-flex items-center space-x-reverse space-x-2 text-gray-600 text-base">
+          <MapPin className="w-5 h-5 ml-1" />
           {editing === 'location' ? (
-            <div className="flex items-center space-x-3 w-full">
+            <div className="flex justify-end items-center gap-2 w-full">
               <input
                 type="text"
                 value={tempValue}
                 onChange={e => setTempValue(e.target.value)}
-                className="flex-1 border-b-2 border-gray-300 focus:outline-none focus:border-orange-500 text-gray-700 transition-all duration-200"
+                className="flex-1 border-b-2 border-gray-300 focus:border-orange-500 focus:outline-none text-base text-gray-700"
+                dir="rtl"
               />
-              <button onClick={saveEditing} className="px-4 py-1 bg-orange-500 text-white rounded-full text-sm hover:bg-orange-600 transition-colors duration-200">
-                שמור
-              </button>
-              <button onClick={cancelEditing} className="px-4 py-1 bg-gray-200 text-gray-700 rounded-full text-sm hover:bg-gray-300 transition-colors duration-200">
-                ביטול
-              </button>
+              <div className="flex gap-2">
+                <button onClick={saveEditing} className="px-3 py-1 bg-orange-500 text-white rounded-full text-sm">שמור</button>
+                <button onClick={cancelEditing} className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm">ביטול</button>
+              </div>
             </div>
           ) : (
             <>
-              <MapPin className="ml-1 w-5 h-5" />
-              <span className="ml-1">{location}</span>
-              <Pencil onClick={() => startEditing('location', location)} className="ml-2 opacity-0 group-hover:opacity-100 cursor-pointer w-4 h-4 text-gray-500 transition-opacity duration-200" />
+              <span>{location}</span>
+              <Pencil onClick={() => startEditing('location', location)} className="opacity-0 group-hover:opacity-100 cursor-pointer w-4 h-4 text-gray-500" />
             </>
           )}
         </div>
 
         {/* Bio */}
-        <div className="relative group w-full">
+        <div className="mt-4 group relative">
           {editing === 'bio' ? (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               <textarea
                 value={tempValue}
                 onChange={e => setTempValue(e.target.value)}
                 rows={3}
-                className="w-full border border-gray-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-200 focus:outline-none p-3 rounded-lg resize-none text-gray-700 transition-all duration-200"
+                className="w-full border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg p-3 resize-none text-base text-gray-700"
+                dir="rtl"
               />
-              <div className="flex space-x-3">
-                <button onClick={saveEditing} className="px-4 py-1 bg-orange-500 text-white rounded-full text-sm hover:bg-orange-600 transition-colors duration-200">
-                  שמור
-                </button>
-                <button onClick={cancelEditing} className="px-4 py-1 bg-gray-200 text-gray-700 rounded-full text-sm hover:bg-gray-300 transition-colors duration-200">
-                  ביטול
-                </button>
+              <div className="flex justify-end gap-2">
+                <button onClick={saveEditing} className="px-3 py-1 bg-orange-500 text-white rounded-full text-sm">שמור</button>
+                <button onClick={cancelEditing} className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm">ביטול</button>
               </div>
             </div>
           ) : (
-            <p className="text-gray-700 text-sm leading-relaxed">
+            <p className="text-base text-gray-700 leading-relaxed">
               {bio}
-              <Pencil onClick={() => startEditing('bio', bio)} className="absolute top-0 right-0 w-4 h-4 text-gray-500 opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity duration-200" />
+              <Pencil onClick={() => startEditing('bio', bio)} className="absolute left-0 top-0 opacity-0 group-hover:opacity-100 cursor-pointer w-4 h-4 text-gray-500" />
             </p>
           )}
         </div>
 
         {/* Stats */}
-        <div className="mt-6 grid grid-cols-3 text-center bg-orange-50 rounded-xl p-4 gap-6">
-          <div>
-            <p className="text-2xl font-bold text-gray-900">{postsCount}</p>
-            <p className="text-xs text-gray-500">פוסטים</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-gray-900">{followersCount}</p>
-            <p className="text-xs text-gray-500">עוקבים</p>
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-gray-900">{followingCount}</p>
-            <p className="text-xs text-gray-500">עוקב אחרי</p>
-          </div>
+        <div className="mt-8 grid grid-cols-3 gap-x-40 gap-y-4 sm:flex sm:justify-center bg-orange-50 rounded-xl p-5 shadow-md">
+          <Stat icon={<MessageSquare className="w-5 h-5" />} count={postsCount} label="פוסטים" />
+          <Stat icon={<Users className="w-5 h-5" />} count={followersCount} label="עוקבים" />
+          <Stat icon={<Users className="w-5 h-5" />} count={followingCount} label="עוקב אחרי" />
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
