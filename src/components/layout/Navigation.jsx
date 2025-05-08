@@ -10,6 +10,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { auth } from '@/config/firbaseConfig';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import Cookies from "js-cookie";
+import { useNavigate } from 'react-router-dom';
 
 const sections = [
   { id: 'about-us', label: 'אודות העמותה', icon: faLeaf },
@@ -26,7 +28,7 @@ const Navigation = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [showAuthDropdown, setShowAuthDropdown] = useState(false);
   const authDropdownRef = useRef(null);
-  const provider = new GoogleAuthProvider();
+  const navigate = useNavigate();
 
   // Scroll & active section tracking
   useEffect(() => {
@@ -67,17 +69,22 @@ const Navigation = () => {
   const handleSignIn = async () => {
   // redirect to sign in page
     window.location.href = '/login';
-    
+
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      setShowAuthDropdown(false);
-    } catch (err) {
-      console.error('Logout failed:', err);
-    }
-  };
+const handleSignOut = async () => {
+  try {
+    await signOut(auth);
+    // remove our persisted cookie
+    Cookies.remove("authToken");
+    // close the dropdown
+    setShowAuthDropdown(false);
+    // kick them back to login
+    navigate("/", { replace: true });
+  } catch (err) {
+    console.error("Logout failed:", err);
+  }
+};
 
   const toggleAuthDropdown = e => {
     e.stopPropagation();
@@ -141,14 +148,6 @@ const Navigation = () => {
           <div className="flex items-center space-x-4 space-x-reverse border-r border-white/20 mr-4 pr-6">
             <a href="tel:0500000000" className="text-white hover:text-green-400">
               <Phone size={20} />
-            </a>
-            <a
-              href="https://wa.me/972500000000"
-              target="_blank"
-              className="text-white hover:text-green-400 bg-green-600 hover:bg-green-700 p-1 w-7 h-7 rounded-full flex items-center justify-center"
-              aria-label="WhatsApp"
-            >
-              <MessageCircle size={16} />
             </a>
             <a href="https://www.instagram.com/anatzigron" target="_blank" className="text-white hover:text-pink-300">
               <Instagram size={20} />

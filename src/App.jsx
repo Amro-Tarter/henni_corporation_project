@@ -19,7 +19,6 @@ import ProfilePage from './pages/profilePage';
 import Contact from './pages/Contact';
 import ChatApp from './pages/chatApp';
 import ElementalProjects from './pages/ElementalProjects';
-import ProtectedRoute from './pages/protectedRoute';
 
 // Create a react-query client
 const queryClient = new QueryClient();
@@ -43,13 +42,7 @@ const App = () => {
               <Route path="/forgotPassword" element={<ForgotPassword />} />
               <Route path="/signUp" element={<SignUp />} />   
               <Route path="/logIn" element={<LogIn />}/>
-              <Route path="/home"
-                element={
-                  <ProtectedRoute>
-                    <Home />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/home"  element={ <Home /> }/>
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/chat" element={<ChatApp />} />
               <Route path="/projects" element={<ElementalProjects />} />
