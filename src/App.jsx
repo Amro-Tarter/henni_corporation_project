@@ -17,6 +17,7 @@ import ForgotPassword from './pages/forgotPassword';
 import Home from './pages/Home';
 import ProfilePage from './pages/profilePage'; 
 import Contact from './pages/Contact'; 
+import ElementalProjects from './pages/ElementalProjects';
 
 // Create a react-query client
 const queryClient = new QueryClient();
@@ -42,6 +43,8 @@ const App = () => {
               <Route path="/logIn" element={<LogIn />}/>
               <Route path="/home" element={<Home />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/projects" element={<ElementalProjects />} />
+
               {/* 404 Page */}
               <Route path="*" element={<NotFound />} />
             </Routes>
