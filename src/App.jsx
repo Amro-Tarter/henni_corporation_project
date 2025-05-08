@@ -18,7 +18,6 @@ import Home from './pages/Home';
 import ProfilePage from './pages/profilePage'; 
 import Contact from './pages/Contact';
 import ChatApp from './pages/chatApp';
-import Contact from './pages/Contact'; 
 import ElementalProjects from './pages/ElementalProjects';
 
 // Create a react-query client
