@@ -1,8 +1,6 @@
 import { useMemo } from "react";
 
 export default function ConversationList({
-  currentUser,
-  conversations,
   selectedConversation,
   setSelectedConversation,
   searchQuery,
@@ -11,14 +9,23 @@ export default function ConversationList({
   isLoadingConversations,
   setShowNewChatDialog,
   getChatPartner,
-  elementColors
-}) {
+  elementColors,
+  activeTab
+}
+) {
+  const visibleConversations = filteredConversations.filter((conv) => {
+    if (activeTab === "all") return true;
+    if (activeTab === "direct") return conv.type === "direct";
+    if (activeTab === "groups") return conv.type === "group";
+    if (activeTab === "community") return conv.type === "community";
+    return false;
+  });
   // Refactored conversation list component with elementColors props
   return (
     <div className="w-1/5 border-l border-gray-200 flex flex-col conversation-list" dir="rtl">
       <div className="p-4">
         <h1 className="text-xl font-bold text-gray-900">כל הצ'אטים</h1>
-        <h2 className="text-sm text-gray-500 mt-1">הודעות ({filteredConversations.length})</h2>
+        <h2 className="text-sm text-gray-500 mt-1">הודעות ({visibleConversations.length})</h2>
         
         <div className="mt-4 relative">
           <input
@@ -40,7 +47,7 @@ export default function ConversationList({
         {isLoadingConversations ? (
           <div className="p-4 text-center text-gray-500">טוען צ'אטים...</div>
         ) : (
-          filteredConversations.map((conv) => {
+          visibleConversations.map((conv) => {
             // Determine background color for this conversation item
             const isSelected = selectedConversation?.id === conv.id;
             const bgColorStyle = isSelected ? { backgroundColor: elementColors.light } : {};
@@ -56,7 +63,7 @@ export default function ConversationList({
                 style={bgColorStyle}
               >
                 <div className="font-medium text-gray-900">
-                  {getChatPartner(conv.participants)}
+                  {getChatPartner(conv.participants, conv.type, conv.element)}
                 </div>
                 <div className="text-sm text-gray-500">
                   {conv.lastMessage || "אין הודעות עדיין"}
@@ -67,16 +74,19 @@ export default function ConversationList({
         )}
       </div>
 
-      <div className="p-4 border-t border-gray-200">
-        <button
-          onClick={() => setShowNewChatDialog(true)}
-          className="w-full text-white py-2 rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
-          style={{ backgroundColor: elementColors.primary }}
-        >
-          <span className="text-xl">+</span>
-          <span>צ'אט חדש</span>
-        </button>
-      </div>
+      {activeTab === "direct" && (
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={() => setShowNewChatDialog(true)}
+            className="w-full text-white py-2 rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+            style={{ backgroundColor: elementColors.primary }}
+          >
+            <span className="text-xl">+</span>
+            <span>צ'אט חדש</span>
+          </button>
+        </div>
+      )}
+
     </div>
   );
 }

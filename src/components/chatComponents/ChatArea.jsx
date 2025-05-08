@@ -1,10 +1,5 @@
 // ChatArea.jsx
 import { useRef, useEffect } from "react";
-import {
-  doc,
-  updateDoc
-} from "firebase/firestore";
-import { db } from "../../config/firbaseConfig";
 
 export default function ChatArea({
   selectedConversation,
@@ -23,7 +18,6 @@ export default function ChatArea({
   uploadProgress,
   handleFileChange,
   removeFile,
-  isPartnerTyping,
   isRecording,
   startRecording,
   stopRecording,
@@ -52,34 +46,6 @@ export default function ChatArea({
     }
   };
 
-  useEffect(() => {
-    if (!selectedConversation?.id || !currentUser.uid || newMessage === '') return;
-
-    const convoRef = doc(db, "conversations", selectedConversation.id);
-
-    updateDoc(convoRef, {
-      [`typing.${currentUser.uid}`]: true
-    });
-    hasSetTypingRef.current = true;
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    typingTimeoutRef.current = setTimeout(() => {
-      if (newMessage !== '') {
-        updateDoc(convoRef, {
-          [`typing.${currentUser.uid}`]: false
-        });
-        hasSetTypingRef.current = false;
-      }
-    }, 10000);
-
-    return () => {
-      clearTimeout(typingTimeoutRef.current);
-    };
-  }, [newMessage, selectedConversation?.id, currentUser.uid]);
-
   // Initial load - position at latest messages but don't scroll to bottom
   useEffect(() => {
     if (!messagesContainerRef.current) return;
@@ -89,7 +55,7 @@ export default function ChatArea({
       // Small timeout to ensure DOM is ready
       setTimeout(() => {
         scrollToLatestMessages();
-      }, 100);
+      }, 50);
     }
     
     const container = messagesContainerRef.current;
@@ -133,9 +99,9 @@ export default function ChatArea({
         <>
           <div className="p-4 border-b mt-16 border-gray-200 text-right">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg text-gray-900">
-                {getChatPartner(selectedConversation.participants)}
-              </h3>
+            <h3 className="font-bold text-lg text-gray-900">
+              {getChatPartner(selectedConversation.participants, selectedConversation.type, selectedConversation.element)}
+            </h3>
             </div>
           </div>
   
@@ -151,6 +117,16 @@ export default function ChatArea({
               </div>
             ) : (
               messages.map((msg) => (
+                msg.type === 'system' ? (
+                  <div key={msg.id} className="my-2 text-center">
+                    <div className="text-sm text-gray-500 italic">
+                      {msg.text}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">
+                      {msg.createdAt?.toLocaleTimeString('he-IL')}
+                    </div>
+                  </div>
+                ) : (
                 <div
                   key={msg.id}
                   className={`mb-4 ${msg.sender === currentUser.uid ? "text-right" : "text-left"}`}
@@ -189,14 +165,10 @@ export default function ChatArea({
                   <div className={`text-xs text-gray-500 mt-1 ${msg.sender === currentUser.uid ? "text-right" : "text-left"}`}>
                     {msg.createdAt?.toLocaleTimeString('he-IL') || "עכשיו"}
                   </div>
-                </div>
+                </div>)
               ))
             )}
-            {isPartnerTyping && (
-              <div className="px-4 py-2 text-sm text-gray-500 italic">
-                {getChatPartner(selectedConversation.participants)} כותב/ת...
-              </div>
-            )}
+            
             <div ref={messagesEndRef} />
           </div>
   

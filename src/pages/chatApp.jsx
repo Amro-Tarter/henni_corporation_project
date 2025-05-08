@@ -12,7 +12,8 @@ import {
   getDocs, 
   writeBatch,
   setDoc,
-  getDoc
+  getDoc,
+  arrayUnion
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -44,6 +45,8 @@ export default function ChatApp() {
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioURL, setAudioURL] = useState("");
   const [isRecording, setIsRecording] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
+
   // Add this in chatApp.jsx
 const ELEMENT_COLORS = {
   fire: {
@@ -132,45 +135,131 @@ const ELEMENT_COLORS = {
   }, [selectedConversation, currentUser.uid]);
 
 
+    // Add this function inside the ChatApp component
+    const handleCommunityChatMembership = async (userId, userElement) => {
+      try {
+        const q = query(
+          collection(db, "conversations"),
+          where("type", "==", "community"),
+          where("element", "==", userElement)
+        );
+        
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          // Create new community chat with welcome message
+          const convoRef = doc(collection(db, "conversations"));
+          await setDoc(convoRef, {
+            participants: [userId],
+            participantNames: [`${userElement} Community`],
+            type: "community",
+            element: userElement,
+            lastMessage: "Community created!",
+            lastUpdated: serverTimestamp(),
+            createdAt: serverTimestamp(),
+          });
+    
+          // Add system message
+          const messagesRef = collection(db, "conversations", convoRef.id, "messages");
+          await addDoc(messagesRef, {
+            text: "Community created! Welcome!",
+            type: "system",
+            createdAt: serverTimestamp()
+          });
+        } else {
+          const convoDoc = querySnapshot.docs[0];
+          if (!convoDoc.data().participants.includes(userId)) {
+            // Add user to community
+            await updateDoc(convoDoc.ref, {
+              participants: arrayUnion(userId)
+            });
+    
+            // Get user's username
+            const userDoc = await getDoc(doc(db, "users", userId));
+            const username = userDoc.data().username;
+    
+            // Add join notification
+            const messagesRef = collection(db, "conversations", convoDoc.id, "messages");
+            await addDoc(messagesRef, {
+              text: `${username} joined the community`,
+              type: "system",
+              createdAt: serverTimestamp()
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error handling community chat:", error);
+      }
+    };
+    
+  // Update the auth useEffect to call this function
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {          
           const userDoc = await getDoc(doc(db, "users", user.uid));
+          const userElement = userDoc.data().element;
+          
           setCurrentUser({
             uid: user.uid,
             username: userDoc.data().username,
-            element: userDoc.data().element
+            element: userElement
           });
+          
+          // Add user to their element's community chat
+          await handleCommunityChatMembership(user.uid, userElement);
           
           setAuthInitialized(true);
         } catch (error) {
           console.error("Error loading user:", error);
         }
       } else {
-        // Handle anonymous users or redirect to login
         setAuthInitialized(true);
       }
     });
     return () => unsubscribe();
   }, []);
 
-  const getChatPartner = useCallback((participants) => {
+  const getChatPartner = useCallback((participants, conversationType, element) => {
+    if (conversationType === "community") {
+      return `${element} Community`;
+    }
+    
     if (!participants || !currentUser.uid) return "Unknown";
     const partnerUid = participants.find((p) => p !== currentUser.uid);
     const conversation = conversations.find(conv => 
       conv.participants.includes(partnerUid)
     );
+    
     return conversation?.participantNames?.find(name => name !== currentUser.username) || "Unknown";
   }, [currentUser.uid, currentUser.username, conversations]);
 
   const filteredConversations = useMemo(() => {
-    return conversations.filter(conv => 
-      conv.participantNames?.some(name => 
-        name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    );
-  }, [conversations, searchQuery]);
+    let filtered = conversations;
+    
+    // Apply tab filter
+    if (activeTab === "private") {
+      filtered = filtered.filter(conv => conv.type === "direct");
+    } else if (activeTab === "groups") {
+      filtered = filtered.filter(conv => conv.type === "group");
+    } else if (activeTab === "community") {
+      filtered = filtered.filter(conv => 
+        conv.type === "community" && 
+        conv.element === currentUser.element
+      );
+    }
+  
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(conv => 
+        conv.participantNames?.some(name => 
+          name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+    }
+  
+    return filtered;
+  }, [conversations, searchQuery, activeTab, currentUser.element]);
 
 
   // Load conversations
@@ -187,19 +276,36 @@ const ELEMENT_COLORS = {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const promises = snapshot.docs.map(async (conversationDoc) => {
         const data = conversationDoc.data();
-        const partnerUid = data.participants.find(p => p !== currentUser.uid);
-        const partnerDoc = await getDoc(doc(db, "users", partnerUid));
         
-        return {
-          id: conversationDoc.id,
-          ...data,
-          participantNames: [
-            currentUser.username,
-            partnerDoc.exists() ? partnerDoc.data().username : 'Unknown'
-          ],
-          lastUpdated: data.lastUpdated?.toDate(),
-          createdAt: data.createdAt?.toDate()
-        };
+        // Handle different conversation types
+        if (data.type === "community") {
+          return {
+            id: conversationDoc.id,
+            ...data,
+            participantNames: [`${data.element} Community`],
+            lastUpdated: data.lastUpdated?.toDate(),
+            createdAt: data.createdAt?.toDate()
+          };
+        }
+        
+        if (data.type === "direct") {
+          const partnerUid = data.participants.find(p => p !== currentUser.uid);
+          const partnerDoc = await getDoc(doc(db, "users", partnerUid));
+          
+          return {
+            id: conversationDoc.id,
+            ...data,
+            participantNames: [
+              currentUser.username,
+              partnerDoc.exists() ? partnerDoc.data().username : 'Unknown'
+            ],
+            lastUpdated: data.lastUpdated?.toDate(),
+            createdAt: data.createdAt?.toDate()
+          };
+        }
+        
+        // Add similar handling for groups if needed
+        return { id: conversationDoc.id, ...data };
       });
   
       Promise.all(promises)
@@ -548,7 +654,7 @@ const ELEMENT_COLORS = {
       const convoData = {
         participants: participants,
         participantNames: [currentUser.username, partner.data().username],
-        type: "direct",
+        type: "direct", // This indicates it's a private chat
         lastMessage: "",
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
@@ -579,7 +685,7 @@ const ELEMENT_COLORS = {
     return <div className="flex items-center justify-center h-screen">Loading chat...</div>;
   }
   const elementColors = ELEMENT_COLORS[currentUser.element];
-
+  const userElement = currentUser.element
 
 
   return (
@@ -587,6 +693,8 @@ const ELEMENT_COLORS = {
       <Navbar />
       <Sidebar 
         elementColors={ELEMENT_COLORS[currentUser.element]}
+        userElement={userElement}
+        onTabChange={setActiveTab}
       />
       <ConversationList
         currentUser={currentUser}
@@ -600,6 +708,7 @@ const ELEMENT_COLORS = {
         setShowNewChatDialog={setShowNewChatDialog}
         getChatPartner={getChatPartner}
         elementColors={ELEMENT_COLORS[currentUser.element]}
+        activeTab={activeTab}
       />
 
       <ChatArea
