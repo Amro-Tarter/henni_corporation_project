@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/hooks/useUser';
-import { ChevronRight, MapPin, Calendar, Plus, X } from 'lucide-react';
+import { ChevronLeft, MapPin, Calendar, Plus, X } from 'lucide-react';
 import Particles from '@tsparticles/react';
 import { loadFull } from 'tsparticles';
 import Tilt from 'react-parallax-tilt';
@@ -216,7 +216,7 @@ const ElementalProjects = () => {
                     <div className="flex items-center gap-2"><Calendar className="w-4 h-4" />{project.date}</div>
                   </div>
                   <button className={`mt-4 w-full bg-gradient-to-r ${elementData.color} text-white py-2 rounded font-bold`}>
-                    לקריאה נוספת <ChevronRight className="inline w-4 h-4" />
+                    לקריאה נוספת <ChevronLeft className="inline w-4 h-4" />
                   </button>
                 </CardContent>
               </Card>
