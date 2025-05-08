@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/layout/layout';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChevronLeft, MapPin, Calendar, Plus, X, Image as ImageIcon, Check, AlertCircle, Upload } from 'lucide-react';
+import { ChevronLeft, MapPin, Calendar, Plus, X, Image as ImageIcon, Check, AlertCircle, Upload, Edit, Trash2 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { cn } from '@/lib/utils';
 import Particles from '@tsparticles/react';
@@ -15,7 +15,10 @@ import {
   where,
   orderBy,
   onSnapshot,
-  Timestamp
+  Timestamp,
+  doc,
+  deleteDoc,
+  updateDoc
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db } from '../config/firbaseConfig';
@@ -47,6 +50,7 @@ const ElementalProjects = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
   const controls = useAnimation();
   const elementData = ELEMENTS.find((el) => el.key === selectedElement);
@@ -88,6 +92,7 @@ const ElementalProjects = () => {
     const handleClickOutside = (event) => {
       if (formRef.current && !formRef.current.contains(event.target)) {
         setIsFormVisible(false);
+        resetForm();
       }
     };
 
@@ -103,6 +108,13 @@ const ElementalProjects = () => {
     });
   }, [selectedElement, controls]);
 
+  const resetForm = () => {
+    setNewProject({ title: '', location: '', date: '', image: '', description: '' });
+    setImagePreview('');
+    setFormErrors({});
+    setIsEditMode(false);
+  };
+
   const validateForm = () => {
     const errors = {};
     if (!newProject.title) errors.title = 'נדרשת כותרת';
@@ -114,7 +126,7 @@ const ElementalProjects = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleAddProject = async () => {
+  const handleSubmitProject = async () => {
     if (!validateForm()) return;
 
     setIsSubmitting(true);
@@ -122,32 +134,98 @@ const ElementalProjects = () => {
     const projectData = {
       ...newProject,
       element: selectedElement,
-      created_at: Timestamp.now(),
-      created_by: user?.email || 'anonymous'
+      updated_at: Timestamp.now(),
     };
 
+    // If not in edit mode, add creation metadata
+    if (!isEditMode) {
+      projectData.created_at = Timestamp.now();
+      projectData.created_by = user?.email || 'anonymous';
+    }
+
     try {
-      await addDoc(collection(db, 'elemental_projects'), projectData);
-      setNewProject({ title: '', location: '', date: '', image: '', description: '' });
-      setImagePreview('');
+      if (isEditMode && newProject.id) {
+        // Remove id from projectData (not needed for update)
+        const { id, ...dataToUpdate } = projectData;
+        await updateProject(id, dataToUpdate);
+      } else {
+        await addDoc(collection(db, 'elemental_projects'), projectData);
+      }
+      
+      resetForm();
       setIsFormVisible(false);
       setNotification({
         show: true,
-        message: 'הפרויקט נוסף בהצלחה!',
+        message: isEditMode ? 'הפרויקט עודכן בהצלחה!' : 'הפרויקט נוסף בהצלחה!',
         type: 'success'
       });
       
       setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
     } catch (error) {
-      console.error('❌ Error adding project:', error);
+      console.error(`❌ Error ${isEditMode ? 'updating' : 'adding'} project:`, error);
       setNotification({
         show: true,
-        message: 'שגיאה בהוספת הפרויקט',
+        message: isEditMode ? 'שגיאה בעדכון הפרויקט' : 'שגיאה בהוספת הפרויקט',
         type: 'error'
       });
       setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const deleteProject = async (id) => {
+    if (!id) return;
+    if (!confirm('האם אתה בטוח שברצונך למחוק את הפרויקט?')) return;
+
+    try {
+      await deleteDoc(doc(db, 'elemental_projects', id));
+      setNotification({
+        show: true,
+        message: 'הפרויקט נמחק בהצלחה',
+        type: 'success'
+      });
+      
+      // If the deleted project is currently selected, close the modal
+      if (selectedProject && selectedProject.id === id) {
+        setSelectedProject(null);
+      }
+      
+      setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      setNotification({
+        show: true,
+        message: 'שגיאה במחיקת הפרויקט',
+        type: 'error'
+      });
+      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+    }
+  };
+
+  const updateProject = async (id, updatedFields) => {
+    if (!id || !updatedFields) return;
+
+    try {
+      const projectRef = doc(db, 'elemental_projects', id);
+      await updateDoc(projectRef, updatedFields);
+      return true;
+    } catch (error) {
+      console.error('Error updating project:', error);
+      throw error;
+    }
+  };
+
+  const handleEditProject = (project) => {
+    setNewProject({...project});
+    setImagePreview(project.image || '');
+    setIsEditMode(true);
+    setIsFormVisible(true);
+    
+    // If the element of the project differs from the current selected element, 
+    // switch to that element
+    if (project.element !== selectedElement) {
+      setSelectedElement(project.element);
     }
   };
 
@@ -380,9 +458,14 @@ const ElementalProjects = () => {
                   className="bg-white p-6 rounded-xl shadow-lg border border-white/20 backdrop-blur-md"
                 >
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">הוסף פרויקט {elementData.emoji}</h2>
+                    <h2 className="text-2xl font-bold text-gray-800">
+                      {isEditMode ? 'ערוך פרויקט' : 'הוסף פרויקט'} {elementData.emoji}
+                    </h2>
                     <button 
-                      onClick={() => setIsFormVisible(false)}
+                      onClick={() => {
+                        setIsFormVisible(false);
+                        resetForm();
+                      }}
                       className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
                       <X className="w-6 h-6" />
@@ -520,25 +603,28 @@ const ElementalProjects = () => {
 
                   <div className="flex justify-end gap-3">
                     <button 
-                      onClick={() => setIsFormVisible(false)} 
+                      onClick={() => {
+                        setIsFormVisible(false);
+                        resetForm();
+                      }} 
                       className="px-6 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100"
                     >
                       ביטול
                     </button>
                     <button 
-                      onClick={handleAddProject} 
+                      onClick={handleSubmitProject} 
                       disabled={isSubmitting}
                       className={`bg-gradient-to-r ${elementData.color} text-white px-8 py-2 rounded-lg font-bold flex items-center gap-2 hover:opacity-90 transition-opacity ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                       {isSubmitting ? (
                         <>
                           <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                          מוסיף...
+                          {isEditMode ? 'מעדכן...' : 'מוסיף...'}
                         </>
                       ) : (
                         <>
-                          <Plus className="w-5 h-5" />
-                          הוסף פרויקט
+                          {isEditMode ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                          {isEditMode ? 'עדכן פרויקט' : 'הוסף פרויקט'}
                         </>
                       )}
                     </button>
@@ -547,161 +633,188 @@ const ElementalProjects = () => {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Projects Grid */}
-          {loading ? (
-            <div className="text-center mt-16">
-              <div className="inline-block w-16 h-16 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-white mt-4 text-lg">טוען פרויקטים...</p>
-            </div>
-          ) : (
-            <AnimatePresence mode="wait">
+{/* Project Grid */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {isAdmin && (
               <motion.div
-                key={selectedElement}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
               >
-                {projectsMap[selectedElement]?.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {projectsMap[selectedElement].map((project, idx) => (
-                      <motion.div
-                        key={project.id || idx}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.1, duration: 0.5 }}
-                      >
-                        <Card className="rounded-xl overflow-hidden bg-white/90 shadow-lg hover:shadow-xl transition-all duration-300 group">
-                          <div className="h-56 relative overflow-hidden">
-                            <img 
-                              src={project.image || '/placeholder-image.jpg'} 
-                              alt={project.title} 
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = '/placeholder-image.jpg';
-                              }} 
-                            />
-                            <div className={`absolute top-4 right-4 ${elementData.lightColor} p-2 rounded-full shadow-md`}>
-                              <span className="text-xl">{elementData.emoji}</span>
-                            </div>
-                            
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
-                              <div className="p-4 text-white">
-                                <p className="font-medium truncate">{project.description?.substring(0, 50)}...</p>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <CardContent className="p-5">
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">{project.title}</h3>
-                            <div className="mt-2 text-sm text-gray-600 space-y-1">
-                              <div className="flex items-center gap-2"><MapPin className="w-4 h-4 flex-shrink-0" />{project.location}</div>
-                              <div className="flex items-center gap-2"><Calendar className="w-4 h-4 flex-shrink-0" />{formatDate(project.date)}</div>
-                            </div>
-                            <button
-                              onClick={() => setSelectedProject(project)}
-                              className={`mt-4 w-full bg-gradient-to-r ${elementData.color} text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2`}
-                            >
-                              לקריאה נוספת <ChevronLeft className="w-4 h-4" />
-                            </button>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center text-white mt-10 bg-white/10 backdrop-blur-md rounded-xl p-10 shadow-lg">
-                    <div className="text-6xl mb-4">{elementData.emoji}</div>
-                    <p className="text-xl font-medium">לא נמצאו פרויקטים עבור האלמנט הנבחר.</p>
-                    {isAdmin && (
-                      <button 
-                        onClick={() => setIsFormVisible(true)}
-                        className={`mt-6 bg-gradient-to-r ${elementData.color} text-white px-6 py-3 rounded-lg font-bold inline-flex items-center gap-2 hover:opacity-90 transition-opacity`}
-                      >
-                        <Plus className="w-5 h-5" />
-                        הוסף פרויקט ראשון
-                      </button>
+                <button
+                  onClick={() => setIsFormVisible(true)}
+                  className={`bg-white/90 rounded-xl p-5 text-center flex flex-col items-center justify-center h-full w-full border-2 border-dashed ${elementData.lightColor} hover:bg-white transition-all duration-300 min-h-[200px]`}
+                >
+                  <Plus className={`w-12 h-12 mb-3 text-${selectedElement === 'metal' ? 'gray' : selectedElement}-500`} />
+                  <span className="font-bold text-gray-800 text-lg">הוסף פרויקט חדש</span>
+                </button>
+              </motion.div>
+            )}
+
+            {loading ? (
+              // Loading skeletons
+              Array(3).fill(0).map((_, index) => (
+                <motion.div
+                  key={`skeleton-${index}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.1 * index }}
+                  className="bg-white/30 rounded-xl p-6 animate-pulse h-[200px]"
+                />
+              ))
+            ) : (
+              // Actual projects
+              (projectsMap[selectedElement] || []).map((project, index) => (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * index, duration: 0.4 }}
+                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                  className="bg-white/90 rounded-xl overflow-hidden shadow-lg flex flex-col transition-all duration-300 hover:shadow-xl"
+                  onClick={() => setSelectedProject(project)}
+                >
+                  <div className="relative aspect-video">
+                    {project.image ? (
+                      <img 
+                        src={project.image} 
+                        alt={project.title} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/placeholder-image.jpg';
+                        }}
+                      />
+                    ) : (
+                      <div className={`w-full h-full flex items-center justify-center ${elementData.lightColor}`}>
+                        <span className="text-6xl">{elementData.emoji}</span>
+                      </div>
                     )}
                   </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          )}
+                  <div className="p-5 flex-1 flex flex-col">
+                    <h3 className="font-bold text-xl text-gray-800 mb-2">{project.title}</h3>
+                    <div className="flex items-center text-gray-600 mb-1">
+                      <MapPin className="w-4 h-4 ml-1 flex-shrink-0" />
+                      <span className="text-sm truncate">{project.location}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Calendar className="w-4 h-4 ml-1 flex-shrink-0" />
+                      <span className="text-sm">{formatDate(project.date)}</span>
+                    </div>
+                    <p className="mt-3 text-gray-600 line-clamp-3 text-sm flex-1">
+                      {project.description}
+                    </p>
+                    
+                    {isAdmin && (
+                      <div className="flex justify-end mt-4 gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditProject(project);
+                          }}
+                          className="p-2 rounded-full hover:bg-gray-100 text-gray-600"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteProject(project.id);
+                          }}
+                          className="p-2 rounded-full hover:bg-red-100 text-red-600"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
 
-          {/* Floating Add FAB */}
-          {isAdmin && (
-            <motion.button
-              onClick={() => setIsFormVisible(!isFormVisible)}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className={`fixed bottom-8 right-8 z-50 w-16 h-16 rounded-full shadow-xl flex items-center justify-center 
-                ${isFormVisible ? 'bg-gray-200 text-gray-800' : `bg-gradient-to-br ${elementData.color} text-white`} transition-all`}
-            >
-              {isFormVisible ? <X className="w-7 h-7" /> : <Plus className="w-7 h-7" />}
-            </motion.button>
-          )}
-
-          {/* Modal for selected project */}
+          {/* Project Details Modal */}
           <AnimatePresence>
             {selectedProject && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center px-4 backdrop-blur-sm"
+                className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4"
                 onClick={() => setSelectedProject(null)}
               >
-                <motion.div 
-                  className="bg-white max-w-lg w-full rounded-2xl overflow-hidden relative shadow-2xl"
-                  initial={{ scale: 0.9, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.9, opacity: 0 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                <motion.div
+                  initial={{ y: 50, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 50, opacity: 0 }}
+                  transition={{ type: "spring", damping: 25 }}
+                  className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-xl"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="h-72 relative">
-                    <img 
-                      src={selectedProject.image || '/placeholder-image.jpg'} 
-                      alt={selectedProject.title} 
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = '/placeholder-image.jpg';
-                      }} 
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex flex-col justify-end p-6">
-                      <div className={`${elementData.lightColor} w-12 h-12 rounded-full flex items-center justify-center mb-3 shadow-lg`}>
-                        <span className="text-2xl">{elementData.emoji}</span>
+                  <div className="relative aspect-video">
+                    {selectedProject.image ? (
+                      <img 
+                        src={selectedProject.image} 
+                        alt={selectedProject.title} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/placeholder-image.jpg';
+                        }}
+                      />
+                    ) : (
+                      <div className={`w-full h-full flex items-center justify-center ${elementData.lightColor}`}>
+                        <span className="text-6xl">{elementData.emoji}</span>
                       </div>
-                      <h3 className="text-3xl font-bold text-white">{selectedProject.title}</h3>
-                      <div className="flex items-center gap-4 text-white/90 text-sm mt-2">
-                        <div className="flex items-center gap-1"><MapPin className="w-4 h-4" />{selectedProject.location}</div>
-                        <div className="flex items-center gap-1"><Calendar className="w-4 h-4" />{formatDate(selectedProject.date)}</div>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => setSelectedProject(null)} 
-                      className="absolute top-4 left-4 bg-black/30 text-white rounded-full p-1 hover:bg-black/50 transition-colors"
+                    )}
+                    <button
+                      onClick={() => setSelectedProject(null)}
+                      className="absolute top-4 right-4 bg-black/40 text-white rounded-full p-2 hover:bg-black/60 transition-colors"
                     >
-                      <X size={20} />
+                      <X className="w-6 h-6" />
                     </button>
                   </div>
-                  
-                  <div className="p-6">
-                    <p className="text-gray-700 whitespace-pre-line leading-relaxed">
-                      {selectedProject.description || "אין תיאור זמין."}
-                    </p>
-                    
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <button
-                        onClick={() => setSelectedProject(null)}
-                        className={`w-full bg-gradient-to-r ${elementData.color} text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity`}
-                      >
-                        סגור
-                      </button>
+                  <div className="p-6 max-h-[calc(90vh-35vh)] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-3xl">{ELEMENTS.find(el => el.key === selectedProject.element)?.emoji}</span>
+                      <h2 className="text-2xl font-bold text-gray-800">{selectedProject.title}</h2>
                     </div>
+                    <div className="flex flex-wrap gap-4 mb-5">
+                      <div className="flex items-center text-gray-600">
+                        <MapPin className="w-5 h-5 ml-1" />
+                        <span>{selectedProject.location}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <Calendar className="w-5 h-5 ml-1" />
+                        <span>{formatDate(selectedProject.date)}</span>
+                      </div>
+                    </div>
+                    <div className="prose max-w-none">
+                      <p className="whitespace-pre-line">{selectedProject.description}</p>
+                    </div>
+                    
+                    {isAdmin && (
+                      <div className="mt-6 flex justify-end gap-3">
+                        <button
+                          onClick={() => {
+                            handleEditProject(selectedProject);
+                            setSelectedProject(null);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                        >
+                          <Edit className="w-5 h-5" /> ערוך
+                        </button>
+                        <button
+                          onClick={() => {
+                            deleteProject(selectedProject.id);
+                            setSelectedProject(null);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                        >
+                          <Trash2 className="w-5 h-5" /> מחק
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               </motion.div>
