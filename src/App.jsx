@@ -12,11 +12,13 @@ import AccessibilityStatement from './pages/AccessibilityStatement';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfUse from './pages/TermsOfUse';
 import LogIn from './pages/logIn';
-import SignUp from './pages/signUp';
+import SignUp from './pages/SignUp';
 import ForgotPassword from './pages/forgotPassword';
 import Home from './pages/Home';
 import ProfilePage from './pages/profilePage'; 
-import Contact from './pages/Contact'; 
+import Contact from './pages/Contact';
+import ChatApp from './pages/chatApp';
+import ElementalProjects from './pages/ElementalProjects';
 
 // Create a react-query client
 const queryClient = new QueryClient();
@@ -42,6 +44,9 @@ const App = () => {
               <Route path="/logIn" element={<LogIn />}/>
               <Route path="/home" element={<Home />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/chat" element={<ChatApp />} />
+              <Route path="/projects" element={<ElementalProjects />} />
+
               {/* 404 Page */}
               <Route path="*" element={<NotFound />} />
             </Routes>
