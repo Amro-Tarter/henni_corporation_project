@@ -122,24 +122,18 @@ def initialize_collections():
         })
         print("✅ Initialized 'programs' collection.")
 
-        # Initialize Activities Collection
-        db.collection("activities").document("placeholder_activity").set({
-            "title": "",
-            "description": "",
-            "activity_type": "workshop",
-            "program_year": 1,
-            "domain_id": "",
-            "start_date": None,
-            "end_date": None,
-            "location": "",
-            "max_participants": 50,
-            "current_participants": 0,
-            "image": "",
-            "status": "planned",
-            "facilitator_id": "",
-            "leadership_focus": ""
+       # Initialize Profiles Collection
+        db.collection("profiles").document("placeholder_profile").set({
+            "displayName":     "",
+            "photoURL":        "",
+            "bio":             "",
+            "location":        "",
+            "postsCount":      0,
+            "followersCount":  0,
+            "followingCount":  0,
+            "updatedAt":       firestore.SERVER_TIMESTAMP
         })
-        print("✅ Initialized 'activities' collection.")
+        print("✅ Initialized 'profiles' collection.")
 
         # Initialize Activity Participation Collection
         db.collection("activity_participation").document("placeholder_participation").set({
@@ -261,7 +255,24 @@ def initialize_collections():
             "status": "planned"
         })
         print("✅ Initialized 'events' collection.")
-
+ # Initialize Activities Collection
+        db.collection("activities").document("placeholder_activity").set({
+            "title": "",
+            "description": "",
+            "activity_type": "workshop",
+            "program_year": 1,
+            "domain_id": "",
+            "start_date": None,
+            "end_date": None,
+            "location": "",
+            "max_participants": 50,
+            "current_participants": 0,
+            "image": "",
+            "status": "planned",
+            "facilitator_id": "",
+            "leadership_focus": ""
+        })
+        print("✅ Initialized 'activities' collection.")
         # Initialize Progress Reports Collection
         db.collection("progress_reports").document("placeholder_report").set({
             "participant_id": "",

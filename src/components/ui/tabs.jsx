@@ -9,9 +9,10 @@ const Tabs = TabsPrimitive.Root;
 const TabsList = forwardRef(({ className, ...props }, ref) => (
   <TabsPrimitive.List
     ref={ref}
+    dir ="rtl"
     className={cn(
       "inline-flex bg-gradient-to-r from-orange-100 via-white to-orange-100 p-1 rounded-full shadow-inner",
-      "items-center justify-center gap-2",
+      "= items-center justify-center gap-2",
       className
     )}
     {...props}

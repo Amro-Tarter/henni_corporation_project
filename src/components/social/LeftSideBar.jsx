@@ -63,30 +63,6 @@ const LeftSidebar = () => {
         </div>
       </section>
 
-      {/* Trending Topics */}
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">נושאים פופולריים</h2>
-        <div className="h-0.5 w-12 bg-orange-500 rounded mb-4" />
-        <ul className="space-y-2">
-          <li className="text-sm hover:text-orange-600 cursor-pointer transition">#WebDevelopment</li>
-          <li className="text-sm hover:text-orange-600 cursor-pointer transition">#ReactJS</li>
-          <li className="text-sm hover:text-orange-600 cursor-pointer transition">#TechNews</li>
-        </ul>
-      </section>
-
-      {/* Suggested Tags */}
-      <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">תגים מומלצים</h2>
-        <div className="h-0.5 w-12 bg-orange-500 rounded mb-4" />
-        <div className="flex flex-wrap gap-2">
-          {['#Design', '#JavaScript', '#UIUX', '#Algorithms'].map(tag => (
-            <span key={tag} className="text-xs text-gray-700 bg-orange-100 px-2 py-1 rounded-full hover:bg-orange-200 transition cursor-pointer">
-              {tag}
-            </span>
-          ))}
-        </div>
-      </section>
-
     </aside>
   );
 };

@@ -62,14 +62,48 @@ export default {
 			border: "hsl(var(--sidebar-border))",
 			ring: "hsl(var(--sidebar-ring))",
 		  },
+  
+		  // 🔥 ELEMENTAL COLORS
+		  earth: {
+			DEFAULT: "hsl(var(--earth))",
+			accent: "hsl(var(--earth-accent))",
+			soft: "hsl(var(--earth-soft))",
+		  },
+		  metal: {
+			DEFAULT: "hsl(var(--metal))",
+			accent: "hsl(var(--metal-accent))",
+			soft: "hsl(var(--metal-soft))",
+		  },
+		  air: {
+			DEFAULT: "hsl(var(--air))",
+			accent: "hsl(var(--air-accent))",
+			soft: "hsl(var(--air-soft))",
+		  },
+		  water: {
+			DEFAULT: "hsl(var(--water))",
+			accent: "hsl(var(--water-accent))",
+			soft: "hsl(var(--water-soft))",
+		  },
+		  fire: {
+			DEFAULT: "hsl(var(--fire))",
+			accent: "hsl(var(--fire-accent))",
+			soft: "hsl(var(--fire-soft))",
+		  },
+  
+		  // Extra tokens
+		  'cta': 'hsl(var(--cta))',
+		  'success': 'hsl(var(--success))',
+		  'error': 'hsl(var(--error))',
 		  'fire-glow': 'rgba(255, 165, 0, 0.8)',
 		  'air-light': 'rgba(255, 255, 255, 0.8)',
 		},
+  
 		borderRadius: {
 		  lg: "var(--radius)",
 		  md: "calc(var(--radius) - 2px)",
 		  sm: "calc(var(--radius) - 4px)",
 		},
+  
 		keyframes: {
 		  "accordion-down": {
 			from: { height: "0" },
@@ -117,6 +151,7 @@ export default {
 			}
 		  }
 		},
+  
 		animation: {
 		  "accordion-down": "accordion-down 0.2s ease-out",
 		  "accordion-up": "accordion-up 0.2s ease-out",
@@ -131,3 +166,4 @@ export default {
 	  require("@tailwindcss/typography"),
 	],
   }
+  

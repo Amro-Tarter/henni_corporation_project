@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -14,88 +13,110 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Light Theme Colors */
+    --background: 0 0% 100%; /* White */
+    --foreground: 222.2 84% 4.9%; /* Midnight Blue */
+    --card: 0 0% 100%; /* White */
+    --card-foreground: 222.2 84% 4.9%; /* Midnight Blue */
+    --popover: 0 0% 100%; /* White */
+    --popover-foreground: 222.2 84% 4.9%; /* Midnight Blue */
+  
+    --primary: 24 100% 50%; /* Vivid Orange */
+    --primary-foreground: 210 40% 98%; /* Off White */
+    --secondary: 210 40% 96.1%; /* Light Gray Blue */
+    --secondary-foreground: 222.2 47.4% 11.2%; /* Dark Navy */
+  
+    --muted: 210 40% 96.1%; /* Light Gray Blue */
+    --muted-foreground: 215.4 16.3% 46.9%; /* Slate Gray */
+    --accent: 210 40% 96.1%; /* Light Gray Blue */
+  
+    --accent-foreground: 222.2 47.4% 11.2%; /* Dark Navy */
+    --destructive: 0 84.2% 60.2%; /* Coral Red */
+  
+    --destructive-foreground: 210 40% 98%; /* Off White */
+    --border: 214.3 31.8% 91.4%; /* Light Gray */
+    --input: 214.3 31.8% 91.4%; /* Light Gray */
+  
+    --ring: 24 100% 50%; /* Vivid Orange */
+    --cta: 217 100% 50%; /* Pure Blue */
+    --success: 135 61% 41%; /* Emerald Green */
+    --error: 0 71% 54%; /* Bright Red */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 24 100% 50%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 24 100% 50%;
+    /* Elemental Palette */
+    --earth: 142 35% 23%; /* Forest Green */
+    --earth-accent: 30 30% 35%; /* Muted Brown */
+    --earth-soft: 120 29% 85%; /* Pale Green */
+  
+    --metal: 0 0% 43%; /* Medium Gray */
+    --metal-accent: 0 0% 75%; /* Light Gray */
+    --metal-soft: 0 0% 93%; /* Off White */
+  
+    --air: 199 100% 85%; /* Light Sky Blue */
+    --air-accent: 264 30% 90%; /* Lavender */
+    --air-soft: 210 100% 98%; /* Ice Blue */
+  
+    --water: 192 100% 30%; /* Deep Teal */
+    --water-accent: 185 58% 52%; /* Turquoise */
+    --water-soft: 180 60% 90%; /* Pale Cyan */
+  
+    --fire: 350 75% 50%; /* Crimson */
+    --fire-accent: 16 87% 60%; /* Coral */
+    --fire-soft: 15 100% 95%; /* Pale Peach */
 
     --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark Theme Colors */
+    --background: 222.2 84% 4.9%; /* Midnight Blue */
+    --foreground: 210 40% 98%; /* Off White */
+    --card: 222.2 84% 4.9%; /* Midnight Blue */
+    --card-foreground: 210 40% 98%; /* Off White */
+    --popover: 222.2 84% 4.9%; /* Midnight Blue */
+    --popover-foreground: 210 40% 98%; /* Off White */
+    --primary: 24 100% 50%; /* Vivid Orange (same as light) */
+    --primary-foreground: 222.2 47.4% 11.2%; /* Dark Navy */
+    --secondary: 217.2 32.6% 17.5%; /* Deep Navy */
+    --secondary-foreground: 210 40% 98%; /* Off White */
+    --muted: 217.2 32.6% 17.5%; /* Deep Navy */
+    --muted-foreground: 215 20.2% 65.1%; /* Medium Gray */
+    --accent: 217.2 32.6% 17.5%; /* Deep Navy */
+    --accent-foreground: 210 40% 98%; /* Off White */
+    --destructive: 0 62.8% 30.6%; /* Maroon */
+    --destructive-foreground: 210 40% 98%; /* Off White */
+    --border: 217.2 32.6% 17.5%; /* Deep Navy */
+    --input: 217.2 32.6% 17.5%; /* Deep Navy */
+    --ring: 212.7 26.8% 83.9%; /* Light Gray */
+    --cta: 217 91% 59%; /* Bright Blue */
+    --success: 135 61% 41%; /* Emerald Green (same) */
+    --error: 0 71% 54%; /* Bright Red (same) */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 24 100% 50%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Dark Elemental Variations */
+    --earth: 142 30% 70%; /* Mint Green */
+    --metal: 0 0% 60%; /* Medium Gray */
+    --air: 199 100% 75%; /* Sky Blue */
+    --water: 192 100% 40%; /* Ocean Blue */
+    --fire: 350 75% 65%; /* Salmon Pink */
   }
 
   * {
     @apply border-border;
   }
 
+  @layer utilities {
+    .perspective {
+      perspective: 1000px;
+    }
+    .preserve-3d {
+      transform-style: preserve-3d;
+    }
+    .backface-hidden {
+      backface-visibility: hidden;
+    }
+    .rotate-y-180 {
+      transform: rotateY(180deg);
+    }
+  }
   body {
     @apply bg-background text-foreground font-heebo;
     direction: rtl;
@@ -105,41 +126,4 @@
   h1, h2, h3, h4, .font-title {
     @apply font-gveret-levin;
   }
-}
-
-@layer components {
-  .ember {
-    @apply absolute rounded-full bg-fire-glow opacity-75 animate-ember-float;
-    filter: blur(3px);
-    box-shadow: 0 0 8px 2px rgba(255, 215, 0, 0.5);
-  }
-
-  .wavy-divider {
-    @apply relative h-24 overflow-hidden;
-    background: linear-gradient(180deg, transparent, rgba(14, 165, 233, 0.3));
-  }
-
-  .wavy-divider::before {
-    content: '';
-    @apply absolute inset-0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 120' preserveAspectRatio='none'%3E%3Cpath d='M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z' opacity='.25' class='shape-fill' fill='%230EA5E9'%3E%3C/path%3E%3Cpath d='M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z' opacity='.5' class='shape-fill' fill='%230EA5E9'%3E%3C/path%3E%3Cpath d='M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z' class='shape-fill' fill='%230EA5E9'%3E%3C/path%3E%3C/svg%3E");
-    background-size: cover;
-    background-position: bottom;
-    animation: wave 15s linear infinite;
-  }
-
-  .air-particles {
-    @apply absolute w-full h-full top-0 left-0 overflow-hidden pointer-events-none z-0;
-  }
-
-  .air-particle {
-    @apply absolute rounded-full bg-air-light opacity-60 animate-float;
-    filter: blur(1px);
-  }
-
-  .fixed-carousel {
-    @apply sticky top-1/2 -translate-y-1/2;
-  }
-
-
 }
