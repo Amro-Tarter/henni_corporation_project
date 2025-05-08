@@ -1,21 +1,28 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const navTabs = [
-  { id: 'home', icon: '🏠', label: 'דף הבית' },
-  { id: 'messenger', icon: '💬', label: 'הודעות' },
-  { id: 'settings', icon: '⚙️', label: 'הגדרות' },
+  { id: 'home', icon: '🏠', label: 'דף הבית', path: '/home' },
+  { id: 'messenger', icon: '💬', label: 'הודעות', path: '/chat' },
+  { id: 'settings', icon: '⚙️', label: 'הגדרות', path: '/settings' },
 ];
 
 const Navbar = () => {
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+  const navigate = useNavigate();
 
   const handleSearch = (e) => {
     e.preventDefault();
     setIsSearching(true);
     setTimeout(() => setIsSearching(false), 1000);
+  };
+
+  const handleTabClick = (tabId, path) => {
+    setActiveTab(tabId);
+    navigate(path);
   };
 
   return (
@@ -30,7 +37,7 @@ const Navbar = () => {
           {navTabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabClick(tab.id, tab.path)}
               className={`flex items-center gap-1 px-3 py-1 rounded-md text-white text-sm transition-colors duration-200 hover:bg-orange-400 ${
                 activeTab === tab.id ? 'bg-orange-700 font-semibold' : ''
               }`}

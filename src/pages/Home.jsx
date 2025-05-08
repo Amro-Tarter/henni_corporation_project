@@ -3,7 +3,7 @@ import Navbar from '../components/social/Navbar';
 import CreatePost from '../components/social/createpost';
 import PostList from '../components/social/Postlist';
 import RightSidebar from '../components/social/Rightsidebar';
-import LeftSidebar from '../components/social/LeftSidebar';
+import LeftSidebar from '../components/social/LeftSideBar';
 import { Button } from '../components/ui/button';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
