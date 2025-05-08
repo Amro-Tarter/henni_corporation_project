@@ -65,12 +65,9 @@ const Navigation = () => {
   }, [showAuthDropdown]);
 
   const handleSignIn = async () => {
-    try {
-      await signInWithPopup(auth, provider);
-      setShowAuthDropdown(false);
-    } catch (err) {
-      console.error('Login failed:', err);
-    }
+  // redirect to sign in page
+    window.location.href = '/login';
+    
   };
 
   const handleSignOut = async () => {
@@ -206,7 +203,7 @@ const Navigation = () => {
                       className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       <LogIn size={16} className="ml-2" />
-                      <span>התחברות עם Google</span>
+                      <span>התחבר</span>
                     </button>
                     <a href="/register" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       הרשמה
@@ -303,7 +300,7 @@ const Navigation = () => {
                 className="w-full flex justify-center items-center gap-2 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-all"
               >
                 <LogIn size={18} />
-                <span>התחברות עם Google</span>
+                <span> התחבר</span>
               </button>
             )}
           </li>
