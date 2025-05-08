@@ -45,33 +45,39 @@ export default function ChatApp() {
   const [audioURL, setAudioURL] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   // Add this in chatApp.jsx
-  const ELEMENT_COLORS = {
-    fire: {
-      primary: '#ff8c00',
-      hover: '#e67e00',
-      light: '#fff5e6'
-    },
-    earth: {
-      primary: '#a52a2a',
-      hover: '#8b2323',
-      light: '#f5e6d3'
-    },
-    metal: {
-      primary: '#5d5d5d',
-      hover: '#444444',
-      light: '#f0f0f0'
-    },
-    water: {
-      primary: '#87ceeb',
-      hover: '#6db7d5',
-      light: '#e6f4ff'
-    },
-    air: {
-      primary: '#228b22',
-      hover: '#1c711c',
-      light: '#e6f4e6'
-    }
-  };
+const ELEMENT_COLORS = {
+  fire: {
+    primary: '#ff4500',  // Bright red-orange for fire
+    hover: '#e63e00',
+    light: '#fff0e6',
+    darkHover: '#b33000'  // Darker shade for fire
+  },
+  earth: {
+    primary: '#8b4513',  // Brown for earth
+    hover: '#723a0f',
+    light: '#f5ede6',
+    darkHover: '#5e2f0d'  // Darker shade for earth
+  },
+  metal: {
+    primary: '#c0c0c0',  // Silver/metallic for metal
+    hover: '#a8a8a8',
+    light: '#f5f5f5',
+    darkHover: '#808080'  // Darker shade for metal
+  },
+  water: {
+    primary: '#1e90ff',  // Deep blue for water
+    hover: '#187bdb',
+    light: '#e6f2ff',
+    darkHover: '#0066cc'  // Darker shade for water
+  },
+  tree: {
+    primary: '#228B22',  // Forest green for tree
+    hover: '#1e7a1e',
+    light: '#e6f9e6',
+    darkHover: '#145214'  // Darker forest green
+  }
+};
+
 
   // Voice recording handlers
   const startRecording = async () => {
@@ -350,15 +356,23 @@ export default function ChatApp() {
       return;
     }
   
+    // Immediately clear the input and reset state for better UX
+    const messageToSend = newMessage;
+    setNewMessage("");
+    setFile(null);
+    setPreview(null);
+    setUploadProgress(0);
+    removeAudio();
+  
     setIsSending(true);
     
     try {
       let messageData = {
-        sender: currentUser.uid, // Store UID instead of username
-        senderName: currentUser.username, // Optional: store username for easy display
+        sender: currentUser.uid,
+        senderName: currentUser.username,
         createdAt: serverTimestamp(),
       };
-
+  
       if (file) {
         setIsUploading(true);
         
@@ -366,16 +380,14 @@ export default function ChatApp() {
           storage,
           `messages/${selectedConversation.id}/${Date.now()}_${file.name}`
         );
-
-        // FIX: Changed to use string value for uploadedBy instead of object
+  
         const uploadTask = uploadBytesResumable(storageRef, file, {
           contentType: file.type,
           customMetadata: {
-            uploadedBy: currentUser.uid // Use string UID instead of the entire object
+            uploadedBy: currentUser.uid
           }
         });
-
-        // Track upload progress
+  
         uploadTask.on('state_changed',
           (snapshot) => {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
@@ -387,10 +399,10 @@ export default function ChatApp() {
             throw error;
           }
         );
-
+  
         await uploadTask;
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-
+  
         messageData = {
           ...messageData,
           mediaURL: downloadURL,
@@ -403,24 +415,34 @@ export default function ChatApp() {
           storage,
           `audio_messages/${selectedConversation.id}/${Date.now()}.webm`
         );
-
+  
         const uploadTask = uploadBytesResumable(storageRef, audioBlob, {
           contentType: 'audio/webm',
           customMetadata: { uploadedBy: currentUser.uid }
         });
-
+  
         await uploadTask;
         const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-
+  
         messageData = {
           ...messageData,
           audioURL: downloadURL,
           type: 'audio'
         };
       } else {
-        messageData.text = newMessage;
+        messageData.text = messageToSend;
       }
-
+  
+      // Optimistic update - add the message to local state immediately
+      const tempMessageId = `temp-${Date.now()}`;
+      const optimisticMessage = {
+        id: tempMessageId,
+        ...messageData,
+        createdAt: new Date() // Use local timestamp temporarily
+      };
+      
+      setMessages(prev => [...prev, optimisticMessage]);
+  
       // Use batched writes for atomic updates
       const batch = writeBatch(db);
       
@@ -432,23 +454,30 @@ export default function ChatApp() {
       // Update conversation
       const conversationRef = doc(db, "conversations", selectedConversation.id);
       batch.update(conversationRef, {
-        lastMessage: file ? (file.type.startsWith('image/') ? 'Sent an image' : 'Sent a voice message') : newMessage,
+        lastMessage: file ? (file.type.startsWith('image/') ? 'Sent an image' : 'Sent a voice message') : messageToSend,
         lastUpdated: serverTimestamp(),
       });
-
+  
       await batch.commit();
       await updateDoc(doc(db, "conversations", selectedConversation.id), {
         [`typing.${currentUser.uid}`]: false
       });
-
-      setNewMessage("");
-      setFile(null);
-      setPreview(null);
-      setUploadProgress(0);
-      removeAudio();
-
+  
+      // Remove the temporary message and let Firestore update handle the real one
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessageId));
+  
     } catch (error) {
       console.error("Error sending message:", error);
+      // Revert optimistic updates on error
+      setNewMessage(messageToSend);
+      if (file) {
+        setFile(file);
+        setPreview(preview);
+      }
+      if (audioBlob) {
+        setAudioBlob(audioBlob);
+        setAudioURL(audioURL);
+      }
       alert(`Message failed: ${error.message}`);
     } finally {
       setIsSending(false);
@@ -549,6 +578,9 @@ export default function ChatApp() {
   if (!authInitialized) {
     return <div className="flex items-center justify-center h-screen">Loading chat...</div>;
   }
+  const elementColors = ELEMENT_COLORS[currentUser.element];
+
+
 
   return (
     <div id='messenger' className="flex h-screen bg-white">
@@ -612,14 +644,20 @@ export default function ChatApp() {
             </div>
             <div className="flex gap-2">
               <button
-                className="px-4 py-2 bg-[#ff8c00] text-white rounded disabled:opacity-50"
+                className='px-4 py-2 text-white rounded disabled:opacity-50'
                 onClick={createNewConversation}
                 disabled={!partnerName.trim()}
+                style={{ 
+                  backgroundColor: elementColors.primary,
+                  ':hover': {
+                    backgroundColor: elementColors.hover
+                  }
+                }}
               >
                 צור
               </button>
               <button
-                className="px-4 py-2 border rounded"
+                className="px-4 py-2 border rounded hover:bg-gray-200"
                 onClick={() => setShowNewChatDialog(false)}
               >
                 ביטול

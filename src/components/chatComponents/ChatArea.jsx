@@ -203,13 +203,7 @@ export default function ChatArea({
           <div className="p-4 border-t border-gray-200 bg-white">
             {preview && (
               <div className="relative mb-2">
-                {preview.type === 'image' ? (
-                  <img src={preview.url} alt="תצוגה מקדימה" className="max-h-40 rounded" />
-                ) : (
-                  <video controls className="max-h-40 rounded">
-                    <source src={preview.url} type={file?.type} />
-                  </video>
-                )}
+                <img src={preview.url} alt="תצוגה מקדימה" className="max-h-40 rounded" />
                 <button
                   onClick={removeFile}
                   className="absolute top-1 right-1 bg-gray-800 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-gray-700"
@@ -245,7 +239,7 @@ export default function ChatArea({
                 <input
                   type="file"
                   className="hidden"
-                  accept="image/*,video/*"
+                  accept="image/*"
                   onChange={handleFileChange}
                 />
                 <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -283,7 +277,7 @@ export default function ChatArea({
                 className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 text-right"
                 style={{ 
                   borderColor: 'rgb(209, 213, 219)',
-                  '&:focus': { 
+                  focus: { 
                     borderColor: elementColors.primary,
                     ringColor: elementColors.primary 
                   }
@@ -296,10 +290,12 @@ export default function ChatArea({
   
               {/* Send Button */}
               <button
-                className="text-white px-4 py-2 rounded-lg disabled:opacity-50 flex items-center gap-2 transition-colors duration-200"
+                className="text-white px-4 py-2 rounded-lg disabled:opacity-50 flex items-center gap-2 transition-colors duration-200 hover:bg-opacity-90"
                 style={{ 
                   backgroundColor: elementColors.primary,
-                  '&:hover': { backgroundColor: elementColors.hover }
+                  ':hover': {
+                    backgroundColor: elementColors.hover
+                  }
                 }}
                 onClick={handleSendMessage}
                 disabled={(!newMessage.trim() && !file && !audioURL) || isSending || isUploading}
@@ -324,10 +320,9 @@ export default function ChatArea({
             <p className="text-lg">בחר צ'אט או צור חדש כדי להתחיל</p>
             <button
               onClick={() => setShowNewChatDialog(true)}
-              className="mt-4 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+              className="mt-4 text-white px-4 py-2 rounded-lg duration-200"
               style={{ 
-                backgroundColor: elementColors.primary,
-                '&:hover': { backgroundColor: elementColors.hover }
+                backgroundColor: elementColors.primary
               }}
             >
               צ'אט חדש
