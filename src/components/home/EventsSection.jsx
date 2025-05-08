@@ -1,48 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Calendar } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 import CTAButton from "@/components/CTAButton";
 import { db } from "@/config/firbaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 
-// Mapping element key to styles
+// Theme per element
 const elementStyles = {
-  earth: {
-    color: "from-green-600 to-emerald-500",
-    text: "text-green-700",
-    border: "border-green-600",
-    lightBg: "bg-green-50",
-  },
-  fire: {
-    color: "from-red-600 to-orange-500",
-    text: "text-red-700",
-    border: "border-red-600",
-    lightBg: "bg-red-50",
-  },
-  water: {
-    color: "from-indigo-500 to-purple-400",
-    text: "text-indigo-700",
-    border: "border-indigo-600",
-    lightBg: "bg-indigo-50",
-  },
-  air: {
-    color: "from-blue-500 to-cyan-400",
-    text: "text-blue-700",
-    border: "border-blue-600",
-    lightBg: "bg-blue-50",
-  },
-  metal: {
-    color: "from-gray-600 to-slate-500",
-    text: "text-gray-700",
-    border: "border-gray-600",
-    lightBg: "bg-gray-50",
-  },
+  earth: { color: "from-green-600 to-emerald-500", text: "text-green-700", lightBg: "bg-green-50" },
+  fire: { color: "from-red-600 to-orange-500", text: "text-red-700", lightBg: "bg-red-50" },
+  water: { color: "from-indigo-500 to-purple-400", text: "text-indigo-700", lightBg: "bg-indigo-50" },
+  air: { color: "from-blue-500 to-cyan-400", text: "text-blue-700", lightBg: "bg-blue-50" },
+  metal: { color: "from-gray-600 to-slate-500", text: "text-gray-700", lightBg: "bg-gray-50" },
 };
 
-// Motion variants
 const cardVariants = {
   hidden: { opacity: 0, y: 30 },
   visible: (i) => ({
@@ -52,7 +26,6 @@ const cardVariants = {
   }),
 };
 
-// Format timestamp or ISO date string
 const formatDate = (date) => {
   if (!date) return "";
   try {
@@ -67,9 +40,29 @@ const formatDate = (date) => {
   }
 };
 
-const ProjectCard = ({ title, date, location, image, element, index }) => {
-  const theme = elementStyles[element] || elementStyles.earth;
+const ProjectModal = ({ project, onClose }) => {
+  const theme = elementStyles[project.element] || elementStyles.earth;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+      <div className="bg-white rounded-2xl max-w-xl w-full p-6 relative shadow-xl">
+        <button onClick={onClose} className="absolute top-4 left-4 text-gray-500 hover:text-black">
+          <X size={24} />
+        </button>
+        <div className="mb-4">
+          <img src={project.image} alt={project.title} className="w-full h-64 object-cover rounded-xl" />
+        </div>
+        <h3 className="text-2xl font-bold mb-2 text-gray-800">{project.title}</h3>
+        <p className="text-gray-600 text-sm mb-2">{project.location} • {formatDate(project.date)}</p>
+        <p className="text-gray-700 text-base leading-relaxed whitespace-pre-line">
+          {project.description || "אין תיאור זמין לפרויקט זה."}
+        </p>
+      </div>
+    </div>
+  );
+};
 
+const ProjectCard = ({ title, date, location, image, element, index, onDetails }) => {
+  const theme = elementStyles[element] || elementStyles.earth;
   return (
     <motion.div
       custom={index}
@@ -78,7 +71,7 @@ const ProjectCard = ({ title, date, location, image, element, index }) => {
       viewport={{ once: true, amount: 0.2 }}
       variants={cardVariants}
     >
-      <Card className={`overflow-hidden rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 group border ${theme.border} ${theme.lightBg}`}>
+      <Card className={`overflow-hidden rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 group border ${theme.lightBg}`}>
         <div className="h-64 relative overflow-hidden">
           <img
             src={image}
@@ -93,14 +86,13 @@ const ProjectCard = ({ title, date, location, image, element, index }) => {
           </div>
           <h3 className="text-2xl font-bold text-gray-800 mb-1 leading-snug">{title}</h3>
           <p className="text-gray-600 text-base mb-6">{location}</p>
-          <Link to="/projects">
-            <Button
-              variant="outline"
-              className={`w-full ${theme.text} border hover:shadow-md hover:bg-opacity-10 transition-all duration-300`}
-            >
-              פרטים נוספים
-            </Button>
-          </Link>
+          <Button
+            variant="outline"
+            onClick={onDetails}
+            className={`w-full ${theme.text} border hover:shadow-md hover:bg-opacity-10 transition-all duration-300`}
+          >
+            פרטים נוספים
+          </Button>
         </CardContent>
       </Card>
     </motion.div>
@@ -110,6 +102,7 @@ const ProjectCard = ({ title, date, location, image, element, index }) => {
 const EventsSection = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProject, setSelectedProject] = useState(null);
 
   const getRandomSubset = (array, count) => {
     const shuffled = [...array].sort(() => 0.5 - Math.random());
@@ -137,9 +130,7 @@ const EventsSection = () => {
     <section className="py-24 bg-gradient-to-b from-white to-slate-100" id="projects" dir="rtl">
       <div className="container mx-auto px-4">
         <div className="text-center mb-20">
-          <h2 className="font-gveret-levin text-4xl md:text-5xl text-fire-dark mb-6">
-            פרויקטים מהשטח
-          </h2>
+          <h2 className="font-gveret-levin text-4xl md:text-5xl text-fire-dark mb-6">פרויקטים מהשטח</h2>
           <div className="h-1 w-24 mx-auto bg-fire rounded-full mb-6"></div>
           <p className="text-lg text-gray-700 max-w-2xl mx-auto">
             הצצה לפרויקטים יצירתיים שנולדו מהתכנית – נבחרת אקראית מתוך המאגר.
@@ -153,7 +144,12 @@ const EventsSection = () => {
         ) : projects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {projects.map((project, index) => (
-              <ProjectCard key={project.id} index={index} {...project} />
+              <ProjectCard
+                key={project.id}
+                index={index}
+                {...project}
+                onDetails={() => setSelectedProject(project)}
+              />
             ))}
           </div>
         ) : (
@@ -173,6 +169,20 @@ const EventsSection = () => {
             צפו בכל הפרויקטים שלנו
           </CTAButton>
         </div>
+
+        {/* Project Details Modal */}
+        <AnimatePresence>
+          {selectedProject && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center"
+            >
+              <ProjectModal project={selectedProject} onClose={() => setSelectedProject(null)} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </section>
   );
