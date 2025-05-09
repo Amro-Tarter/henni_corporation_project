@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../config/firbaseConfig"; // adjust the path as needed
+import { auth, db } from "../config/firbaseConfig";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import "./auth.css";
 
 const Login = () => {
@@ -14,12 +15,40 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, form.email, form.password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        form.email,
+        form.password
+      );
+      const user = userCredential.user;
+
+      // Check is_active field in Firestore
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        throw new Error("user-not-found");
+      }
+
+      const userData = userSnap.data();
+
+      if (!userData.is_active) {
+        setNotification({
+          message: "המשתמש שלך אינו פעיל. פנה למנהל המערכת.",
+          type: "error",
+        });
+        return;
+      }
+
+      // Update last_login timestamp
+      await updateDoc(userRef, {
+        last_login: serverTimestamp(),
+      });
+
       setNotification({ message: "התחברת בהצלחה!", type: "success" });
-      setForm({ email: "", password: "" });
       setTimeout(() => {
-        window.location.href = "/home"; // Redirect user to the home page
-      }, 200);
+        window.location.href = "/home";
+      }, 500);
     } catch (error) {
       let message = "שגיאה בהתחברות";
       if (error.code === "auth/user-not-found") {
@@ -66,7 +95,8 @@ const Login = () => {
           <button type="submit">התחבר</button>
         </form>
         <div className="auth-links">
-          <a href="/forgotPassword">שכחת סיסמה?</a> | <a href="/signUp">אין לך חשבון? הרשמה</a>
+          <a href="/forgotPassword">שכחת סיסמה?</a> |{" "}
+          <a href="/signUp">אין לך חשבון? הרשמה</a>
         </div>
       </div>
     </div>
