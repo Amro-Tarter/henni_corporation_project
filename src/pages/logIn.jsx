@@ -28,48 +28,41 @@ const Login = () => {
 
     try {
       // 1. Sign in
-      const { user } = await signInWithEmailAndPassword(
+      const userCredential = await signInWithEmailAndPassword(
         auth,
         form.email,
+        user,
         form.password
       );
+      const user = userCredential.user;
 
-      // 2. Firestore user doc ref
+      // Check is_active field in Firestore
       const userRef = doc(db, "users", user.uid);
-      const snap = await getDoc(userRef);
+      const userSnap = await getDoc(userRef);
 
-      if (!snap.exists()) {
-        // 3a. If not there, create it
-        await setDoc(userRef, {
-          username: user.email.split("@")[0],
-          email: user.email,
-          role: "user",
-          associated_id: "",
-          created_at: serverTimestamp(),
-          last_login: serverTimestamp(),
-          is_active: true,
-          reset_token: null
-        });
-      } else {
-        // 3b. If it exists, just update last_login
-        await updateDoc(userRef, {
-          last_login: serverTimestamp()
-        });
+      if (!userSnap.exists()) {
+        throw new Error("user-not-found");
       }
 
-      // 4. Grab the fresh ID token and stash it in a cookie
-      const idToken = await user.getIdToken(/* forceRefresh */ true);
-      Cookies.set("authToken", idToken, {
-        expires: 7,          // 7 days
-        secure: true,        // only over HTTPS
-        sameSite: "strict",  // CSRF protection
-        path: "/"            // available on all routes
+      const userData = userSnap.data();
+
+      if (!userData.is_active) {
+        setNotification({
+          message: "המשתמש שלך אינו פעיל. פנה למנהל המערכת.",
+          type: "error",
+        });
+        return;
+      }
+
+      // Update last_login timestamp
+      await updateDoc(userRef, {
+        last_login: serverTimestamp(),
       });
 
-      // 5. Notify & redirect
       setNotification({ message: "התחברת בהצלחה!", type: "success" });
-      setForm({ email: "", password: "" });
-      setTimeout(() => navigate("/home"), 200);
+      setTimeout(() => {
+        window.location.href = "/home";
+      }, 500);
     } catch (error) {
       let message = "שגיאה בהתחברות";
       if (error.code === "auth/user-not-found") {
@@ -124,8 +117,8 @@ const Login = () => {
           </button>
         </form>
         <div className="auth-links">
-          <Link to="/forgotPassword">שכחת סיסמה?</Link> |{" "}
-          <Link to="/signUp">אין לך חשבון? הרשמה</Link>
+          <a href="/forgotPassword">שכחת סיסמה?</a> |{" "}
+          <a href="/signUp">אין לך חשבון? הרשמה</a>
         </div>
       </div>
     </div>
