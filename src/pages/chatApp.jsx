@@ -647,42 +647,39 @@ export default function ChatApp() {
   const createNewConversation = async () => {
     const partnerUsername = partnerName.trim();
     if (!partnerUsername) return;
-
+  
     try {
-      // Case-insensitive search using usernameLower
       const usersRef = collection(db, "users");
       const userQuery = query(
         usersRef, 
         where("username", "==", partnerUsername)
       );
       const userSnapshot = await getDocs(userQuery);
-
+  
       if (userSnapshot.empty) {
         alert("User does not exist");
         return;
       }
-
+  
       const partner = userSnapshot.docs[0];
       const partnerUid = partner.id;
-
+  
       if (partnerUid === currentUser.uid) {
         alert("You cannot message yourself");
         return;
       }
-
-      // Create sorted participants array for consistent queries
+  
       const participants = [currentUser.uid, partnerUid].sort();
-
-      // FIX: Changed array equality query to use array-contains for both participants
-      // First check if a conversation already exists with both participants
+  
+      // Fixed query with type filter
       const existingConversationsQuery = query(
         collection(db, "conversations"),
-        where("participants", "array-contains", currentUser.uid)
+        where("participants", "array-contains", currentUser.uid),
+        where("type", "==", "direct") // Critical fix here
       );
-
+  
       const convSnapshot = await getDocs(existingConversationsQuery);
       
-      // Manually filter for conversations that contain both participants
       const existingConversation = convSnapshot.docs.find(doc => {
         const convParticipants = doc.data().participants;
         return convParticipants.includes(partnerUid);
@@ -699,23 +696,21 @@ export default function ChatApp() {
         setPartnerName("");
         return;
       }
-
-      // Create new conversation with sorted participants
+  
       const batch = writeBatch(db);
       const convoRef = doc(collection(db, "conversations"));
       const convoData = {
         participants: participants,
         participantNames: [currentUser.username, partner.data().username],
-        type: "direct", // This indicates it's a private chat
+        type: "direct",
         lastMessage: "",
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
       };
-
+  
       batch.set(convoRef, convoData);
       await batch.commit();
-
-      // Refresh conversation data from server
+  
       const newConvo = await getDoc(convoRef);
       setSelectedConversation({ 
         id: newConvo.id,
@@ -723,10 +718,10 @@ export default function ChatApp() {
         lastUpdated: newConvo.data().lastUpdated?.toDate(),
         createdAt: newConvo.data().createdAt?.toDate()
       });
-
+  
       setShowNewChatDialog(false);
       setPartnerName("");
-
+  
     } catch (error) {
       console.error("Error creating conversation:", error);
       alert(`Error creating conversation: ${error.message}`);
