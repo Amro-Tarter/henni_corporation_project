@@ -1,4 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { auth, db } from '../config/firbaseConfig.ts';
+
+import { onAuthStateChanged } from 'firebase/auth';
+import { getUserProfile, getUserPosts } from '../firebase';
 import Navbar from '../components/social/Navbar';
 import CreatePost from '../components/social/createpost';
 import PostList from '../components/social/Postlist';
@@ -7,81 +12,49 @@ import LeftSidebar from '../components/social/LeftSideBar';
 import { Button } from '../components/ui/button';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
-// Function to generate a pool of posts with real images and videos
-const generatePostPool = () => {
-  const pool = [
-    {
-      text: 'Amazing sunset in Bali!',
-      author: { name: 'User1', avatar: '/default-avatar.png' },
-      id: Date.now(),
-      likes: Math.floor(Math.random() * 100),
-      comments: Math.floor(Math.random() * 50),
-      media: '/wall.jpg', // Real image URL
-      mediaType: 'image', // Indicates this is an image
-    },
-    {
-      text: 'Beautiful nature in the mountains.',
-      author: { name: 'User2', avatar: '/default-avatar.png' },
-      id: Date.now() + 1,
-      likes: Math.floor(Math.random() * 100),
-      comments: Math.floor(Math.random() * 50),
-      media: '/video/background vid.mp4', // Real video URL
-      mediaType: 'video', // Indicates this is a video
-    },
-    // Add more posts with real URLs
-    {
-      text: 'Look at this amazing beach view!',
-      author: { name: 'User3', avatar: '/default-avatar.png' },
-      id: Date.now() + 2,
-      likes: Math.floor(Math.random() * 100),
-      comments: Math.floor(Math.random() * 50),
-      media: '/sculpture.jpg', // Another real image URL
-      mediaType: 'image',
-    },
-    {
-      text: 'Check out this funny video!',
-      author: { name: 'User4', avatar: '/default-avatar.png' },
-      id: Date.now() + 3,
-      likes: Math.floor(Math.random() * 100),
-      comments: Math.floor(Math.random() * 50),
-      media: '/video/101064-video-720.mp4', // Another real video URL
-      mediaType: 'video',
-    },
-    // Add more posts as needed
-  ];
-  return pool;
-};
-
-// Function to randomly select a subset of posts
-const getRandomPosts = (pool, count = 10) => {
-  // Shuffle the pool and select the first `count` posts
-  const shuffledPool = pool.sort(() => Math.random() - 0.5);
-  return shuffledPool.slice(0, count);
-};
-
 const Home = () => {
   const [posts, setPosts] = useState([]);
+  const [user, setUser] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const navigate = useNavigate();
 
-  // Create a pool of posts and select random posts on component mount
+  // Fetch user data and posts when signed in
   useEffect(() => {
-    const pool = generatePostPool();
-    const randomPosts = getRandomPosts(pool); // Get a random subset of posts
-    setPosts(randomPosts); // Set the random posts to be displayed
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      if (authUser) {
+        setUser(authUser); // Set the user state
+
+        // Fetch user profile and posts
+        const userProfile = await getUserProfile(authUser.uid);
+        const userPosts = await getUserPosts(authUser.uid);
+        
+        console.log('User Profile:', userProfile);
+        console.log('User Posts:', userPosts);
+
+        // Set posts data
+        setPosts(userPosts);
+      } else {
+        setUser(null);
+        navigate('/login'); // Redirect to login page if not signed in
+      }
+    });
+
+    return () => unsubscribe(); // Cleanup listener on unmount
+  }, [navigate]);
 
   const addPost = (postData) => {
     const newPost = {
       text: postData.text,
       author: {
-        name: 'Current User',
+        name: user.displayName || 'Current User',
         avatar: '/try.webp',
       },
       media: postData.media || null,
       id: Date.now(),
       likes: 0,
       comments: 0,
+      authorId: user.uid, // Store the user UID with the post
     };
     setPosts((prevPosts) => [newPost, ...prevPosts]);
   };
