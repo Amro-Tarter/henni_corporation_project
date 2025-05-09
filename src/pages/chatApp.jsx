@@ -38,7 +38,6 @@ export default function ChatApp() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
-  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [mediaRecorder, setMediaRecorder] = useState(null);
@@ -119,22 +118,6 @@ const ELEMENT_COLORS = {
   };
 
 
-  // Add effect to listen for typing status
-  useEffect(() => {
-    if (!selectedConversation?.id || !currentUser?.uid) return;
-
-    const convoRef = doc(db, "conversations", selectedConversation.id);
-    const unsubscribe = onSnapshot(convoRef, (docSnap) => {
-      const data = docSnap.data();
-      const typingStatus = data?.typing || {};
-      const partnerUid = selectedConversation.participants.find(p => p !== currentUser.uid);
-      setIsPartnerTyping(typingStatus[partnerUid] || false);
-    });
-
-    return () => unsubscribe();
-  }, [selectedConversation, currentUser.uid]);
-
-
     // Add this function inside the ChatApp component
     const handleCommunityChatMembership = async (userId, userElement) => {
       try {
@@ -145,13 +128,15 @@ const ELEMENT_COLORS = {
         );
         
         const querySnapshot = await getDocs(q);
+        const userDoc = await getDoc(doc(db, "users", userId));
+        const username = userDoc.data().username;
         
         if (querySnapshot.empty) {
           // Create new community chat with welcome message
           const convoRef = doc(collection(db, "conversations"));
           await setDoc(convoRef, {
             participants: [userId],
-            participantNames: [`${userElement} Community`],
+            participantNames: [username],
             type: "community",
             element: userElement,
             lastMessage: "Community created!",
@@ -171,12 +156,9 @@ const ELEMENT_COLORS = {
           if (!convoDoc.data().participants.includes(userId)) {
             // Add user to community
             await updateDoc(convoDoc.ref, {
-              participants: arrayUnion(userId)
+              participants: arrayUnion(userId),
+              participantNames: arrayUnion(username)
             });
-    
-            // Get user's username
-            const userDoc = await getDoc(doc(db, "users", userId));
-            const username = userDoc.data().username;
     
             // Add join notification
             const messagesRef = collection(db, "conversations", convoDoc.id, "messages");
@@ -263,64 +245,71 @@ const ELEMENT_COLORS = {
 
 
   // Load conversations
+// chatApp.jsx - Key Optimizations
   useEffect(() => {
     if (!currentUser.uid) return;
-  
+
     setIsLoadingConversations(true);
     const q = query(
       collection(db, "conversations"),
       where("participants", "array-contains", currentUser.uid),
       orderBy("lastUpdated", "desc")
     );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const promises = snapshot.docs.map(async (conversationDoc) => {
-        const data = conversationDoc.data();
-        
-        // Handle different conversation types
-        if (data.type === "community") {
-          return {
-            id: conversationDoc.id,
-            ...data,
-            participantNames: [`${data.element} Community`],
-            lastUpdated: data.lastUpdated?.toDate(),
-            createdAt: data.createdAt?.toDate()
-          };
-        }
-        
-        if (data.type === "direct") {
-          const partnerUid = data.participants.find(p => p !== currentUser.uid);
-          const partnerDoc = await getDoc(doc(db, "users", partnerUid));
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const validConversations = [];
+      
+      for (const conversationDoc of snapshot.docs) {
+        try {
+          const data = conversationDoc.data();
           
-          return {
+          // Base conversation data
+          const base = {
             id: conversationDoc.id,
             ...data,
-            participantNames: [
-              currentUser.username,
-              partnerDoc.exists() ? partnerDoc.data().username : 'Unknown'
-            ],
             lastUpdated: data.lastUpdated?.toDate(),
             createdAt: data.createdAt?.toDate()
           };
+
+          // Community Chat
+          if (data.type === "community") {
+            validConversations.push({
+              ...base,
+              participantNames: [`${data.element} Community`]
+            });
+            continue;
+          }
+
+          // Direct Message
+          if (data.type === "direct") {
+            const partnerUid = data.participants?.find(p => p !== currentUser.uid);
+            if (!partnerUid) continue;
+
+            const userDocRef = doc(db, "users", partnerUid);
+            const partnerDoc = await getDoc(userDocRef);
+            
+            validConversations.push({
+              ...base,
+              participantNames: [
+                currentUser.username,
+                partnerDoc.exists() ? partnerDoc.data().username : "Unknown"
+              ]
+            });
+            continue;
+          }
+
+          // Add other types here
+        } catch (error) {
+          console.error("Error processing conversation:", error);
         }
-        
-        // Add similar handling for groups if needed
-        return { id: conversationDoc.id, ...data };
-      });
-  
-      Promise.all(promises)
-        .then(convs => {
-          setConversations(convs);
-          setIsLoadingConversations(false);
-        })
-        .catch(error => {
-          console.error("Error loading conversations:", error);
-          setIsLoadingConversations(false);
-        });
+      }
+
+      setConversations(validConversations);
+      setIsLoadingConversations(false);
     });
-  
+
     return () => unsubscribe();
-  }, [currentUser.uid, currentUser.username]);
+  }, [currentUser.uid]);
 
 
   // Load messages for selected conversation
@@ -347,50 +336,40 @@ const ELEMENT_COLORS = {
   }, [selectedConversation?.id]);
 
 
+// Enhanced image compression
   const compressImage = async (file) => {
+    const MAX_DIMENSION = 800;
+    const QUALITY = 0.6;
+    
     return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height && width > MAX_DIMENSION) {
+          height *= MAX_DIMENSION / width;
+          width = MAX_DIMENSION;
+        } else if (height > MAX_DIMENSION) {
+          width *= MAX_DIMENSION / height;
+          height = MAX_DIMENSION;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
         
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const maxWidth = 1024;
-          const maxHeight = 1024;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > maxWidth) {
-              height *= maxWidth / width;
-              width = maxWidth;
-            }
-          } else {
-            if (height > maxHeight) {
-              width *= maxHeight / height;
-              height = maxHeight;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob(
-            (blob) => {
-              resolve(new File([blob], file.name, {
-                type: 'image/jpeg',
-                lastModified: Date.now()
-              }));
-            },
-            'image/jpeg',
-            0.7 // Quality
-          );
-        };
+        canvas.toBlob(blob => {
+          resolve(new File([blob], file.name, {
+            type: 'image/webp', // Better compression
+            lastModified: Date.now()
+          }));
+        }, 'image/webp', QUALITY);
       };
-      reader.readAsDataURL(file);
+      img.src = URL.createObjectURL(file);
     });
   };
 
@@ -399,8 +378,8 @@ const ELEMENT_COLORS = {
     if (!selectedFile) return;
 
     // Validate file type and size
-    if (!selectedFile.type.startsWith('image/') && !selectedFile.type.startsWith('video/')) {
-      alert('Only image and video files allowed');
+    if (!selectedFile.type.startsWith('image/')) {
+      alert('Only image files allowed');
       return;
     }
 
@@ -438,13 +417,6 @@ const ELEMENT_COLORS = {
         };
         reader.readAsDataURL(selectedFile);
       }
-    } else {
-      // For videos, just set the file and preview
-      setFile(selectedFile);
-      setPreview({
-        url: URL.createObjectURL(selectedFile),
-        type: 'video'
-      });
     }
   };
 
@@ -684,6 +656,7 @@ const ELEMENT_COLORS = {
   if (!authInitialized) {
     return <div className="flex items-center justify-center h-screen">Loading chat...</div>;
   }
+  
   const elementColors = ELEMENT_COLORS[currentUser.element];
   const userElement = currentUser.element
 
