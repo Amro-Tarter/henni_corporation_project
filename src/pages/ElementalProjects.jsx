@@ -1,427 +1,826 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/layout/layout';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
-import CTAButton from '../components/CTAButton';
-import { cn } from '@/lib/utils';
+import { ChevronLeft, MapPin, Calendar, Plus, X, Image as ImageIcon, Check, AlertCircle, Upload, Edit, Trash2 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
-import { ChevronRight, MapPin, Calendar, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import Particles from '@tsparticles/react';
+import { loadFull } from 'tsparticles';
+
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  Timestamp,
+  doc,
+  deleteDoc,
+  updateDoc
+} from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db } from '../config/firbaseConfig';
 
 const ELEMENTS = [
-  {
-    key: 'earth',
-    emoji: '🌱',
-    title: 'קורסי אדמה',
-    description: 'פעילויות המקדמות יציבות, חיבור לאדמה ולעבודה עם חומרים טבעיים.',
-    color: 'from-green-600 to-emerald-500',
-    bgGradient: 'from-green-50 to-emerald-50',
-    lightColor: 'bg-green-100',
-    borderColor: 'border-green-500',
-    projects: [
-      {
-        title: 'גינון קהילתי',
-        location: 'המרכז האקולוגי, ירושלים',
-        date: '15 במאי, 2025',
-        image: '/images/earth1.jpg',
-      },
-    ],
-  },
-  {
-    key: 'metal',
-    emoji: '⚒️',
-    title: 'קורסי מתכת',
-    description: 'עיסוק בטכניקות מדויקות, פיתוח מיומנויות ועבודת ידיים.',
-    color: 'from-gray-600 to-slate-500',
-    bgGradient: 'from-gray-50 to-slate-50',
-    lightColor: 'bg-gray-100',
-    borderColor: 'border-gray-500',
-    projects: [
-      {
-        title: 'מסגרות מתקדמת',
-        location: 'מכללת תל חי',
-        date: '17 במאי, 2025',
-        image: '/images/metal1.jpg',
-      },
-    ],
-  },
-  {
-    key: 'air',
-    emoji: '💨',
-    title: 'קורסי אוויר',
-    description: 'תכנים המעודדים חשיבה יצירתית, מדיטציה ותודעה.',
-    color: 'from-blue-500 to-cyan-400',
-    bgGradient: 'from-blue-50 to-cyan-50',
-    lightColor: 'bg-blue-100',
-    borderColor: 'border-blue-500',
-    projects: [
-      {
-        title: 'סדנת נשימה מודעת',
-        location: 'מרחב רוח, מודיעין',
-        date: '19 במאי, 2025',
-        image: '/images/air1.jpg',
-      },
-    ],
-  },
-  {
-    key: 'water',
-    emoji: '💧',
-    title: 'קורסי מים',
-    description: 'תכנים העוסקים ברגש, ביטוי אישי וזרימה פנימית.',
-    color: 'from-indigo-500 to-purple-400',
-    bgGradient: 'from-indigo-50 to-purple-50',
-    lightColor: 'bg-indigo-100',
-    borderColor: 'border-indigo-500',
-    projects: [
-      {
-        title: 'תרפיה באמנות',
-        location: 'המרכז לאמנות, רמת גן',
-        date: '24 במאי, 2025',
-        image: '/images/water1.jpg',
-      },
-    ],
-  },
-  {
-    key: 'fire',
-    emoji: '🔥',
-    title: 'קורסי אש',
-    description: 'פעילויות עם אנרגיה גבוהה, יצירה נלהבת ומוטיבציה.',
-    color: 'from-red-600 to-orange-500',
-    bgGradient: 'from-red-50 to-orange-50',
-    lightColor: 'bg-red-100',
-    borderColor: 'border-red-500',
-    projects: [
-      {
-        title: 'תיאטרון ובמה',
-        location: 'מרכז חניכים, תל אביב',
-        date: '29 במאי, 2025',
-        image: '/images/fire1.jpg',
-      },
-    ],
-  },
+  { key: 'earth', emoji: '🌱', title: 'קורסי אדמה', description: 'פעילויות המקדמות יציבות, חיבור לאדמה ולעבודה עם חומרים טבעיים.', color: 'from-green-600 to-emerald-500', lightColor: 'bg-green-100', sound: '/sounds/earth.mp3' },
+  { key: 'metal', emoji: '⚒️', title: 'קורסי מתכת', description: 'עיסוק בטכניקות מדויקות, פיתוח מיומנויות ועבודת ידיים.', color: 'from-gray-600 to-slate-500', lightColor: 'bg-gray-100', sound: '/sounds/metal.mp3' },
+  { key: 'air', emoji: '💨', title: 'קורסי אוויר', description: 'תכנים המעודדים חשיבה יצירתית, מדיטציה ותודעה.', color: 'from-blue-500 to-cyan-400', lightColor: 'bg-blue-100', sound: '/sounds/air.mp3' },
+  { key: 'water', emoji: '💧', title: 'קורסי מים', description: 'תכנים העוסקים ברגש, ביטוי אישי וזרימה פנימית.', color: 'from-indigo-500 to-purple-400', lightColor: 'bg-indigo-100', sound: '/sounds/water.mp3' },
+  { key: 'fire', emoji: '🔥', title: 'קורסי אש', description: 'פעילויות עם אנרגיה גבוהה, יצירה נלהבת ומוטיבציה.', color: 'from-red-600 to-orange-500', lightColor: 'bg-red-100', sound: '/sounds/fire.mp3' },
 ];
 
-const cardVariants = {
-  hidden: { opacity: 0, y: 50 },
-  visible: (i) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.1, duration: 0.7, ease: [0.215, 0.61, 0.355, 1] },
-  }),
-  exit: { opacity: 0, y: -30, transition: { duration: 0.5 } }
-};
-
-const tabVariants = {
-  inactive: { scale: 0.95, opacity: 0.7 },
-  active: { scale: 1, opacity: 1 }
-};
-
-const ElementCircle = ({ emoji, isActive, element }) => {
-  const elementData = ELEMENTS.find(el => el.key === element);
-  
-  return (
-    <motion.div 
-      className={cn(
-        "flex items-center justify-center rounded-full w-12 h-12 text-2xl shadow-md",
-        isActive ? `bg-gradient-to-br ${elementData.color} text-white` : "bg-white"
-      )}
-      variants={tabVariants}
-      initial="inactive"
-      animate={isActive ? "active" : "inactive"}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      {emoji}
-    </motion.div>
-  );
-};
-
 const ElementalProjects = () => {
-  const { user } = useUser(); // Replace with your actual user source
+  const { user } = useUser();
+  const isAdmin = user?.role === 'admin';
+  const formRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const storage = getStorage();
+
   const [selectedElement, setSelectedElement] = useState('earth');
-  const [projectsMap, setProjectsMap] = useState(() =>
-    Object.fromEntries(ELEMENTS.map((el) => [el.key, el.projects]))
-  );
-  const [newProject, setNewProject] = useState({
-    title: '',
-    location: '',
-    date: '',
-    image: '',
-  });
+  const [projectsMap, setProjectsMap] = useState({});
+  const [newProject, setNewProject] = useState({ title: '', location: '', date: '', image: '', description: '' });
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
+  const [formErrors, setFormErrors] = useState({});
+  const [imagePreview, setImagePreview] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
 
-  const handleAddProject = () => {
-    if (!newProject.title) return;
-
-    setProjectsMap((prev) => ({
-      ...prev,
-      [selectedElement]: [...prev[selectedElement], newProject],
-    }));
-
-    setNewProject({ title: '', location: '', date: '', image: '' });
-    setIsFormVisible(false);
-  };
-
+  const controls = useAnimation();
   const elementData = ELEMENTS.find((el) => el.key === selectedElement);
 
-  // Scroll into view when tab changes
+  // Play sound on element change
   useEffect(() => {
-    const projectsSection = document.getElementById('projects-grid');
-    if (projectsSection) {
-      setTimeout(() => {
-        projectsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
-    }
+    const audio = new Audio(elementData.sound);
+    audio.volume = 0.25;
+
+    const playAudio = () => {
+      audio.play().catch(() => console.warn("🔇 Autoplay blocked"));
+    };
+
+    playAudio();
   }, [selectedElement]);
+
+  // Load projects for the selected element
+  useEffect(() => {
+    setLoading(true);
+    const q = query(
+      collection(db, 'elemental_projects'),
+      where('element', '==', selectedElement),
+      orderBy('created_at', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({...doc.data(), id: doc.id}));
+      setProjectsMap((prev) => ({ ...prev, [selectedElement]: docs }));
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [selectedElement]);
+
+  // Handle outside click to close form
+  useEffect(() => {
+    if (!isFormVisible) return;
+
+    const handleClickOutside = (event) => {
+      if (formRef.current && !formRef.current.contains(event.target)) {
+        setIsFormVisible(false);
+        resetForm();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isFormVisible]);
+
+  // Animate particles when element changes
+  useEffect(() => {
+    controls.start({
+      scale: [1, 1.05, 1],
+      transition: { duration: 0.5 }
+    });
+  }, [selectedElement, controls]);
+
+  const resetForm = () => {
+    setNewProject({ title: '', location: '', date: '', image: '', description: '' });
+    setImagePreview('');
+    setFormErrors({});
+    setIsEditMode(false);
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    if (!newProject.title) errors.title = 'נדרשת כותרת';
+    if (!newProject.location) errors.location = 'נדרש מיקום';
+    if (!newProject.date) errors.date = 'נדרש תאריך';
+    if (!newProject.description) errors.description = 'נדרש תיאור';
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmitProject = async () => {
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+
+    const projectData = {
+      ...newProject,
+      element: selectedElement,
+      updated_at: Timestamp.now(),
+    };
+
+    // If not in edit mode, add creation metadata
+    if (!isEditMode) {
+      projectData.created_at = Timestamp.now();
+      projectData.created_by = user?.email || 'anonymous';
+    }
+
+    try {
+      if (isEditMode && newProject.id) {
+        // Remove id from projectData (not needed for update)
+        const { id, ...dataToUpdate } = projectData;
+        await updateProject(id, dataToUpdate);
+      } else {
+        await addDoc(collection(db, 'elemental_projects'), projectData);
+      }
+      
+      resetForm();
+      setIsFormVisible(false);
+      setNotification({
+        show: true,
+        message: isEditMode ? 'הפרויקט עודכן בהצלחה!' : 'הפרויקט נוסף בהצלחה!',
+        type: 'success'
+      });
+      
+      setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+    } catch (error) {
+      console.error(`❌ Error ${isEditMode ? 'updating' : 'adding'} project:`, error);
+      setNotification({
+        show: true,
+        message: isEditMode ? 'שגיאה בעדכון הפרויקט' : 'שגיאה בהוספת הפרויקט',
+        type: 'error'
+      });
+      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const deleteProject = async (id) => {
+    if (!id) return;
+    if (!confirm('האם אתה בטוח שברצונך למחוק את הפרויקט?')) return;
+
+    try {
+      await deleteDoc(doc(db, 'elemental_projects', id));
+      setNotification({
+        show: true,
+        message: 'הפרויקט נמחק בהצלחה',
+        type: 'success'
+      });
+      
+      // If the deleted project is currently selected, close the modal
+      if (selectedProject && selectedProject.id === id) {
+        setSelectedProject(null);
+      }
+      
+      setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      setNotification({
+        show: true,
+        message: 'שגיאה במחיקת הפרויקט',
+        type: 'error'
+      });
+      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+    }
+  };
+
+  const updateProject = async (id, updatedFields) => {
+    if (!id || !updatedFields) return;
+
+    try {
+      const projectRef = doc(db, 'elemental_projects', id);
+      await updateDoc(projectRef, updatedFields);
+      return true;
+    } catch (error) {
+      console.error('Error updating project:', error);
+      throw error;
+    }
+  };
+
+  const handleEditProject = (project) => {
+    setNewProject({...project});
+    setImagePreview(project.image || '');
+    setIsEditMode(true);
+    setIsFormVisible(true);
+    
+    // If the element of the project differs from the current selected element, 
+    // switch to that element
+    if (project.element !== selectedElement) {
+      setSelectedElement(project.element);
+    }
+  };
+
+  const handleImageChange = (e) => {
+    const url = e.target.value;
+    setNewProject({ ...newProject, image: url });
+    setImagePreview(url);
+  };
+  
+  const handleFileSelect = () => {
+    fileInputRef.current.click();
+  };
+  
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      setNotification({
+        show: true,
+        message: 'יש לבחור קובץ תמונה בלבד',
+        type: 'error'
+      });
+      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+      return;
+    }
+    
+    // Check file size (limit to 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setNotification({
+        show: true,
+        message: 'גודל התמונה חייב להיות עד 5MB',
+        type: 'error'
+      });
+      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+      return;
+    }
+    
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+      
+      // Create a local preview
+      const localPreview = URL.createObjectURL(file);
+      setImagePreview(localPreview);
+      
+      // Create storage reference
+      const timestamp = new Date().getTime();
+      const storageRef = ref(storage, `project_images/${user.uid}_${timestamp}_${file.name}`);
+      
+      // Upload the file
+      const uploadTask = uploadBytes(storageRef, file);
+      
+      // Monitor upload progress (simulated since Firebase doesn't provide direct progress)
+      const interval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(interval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 300);
+      
+      // Wait for upload to complete
+      await uploadTask;
+      clearInterval(interval);
+      setUploadProgress(100);
+      
+      // Get download URL
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      // Update form with the URL
+      setNewProject({ ...newProject, image: downloadURL });
+      
+      // Show success notification
+      setNotification({
+        show: true,
+        message: 'התמונה הועלתה בהצלחה',
+        type: 'success'
+      });
+      setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+      
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      setNotification({
+        show: true,
+        message: 'שגיאה בהעלאת התמונה',
+        type: 'error'
+      });
+      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const formatDate = (date) => {
+    try {
+      return typeof date === 'string'
+        ? new Date(date).toLocaleDateString('he-IL')
+        : date?.toDate?.().toLocaleDateString('he-IL') || '';
+    } catch {
+      return '';
+    }
+  };
 
   return (
     <Layout>
-      <div dir="rtl" className={`min-h-screen pt-20 pb-20  px-4 transition-colors duration-700`}>
-        <div className="max-w-6xl mx-auto">
-          {/* Hero Section with Element Background */}
-          <div className="relative mb-16 overflow-hidden rounded-3xl shadow-xl">
-            <div className={`bg-gradient-to-br ${elementData.color} p-10 md:p-16 text-white relative z-10 overflow-hidden`}>
-              {/* Decorative Elements */}
-              <div className="absolute top-0 left-0 w-full h-full opacity-10">
-                <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-white blur-3xl"></div>
-                <div className="absolute bottom-10 right-10 w-40 h-40 rounded-full bg-white blur-3xl"></div>
-              </div>
-              
-              {/* Content */}
-              <div className="relative z-20">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6 }}
-                  className="mb-2 inline-block text-4xl"
-                >
-                  {elementData.emoji}
-                </motion.div>
-                <motion.h1 
-                  className="text-5xl md:text-7xl font-bold mb-6"
-                  key={elementData.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.1 }}
-                >
-                  {elementData.title}
-                </motion.h1>
-                <motion.p 
-                  className="text-xl md:text-2xl max-w-2xl opacity-90"
-                  key={elementData.description}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                >
-                  {elementData.description}
-                </motion.p>
-              </div>
-            </div>
-          </div>
+      <div className={`min-h-screen pt-20 pb-10 px-4 bg-gradient-to-br ${elementData.color} relative overflow-hidden`} dir="rtl">
+        <Particles
+          id="particles"
+          init={loadFull}
+          options={{
+            fullScreen: false,
+            background: { color: "transparent" },
+            particles: {
+              color: { value: "#ffffff" },
+              number: { value: 30 },
+              size: { value: { min: 1, max: 3 } },
+              move: { 
+                enable: true, 
+                speed: 0.8,
+                direction: "none",
+                random: true,
+                straight: false,
+                outMode: "out"
+              },
+              opacity: { value: 0.4 },
+            },
+            interactivity: {
+              events: {
+                onHover: {
+                  enable: true,
+                  mode: "repulse"
+                }
+              }
+            }
+          }}
+          className="absolute inset-0 z-0"
+        />
+
+        <motion.div 
+          className="max-w-6xl mx-auto relative z-10"
+          animate={controls}
+        >
+          <motion.div 
+            className="p-6 text-white mb-6"
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <motion.h1 
+              className="text-3xl md:text-5xl font-bold flex items-center gap-3"
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.5 }}
+            >
+              <span className="text-5xl md:text-6xl">{elementData.emoji}</span> 
+              {elementData.title}
+            </motion.h1>
+            <motion.p 
+              className="text-lg md:text-xl opacity-90 mt-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.9 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              {elementData.description}
+            </motion.p>
+          </motion.div>
 
           {/* Tabs */}
-          <div className="flex justify-center mb-16">
-            <div className="bg-white/80 backdrop-blur-lg p-2 rounded-full shadow-lg flex gap-2">
+          <div className="flex justify-center mb-10">
+            <motion.div 
+              className="bg-white/80 p-2 rounded-full shadow-lg flex gap-2 backdrop-blur-md"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
               {ELEMENTS.map(({ key, emoji, title }) => (
-                <button
-                  key={key}
+                <motion.button 
+                  key={key} 
                   onClick={() => setSelectedElement(key)}
-                  className={cn(
-                    'relative flex items-center gap-2 px-5 py-3 rounded-full font-bold transition-all',
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={cn('px-4 py-3 rounded-full font-bold text-sm transition-all',
                     selectedElement === key
-                      ? 'text-white shadow-lg'
-                      : 'text-gray-600 hover:bg-gray-100'
-                  )}
+                      ? 'text-white bg-gradient-to-br shadow-md ' + ELEMENTS.find(el => el.key === key).color
+                      : 'text-gray-700 hover:bg-gray-100')}
                 >
-                  {selectedElement === key && (
-                    <motion.div
-                      className={`absolute inset-0 rounded-full bg-gradient-to-br ${ELEMENTS.find(el => el.key === key).color}`}
-                      layoutId="activeTabBackground"
-                      initial={false}
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-2">
-                    <ElementCircle emoji={emoji} isActive={selectedElement === key} element={key} />
-                    <span className={selectedElement === key ? 'text-white' : 'text-gray-700'}>
-                      {title}
-                    </span>
-                  </span>
-                </button>
+                  <span className="text-lg mr-1">{emoji}</span> {title}
+                </motion.button>
               ))}
-            </div>
+            </motion.div>
           </div>
 
-          {/* Admin Add Project Button */}
-          {user?.isAdmin && (
-            <div className="mb-8 flex justify-center">
-              <button
-                onClick={() => setIsFormVisible(!isFormVisible)}
-                className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all ${isFormVisible ? 'bg-gray-200 text-gray-700' : `bg-gradient-to-r ${elementData.color} text-white`} shadow-lg hover:shadow-xl`}
-              >
-                <Sparkles className="w-5 h-5" />
-                {isFormVisible ? 'ביטול' : 'הוספת פרויקט חדש'}
-              </button>
-            </div>
-          )}
-
-          {/* Admin Add Project Form - Animated */}
+          {/* Notification */}
           <AnimatePresence>
-            {user?.isAdmin && isFormVisible && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
+            {notification.show && (
+              <motion.div 
+                className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 py-3 px-6 rounded-full shadow-lg flex items-center gap-2 ${
+                  notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+                } text-white`}
+                initial={{ y: -50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -50, opacity: 0 }}
               >
-                <motion.div 
-                  className={`mb-12 max-w-3xl mx-auto bg-white shadow-lg rounded-2xl p-8 border-t-4 ${elementData.borderColor}`}
-                  initial={{ y: -20 }}
-                  animate={{ y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
-                >
-                  <h3 className="text-2xl font-bold mb-6 flex items-center">
-                    <span className="text-2xl ml-2">{elementData.emoji}</span>
-                    הוספת פרויקט חדש ({elementData.title})
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">כותרת</label>
-                      <input
-                        type="text"
-                        placeholder="כותרת הפרויקט"
-                        className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-offset-2 focus:outline-none"
-                        value={newProject.title}
-                        onChange={(e) => setNewProject((p) => ({ ...p, title: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">מיקום</label>
-                      <input
-                        type="text"
-                        placeholder="היכן יתקיים?"
-                        className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-offset-2 focus:outline-none"
-                        value={newProject.location}
-                        onChange={(e) => setNewProject((p) => ({ ...p, location: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">תאריך</label>
-                      <input
-                        type="text"
-                        placeholder="מתי יתקיים?"
-                        className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-offset-2 focus:outline-none"
-                        value={newProject.date}
-                        onChange={(e) => setNewProject((p) => ({ ...p, date: e.target.value }))}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">תמונה</label>
-                      <input
-                        type="text"
-                        placeholder="URL של תמונה"
-                        className="w-full border border-gray-300 p-3 rounded-lg focus:ring-2 focus:ring-offset-2 focus:outline-none"
-                        value={newProject.image}
-                        onChange={(e) => setNewProject((p) => ({ ...p, image: e.target.value }))}
-                      />
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleAddProject}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all bg-gradient-to-r ${elementData.color} text-white shadow hover:shadow-lg`}
-                  >
-                    <Sparkles className="w-5 h-5" />
-                    הוסף פרויקט
-                  </button>
-                </motion.div>
+                {notification.type === 'success' ? (
+                  <Check className="w-5 h-5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5" />
+                )}
+                {notification.message}
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Cards with Animation */}
-          <div id="projects-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <AnimatePresence mode="wait">
-              {projectsMap[selectedElement].map((project, index) => (
-                <motion.div
-                  key={`${selectedElement}-${index}`}
-                  custom={index}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  variants={cardVariants}
-                  className="h-full"
-                  layout
+          {/* Admin Form */}
+          <AnimatePresence>
+            {isAdmin && isFormVisible && (
+              <motion.div 
+                className="max-w-2xl mx-auto mb-12"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              >
+                <div 
+                  ref={formRef}
+                  className="bg-white p-6 rounded-xl shadow-lg border border-white/20 backdrop-blur-md"
                 >
-                  <Card className={`h-full overflow-hidden rounded-3xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 group border-0`}>
-                    <div className="h-64 relative overflow-hidden">
-                      <img
-                        src={project.image || `/api/placeholder/600/400`}
-                        alt={project.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-                      />
-                      <div className={`absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
-                      
-                      {/* Floating Element Badge */}
-                      <div className={`absolute top-4 right-4 ${elementData.lightColor} p-2 rounded-full`}>
-                        <span className="text-xl">{elementData.emoji}</span>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">
+                      {isEditMode ? 'ערוך פרויקט' : 'הוסף פרויקט'} {elementData.emoji}
+                    </h2>
+                    <button 
+                      onClick={() => {
+                        setIsFormVisible(false);
+                        resetForm();
+                      }}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">כותרת</label>
+                        <input 
+                          type="text" 
+                          placeholder="שם הפרויקט" 
+                          className={`p-3 border rounded-lg w-full focus:ring-2 focus:outline-none ${
+                            formErrors.title ? 'border-red-500 focus:ring-red-200' : `border-gray-300 focus:ring-${selectedElement}-200`
+                          }`}
+                          value={newProject.title} 
+                          onChange={(e) => {
+                            setNewProject({ ...newProject, title: e.target.value });
+                            if (formErrors.title) setFormErrors({...formErrors, title: null});
+                          }} 
+                        />
+                        {formErrors.title && <p className="mt-1 text-sm text-red-500">{formErrors.title}</p>}
                       </div>
-                    </div>
-                    
-                    <CardContent className="p-6 md:p-8">
-                      <div className="flex flex-col h-full">
-                        <div className="space-y-4 mb-6">
-                          <h3 className="text-2xl font-bold text-gray-800 leading-tight">{project.title}</h3>
-                          
-                          <div className="flex flex-col gap-2 text-gray-600">
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4 text-gray-500" />
-                              <span>{project.location}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-gray-500" />
-                              <span>{project.date}</span>
-                            </div>
+
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">מיקום</label>
+                        <input 
+                          type="text" 
+                          placeholder="היכן מתקיים" 
+                          className={`p-3 border rounded-lg w-full focus:ring-2 focus:outline-none ${
+                            formErrors.location ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-200'
+                          }`}
+                          value={newProject.location} 
+                          onChange={(e) => {
+                            setNewProject({ ...newProject, location: e.target.value });
+                            if (formErrors.location) setFormErrors({...formErrors, location: null});
+                          }} 
+                        />
+                        {formErrors.location && <p className="mt-1 text-sm text-red-500">{formErrors.location}</p>}
+                      </div>
+
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">תאריך</label>
+                        <input 
+                          type="date" 
+                          className={`p-3 border rounded-lg w-full focus:ring-2 focus:outline-none ${
+                            formErrors.date ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-200'
+                          }`}
+                          value={newProject.date} 
+                          onChange={(e) => {
+                            setNewProject({ ...newProject, date: e.target.value });
+                            if (formErrors.date) setFormErrors({...formErrors, date: null});
+                          }} 
+                        />
+                        {formErrors.date && <p className="mt-1 text-sm text-red-500">{formErrors.date}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">תמונה</label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <input 
+                              type="text" 
+                              placeholder="קישור לתמונה" 
+                              className="p-3 pl-10 border rounded-lg w-full focus:ring-2 focus:ring-blue-200 focus:outline-none border-gray-300"
+                              value={newProject.image} 
+                              onChange={handleImageChange} 
+                            />
+                            <ImageIcon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                           </div>
+                          <button
+                            type="button"
+                            onClick={handleFileSelect}
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 border border-gray-300"
+                          >
+                            <Upload className="w-5 h-5" /> העלה
+                          </button>
+                          <input 
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                          />
                         </div>
                         
-                        <div className="mt-auto">
-                          <button
-                            className={`w-full px-6 py-3 bg-gradient-to-r ${elementData.color} text-white rounded-xl font-bold flex items-center justify-center gap-2 group-hover:shadow-lg transition-all duration-300 hover:translate-y-[-2px]`}
-                          >
-                            <span>לקריאה נוספת</span>
-                            <ChevronRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                          </button>
-                        </div>
+                        {/* Upload Progress */}
+                        {isUploading && (
+                          <div className="mt-3">
+                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full bg-gradient-to-r ${elementData.color}`}
+                                style={{ width: `${uploadProgress}%` }}
+                              ></div>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1 text-center">{uploadProgress}% מועלה...</p>
+                          </div>
+                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-          
-          {/* Empty State */}
-          {projectsMap[selectedElement].length === 0 && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className={`text-center p-16 rounded-xl ${elementData.lightColor} mt-8`}
-            >
-              <div className="text-5xl mb-4">{elementData.emoji}</div>
-              <h3 className="text-2xl font-bold mb-2">אין פרויקטים זמינים כרגע</h3>
-              <p className="text-gray-600 mb-6">פרויקטים חדשים יתווספו בקרוב, אנא בדקו שוב מאוחר יותר</p>
-              {user?.isAdmin && (
+                    </div>
+
+                    <div>
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">תיאור מלא</label>
+                        <textarea 
+                          placeholder="פרטים על הפרויקט" 
+                          className={`p-3 border rounded-lg w-full h-40 resize-none focus:ring-2 focus:outline-none ${
+                            formErrors.description ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-blue-200'
+                          }`}
+                          value={newProject.description} 
+                          onChange={(e) => {
+                            setNewProject({ ...newProject, description: e.target.value });
+                            if (formErrors.description) setFormErrors({...formErrors, description: null});
+                          }} 
+                        />
+                        {formErrors.description && <p className="mt-1 text-sm text-red-500">{formErrors.description}</p>}
+                      </div>
+
+                      {(imagePreview || newProject.image) && (
+                        <div className="mt-2 border rounded-lg overflow-hidden relative aspect-video">
+                          <img 
+                            src={imagePreview || newProject.image} 
+                            alt="תצוגה מקדימה" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = '/placeholder-image.jpg';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3">
+                    <button 
+                      onClick={() => {
+                        setIsFormVisible(false);
+                        resetForm();
+                      }} 
+                      className="px-6 py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-100"
+                    >
+                      ביטול
+                    </button>
+                    <button 
+                      onClick={handleSubmitProject} 
+                      disabled={isSubmitting}
+                      className={`bg-gradient-to-r ${elementData.color} text-white px-8 py-2 rounded-lg font-bold flex items-center gap-2 hover:opacity-90 transition-opacity ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <span className="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                          {isEditMode ? 'מעדכן...' : 'מוסיף...'}
+                        </>
+                      ) : (
+                        <>
+                          {isEditMode ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                          {isEditMode ? 'עדכן פרויקט' : 'הוסף פרויקט'}
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+{/* Project Grid */}
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {isAdmin && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2, duration: 0.4 }}
+              >
                 <button
                   onClick={() => setIsFormVisible(true)}
-                  className={`inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all bg-gradient-to-r ${elementData.color} text-white shadow hover:shadow-lg`}
+                  className={`bg-white/90 rounded-xl p-5 text-center flex flex-col items-center justify-center h-full w-full border-2 border-dashed ${elementData.lightColor} hover:bg-white transition-all duration-300 min-h-[200px]`}
                 >
-                  <Sparkles className="w-5 h-5" />
-                  הוסיפו את הפרויקט הראשון
+                  <Plus className={`w-12 h-12 mb-3 text-${selectedElement === 'metal' ? 'gray' : selectedElement}-500`} />
+                  <span className="font-bold text-gray-800 text-lg">הוסף פרויקט חדש</span>
                 </button>
-              )}
-            </motion.div>
-          )}
-        </div>
+              </motion.div>
+            )}
+
+            {loading ? (
+              // Loading skeletons
+              Array(3).fill(0).map((_, index) => (
+                <motion.div
+                  key={`skeleton-${index}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.1 * index }}
+                  className="bg-white/30 rounded-xl p-6 animate-pulse h-[200px]"
+                />
+              ))
+            ) : (
+              // Actual projects
+              (projectsMap[selectedElement] || []).map((project, index) => (
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 * index, duration: 0.4 }}
+                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                  className="bg-white/90 rounded-xl overflow-hidden shadow-lg flex flex-col transition-all duration-300 hover:shadow-xl"
+                  onClick={() => setSelectedProject(project)}
+                >
+                  <div className="relative aspect-video">
+                    {project.image ? (
+                      <img 
+                        src={project.image} 
+                        alt={project.title} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/placeholder-image.jpg';
+                        }}
+                      />
+                    ) : (
+                      <div className={`w-full h-full flex items-center justify-center ${elementData.lightColor}`}>
+                        <span className="text-6xl">{elementData.emoji}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5 flex-1 flex flex-col">
+                    <h3 className="font-bold text-xl text-gray-800 mb-2">{project.title}</h3>
+                    <div className="flex items-center text-gray-600 mb-1">
+                      <MapPin className="w-4 h-4 ml-1 flex-shrink-0" />
+                      <span className="text-sm truncate">{project.location}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600">
+                      <Calendar className="w-4 h-4 ml-1 flex-shrink-0" />
+                      <span className="text-sm">{formatDate(project.date)}</span>
+                    </div>
+                    <p className="mt-3 text-gray-600 line-clamp-3 text-sm flex-1">
+                      {project.description}
+                    </p>
+                    
+                    {isAdmin && (
+                      <div className="flex justify-end mt-4 gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditProject(project);
+                          }}
+                          className="p-2 rounded-full hover:bg-gray-100 text-gray-600"
+                        >
+                          <Edit className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteProject(project.id);
+                          }}
+                          className="p-2 rounded-full hover:bg-red-100 text-red-600"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
+
+          {/* Project Details Modal */}
+          <AnimatePresence>
+            {selectedProject && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4"
+                onClick={() => setSelectedProject(null)}
+              >
+                <motion.div
+                  initial={{ y: 50, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 50, opacity: 0 }}
+                  transition={{ type: "spring", damping: 25 }}
+                  className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-xl"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="relative aspect-video">
+                    {selectedProject.image ? (
+                      <img 
+                        src={selectedProject.image} 
+                        alt={selectedProject.title} 
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/placeholder-image.jpg';
+                        }}
+                      />
+                    ) : (
+                      <div className={`w-full h-full flex items-center justify-center ${elementData.lightColor}`}>
+                        <span className="text-6xl">{elementData.emoji}</span>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setSelectedProject(null)}
+                      className="absolute top-4 right-4 bg-black/40 text-white rounded-full p-2 hover:bg-black/60 transition-colors"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                  </div>
+                  <div className="p-6 max-h-[calc(90vh-35vh)] overflow-y-auto">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-3xl">{ELEMENTS.find(el => el.key === selectedProject.element)?.emoji}</span>
+                      <h2 className="text-2xl font-bold text-gray-800">{selectedProject.title}</h2>
+                    </div>
+                    <div className="flex flex-wrap gap-4 mb-5">
+                      <div className="flex items-center text-gray-600">
+                        <MapPin className="w-5 h-5 ml-1" />
+                        <span>{selectedProject.location}</span>
+                      </div>
+                      <div className="flex items-center text-gray-600">
+                        <Calendar className="w-5 h-5 ml-1" />
+                        <span>{formatDate(selectedProject.date)}</span>
+                      </div>
+                    </div>
+                    <div className="prose max-w-none">
+                      <p className="whitespace-pre-line">{selectedProject.description}</p>
+                    </div>
+                    
+                    {isAdmin && (
+                      <div className="mt-6 flex justify-end gap-3">
+                        <button
+                          onClick={() => {
+                            handleEditProject(selectedProject);
+                            setSelectedProject(null);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                        >
+                          <Edit className="w-5 h-5" /> ערוך
+                        </button>
+                        <button
+                          onClick={() => {
+                            deleteProject(selectedProject.id);
+                            setSelectedProject(null);
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                        >
+                          <Trash2 className="w-5 h-5" /> מחק
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </div>
     </Layout>
   );

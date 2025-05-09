@@ -1,10 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import {fadeSlideUp} from '@/lib/animations'; 
+import { fadeSlideUp } from '@/lib/animations'; 
 import CTAButton from '@/components/CTAButton';
+import { auth } from '@/config/firbaseConfig';
+import { onAuthStateChanged } from 'firebase/auth';
 
 const Hero = () => {
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    // subscribe to auth state
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      setCurrentUser(user);
+    });
+    return unsubscribe;
+  }, []);
+
+  // choose path based on auth
+  const platformLink = currentUser ? '/home' : '/login';
+
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
       {/* Video Background */}
@@ -18,20 +33,19 @@ const Hero = () => {
         >
           <source src="/video/background vid.mp4" type="video/mp4" />
         </video>
-        {/* Dark Overlay */}
         <div className="absolute inset-0 bg-black/60" />
       </div>
 
       {/* Hero Content */}
       <div className="relative z-10 text-center px-4 sm:px-6 md:px-8 max-w-6xl mx-auto">
-          <motion.h1
-            variants={fadeSlideUp}
-            initial="hidden"
-            animate="visible"
-            className="font-title text-6xl text-white mb-6 drop-shadow-lg"
-          >
-             לגלות את האור – הנני
-          </motion.h1>
+        <motion.h1
+          variants={fadeSlideUp}
+          initial="hidden"
+          animate="visible"
+          className="font-title text-6xl text-white mb-6 drop-shadow-lg"
+        >
+          לגלות את האור – הנני
+        </motion.h1>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
@@ -57,8 +71,9 @@ const Hero = () => {
             הצטרפו למסע
           </CTAButton>
 
+          {/* conditional Link */}
           <Link
-            to="/login"
+            to={platformLink}
             className="flex items-center gap-2 sm:gap-3 text-white hover:text-orange-400 transition-colors duration-300 text-lg sm:text-xl font-medium"
           >
             לפלטפורמה שלנו

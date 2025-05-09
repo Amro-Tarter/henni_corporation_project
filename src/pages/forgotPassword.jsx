@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../config/firbaseConfig"; // adjust the path as needed
+import { auth } from "../config/firbaseConfig"; 
 import "./auth.css";
 
 const ForgotPassword = () => {
