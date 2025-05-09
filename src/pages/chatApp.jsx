@@ -171,60 +171,73 @@ const ELEMENT_COLORS = {
 
 
     // Add this function inside the ChatApp component
-    const handleCommunityChatMembership = async (userId, userElement) => {
-      try {
-        const q = query(
-          collection(db, "conversations"),
-          where("type", "==", "community"),
-          where("element", "==", userElement)
-        );
-        
-        const querySnapshot = await getDocs(q);
-        const userDoc = await getDoc(doc(db, "users", userId));
-        const username = userDoc.data().username;
-        
-        if (querySnapshot.empty) {
-          // Create new community chat with welcome message
-          const convoRef = doc(collection(db, "conversations"));
-          await setDoc(convoRef, {
-            participants: [userId],
-            participantNames: [username],
-            type: "community",
-            element: userElement,
-            lastMessage: "Community created!",
-            lastUpdated: serverTimestamp(),
-            createdAt: serverTimestamp(),
+  // Add this function inside the ChatApp component
+  const handleCommunityChatMembership = async (userId, userElement) => {
+    try {
+      const normalizedElement = userElement.toLowerCase();
+  
+      // ✅ First, check if user is already in the community conversation locally
+      const alreadyJoined = conversations.some(conv =>
+        conv.type === "community" &&
+        conv.element === normalizedElement &&
+        conv.participants?.includes(userId)
+      );
+  
+      if (alreadyJoined) {
+        return; // No need to proceed
+      }
+  
+      // 🔽 Continue your original logic
+      const q = query(
+        collection(db, "conversations"),
+        where("type", "==", "community"),
+        where("element", "==", normalizedElement)
+      );
+  
+      const querySnapshot = await getDocs(q);
+      const userDoc = await getDoc(doc(db, "users", userId));
+      const username = userDoc.data().username;
+  
+      if (querySnapshot.empty) {
+        // Create new community
+        const convoRef = doc(collection(db, "conversations"));
+        await setDoc(convoRef, {
+          participants: [userId],
+          participantNames: [username],
+          type: "community",
+          element: normalizedElement,
+          lastMessage: "Community created!",
+          lastUpdated: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        });
+  
+        const messagesRef = collection(db, "conversations", convoRef.id, "messages");
+        await addDoc(messagesRef, {
+          text: "Community created! Welcome!",
+          type: "system",
+          createdAt: serverTimestamp()
+        });
+      } else {
+        const convoDoc = querySnapshot.docs[0];
+        if (!convoDoc.data().participants.includes(userId)) {
+          await updateDoc(convoDoc.ref, {
+            participants: arrayUnion(userId),
+            participantNames: arrayUnion(username)
           });
-    
-          // Add system message
-          const messagesRef = collection(db, "conversations", convoRef.id, "messages");
+  
+          const messagesRef = collection(db, "conversations", convoDoc.id, "messages");
           await addDoc(messagesRef, {
-            text: "Community created! Welcome!",
+            text: `${username} joined the community`,
             type: "system",
             createdAt: serverTimestamp()
           });
-        } else {
-          const convoDoc = querySnapshot.docs[0];
-          if (!convoDoc.data().participants.includes(userId)) {
-            // Add user to community
-            await updateDoc(convoDoc.ref, {
-              participants: arrayUnion(userId),
-              participantNames: arrayUnion(username)
-            });
-    
-            // Add join notification
-            const messagesRef = collection(db, "conversations", convoDoc.id, "messages");
-            await addDoc(messagesRef, {
-              text: `${username} joined the community`,
-              type: "system",
-              createdAt: serverTimestamp()
-            });
-          }
         }
-      } catch (error) {
-        console.error("Error handling community chat:", error);
       }
-    };
+    } catch (error) {
+      console.error("Error handling community chat:", error);
+    }
+  };
+  
     
   // Update the auth useEffect to call this function
   useEffect(() => {
@@ -279,14 +292,15 @@ const ELEMENT_COLORS = {
     } else if (activeTab === "community") {
       filtered = filtered.filter(conv => 
         conv.type === "community" && 
-        conv.element === currentUser.element
+        conv.element === currentUser.element.toLowerCase()
       );
     }
   
     // Apply search filter
     if (searchQuery) {
-      filtered = filtered.filter(conv => 
-        conv.participantNames?.some(name => 
+      filtered = filtered.filter(conv =>
+        conv.participantNames?.some(name =>
+          name !== currentUser.username && // exclude current user
           name.toLowerCase().includes(searchQuery.toLowerCase())
         )
       );
@@ -589,9 +603,6 @@ const ELEMENT_COLORS = {
       });
   
       await batch.commit();
-      await updateDoc(doc(db, "conversations", selectedConversation.id), {
-        [`typing.${currentUser.uid}`]: false
-      });
   
       // Remove the temporary message and let Firestore update handle the real one
       setMessages(prev => prev.filter(msg => msg.id !== tempMessageId));
