@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/layout/layout';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, MapPin, Calendar, Plus, X, Image as ImageIcon, Check, AlertCircle, Upload, Edit, Trash2 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { cn } from '@/lib/utils';
 import Particles from '@tsparticles/react';
 import { loadFull } from 'tsparticles';
+import imageCompression from 'browser-image-compression';
 
 import {
   collection,
@@ -239,89 +239,93 @@ const ElementalProjects = () => {
     fileInputRef.current.click();
   };
   
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    // Check file type
-    if (!file.type.startsWith('image/')) {
-      setNotification({
-        show: true,
-        message: 'יש לבחור קובץ תמונה בלבד',
-        type: 'error'
+
+const handleFileUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  // Check file type
+  if (!file.type.startsWith('image/')) {
+    setNotification({
+      show: true,
+      message: 'יש לבחור קובץ תמונה בלבד',
+      type: 'error'
+    });
+    setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+    return;
+  }
+
+  // Check raw file size (limit to 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    setNotification({
+      show: true,
+      message: 'גודל התמונה חייב להיות עד 5MB',
+      type: 'error'
+    });
+    setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+    return;
+  }
+
+  try {
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    // Compress + resize
+    const compressed = await imageCompression(file, {
+      maxWidthOrHeight: 1200,
+      maxSizeMB: 1,
+      useWebWorker: true
+    });
+
+    // Local preview (use compressed blob)
+    const localPreview = URL.createObjectURL(compressed);
+    setImagePreview(localPreview);
+
+    // Create storage reference
+    const timestamp = Date.now();
+    const storageRef = ref(storage, `project_images/${user.uid}_${timestamp}_${file.name}`);
+
+    // Simulated upload progress
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prev + 10;
       });
-      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
-      return;
-    }
-    
-    // Check file size (limit to 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setNotification({
-        show: true,
-        message: 'גודל התמונה חייב להיות עד 5MB',
-        type: 'error'
-      });
-      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
-      return;
-    }
-    
-    try {
-      setIsUploading(true);
-      setUploadProgress(0);
-      
-      // Create a local preview
-      const localPreview = URL.createObjectURL(file);
-      setImagePreview(localPreview);
-      
-      // Create storage reference
-      const timestamp = new Date().getTime();
-      const storageRef = ref(storage, `project_images/${user.uid}_${timestamp}_${file.name}`);
-      
-      // Upload the file
-      const uploadTask = uploadBytes(storageRef, file);
-      
-      // Monitor upload progress (simulated since Firebase doesn't provide direct progress)
-      const interval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(interval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 300);
-      
-      // Wait for upload to complete
-      await uploadTask;
-      clearInterval(interval);
-      setUploadProgress(100);
-      
-      // Get download URL
-      const downloadURL = await getDownloadURL(storageRef);
-      
-      // Update form with the URL
-      setNewProject({ ...newProject, image: downloadURL });
-      
-      // Show success notification
-      setNotification({
-        show: true,
-        message: 'התמונה הועלתה בהצלחה',
-        type: 'success'
-      });
-      setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
-      
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      setNotification({
-        show: true,
-        message: 'שגיאה בהעלאת התמונה',
-        type: 'error'
-      });
-      setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
-    } finally {
-      setIsUploading(false);
-    }
-  };
+    }, 300);
+
+    // Upload
+    await uploadBytes(storageRef, compressed);
+    clearInterval(interval);
+    setUploadProgress(100);
+
+    // Get URL
+    const downloadURL = await getDownloadURL(storageRef);
+    setNewProject({ ...newProject, image: downloadURL });
+
+    // Toast
+    setNotification({
+      show: true,
+      message: 'התמונה הועלתה בהצלחה',
+      type: 'success'
+    });
+    setTimeout(() => setNotification({ show: false, message: '', type: 'success' }), 3000);
+
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    setNotification({
+      show: true,
+      message: 'שגיאה בהעלאת התמונה',
+      type: 'error'
+    });
+    setTimeout(() => setNotification({ show: false, message: '', type: 'error' }), 3000);
+  } finally {
+    setIsUploading(false);
+  }
+};
+
 
   const formatDate = (date) => {
     try {
@@ -633,8 +637,8 @@ const ElementalProjects = () => {
               </motion.div>
             )}
           </AnimatePresence>
-{/* Project Grid */}
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Project Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {isAdmin && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -674,11 +678,11 @@ const ElementalProjects = () => {
                   className="bg-white/90 rounded-xl overflow-hidden shadow-lg flex flex-col transition-all duration-300 hover:shadow-xl"
                   onClick={() => setSelectedProject(project)}
                 >
-                  <div className="relative aspect-video">
+                  <div className="w-full h-[255px] flex items-center justify-center bg-green-100">
                     {project.image ? (
-                      <img 
-                        src={project.image} 
-                        alt={project.title} 
+                      <img
+                        src={project.image}
+                        alt={project.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.target.onerror = null;
@@ -686,11 +690,12 @@ const ElementalProjects = () => {
                         }}
                       />
                     ) : (
-                      <div className={`w-full h-full flex items-center justify-center ${elementData.lightColor}`}>
+                      <div className="w-full h-full flex items-center justify-center bg-green-100">
                         <span className="text-6xl">{elementData.emoji}</span>
                       </div>
                     )}
                   </div>
+
                   <div className="p-5 flex-1 flex flex-col">
                     <h3 className="font-bold text-xl text-gray-800 mb-2">{project.title}</h3>
                     <div className="flex items-center text-gray-600 mb-1">
