@@ -679,11 +679,11 @@ const handleFileUpload = async (e) => {
                   className="bg-white/90 rounded-xl overflow-hidden shadow-lg flex flex-col transition-all duration-300 hover:shadow-xl"
                   onClick={() => setSelectedProject(project)}
                 >
-                  <div className="relative aspect-video">
+                  <div className="w-full h-[255px] flex items-center justify-center bg-green-100">
                     {project.image ? (
-                      <img 
-                        src={project.image} 
-                        alt={project.title} 
+                      <img
+                        src={project.image}
+                        alt={project.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
                           e.target.onerror = null;
@@ -691,11 +691,12 @@ const handleFileUpload = async (e) => {
                         }}
                       />
                     ) : (
-                      <div className={`w-full h-full flex items-center justify-center ${elementData.lightColor}`}>
+                      <div className="w-full h-full flex items-center justify-center bg-green-100">
                         <span className="text-6xl">{elementData.emoji}</span>
                       </div>
                     )}
                   </div>
+
                   <div className="p-5 flex-1 flex flex-col">
                     <h3 className="font-bold text-xl text-gray-800 mb-2">{project.title}</h3>
                     <div className="flex items-center text-gray-600 mb-1">
