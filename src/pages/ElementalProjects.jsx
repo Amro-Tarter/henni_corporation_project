@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import Layout from '../components/layout/layout';
+import Layout from '../components/layout/Layout';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { ChevronLeft, MapPin, Calendar, Plus, X, Image as ImageIcon, Check, AlertCircle, Upload, Edit, Trash2 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
