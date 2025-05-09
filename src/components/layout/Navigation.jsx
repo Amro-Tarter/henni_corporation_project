@@ -1,6 +1,5 @@
-
-import React, { useState, useEffect } from 'react';
-import { Facebook, Instagram, MessageCircle, Phone } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Facebook, Instagram, MessageCircle, Phone, LogIn, LogOut, User } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faLeaf,
@@ -9,6 +8,10 @@ import {
   faWater,
   faFire,
 } from '@fortawesome/free-solid-svg-icons';
+import { auth } from '@/config/firbaseConfig';
+import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import Cookies from "js-cookie";
+import { useNavigate } from 'react-router-dom';
 
 const sections = [
   { id: 'about-us', label: 'אודות העמותה', icon: faLeaf },
@@ -22,9 +25,14 @@ const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showAuthDropdown, setShowAuthDropdown] = useState(false);
+  const authDropdownRef = useRef(null);
+  const navigate = useNavigate();
 
+  // Scroll & active section tracking
   useEffect(() => {
-    const handleScroll = () => {
+    const onScroll = () => {
       setIsScrolled(window.scrollY > 50);
       let found = '';
       for (const section of sections) {
@@ -35,9 +43,53 @@ const Navigation = () => {
       }
       setActiveSection(found);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Listen for Firebase auth changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      setCurrentUser(user);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Close auth dropdown on outside click
+  useEffect(() => {
+    const onClickOutside = e => {
+      if (showAuthDropdown && authDropdownRef.current && !authDropdownRef.current.contains(e.target)) {
+        setShowAuthDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [showAuthDropdown]);
+
+  const handleSignIn = async () => {
+  // redirect to sign in page
+    window.location.href = '/login';
+
+  };
+
+const handleSignOut = async () => {
+  try {
+    await signOut(auth);
+    // remove our persisted cookie
+    Cookies.remove("authToken");
+    // close the dropdown
+    setShowAuthDropdown(false);
+    // kick them back to login
+    navigate("/", { replace: true });
+  } catch (err) {
+    console.error("Logout failed:", err);
+  }
+};
+
+  const toggleAuthDropdown = e => {
+    e.stopPropagation();
+    setShowAuthDropdown(prev => !prev);
+  };
 
   const cn = (...classes) => classes.filter(Boolean).join(' ');
 
@@ -51,30 +103,29 @@ const Navigation = () => {
       )}
       dir="rtl"
     >
-      {/* Overlay */}
       {isMenuOpen && (
         <div
           className="fixed inset-0 z-40 bg-black bg-opacity-40 backdrop-blur-sm"
           onClick={() => setIsMenuOpen(false)}
-        ></div>
+        />
       )}
 
-      {/* Main nav */}
-      <nav className="relative z-50 container mx-auto flex items-center justify-between px-6 py-2">
+      <nav className="relative z-50 container mx-auto flex items-center justify-between px-6">
         <a href="/" className="flex flex-col items-start">
           <span className="text-white font-bold text-xl md:text-2xl">לגלות את האור – הנני</span>
           <span className="text-white/80 text-sm hidden md:block">מנהיגות. יצירה. שייכות.</span>
         </a>
 
+        {/* Desktop Links */}
         <div className="hidden lg:flex items-center">
           <ul className="flex items-center space-x-1 space-x-reverse text-white">
-            {sections.map((item) => (
+            {sections.map(item => (
               <li key={item.id}>
                 <a
                   href={`#${item.id}`}
                   className={cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/10',
-                    activeSection === item.id ? 'bg-white/20' : ''
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
+                    activeSection === item.id && 'bg-white/20'
                   )}
                 >
                   <FontAwesomeIcon icon={item.icon} className="text-xl" />
@@ -94,17 +145,9 @@ const Navigation = () => {
             </li>
           </ul>
 
-          <div className="flex items-center space-x-4 space-x-reverse border-r border-white/20 pr-6">
+          <div className="flex items-center space-x-4 space-x-reverse border-r border-white/20 mr-4 pr-6">
             <a href="tel:0500000000" className="text-white hover:text-green-400">
               <Phone size={20} />
-            </a>
-            <a
-              href="https://wa.me/972500000000"
-              target="_blank"
-              className="text-white hover:text-green-400 bg-green-600 hover:bg-green-700 p-1 w-7 h-7 rounded-full flex items-center justify-center"
-              aria-label="WhatsApp"
-            >
-              <MessageCircle size={16} />
             </a>
             <a href="https://www.instagram.com/anatzigron" target="_blank" className="text-white hover:text-pink-300">
               <Instagram size={20} />
@@ -113,9 +156,68 @@ const Navigation = () => {
               <Facebook size={20} />
             </a>
           </div>
+
+          {/* Auth */}
+          <div className="relative" ref={authDropdownRef}>
+            <button
+              onClick={toggleAuthDropdown}
+              className={cn(
+                'flex items-center gap-2 text-white px-3 py-2 rounded-lg hover:bg-white/10 transition-all',
+                showAuthDropdown && 'bg-white/20'
+              )}
+            >
+              <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+                {currentUser ? <User size={18} className="text-white" /> : <LogIn size={18} className="text-white" />}
+              </div>
+              <span className="text-sm font-medium">
+                {currentUser ? (currentUser.displayName || 'החשבון שלי') : 'התחברות'}
+              </span>
+            </button>
+            {showAuthDropdown && (
+              <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                {currentUser ? (
+                  <>
+                    <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200">
+                      {currentUser.email}
+                    </div>
+                    <a href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      הפרופיל שלי
+                    </a>
+                    <a href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      הגדרות
+                    </a>
+                    <hr className="my-1 border-gray-200" />
+                    <button
+                      onClick={handleSignOut}
+                      className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                    >
+                      <LogOut size={16} className="ml-2" />
+                      <span>התנתקות</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleSignIn}
+                      className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <LogIn size={16} className="ml-2" />
+                      <span>התחבר</span>
+                    </button>
+                    <a href="/register" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      הרשמה
+                    </a>
+                    <a href="/forgot-password" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      שכחתי סיסמה
+                    </a>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Mobile toggle */}
+        {/* Mobile Toggle */}
         <button
           onClick={() => setIsMenuOpen(true)}
           className="lg:hidden text-white focus:outline-none"
@@ -129,7 +231,7 @@ const Navigation = () => {
         </button>
       </nav>
 
-      {/* Slide-In Mobile Menu */}
+      {/* Mobile Menu */}
       <div
         className={cn(
           'fixed top-0 right-0 h-full w-72 z-50 bg-red-900 transform transition-transform duration-300 ease-in-out flex flex-col',
@@ -148,7 +250,7 @@ const Navigation = () => {
         </div>
 
         <ul className="flex-1 flex flex-col p-4 space-y-4 text-white text-lg">
-          {sections.map((item) => (
+          {sections.map(item => (
             <li key={item.id}>
               <a href={`#${item.id}`} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2">
                 <FontAwesomeIcon icon={item.icon} className="text-xl" />
@@ -165,6 +267,41 @@ const Navigation = () => {
             >
               תרמו
             </a>
+          </li>
+
+          {/* Mobile Auth */}
+          <li className="pt-4 border-t border-white/10">
+            {currentUser ? (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                    <User size={18} className="text-white" />
+                  </div>
+                  <span>{currentUser.displayName || currentUser.email}</span>
+                </div>
+                <a href="/profile" className="block py-2 pr-10 hover:bg-white/10 rounded-lg">
+                  הפרופיל שלי
+                </a>
+                <a href="/settings" className="block py-2 pr-10 hover:bg-white/10 rounded-lg">
+                  הגדרות
+                </a>
+                <button
+                  onClick={handleSignOut}
+                  className="w-full flex items-center gap-2 py-2 text-red-300 hover:bg-white/10 rounded-lg"
+                >
+                  <LogOut size={18} />
+                  <span>התנתקות</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleSignIn}
+                className="w-full flex justify-center items-center gap-2 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-all"
+              >
+                <LogIn size={18} />
+                <span> התחבר</span>
+              </button>
+            )}
           </li>
         </ul>
 

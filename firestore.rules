@@ -26,6 +26,19 @@ service cloud.firestore {
       //allow write: if request.auth.uid == userId;
       allow write: if true;
     }
+    // ── Profiles (public-facing) ───────────────────
+    match /profiles/{uid} {
+      allow read:  if true;                   // public read
+      //allow write: if request.auth.uid == uid;
+       allow write: if true;               // TEMPORARY (remove later)
+    }
+
+    // ── Posts sub-collection under each profile ────
+    match /profiles/{uid}/posts/{postId} {
+      allow read:  if true;                   // public read
+      //allow write: if request.auth.uid == uid;
+      allow write: if true;               // TEMPORARY (remove later)
+    }
   }
 }
 

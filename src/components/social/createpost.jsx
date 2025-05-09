@@ -1,31 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaVideo, FaPhotoVideo, FaSmile, FaTimes } from 'react-icons/fa';
+import { FaVideo, FaPhotoVideo, FaSmile, FaTimes, FaRegNewspaper } from 'react-icons/fa';
 
 const CreatePost = ({ addPost, profilePic = '/try.webp' }) => {
   const [text, setText] = useState('');
-  const [media, setMedia] = useState(null);
+  const [mediaFile, setMediaFile] = useState(null);
   const [mediaPreview, setMediaPreview] = useState(null);
+  const [mediaType, setMediaType] = useState(null);
   const contentEditableRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (text.trim()) {
-      addPost(text.trim());
-      setText('');
-      setMedia(null);
-      setMediaPreview(null);
-      if (contentEditableRef.current) contentEditableRef.current.textContent = '';
-      if (fileInputRef.current) fileInputRef.current.value = '';
+  const pickMedia = (type, accept) => {
+    setMediaType(type);
+    if (fileInputRef.current) {
+      fileInputRef.current.accept = accept;
+      fileInputRef.current.click();
     }
   };
 
-  const handleInput = (e) => {
-    setText(e.currentTarget.textContent || '');
-  };
-
-  const handleMediaClick = () => {
-    fileInputRef.current?.click();
+  const startBlog = () => {
+    setMediaType('blog');
+    setMediaFile(null);
+    setMediaPreview(null);
   };
 
   const handleFileChange = (e) => {
@@ -42,7 +37,7 @@ const CreatePost = ({ addPost, profilePic = '/try.webp' }) => {
       return;
     }
 
-    setMedia(file);
+    setMediaFile(file);
 
     const reader = new FileReader();
     reader.onload = (event) => setMediaPreview(event.target.result);
@@ -50,9 +45,26 @@ const CreatePost = ({ addPost, profilePic = '/try.webp' }) => {
   };
 
   const removeMedia = () => {
-    setMedia(null);
+    setMediaFile(null);
     setMediaPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (text.trim() || mediaFile) {
+      await addPost({ text: text.trim(), mediaType, mediaFile });
+      setText('');
+      setMediaFile(null);
+      setMediaPreview(null);
+      setMediaType(null);
+      if (contentEditableRef.current) contentEditableRef.current.textContent = '';
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleInput = (e) => {
+    setText(e.currentTarget.textContent || '');
   };
 
   useEffect(() => {
@@ -60,14 +72,14 @@ const CreatePost = ({ addPost, profilePic = '/try.webp' }) => {
     if (!el) return;
 
     const handleFocus = () => {
-      if (el.textContent === 'What\'s on your mind?') el.textContent = '';
+      if (el.textContent === 'מה שלומך היום?') el.textContent = '';
     };
 
     const handleBlur = () => {
-      if (el.textContent === '') el.textContent = 'What\'s on your mind?';
+      if (el.textContent === '') el.textContent = 'מה שלומך היום?';
     };
 
-    if (text === '') el.textContent = 'What\'s on your mind?';
+    if (text === '') el.textContent = 'מה שלומך היום?';
 
     el.addEventListener('focus', handleFocus);
     el.addEventListener('blur', handleBlur);
@@ -79,8 +91,8 @@ const CreatePost = ({ addPost, profilePic = '/try.webp' }) => {
   }, [text]);
 
   return (
-    <div className="mb-10 flex justify-center px-4 sm:px-6 md:px-8 pt-10">
-      <div className="w-full max-w-3xl bg-white rounded-2xl p-6 space-y-4 border border-orange-200" dir="rtl">
+    <div className="mb-10 flex justify-center px-4 sm:px-6 md:px-8 pt-10" dir="rtl">
+      <div className="w-full max-w-3xl bg-white rounded-2xl p-6 space-y-4 border border-orange-200">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-start gap-4">
             <img
@@ -90,7 +102,7 @@ const CreatePost = ({ addPost, profilePic = '/try.webp' }) => {
             />
             <div
               ref={contentEditableRef}
-              className="flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-800 h-24 focus:outline-none focus:ring-2 focus:ring-orange-300 transition overflow-y-auto"
+              className={`flex-1 bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-800 h-24 focus:outline-none focus:ring-2 focus:ring-orange-300 transition overflow-y-auto`}
               onInput={handleInput}
               contentEditable
               suppressContentEditableWarning
@@ -99,7 +111,7 @@ const CreatePost = ({ addPost, profilePic = '/try.webp' }) => {
 
           {mediaPreview && (
             <div className="relative rounded-xl overflow-hidden bg-gray-100">
-              {media.type.startsWith('image/') ? (
+              {mediaFile?.type?.startsWith('image/') ? (
                 <img src={mediaPreview} alt="Preview" className="w-full max-h-96 object-contain" />
               ) : (
                 <video src={mediaPreview} controls className="w-full max-h-96" />
@@ -114,43 +126,47 @@ const CreatePost = ({ addPost, profilePic = '/try.webp' }) => {
             </div>
           )}
 
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
           <div className="flex flex-wrap gap-4 justify-between">
             <button
               type="button"
-              className="flex items-center gap-2 flex-1 sm:flex-auto justify-center bg-orange-50 text-orange-600 rounded-lg px-4 py-2 hover:bg-orange-100 transition"
+              onClick={() => pickMedia('video', 'video/*')}
+              className="flex items-center gap-2 flex-1 justify-center bg-orange-50 text-orange-600 rounded-lg px-4 py-2 hover:bg-orange-100 transition"
             >
-              <FaVideo className="h-5 w-5" />
-              וידאו
+              <FaVideo className="h-5 w-5" /> וידאו
             </button>
+
             <button
               type="button"
-              onClick={handleMediaClick}
-              className="flex items-center gap-2 flex-1 sm:flex-auto justify-center bg-orange-50 text-orange-600 rounded-lg px-4 py-2 hover:bg-orange-100 transition"
+              onClick={() => pickMedia('photo', 'image/*')}
+              className="flex items-center gap-2 flex-1 justify-center bg-orange-50 text-orange-600 rounded-lg px-4 py-2 hover:bg-orange-100 transition"
             >
-              <FaPhotoVideo className="h-5 w-5" />
-              תמונה
+              <FaPhotoVideo className="h-5 w-5" /> תמונה
             </button>
+
             <button
               type="button"
-              className="flex items-center gap-2 flex-1 sm:flex-auto justify-center bg-orange-50 text-orange-600 rounded-lg px-4 py-2 hover:bg-orange-100 transition"
+              onClick={startBlog}
+              className={`flex items-center gap-2 flex-1 justify-center rounded-lg px-4 py-2 transition ${
+                mediaType === 'blog'
+                  ? 'bg-orange-100 text-orange-800'
+                  : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+              }`}
             >
-              <FaSmile className="h-5 w-5" />
-              הרגשה/פעילות
+              <FaRegNewspaper className="h-5 w-5" /> בלוג
             </button>
           </div>
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            accept="image/*,video/*"
-            className="hidden"
-          />
 
           <div className="flex justify-end">
             <button
               type="submit"
-              disabled={!text.trim() && !media}
+              disabled={!text.trim() && !mediaFile}
               className="bg-orange-500 text-white font-semibold rounded-full px-6 py-2 text-sm disabled:bg-gray-200 disabled:cursor-not-allowed hover:bg-orange-600 transition"
             >
               פוסט

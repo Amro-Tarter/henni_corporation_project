@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import {
   doc,
@@ -11,15 +13,19 @@ import { auth, db } from "../config/firbaseConfig"; // make sure db is exported
 import "./auth.css";
 
 const Login = () => {
+  const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [notification, setNotification] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+    setForm(f => ({ ...f, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+
     try {
       // 1. Sign in
       const { user } = await signInWithEmailAndPassword(
@@ -35,7 +41,7 @@ const Login = () => {
       if (!snap.exists()) {
         // 3a. If not there, create it
         await setDoc(userRef, {
-          username: user.email.split("@")[0],    // or "" if you don’t want to infer
+          username: user.email.split("@")[0],
           email: user.email,
           role: "user",
           associated_id: "",
@@ -51,10 +57,19 @@ const Login = () => {
         });
       }
 
-      // 4. Notify & redirect
+      // 4. Grab the fresh ID token and stash it in a cookie
+      const idToken = await user.getIdToken(/* forceRefresh */ true);
+      Cookies.set("authToken", idToken, {
+        expires: 7,          // 7 days
+        secure: true,        // only over HTTPS
+        sameSite: "strict",  // CSRF protection
+        path: "/"            // available on all routes
+      });
+
+      // 5. Notify & redirect
       setNotification({ message: "התחברת בהצלחה!", type: "success" });
       setForm({ email: "", password: "" });
-      setTimeout(() => (window.location.href = "/home"), 200);
+      setTimeout(() => navigate("/home"), 200);
     } catch (error) {
       let message = "שגיאה בהתחברות";
       if (error.code === "auth/user-not-found") {
@@ -63,6 +78,8 @@ const Login = () => {
         message = "סיסמה שגויה";
       }
       setNotification({ message, type: "error" });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -98,11 +115,17 @@ const Login = () => {
               required
             />
           </div>
-          <button type="submit">התחבר</button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="auth-submit-btn"
+          >
+            {loading ? "טוען..." : "התחבר"}
+          </button>
         </form>
         <div className="auth-links">
-          <a href="/forgotPassword">שכחת סיסמה?</a> |{" "}
-          <a href="/signUp">אין לך חשבון? הרשמה</a>
+          <Link to="/forgotPassword">שכחת סיסמה?</Link> |{" "}
+          <Link to="/signUp">אין לך חשבון? הרשמה</Link>
         </div>
       </div>
     </div>
