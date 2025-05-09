@@ -129,17 +129,27 @@ const PublicSettings = () => {
       const ref = doc(db, 'users', uid);
       const elements = ensureElementIsArray(userData.element);
       
+      // Create updatedData with only defined values to avoid Firebase errors
       const updatedData = {
-        email: userData.email,
-        username: userData.username,
-        phone_number: userData.phone_number,
+        email: userData.email || '',
+        username: userData.username || '',
         element: elements,
         updated_at: serverTimestamp()
       };
       
+      // Only add phone_number if it exists and is not undefined
+      if (userData.phone_number !== undefined) {
+        updatedData.phone_number = userData.phone_number || '';
+      }
+      
       if (isAdmin) {
-        updatedData.reset_token = userData.reset_token;
-        updatedData.role = userData.role;
+        // Only add admin fields if they exist and are not undefined
+        if (userData.reset_token !== undefined) {
+          updatedData.reset_token = userData.reset_token || '';
+        }
+        if (userData.role !== undefined) {
+          updatedData.role = userData.role || 'user';
+        }
       }
 
       await updateDoc(ref, updatedData);
@@ -235,11 +245,9 @@ const PublicSettings = () => {
         <div className={`rounded-xl p-6 text-white shadow-lg mb-6 ${getMainElementColor()}`}>
           <h2 className="text-3xl font-bold mb-1">הגדרות המשתמש</h2>
           <p className="opacity-90">עדכון פרטים אישיים והעדפות</p>
-          {userData.element && (
-            <div className="mt-3 flex flex-wrap">
-              {ensureElementIsArray(userData.element).map(elem => (
-                <ElementChip key={elem} element={elem} />
-              ))}
+          {userData.element && ensureElementIsArray(userData.element).length > 0 && (
+            <div className="mt-3">
+              <ElementChip element={ensureElementIsArray(userData.element)[0]} />
             </div>
           )}
         </div>
@@ -254,7 +262,7 @@ const PublicSettings = () => {
           <button 
             className={`px-4 py-2 font-medium ${activeTab === 'elements' ? `${getPrimaryElementTextColor()} border-b-2 ${getPrimaryElementBorder()}` : 'text-gray-500'}`}
             onClick={() => setActiveTab('elements')}>
-            אלמנטים
+            אלמנט
           </button>
           {isAdmin && (
             <button 
@@ -322,33 +330,24 @@ const PublicSettings = () => {
           {/* Elements Tab */}
           {activeTab === 'elements' && (
             <div className="space-y-4">
-              <p className="text-gray-600 mb-4">בחר את האלמנטים שמתאימים לך. אלמנט ראשי יקבע את צבעי הממשק.</p>
+              <p className="text-gray-600 mb-4">בחר אלמנט אחד שמתאים לך. האלמנט הנבחר יקבע את צבעי הממשק.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {ELEMENTS.map(element => (
                   <div 
                     key={element.key}
                     className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                      ensureElementIsArray(userData.element).includes(element.key) 
+                      ensureElementIsArray(userData.element)[0] === element.key 
                         ? `border-2 bg-gradient-to-r ${element.color} text-white shadow-md` 
                         : `border-gray-200 hover:border-gray-300 bg-white`
                     }`}
-                    onClick={() => {
-                      const currentElements = ensureElementIsArray(userData.element);
-                      if (currentElements.includes(element.key)) {
-                        // Remove element if already selected
-                        handleChange('element', currentElements.filter(e => e !== element.key));
-                      } else {
-                        // Add element if not selected
-                        handleChange('element', [...currentElements, element.key]);
-                      }
-                    }}
+                    onClick={() => handleChange('element', [element.key])}
                   >
                     <div className="flex items-center">
                       <div className="text-2xl ml-3">{element.emoji}</div>
                       <div>
                         <h3 className="font-bold">{element.title.replace('קורסי ', '')}</h3>
-                        <p className={`text-sm ${ensureElementIsArray(userData.element).includes(element.key) ? 'text-white/80' : 'text-gray-600'}`}>
+                        <p className={`text-sm ${ensureElementIsArray(userData.element)[0] === element.key ? 'text-white/80' : 'text-gray-600'}`}>
                           {element.description}
                         </p>
                       </div>
@@ -359,25 +358,15 @@ const PublicSettings = () => {
               
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-yellow-800 text-sm">
-                  <span className="font-bold">טיפ:</span> האלמנט הראשון שתבחר יקבע את צבעי הממשק האישי שלך. סדר הבחירה חשוב!
+                  <span className="font-bold">טיפ:</span> האלמנט שתבחר יקבע את צבעי הממשק האישי שלך.
                 </p>
               </div>
 
               {userData.element && ensureElementIsArray(userData.element).length > 0 && (
                 <div className="mt-4">
-                  <h4 className="font-medium mb-2">האלמנטים שלך (לפי סדר חשיבות):</h4>
-                  <div className="flex flex-wrap">
-                    {ensureElementIsArray(userData.element).map((elem, index) => (
-                      <div key={elem} className="relative mr-2 mb-2">
-                        <ElementChip element={elem} />
-                        <button 
-                          className="absolute -top-1 -right-1 bg-white rounded-full w-4 h-4 flex items-center justify-center text-xs border border-gray-300 shadow-sm hover:bg-red-100"
-                          onClick={() => handleChange('element', ensureElementIsArray(userData.element).filter((_, i) => i !== index))}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                  <h4 className="font-medium mb-2">האלמנט שלך:</h4>
+                  <div className="flex">
+                    <ElementChip element={ensureElementIsArray(userData.element)[0]} />
                   </div>
                 </div>
               )}

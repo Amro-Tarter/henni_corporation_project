@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/layout/layout';
 import { motion, AnimatePresence, useAnimation } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, MapPin, Calendar, Plus, X, Image as ImageIcon, Check, AlertCircle, Upload, Edit, Trash2 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { cn } from '@/lib/utils';
