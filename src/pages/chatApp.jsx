@@ -99,38 +99,39 @@ export default function ChatApp() {
 
 
   // Add this in chatApp.jsx
-const ELEMENT_COLORS = {
-  fire: {
-    primary: '#ff4500',  // Bright red-orange for fire
-    hover: '#e63e00',
-    light: '#fff0e6',
-    darkHover: '#b33000'  // Darker shade for fire
-  },
-  earth: {
-    primary: '#8b4513',  // Brown for earth
-    hover: '#723a0f',
-    light: '#f5ede6',
-    darkHover: '#5e2f0d'  // Darker shade for earth
-  },
-  metal: {
-    primary: '#c0c0c0',  // Silver/metallic for metal
-    hover: '#a8a8a8',
-    light: '#f5f5f5',
-    darkHover: '#808080'  // Darker shade for metal
-  },
-  water: {
-    primary: '#1e90ff',  // Deep blue for water
-    hover: '#187bdb',
-    light: '#e6f2ff',
-    darkHover: '#0066cc'  // Darker shade for water
-  },
-  tree: {
-    primary: '#228B22',  // Forest green for tree
-    hover: '#1e7a1e',
-    light: '#e6f9e6',
-    darkHover: '#145214'  // Darker forest green
-  }
-};
+  const ELEMENT_COLORS = {
+    fire: {
+      primary: '#ff4500',  // Bright red-orange for fire
+      hover: '#e63e00',
+      light: '#fff0e6',
+      darkHover: '#b33000'  // Darker shade for fire
+    },
+    earth: {
+      primary: '#228B22',  // Forest green from tree
+      hover: '#1e7a1e',
+      light: '#f5ede6',     // Keep the earthy light tone
+      darkHover: '#5e2f0d'  // Dark brown
+    },
+    metal: {
+      primary: '#c0c0c0',  // Silver/metallic for metal
+      hover: '#a8a8a8',
+      light: '#f5f5f5',
+      darkHover: '#808080'  // Darker shade for metal
+    },
+    water: {
+      primary: '#1e90ff',  // Deep blue for water
+      hover: '#187bdb',
+      light: '#e6f2ff',
+      darkHover: '#0066cc'  // Darker shade for water
+    },
+    air: {
+      primary: '#87ceeb',  // Light sky blue
+      hover: '#76bede',    // Slightly darker sky
+      light: '#eaf8ff',    // Very light airy blue
+      darkHover: '#5ca8c4' // Deeper sky
+    }
+  };
+  
 
 
   // Voice recording handlers
@@ -176,18 +177,11 @@ const ELEMENT_COLORS = {
     try {
       const normalizedElement = userElement.toLowerCase();
   
-      // ✅ First, check if user is already in the community conversation locally
-      const alreadyJoined = conversations.some(conv =>
-        conv.type === "community" &&
-        conv.element === normalizedElement &&
-        conv.participants?.includes(userId)
-      );
+      // Get user data
+      const userDoc = await getDoc(doc(db, "users", userId));
+      const username = userDoc.data().username;
   
-      if (alreadyJoined) {
-        return; // No need to proceed
-      }
-  
-      // 🔽 Continue your original logic
+      // Find all community conversations for this element
       const q = query(
         collection(db, "conversations"),
         where("type", "==", "community"),
@@ -195,13 +189,13 @@ const ELEMENT_COLORS = {
       );
   
       const querySnapshot = await getDocs(q);
-      const userDoc = await getDoc(doc(db, "users", userId));
-      const username = userDoc.data().username;
+  
+      let communityDoc;
   
       if (querySnapshot.empty) {
-        // Create new community
-        const convoRef = doc(collection(db, "conversations"));
-        await setDoc(convoRef, {
+        // No community exists for this element → create it
+        const newCommunityRef = doc(collection(db, "conversations"));
+        await setDoc(newCommunityRef, {
           participants: [userId],
           participantNames: [username],
           type: "community",
@@ -211,51 +205,72 @@ const ELEMENT_COLORS = {
           createdAt: serverTimestamp(),
         });
   
-        const messagesRef = collection(db, "conversations", convoRef.id, "messages");
-        await addDoc(messagesRef, {
+        // Add system message
+        await addDoc(collection(db, "conversations", newCommunityRef.id, "messages"), {
           text: "Community created! Welcome!",
           type: "system",
-          createdAt: serverTimestamp()
+          createdAt: serverTimestamp(),
         });
+  
+        communityDoc = await getDoc(newCommunityRef);
       } else {
-        const convoDoc = querySnapshot.docs[0];
-        if (!convoDoc.data().participants.includes(userId)) {
-          await updateDoc(convoDoc.ref, {
+        // A community already exists — use the first one
+        communityDoc = querySnapshot.docs[0];
+  
+        const data = communityDoc.data();
+  
+        // Join if not already in it
+        if (!data.participants.includes(userId)) {
+          await updateDoc(communityDoc.ref, {
             participants: arrayUnion(userId),
-            participantNames: arrayUnion(username)
+            participantNames: arrayUnion(username),
           });
   
-          const messagesRef = collection(db, "conversations", convoDoc.id, "messages");
-          await addDoc(messagesRef, {
+          await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
             text: `${username} joined the community`,
             type: "system",
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
           });
         }
       }
+  
+      return {
+        id: communityDoc.id,
+        ...communityDoc.data(),
+        lastUpdated: communityDoc.data().lastUpdated?.toDate(),
+        createdAt: communityDoc.data().createdAt?.toDate(),
+      };
     } catch (error) {
       console.error("Error handling community chat:", error);
     }
   };
+  
   
     
   // Update the auth useEffect to call this function
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        try {          
+        try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           const userElement = userDoc.data().element;
-          
-          setCurrentUser({
+  
+          const userData = {
             uid: user.uid,
             username: userDoc.data().username,
             element: userElement
-          });
-          
-          // Add user to their element's community chat
-          await handleCommunityChatMembership(user.uid, userElement);
-          
+          };
+  
+          setCurrentUser(userData);
+  
+          // Make sure community is joined
+          const community = await handleCommunityChatMembership(user.uid, userElement);
+  
+          // Optional: auto-select community on login
+          if (community) {
+            setSelectedConversation(community);
+          }
+  
           setAuthInitialized(true);
         } catch (error) {
           console.error("Error loading user:", error);
@@ -264,8 +279,10 @@ const ELEMENT_COLORS = {
         setAuthInitialized(true);
       }
     });
+  
     return () => unsubscribe();
   }, []);
+  
 
   const getChatPartner = useCallback((participants, conversationType, element) => {
     if (conversationType === "community") {
