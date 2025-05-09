@@ -183,7 +183,7 @@ const handleSignOut = async () => {
                     <a href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       הפרופיל שלי
                     </a>
-                    <a href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <a href="/publicSettings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       הגדרות
                     </a>
                     <hr className="my-1 border-gray-200" />
@@ -282,7 +282,7 @@ const handleSignOut = async () => {
                 <a href="/profile" className="block py-2 pr-10 hover:bg-white/10 rounded-lg">
                   הפרופיל שלי
                 </a>
-                <a href="/settings" className="block py-2 pr-10 hover:bg-white/10 rounded-lg">
+                <a href="/publicSettings" className="block py-2 pr-10 hover:bg-white/10 rounded-lg">
                   הגדרות
                 </a>
                 <button
