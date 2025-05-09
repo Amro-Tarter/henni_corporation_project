@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { 
   collection, 
   doc, 
@@ -13,7 +13,8 @@ import {
   writeBatch,
   setDoc,
   getDoc,
-  arrayUnion
+  arrayUnion,
+  limit
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -45,6 +46,57 @@ export default function ChatApp() {
   const [audioURL, setAudioURL] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef(null);
+
+  // Add this function
+  const searchUsers = async (searchTerm) => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    
+    try {
+      setIsSearching(true);
+      const q = query(
+        collection(db, "users"),
+        where("username", ">=", searchTerm.toLowerCase()),
+        where("username", "<=", searchTerm.toLowerCase() + "\uf8ff"),
+        limit(5)
+      );
+      
+      const snapshot = await getDocs(q);
+      const results = snapshot.docs
+        .filter(doc => doc.id !== currentUser.uid)
+        .map(doc => ({
+          id: doc.id,
+          username: doc.data().username
+        }));
+      
+      setSearchResults(results);
+    } catch (error) {
+      console.error("Search error:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Update the partnerName handler
+  const handlePartnerSearch = (value) => {
+    setPartnerName(value);
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // Debounce search
+    searchTimeoutRef.current = setTimeout(() => {
+      searchUsers(value);
+    }, 300);
+  };
+
 
   // Add this in chatApp.jsx
 const ELEMENT_COLORS = {
@@ -712,17 +764,41 @@ const ELEMENT_COLORS = {
 
       {showNewChatDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96 text-right" dir="rtl">
+          <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
             <h3 className="text-lg font-bold mb-4">צ'אט חדש</h3>
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2">שם השותף:</label>
-              <input
-                type="text"
-                className="w-full p-2 border rounded text-right"
-                value={partnerName}
-                onChange={(e) => setPartnerName(e.target.value)}
-                placeholder="הזן שם"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  className="w-full p-2 border rounded text-right"
+                  value={partnerName}
+                  onChange={(e) => handlePartnerSearch(e.target.value)}
+                  placeholder="הזן שם"
+                />
+                {isSearching && (
+                  <div className="absolute left-2 top-3">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                  </div>
+                )}
+                
+                {searchResults.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
+                    {searchResults.map((user) => (
+                      <div
+                        key={user.id}
+                        className="p-2 hover:bg-gray-100 cursor-pointer text-right"
+                        onClick={() => {
+                          setPartnerName(user.username);
+                          setSearchResults([]);
+                        }}
+                      >
+                        {user.username}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="flex gap-2">
               <button
@@ -740,7 +816,10 @@ const ELEMENT_COLORS = {
               </button>
               <button
                 className="px-4 py-2 border rounded hover:bg-gray-200"
-                onClick={() => setShowNewChatDialog(false)}
+                onClick={() => {
+                  setShowNewChatDialog(false);
+                  setSearchResults([]);
+                }}
               >
                 ביטול
               </button>
