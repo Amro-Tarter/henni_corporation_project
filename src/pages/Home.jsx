@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../config/firbaseConfig.ts';
-
 import { onAuthStateChanged } from 'firebase/auth';
-import { getUserProfile, getUserPosts } from '../firebase';
+//import { getUserProfile, getUserPosts } from '../config/firbaseConfig.ts';
 import Navbar from '../components/social/Navbar';
 import CreatePost from '../components/social/createpost';
 import PostList from '../components/social/Postlist';
