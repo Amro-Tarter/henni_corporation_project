@@ -29,7 +29,7 @@ import Navbar       from '../components/social/Navbar.jsx';
 import LeftSidebar  from '../components/social/LeftSideBar';
 import RightSidebar from '../components/social/Rightsidebar.jsx';
 import ProfileInfo  from '../components/social/profileInfo.jsx';
-import CreatePost   from '../components/social/CreatePost';
+import CreatePost   from '../components/social/createpost';
 import ProfilePost  from '../components/social/ProfilePost.jsx';
 
 const TEST_UID = '123laith';
