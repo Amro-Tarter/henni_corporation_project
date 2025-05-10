@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route, useNavigate} from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -20,7 +19,9 @@ import Contact from './pages/Contact';
 import ChatApp from './pages/chatApp';
 import ElementalProjects from './pages/ElementalProjects';
 import PublicSettings from './pages/PublicSettings';
-// Create a react-query client
+import CommunityPage from './pages/CommunityPage';
+import ProtectedRoute from './components/ProtectedRoute'; // ✅ Import
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -32,21 +33,24 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              {/* Main Pages */}
+              {/* Public Pages */}
               <Route path="/" element={<Index />} />
               <Route path="/accessibility" element={<AccessibilityStatement />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfUse />} />
               <Route path="/contact" element={<Contact />} />
-              {/* New Pages */}
               <Route path="/forgotPassword" element={<ForgotPassword />} />
               <Route path="/signUp" element={<SignUp />} />   
               <Route path="/logIn" element={<LogIn />}/>
-              <Route path="/home"  element={ <Home /> }/>
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/chat" element={<ChatApp />} />
-              <Route path="/projects" element={<ElementalProjects />} />
-              <Route path="/publicSettings" element={<PublicSettings />} />
+              <Route path="/community" element={<CommunityPage />} />
+              <Route path="/logIn" element={<LogIn />} />
+
+              {/* Protected Pages */}
+              <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
+              <Route path="/projects" element={<ProtectedRoute><ElementalProjects /></ProtectedRoute>} />
+              <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
 
               {/* 404 Page */}
               <Route path="*" element={<NotFound />} />

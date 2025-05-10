@@ -107,10 +107,7 @@ const Navigation = () => {
     <>
       <header
         className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
-          isScrolled
-            ? 'bg-red-900 py-2 shadow-md'
-            : 'bg-gradient-to-b from-red-900/90 to-red-900/60 backdrop-blur-sm py-3'
+          'fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-red-900 py-2 shadow-md'
         )}
         dir="rtl"
       >
@@ -144,16 +141,7 @@ const Navigation = () => {
                   </a>
                 </li>
               ))}
-              <li>
-                <a
-                  href="https://mrng.to/pFaSV3RKqT"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-4 bg-white text-orange-500 px-4 py-2 rounded-md hover:bg-white/90 shadow-md font-medium transition-all"
-                >
-                  תרמו
-                </a>
-              </li>
+            
             </ul>
 
             <div className="flex items-center space-x-4 space-x-reverse border-r border-white/20 mr-4 pr-6">
