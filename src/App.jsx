@@ -20,6 +20,7 @@ import Contact from './pages/Contact';
 import ChatApp from './pages/chatApp';
 import ElementalProjects from './pages/ElementalProjects';
 import PublicSettings from './pages/PublicSettings';
+import CommunityPage from './pages/CommunityPage';
 // Create a react-query client
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => {
               <Route path="/chat" element={<ChatApp />} />
               <Route path="/projects" element={<ElementalProjects />} />
               <Route path="/publicSettings" element={<PublicSettings />} />
+              <Route path="/community" element={<CommunityPage />} />
 
               {/* 404 Page */}
               <Route path="*" element={<NotFound />} />
