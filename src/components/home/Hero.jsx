@@ -53,7 +53,7 @@ const Hero = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-orange-400 font-medium mb-8 sm:mb-12 max-w-4xl mx-auto drop-shadow-md leading-relaxed"
         >
-          בעמותה אנו מאמינים ביצירת דור חדש של מנהיגים צעירים ואותנטיים דרך עולם האמנות והיצירה
+            מנהיגות צומחת מיצירה - מעצימים את דור העתיד!
         </motion.p>
 
         <motion.div
