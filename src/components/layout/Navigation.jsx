@@ -141,16 +141,7 @@ const Navigation = () => {
                   </a>
                 </li>
               ))}
-              <li>
-                <a
-                  href="https://mrng.to/pFaSV3RKqT"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-4 bg-white text-orange-500 px-4 py-2 rounded-md hover:bg-white/90 shadow-md font-medium transition-all"
-                >
-                  תרמו
-                </a>
-              </li>
+            
             </ul>
 
             <div className="flex items-center space-x-4 space-x-reverse border-r border-white/20 mr-4 pr-6">
