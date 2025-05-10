@@ -43,12 +43,12 @@ const App = () => (
             <Route path="/signup" element={<SignUp />} />
             <Route path="/login" element={<LogIn />} />
             <Route path="/community" element={<CommunityPage />} />
+            <Route path="/projects" element={<ElementalProjects />} />
 
             {/* Protected Pages */}
             <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
-            <Route path="/projects" element={<ProtectedRoute><ElementalProjects /></ProtectedRoute>} />
             <Route path="/public-settings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
             {/* <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} /> */}
 
