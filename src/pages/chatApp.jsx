@@ -99,38 +99,39 @@ export default function ChatApp() {
 
 
   // Add this in chatApp.jsx
-const ELEMENT_COLORS = {
-  fire: {
-    primary: '#ff4500',  // Bright red-orange for fire
-    hover: '#e63e00',
-    light: '#fff0e6',
-    darkHover: '#b33000'  // Darker shade for fire
-  },
-  earth: {
-    primary: '#8b4513',  // Brown for earth
-    hover: '#723a0f',
-    light: '#f5ede6',
-    darkHover: '#5e2f0d'  // Darker shade for earth
-  },
-  metal: {
-    primary: '#c0c0c0',  // Silver/metallic for metal
-    hover: '#a8a8a8',
-    light: '#f5f5f5',
-    darkHover: '#808080'  // Darker shade for metal
-  },
-  water: {
-    primary: '#1e90ff',  // Deep blue for water
-    hover: '#187bdb',
-    light: '#e6f2ff',
-    darkHover: '#0066cc'  // Darker shade for water
-  },
-  tree: {
-    primary: '#228B22',  // Forest green for tree
-    hover: '#1e7a1e',
-    light: '#e6f9e6',
-    darkHover: '#145214'  // Darker forest green
-  }
-};
+  const ELEMENT_COLORS = {
+    fire: {
+      primary: '#ff4500',  // Bright red-orange for fire
+      hover: '#e63e00',
+      light: '#fff0e6',
+      darkHover: '#b33000'  // Darker shade for fire
+    },
+    earth: {
+      primary: '#228B22',  // Forest green from tree
+      hover: '#1e7a1e',
+      light: '#f5ede6',     // Keep the earthy light tone
+      darkHover: '#5e2f0d'  // Dark brown
+    },
+    metal: {
+      primary: '#c0c0c0',  // Silver/metallic for metal
+      hover: '#a8a8a8',
+      light: '#f5f5f5',
+      darkHover: '#808080'  // Darker shade for metal
+    },
+    water: {
+      primary: '#1e90ff',  // Deep blue for water
+      hover: '#187bdb',
+      light: '#e6f2ff',
+      darkHover: '#0066cc'  // Darker shade for water
+    },
+    air: {
+      primary: '#87ceeb',  // Light sky blue
+      hover: '#76bede',    // Slightly darker sky
+      light: '#eaf8ff',    // Very light airy blue
+      darkHover: '#5ca8c4' // Deeper sky
+    }
+  };
+  
 
 
   // Voice recording handlers
@@ -171,78 +172,105 @@ const ELEMENT_COLORS = {
 
 
     // Add this function inside the ChatApp component
-    const handleCommunityChatMembership = async (userId, userElement) => {
-      try {
-        const q = query(
-          collection(db, "conversations"),
-          where("type", "==", "community"),
-          where("element", "==", userElement)
-        );
-        
-        const querySnapshot = await getDocs(q);
-        const userDoc = await getDoc(doc(db, "users", userId));
-        const username = userDoc.data().username;
-        
-        if (querySnapshot.empty) {
-          // Create new community chat with welcome message
-          const convoRef = doc(collection(db, "conversations"));
-          await setDoc(convoRef, {
-            participants: [userId],
-            participantNames: [username],
-            type: "community",
-            element: userElement,
-            lastMessage: "Community created!",
-            lastUpdated: serverTimestamp(),
+  // Add this function inside the ChatApp component
+  const handleCommunityChatMembership = async (userId, userElement) => {
+    try {
+      const normalizedElement = userElement.toLowerCase();
+  
+      // Get user data
+      const userDoc = await getDoc(doc(db, "users", userId));
+      const username = userDoc.data().username;
+  
+      // Find all community conversations for this element
+      const q = query(
+        collection(db, "conversations"),
+        where("type", "==", "community"),
+        where("element", "==", normalizedElement)
+      );
+  
+      const querySnapshot = await getDocs(q);
+  
+      let communityDoc;
+  
+      if (querySnapshot.empty) {
+        // No community exists for this element → create it
+        const newCommunityRef = doc(collection(db, "conversations"));
+        await setDoc(newCommunityRef, {
+          participants: [userId],
+          participantNames: [username],
+          type: "community",
+          element: normalizedElement,
+          lastMessage: "Community created!",
+          lastUpdated: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        });
+  
+        // Add system message
+        await addDoc(collection(db, "conversations", newCommunityRef.id, "messages"), {
+          text: "Community created! Welcome!",
+          type: "system",
+          createdAt: serverTimestamp(),
+        });
+  
+        communityDoc = await getDoc(newCommunityRef);
+      } else {
+        // A community already exists — use the first one
+        communityDoc = querySnapshot.docs[0];
+  
+        const data = communityDoc.data();
+  
+        // Join if not already in it
+        if (!data.participants.includes(userId)) {
+          await updateDoc(communityDoc.ref, {
+            participants: arrayUnion(userId),
+            participantNames: arrayUnion(username),
+          });
+  
+          await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
+            text: `${username} joined the community`,
+            type: "system",
             createdAt: serverTimestamp(),
           });
-    
-          // Add system message
-          const messagesRef = collection(db, "conversations", convoRef.id, "messages");
-          await addDoc(messagesRef, {
-            text: "Community created! Welcome!",
-            type: "system",
-            createdAt: serverTimestamp()
-          });
-        } else {
-          const convoDoc = querySnapshot.docs[0];
-          if (!convoDoc.data().participants.includes(userId)) {
-            // Add user to community
-            await updateDoc(convoDoc.ref, {
-              participants: arrayUnion(userId),
-              participantNames: arrayUnion(username)
-            });
-    
-            // Add join notification
-            const messagesRef = collection(db, "conversations", convoDoc.id, "messages");
-            await addDoc(messagesRef, {
-              text: `${username} joined the community`,
-              type: "system",
-              createdAt: serverTimestamp()
-            });
-          }
         }
-      } catch (error) {
-        console.error("Error handling community chat:", error);
       }
-    };
+  
+      return {
+        id: communityDoc.id,
+        ...communityDoc.data(),
+        lastUpdated: communityDoc.data().lastUpdated?.toDate(),
+        createdAt: communityDoc.data().createdAt?.toDate(),
+      };
+    } catch (error) {
+      console.error("Error handling community chat:", error);
+    }
+  };
+  
+  
     
   // Update the auth useEffect to call this function
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        try {          
+        try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           const userElement = userDoc.data().element;
-          
-          setCurrentUser({
+  
+          const userData = {
             uid: user.uid,
             username: userDoc.data().username,
             element: userElement
-          });
-          
-          // Add user to their element's community chat
-          await handleCommunityChatMembership(user.uid, userElement);
-          
+          };
+  
+          setCurrentUser(userData);
+  
+          // Make sure community is joined
+          const community = await handleCommunityChatMembership(user.uid, userElement);
+  
+          // Optional: auto-select community on login
+          if (community) {
+            setSelectedConversation(community);
+          }
+  
           setAuthInitialized(true);
         } catch (error) {
           console.error("Error loading user:", error);
@@ -251,8 +279,10 @@ const ELEMENT_COLORS = {
         setAuthInitialized(true);
       }
     });
+  
     return () => unsubscribe();
   }, []);
+  
 
   const getChatPartner = useCallback((participants, conversationType, element) => {
     if (conversationType === "community") {
@@ -279,14 +309,15 @@ const ELEMENT_COLORS = {
     } else if (activeTab === "community") {
       filtered = filtered.filter(conv => 
         conv.type === "community" && 
-        conv.element === currentUser.element
+        conv.element === currentUser.element.toLowerCase()
       );
     }
   
     // Apply search filter
     if (searchQuery) {
-      filtered = filtered.filter(conv => 
-        conv.participantNames?.some(name => 
+      filtered = filtered.filter(conv =>
+        conv.participantNames?.some(name =>
+          name !== currentUser.username && // exclude current user
           name.toLowerCase().includes(searchQuery.toLowerCase())
         )
       );
@@ -589,9 +620,6 @@ const ELEMENT_COLORS = {
       });
   
       await batch.commit();
-      await updateDoc(doc(db, "conversations", selectedConversation.id), {
-        [`typing.${currentUser.uid}`]: false
-      });
   
       // Remove the temporary message and let Firestore update handle the real one
       setMessages(prev => prev.filter(msg => msg.id !== tempMessageId));
@@ -619,42 +647,39 @@ const ELEMENT_COLORS = {
   const createNewConversation = async () => {
     const partnerUsername = partnerName.trim();
     if (!partnerUsername) return;
-
+  
     try {
-      // Case-insensitive search using usernameLower
       const usersRef = collection(db, "users");
       const userQuery = query(
         usersRef, 
         where("username", "==", partnerUsername)
       );
       const userSnapshot = await getDocs(userQuery);
-
+  
       if (userSnapshot.empty) {
         alert("User does not exist");
         return;
       }
-
+  
       const partner = userSnapshot.docs[0];
       const partnerUid = partner.id;
-
+  
       if (partnerUid === currentUser.uid) {
         alert("You cannot message yourself");
         return;
       }
-
-      // Create sorted participants array for consistent queries
+  
       const participants = [currentUser.uid, partnerUid].sort();
-
-      // FIX: Changed array equality query to use array-contains for both participants
-      // First check if a conversation already exists with both participants
+  
+      // Fixed query with type filter
       const existingConversationsQuery = query(
         collection(db, "conversations"),
-        where("participants", "array-contains", currentUser.uid)
+        where("participants", "array-contains", currentUser.uid),
+        where("type", "==", "direct") // Critical fix here
       );
-
+  
       const convSnapshot = await getDocs(existingConversationsQuery);
       
-      // Manually filter for conversations that contain both participants
       const existingConversation = convSnapshot.docs.find(doc => {
         const convParticipants = doc.data().participants;
         return convParticipants.includes(partnerUid);
@@ -671,23 +696,21 @@ const ELEMENT_COLORS = {
         setPartnerName("");
         return;
       }
-
-      // Create new conversation with sorted participants
+  
       const batch = writeBatch(db);
       const convoRef = doc(collection(db, "conversations"));
       const convoData = {
         participants: participants,
         participantNames: [currentUser.username, partner.data().username],
-        type: "direct", // This indicates it's a private chat
+        type: "direct",
         lastMessage: "",
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
       };
-
+  
       batch.set(convoRef, convoData);
       await batch.commit();
-
-      // Refresh conversation data from server
+  
       const newConvo = await getDoc(convoRef);
       setSelectedConversation({ 
         id: newConvo.id,
@@ -695,10 +718,10 @@ const ELEMENT_COLORS = {
         lastUpdated: newConvo.data().lastUpdated?.toDate(),
         createdAt: newConvo.data().createdAt?.toDate()
       });
-
+  
       setShowNewChatDialog(false);
       setPartnerName("");
-
+  
     } catch (error) {
       console.error("Error creating conversation:", error);
       alert(`Error creating conversation: ${error.message}`);

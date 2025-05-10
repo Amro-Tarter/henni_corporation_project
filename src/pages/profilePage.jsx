@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { ThemeProvider } from '../theme/ThemeProvider';
+
 import {
   doc,
   getDoc,
@@ -170,12 +172,14 @@ const ProfilePage = () => {
   if (loading) return <div>טוען…</div>;
   if (!profile) return <div>לא נמצא פרופיל עבור UID={TEST_UID}</div>;
 
+
   return (
+    <ThemeProvider element={profile.element}>
     <div dir="rtl" className="min-h-screen flex flex-col bg-white">
-      <Navbar />
+      <Navbar element={profile.element}/>
       <div className="flex flex-1 pt-[56.8px]">
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
-          <LeftSidebar />
+          <LeftSidebar element={profile.element}/>
         </aside>
 
         <main className={`
@@ -197,12 +201,13 @@ const ProfilePage = () => {
             onUpdateBackgroundPic={updateBackgroundPic}
           />
 
-          <CreatePost addPost={createPost} profilePic={profile.photoURL} />
+          <CreatePost element={profile.element} addPost={createPost} profilePic={profile.photoURL} />
 
           <section className="space-y-6">
             {posts.map(p => (
               <ProfilePost
                 key={p.id}
+                element={profile.element}
                 post={p}
                 onDelete={handleDelete}
                 onUpdate={handleUpdate}
@@ -214,12 +219,14 @@ const ProfilePage = () => {
 
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 right-0 w-64">
           <RightSidebar
+            element={profile.element}
             isOpen={isRightOpen}
             toggle={() => setIsRightOpen(o => !o)}
           />
         </aside>
       </div>
     </div>
+    </ThemeProvider>
   );
 };
 
