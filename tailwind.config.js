@@ -5,6 +5,51 @@ export default {
 	  "./index.html",
 	  "./src/**/*.{js,ts,jsx,tsx}",
 	],
+	safelist: [
+    // backgrounds
+    'bg-fire','bg-fire-accent','bg-fire-soft',
+    'bg-water','bg-water-accent','bg-water-soft',
+    'bg-air','bg-air-accent','bg-air-soft',
+    'bg-earth','bg-earth-accent','bg-earth-soft',
+    'bg-metal','bg-metal-accent','bg-metal-soft',
+
+    // hover backgrounds
+    'hover:bg-fire','hover:bg-fire-accent','hover:bg-fire-soft',
+    'hover:bg-water','hover:bg-water-accent','hover:bg-water-soft',
+    'hover:bg-air','hover:bg-air-accent','hover:bg-air-soft',
+    'hover:bg-earth','hover:bg-earth-accent','hover:bg-earth-soft',
+    'hover:bg-metal','hover:bg-metal-accent','hover:bg-metal-soft',
+
+    // borders
+    'border-fire','border-fire-accent','border-fire-soft',
+    'border-water','border-water-accent','border-water-soft',
+    'border-air','border-air-accent','border-air-soft',
+    'border-earth','border-earth-accent','border-earth-soft',
+    'border-metal','border-metal-accent','border-metal-soft',
+
+    // text colors
+    'text-fire-accent','text-fire-dark',
+    'text-water-accent','text-water-dark',
+    'text-air-accent','text-air-dark',
+    'text-earth-accent','text-earth-dark',
+    'text-metal-accent','text-metal-dark',
+
+    // focus:border
+    'focus:border-fire-accent','focus:border-water-accent',
+    'focus:border-air-accent','focus:border-earth-accent','focus:border-metal-accent',
+
+    // focus:ring
+    'focus:ring-fire-accent','focus:ring-water-accent',
+    'focus:ring-air-accent','focus:ring-earth-accent','focus:ring-metal-accent',
+
+		// rings
+    'ring-fire','ring-fire-accent','ring-fire-soft',
+    'ring-water','ring-water-accent','ring-water-soft',
+    'ring-air','ring-air-accent','ring-air-soft',
+    'ring-earth','ring-earth-accent','ring-earth-soft',
+    'ring-metal','ring-metal-accent','ring-metal-soft',
+
+  ],
 	theme: {
 	  container: {
 		center: true,
