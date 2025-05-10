@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import {
   ChevronRight,
@@ -13,16 +12,15 @@ import {
 } from 'lucide-react';
 
 const tabs = [
-  { id: 'home', icon: <Home size={20} />, label: 'דף הבית' },
+  { id: 'home',      icon: <Home size={20} />,          label: 'דף הבית' },
   { id: 'messenger', icon: <MessageSquare size={20} />, label: 'הודעות' },
-  { id: 'settings', icon: <Settings size={20} />, label: 'הגדרות' },
+  { id: 'settings',  icon: <Settings size={20} />,      label: 'הגדרות' },
 ];
 
 const RightSidebar = ({ isOpen, toggle, element }) => {
-  const navigate = useNavigate();
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [activeTab, setActiveTab] = useState('settings');
+  const [activeTab, setActiveTab]     = useState('settings');
 
   const handleSearch = e => {
     e.preventDefault();
@@ -74,18 +72,19 @@ const RightSidebar = ({ isOpen, toggle, element }) => {
             {!isSearching ? (
               <button
                 type="submit"
-                className={`absolute left-3 top-1/2 -translate-y-1/2 text-${element}-accent hover:text-${element}`}
+                className={`
+                  absolute left-3 top-1/2 -translate-y-1/2
+                  text-${element}-accent hover:text-${element}
+                `}
               >
                 <Search size={18} />
               </button>
             ) : (
-              <div
-                className={`
-                  absolute left-3 top-1/2 -translate-y-1/2
-                  h-4 w-4 animate-spin rounded-full
-                  border-2 border-${element}-accent border-t-transparent
-                `}
-              />
+              <div className={`
+                absolute left-3 top-1/2 -translate-y-1/2
+                h-4 w-4 animate-spin rounded-full
+                border-2 border-${element}-accent border-t-transparent
+              `} />
             )}
           </div>
         </form>
@@ -100,7 +99,10 @@ const RightSidebar = ({ isOpen, toggle, element }) => {
                 flex w-full items-center gap-3 rounded-md px-3 py-2
                 text-${element} transition-colors duration-200
                 hover:bg-${element}-soft
-                ${activeTab === tab.id ? `bg-${element} text-white` : ''}
+                ${activeTab === tab.id
+                  ? `bg-${element} text-white`
+                  : ''
+                }
               `}
             >
               <span className="text-lg">{tab.icon}</span>
@@ -117,7 +119,10 @@ const RightSidebar = ({ isOpen, toggle, element }) => {
               flex w-full items-center gap-3 rounded-md px-3 py-2
               text-${element} transition-colors duration-200
               hover:bg-${element}-soft
-              ${activeTab === 'notifications' ? `bg-${element}-soft text-white` : ''}
+              ${activeTab === 'notifications'
+                ? `bg-${element}-soft text-white`
+                : ''
+              }
             `}
           >
             <Bell size={20} />
@@ -128,15 +133,15 @@ const RightSidebar = ({ isOpen, toggle, element }) => {
           </button>
 
           <button
-            onClick={() => {
-              setActiveTab('profile');
-              navigate('/profile');
-            }}
+            onClick={() => setActiveTab('profile')}
             className={`
               flex w-full items-center gap-3 rounded-md px-3 py-2
               text-${element} transition-colors duration-200
               hover:bg-${element}-soft
-              ${activeTab === 'profile' ? `bg-${element}-soft text-white` : ''}
+              ${activeTab === 'profile'
+                ? `bg-${element}-soft text-white`
+                : ''
+              }
             `}
           >
             <User size={20} />
