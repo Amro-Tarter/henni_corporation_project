@@ -160,7 +160,7 @@ const EventsSection = () => {
             href="/projects"
             variant="fire"
             size="lg"
-            className="px-6 py-3"
+           className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="צפו בכל הפרויקטים שלנו – ייפתח בכרטיסייה חדשה"
