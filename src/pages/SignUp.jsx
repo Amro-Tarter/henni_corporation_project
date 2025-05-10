@@ -12,6 +12,7 @@ import {
   faWater,
   faFire
 } from '@fortawesome/free-solid-svg-icons';
+import { Phone } from "lucide-react";
 
 function Signup() {
   const [email, setEmail] = useState("");
@@ -19,7 +20,12 @@ function Signup() {
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [location, setLocation] = useState("");
+  const [element, setElement] = useState("");
+  const [phone, setPhone] = useState("");
+
+
   const [notification, setNotification] = useState(null);
+
 
   const navigate = useNavigate();
 
@@ -51,24 +57,41 @@ function Signup() {
 
       await updateProfile(res.user, { displayName });
 
+
       await setDoc(doc(db, "users", res.user.uid), {
-        uid: res.user.uid,
-        displayName,
+        associated_id: res.user.uid,
+        role : null,
         email,
         username,
+        element,
+        updatedAt: serverTimestamp(),
+        createdAt:serverTimestamp(),
+        is_active:"false",
+        last_login:serverTimestamp(),
+        phone,
         location,
-        photoURL: null,
-        element: "", // You can set later
+        
+      });
+
+      await setDoc(doc(db, "profiles", res.user.uid), {
+        associated_id: res.user.uid,
+        displayName,
+        username,
+        element,
+        bio:null,
+        location,
         followersCount: 0,
         followingCount: 0,
         postsCount: 0,
-        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        photoURL:"https://firebasestorage.googleapis.com/v0/b/henini-prj.firebasestorage.app/o/profiles%2F123laith%2Fprofile.jpg?alt=media&token=3a72889a-42f8-490d-8968-bb2a3da06f98",
       });
+
 
       setNotification({ type: "success", message: "נרשמת בהצלחה!" });
       setTimeout(() => {
         navigate("/");
-      }, 2000);
+      }, 1000);
     } catch (err) {
       console.error(err);
       setNotification({ type: "error", message: "אירעה שגיאה ביצירת החשבון" });
@@ -159,6 +182,14 @@ function Signup() {
               className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
             />
             <input
+              type="phone"
+              required
+              value={email}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="מספר טלפון"
+              className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
+            />
+            <input
               type="password"
               required
               value={password}
@@ -175,6 +206,20 @@ function Signup() {
               className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
             />
           </div>
+
+          <select
+  required
+  value={element}
+  onChange={(e) => setElement(e.target.value)}
+  className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
+>
+  <option value="">אלימנט</option>
+  <option value="fire">אש</option>
+  <option value="water">מים</option>
+  <option value="earth">אדמה</option>
+  <option value="air">אוויר</option>
+  <option value="metal">מתכת</option>
+</select>
 
           <div>
             <button
