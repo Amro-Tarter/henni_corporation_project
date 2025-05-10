@@ -5,11 +5,12 @@
 
 @font-face {
   font-family: 'Gveret Levin AlefAlefAlef';
-  src: url('./assets/fonts/GveretLevinAlefAlefAlef-Regular.ttf') format('truetype');
+  src: url('/fonts/Gveret Levin AlefAlefAlef Regular.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
+
 
 @layer base {
   :root {
