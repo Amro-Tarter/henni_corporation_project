@@ -3,7 +3,7 @@ import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import ElementalLoader from '@/components/ElementalLoader';
+import ElementalLoader from "@/theme/ElementalLoader";
 import {
   Mail,
   Phone,
