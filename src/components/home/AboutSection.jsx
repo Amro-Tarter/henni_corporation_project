@@ -5,6 +5,7 @@ import { db } from '@/config/firbaseConfig';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { HandHeart, Users, Heart, TreePine, X, Award, ExternalLink } from 'lucide-react';
+import CTAButton from '@/components/CTAButton';
 
 // Animation variants
 const fadeSlideUp = {
@@ -282,12 +283,14 @@ const AboutSection = () => {
 
                 {/* View All Team Members button */}
                 <div className="mt-8 text-center">
-                  <a href="/team">
-                    <Button variant="outline" className="border-orange-400 text-orange-600 hover:bg-orange-50">
-                      <span>הכירו את כל הצוות</span>
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                    </Button>
-                  </a>
+                    <CTAButton
+                      href="/team"
+                      variant="fire"
+                      size="lg"
+                      className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-lg sm:text-xl font-medium shadow-lg hover:shadow-xl px-8 sm:px-10 py-3 sm:py-4"
+                    >
+                    <span>הכירו את כל הצוות</span>
+                    </CTAButton>
                 </div>
 
                 {/* Expanded team member card - Displayed in the middle of the page */}
