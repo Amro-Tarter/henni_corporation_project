@@ -1,175 +1,183 @@
 import { useState, useEffect } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firbaseConfig';
 
 const ELEMENTS = [
-  { key: 'earth', emoji: '🌱', color: 'from-green-600 to-emerald-500', lightColor: 'bg-green-100', accentColor: 'bg-green-400' },
-  { key: 'metal', emoji: '⚒️', color: 'from-gray-600 to-slate-500', lightColor: 'bg-gray-100', accentColor: 'bg-gray-400' },
-  { key: 'air',   emoji: '💨', color: 'from-blue-500 to-cyan-400', lightColor: 'bg-blue-100', accentColor: 'bg-blue-400' },
-  { key: 'water', emoji: '💧', color: 'from-indigo-500 to-purple-400', lightColor: 'bg-indigo-100', accentColor: 'bg-indigo-400' },
-  { key: 'fire',  emoji: '🔥', color: 'from-red-600 to-orange-500', lightColor: 'bg-red-100', accentColor: 'bg-red-400' },
+  { key: 'earth', emoji: '🌱', color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100', borderColor: 'border-green-500' },
+  { key: 'metal', emoji: '⚒️', color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100', borderColor: 'border-gray-500' },
+  { key: 'air',   emoji: '💨', color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100', borderColor: 'border-blue-500' },
+  { key: 'water', emoji: '💧', color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100', borderColor: 'border-indigo-500' },
+  { key: 'fire',  emoji: '🔥', color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100', borderColor: 'border-red-500' },
 ];
 
-export default function EnhancedElementalLoader() {
-  const [activeElement, setActiveElement] = useState(0);
+export default function UserElementOrbitLoader({ userId }) {
+  const [userElement, setUserElement] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [displayedProgress, setDisplayedProgress] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
-
-  // Smooth progress tracking with separate display value
+  
+  // Fetch user element from Firestore
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDisplayedProgress(progress);
-    }, 20);
-    return () => clearTimeout(timer);
-  }, [progress]);
-
+    const fetchUserElement = async () => {
+      if (!userId) return;
+      
+      try {
+        const userRef = doc(db, "users", userId);
+        const userSnap = await getDoc(userRef);
+        
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          const elementObj = ELEMENTS.find(el => el.key === userData.element) || ELEMENTS[0];
+          setUserElement(elementObj);
+        } else {
+          // Default to first element if user not found
+          setUserElement(ELEMENTS[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching user element:", error);
+        // Fallback to first element
+        setUserElement(ELEMENTS[0]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUserElement();
+  }, [userId]);
+  
   // Fade in on mount
   useEffect(() => {
     setIsVisible(true);
   }, []);
-
-  // Progress + activeElement cycling
+  
+  // Progress animation
   useEffect(() => {
     const interval = setInterval(() => {
-      setProgress(p => {
-        if (p >= 100) {
-          setTimeout(() => {
-            setActiveElement(a => (a + 1) % ELEMENTS.length);
-          }, 200);
+      setProgress(prev => {
+        if (prev >= 100) {
           return 0;
         }
-        return p + 2;
+        return prev + 0.5;
       });
     }, 50);
+    
     return () => clearInterval(interval);
   }, []);
-
-  const current = ELEMENTS[activeElement];
-  const circleRadius = 36; // SVG circle radius
+  
+  // SVG properties for circular progress
+  const circleRadius = 128;
   const circumference = 2 * Math.PI * circleRadius;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
-  const orbitDuration = 8; // seconds
-  const containerSize = 160; // Size of the entire container
-  const orbitRadius = containerSize * 0.5; // Responsive orbit radius
-
+  const orbitDuration = 12; // seconds for full orbit rotation
+  
+  // If we're still loading user data or don't have element info yet
+  if (loading || !userElement) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="w-12 h-12 border-4 border-blue-200 rounded-full animate-spin border-t-blue-500"></div>
+      </div>
+    );
+  }
+  
   return (
     <div 
-      className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4"
+      className="flex items-center justify-center min-h-screen bg-gray-50 p-4"
       role="progressbar"
       aria-valuenow={progress}
       aria-valuemin="0" 
       aria-valuemax="100"
-      aria-label={`Loading ${current.key} element, ${displayedProgress} percent complete`}
+      aria-label={`Loading ${progress.toFixed(0)} percent complete`}
     >
-      {/* Loader header */}
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-bold mb-2">Elements Loader</h2>
-        <p className="text-gray-600">The five elements orbit as loading indicators</p>
-      </div>
-
       {/* Loader container */}
       <div 
-        className={`relative w-40 h-40 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+        className={`relative w-64 h-64 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       >
-        {/* Background spinning ring */}
-        <div className="absolute inset-0">
-          <svg className="w-full h-full" viewBox="0 0 100 100">
-            <circle 
-              cx="50" 
-              cy="50" 
-              r="46" 
-              fill="none" 
-              stroke="#f3f4f6" 
-              strokeWidth="3"
-              className="opacity-70" 
-            />
-            <circle 
-              cx="50" 
-              cy="50" 
-              r="46" 
-              fill="none" 
-              stroke="#e5e7eb" 
-              strokeWidth="3"
-              strokeDasharray="12 4" 
-              className="animate-spin opacity-50" 
-              style={{ animationDuration: '15s' }}
-            />
-          </svg>
+        {/* Progress circle */}
+        <svg className="absolute inset-0 w-full h-full -rotate-90">
+          {/* Background circle */}
+          <circle 
+            cx="128" 
+            cy="128" 
+            r={circleRadius} 
+            fill="none" 
+            stroke="#e5e7eb" 
+            strokeWidth="4"
+            className="opacity-30"
+          />
+          
+          {/* Progress circle */}
+          <circle 
+            cx="128" 
+            cy="128" 
+            r={circleRadius} 
+            fill="none" 
+            stroke={`url(#gradient-${userElement.key})`}
+            strokeWidth="4"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            className="transition-all duration-300 ease-out"
+          />
+          
+          {/* Gradient definitions */}
+          <defs>
+            {ELEMENTS.map((el) => (
+              <linearGradient key={`gradient-${el.key}`} id={`gradient-${el.key}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" className={el.color.split(' ')[0].replace('from-', 'text-')} style={{stopColor: 'currentColor'}} />
+                <stop offset="100%" className={el.color.split(' ')[1].replace('to-', 'text-')} style={{stopColor: 'currentColor'}} />
+              </linearGradient>
+            ))}
+          </defs>
+        </svg>
+        
+        {/* Central user element display */}
+        <div 
+          className={`absolute inset-0 m-auto w-24 h-24 rounded-full flex items-center justify-center shadow-lg transition-all duration-700 ${userElement.bgColor}`}
+        >
+          <span className="text-4xl">{userElement.emoji}</span>
         </div>
-
-        {/* Central loader with SVG circular progress */}
-        <div className={`w-40 h-40 rounded-full flex items-center justify-center ${current.lightColor} shadow-lg transition-all duration-300`}>
-          <svg className="absolute inset-0 w-full h-full -rotate-90">
-            <circle 
-              cx="80" 
-              cy="80" 
-              r={circleRadius}  
-              fill="none" 
-              stroke={`url(#gradient-${activeElement})`}
-              strokeWidth="8"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              className="transition-all duration-300 ease-out"
-            />
-            <defs>
-              {ELEMENTS.map((el, i) => (
-                <linearGradient key={i} id={`gradient-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" className={el.color.split(' ')[0].replace('from-', 'text-')} style={{stopColor: 'currentColor'}} />
-                  <stop offset="100%" className={el.color.split(' ')[1].replace('to-', 'text-')} style={{stopColor: 'currentColor'}} />
-                </linearGradient>
-              ))}
-            </defs>
-          </svg>
-          <div className="relative z-10 flex flex-col items-center">
-            <span className="text-4xl animate-bounce" style={{ animationDuration: '2s' }}>{current.emoji}</span>
-            <span className="font-medium text-lg capitalize mt-2">{current.key}</span>
-            <span className="text-sm font-mono transition-all duration-200">{displayedProgress}%</span>
-          </div>
-        </div>
-
+        
         {/* Orbiting elements */}
         {ELEMENTS.map((el, i) => {
-          const angle = (360 / ELEMENTS.length) * i;
-          const isActive = activeElement === i;
+          const isUserElement = el.key === userElement.key;
           
           return (
             <div
               key={el.key}
-              className={`absolute top-1/2 left-1/2 w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-300 ${isActive ? 'z-20' : 'z-10'}`}
+              className={`absolute top-1/2 left-1/2 w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-all duration-500 bg-white ${isUserElement ? 'border-2 ' + el.borderColor : ''}`}
               style={{
-                background: '#fff',
-                transform: `translate(-50%, -50%) rotate(${angle}deg) translateX(${orbitRadius}px) scale(${isActive ? 1.15 : 1})`,
-                boxShadow: isActive ? `0 0 16px ${el.accentColor.replace('bg-', 'rgba(').split('-')[1]})` : 'none',
+                transform: isUserElement ? 'translate(-50%, -50%) scale(1.1)' : 'translate(-50%, -50%) scale(1)',
+                animation: `orbitAnimation ${orbitDuration}s linear infinite`,
+                animationDelay: `-${(i * orbitDuration) / ELEMENTS.length}s`,
               }}
             >
               <span className="text-lg">{el.emoji}</span>
-              {isActive && (
-                <div className={`absolute inset-0 rounded-full ${el.accentColor} opacity-20 animate-ping`}></div>
-              )}
             </div>
           );
         })}
 
-        {/* Responsive orbit path visualization */}
-        <div className="absolute inset-0 rounded-full border border-gray-200 opacity-30"></div>
+        {/* Trailing orbit particles (decorative) */}
+        <div className="absolute inset-0">
+          {[...Array(12)].map((_, i) => (
+            <div 
+              key={`particle-${i}`} 
+              className="absolute top-1/2 left-1/2 w-1 h-1 rounded-full bg-gray-300 opacity-40"
+              style={{
+                animation: `orbitAnimation ${orbitDuration}s linear infinite`,
+                animationDelay: `-${(i * orbitDuration) / 12}s`,
+              }}
+            ></div>
+          ))}
+        </div>
 
-        {/* Keyframes injected locally */}
+        {/* Keyframes for orbit animation */}
         <style>{`
-          @keyframes orbit {
-            from {
-              transform: rotate(0deg) translateX(${orbitRadius}px) rotate(0deg);
+          @keyframes orbitAnimation {
+            0% {
+              transform: translate(-50%, -50%) rotate(0deg) translateX(112px) rotate(0deg);
             }
-            to {
-              transform: rotate(360deg) translateX(${orbitRadius}px) rotate(-360deg);
-            }
-          }
-          
-          @media (max-width: 640px) {
-            .text-4xl {
-              font-size: 1.5rem;
-            }
-            .text-2xl {
-              font-size: 1.25rem;
+            100% {
+              transform: translate(-50%, -50%) rotate(360deg) translateX(112px) rotate(-360deg);
             }
           }
         `}</style>
