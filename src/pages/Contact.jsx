@@ -3,6 +3,7 @@ import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import ElementalLoader from "@/theme/ElementalLoader";
 import {
   Mail,
   Phone,
@@ -222,7 +223,7 @@ const Contact = () => {
                           {isLoading ? (
                             <>
                               <span className="animate-pulse">שולח...</span>
-                              <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"></div>
+                               <ElementalLoader />
                             </>
                           ) : (
                             <>

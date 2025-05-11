@@ -96,10 +96,10 @@ const ProfileInfo = ({
             />
             <label className={`
               absolute inset-0 flex items-center justify-center
-              bg-${element}-soft bg-opacity-80 opacity-0
-              hover:opacity-60 transition-opacity cursor-pointer rounded-full
+              bg-${element} bg-opacity-50 opacity-0
+              hover:opacity-30 transition-opacity cursor-pointer rounded-full
             `}>
-              <Camera className="text-white w-6 h-6" />
+              <Camera className="text-white w-7 h-7" />
               <input type="file" accept="image/*" className="hidden" onChange={handlePicChange} />
             </label>
             {!editing && (
