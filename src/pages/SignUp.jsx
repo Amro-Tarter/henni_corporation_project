@@ -12,14 +12,22 @@ import {
   faWater,
   faFire
 } from '@fortawesome/free-solid-svg-icons';
+import { Phone } from "lucide-react";
 
 function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [location, setLocation] = useState("");
+  const [element, setElement] = useState("");
+  const [phone, setPhone] = useState("");
+  const inputStyle = "appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right";
+
+
   const [notification, setNotification] = useState(null);
+
 
   const navigate = useNavigate();
 
@@ -46,32 +54,79 @@ function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+     // Basic custom validations
+  const cityRegex = /^[A-Za-zא-ת\s]+$/;
+  const phoneRegex = /^0\d{9}$/;
+  const usernameRegex = /^[a-zA-Z0-9_א-ת]+$/;
+
+  if (!cityRegex.test(location)) {
+    setNotification({ type: "error", message: "שם העיר חייב להכיל אותיות בלבד" });
+    return;
+  }
+
+  if (!phoneRegex.test(phone)) {
+    setNotification({ type: "error", message: "מספר הטלפון חייב להכיל מספרים בלבד" });
+    return;
+  }
+
+  if (!usernameRegex.test(username)) {
+    setNotification({ type: "error", message: "שם המשתמש יכול להכיל רק אותיות, מספרים וקו תחתון" });
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    setNotification({ type: "error", message: "הסיסמאות אינן תואמות" });
+    return;
+  }
+
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
 
       await updateProfile(res.user, { displayName });
 
+
       await setDoc(doc(db, "users", res.user.uid), {
-        uid: res.user.uid,
-        displayName,
+        associated_id: res.user.uid,
+        role : null,
         email,
         username,
+        element,
+        updatedAt: serverTimestamp(),
+        createdAt:serverTimestamp(),
+        is_active:"false",
+        last_login:serverTimestamp(),
+        phone,
         location,
-        photoURL: null,
-        element: "", // You can set later
+        
+      });
+
+      await setDoc(doc(db, "profiles", res.user.uid), {
+        associated_id: res.user.uid,
+        displayName,
+        username,
+        element,
+        bio:null,
+        location,
         followersCount: 0,
         followingCount: 0,
         postsCount: 0,
-        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        photoURL:"https://firebasestorage.googleapis.com/v0/b/henini-prj.firebasestorage.app/o/profiles%2F123laith%2Fprofile.jpg?alt=media&token=3a72889a-42f8-490d-8968-bb2a3da06f98",
       });
+
 
       setNotification({ type: "success", message: "נרשמת בהצלחה!" });
       setTimeout(() => {
         navigate("/");
-      }, 2000);
+      }, 1000);
     } catch (err) {
       console.error(err);
-      setNotification({ type: "error", message: "אירעה שגיאה ביצירת החשבון" });
+      if (err.code === "auth/email-already-in-use") {
+        setNotification({ type: "error", message: "האימייל הזה כבר בשימוש. נסה להתחבר או השתמש באימייל אחר." });
+      } else {
+        setNotification({ type: "error", message: "אירעה שגיאה ביצירת החשבון" });
+      }
     }
   };
 
@@ -119,80 +174,155 @@ function Signup() {
   </div>
 </div>
 
-            
-      {/* Signup Box */}
-      <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
-        <div className="absolute -top-14 -left-14 w-40 h-40 bg-indigo-100 rounded-full opacity-60"></div>
-        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-100 rounded-full opacity-60"></div>
+ 
+  
+  <div className="w-full max-w-2xl bg-white/30 backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
+     {/* Decorative Circles */}
+  <div className="absolute -top-14 -left-14 w-40 h-40 bg-indigo-100 rounded-full opacity-60"></div>
+  <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-100 rounded-full opacity-60"></div>
 
-        <div className="text-center relative">
-          <h2 className="mt-2 text-3xl font-extrabold text-gray-900">לגלות את האור</h2>
-          <p className="mt-2 text-sm text-gray-600">צור חשבון חדש</p>
-        </div>
+    {/* Heading */}
+    <div className="text-center mb-6">
+      <h2 className="text-3xl font-extrabold text-gray-900"> לגלות את האור הניני</h2>
+      <p className="mt-2 text-sm text-gray-700">צור חשבון חדש</p>
+    </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <input type="hidden" name="remember" defaultValue="true" />
+    {/* Signup Form */}
+    {/* Signup Form */}
+<form
+  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+  onSubmit={handleSubmit}
+>
+  <input type="hidden" name="remember" defaultValue="true" />
 
-          <div className="rounded-md shadow-sm space-y-4">
-            <input
-              type="text"
-              required
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="שם מלא"
-              className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-            />
-            <input
-              type="text"
-              required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="שם משתמש ייחודי"
-              className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-            />
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="כתובת אימייל"
-              className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-            />
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="סיסמה"
-              className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-            />
-            <input
-              type="text"
-              required
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="מיקום"
-              className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-            />
-          </div>
+  {/* Full Name */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">שם מלא</label>
+    <input
+      type="text"
+      required
+      value={displayName}
+      onChange={(e) => setDisplayName(e.target.value)}
+      placeholder="שם מלא"
+      className={inputStyle}
+    />
+  </div>
 
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              הרשמה
-            </button>
-          </div>
+  {/* Username */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">שם משתמש ייחודי</label>
+    <input
+      type="text"
+      required
+      value={username}
+      onChange={(e) => setUsername(e.target.value)}
+      placeholder="שם משתמש ייחודי"
+      className={inputStyle}
+    />
+  </div>
 
-          <div className="text-sm text-center">
-            כבר יש לך חשבון?{" "}
-            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-              התחבר כאן
-            </Link>
-          </div>
-        </form>
-      </div>
+  {/* Email */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">כתובת אימייל</label>
+    <input
+      type="email"
+      required
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+      placeholder="כתובת אימייל"
+      className={inputStyle}
+    />
+  </div>
+
+  {/* Phone */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">מספר טלפון</label>
+    <input
+      type="tel"
+      required
+      value={phone}
+      onChange={(e) => setPhone(e.target.value)}
+      placeholder="מספר טלפון"
+      className={inputStyle}
+    />
+  </div>
+
+  {/* Password */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">סיסמה</label>
+    <input
+      type="password"
+      required
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+      placeholder="סיסמה"
+      className={inputStyle}
+    />
+  </div>
+
+  {/* Confirm Password */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">אימות סיסמה</label>
+    <input
+      type="password"
+      required
+      value={confirmPassword}
+      onChange={(e) => setConfirmPassword(e.target.value)}
+      placeholder="אימות סיסמה"
+      className={inputStyle}
+    />
+  </div>
+
+  {/* Location */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">מיקום</label>
+    <input
+      type="text"
+      required
+      value={location}
+      onChange={(e) => setLocation(e.target.value)}
+      placeholder="מיקום"
+      className={inputStyle}
+    />
+  </div>
+
+  {/* Element */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">אלמנט</label>
+    <select
+      required
+      value={element}
+      onChange={(e) => setElement(e.target.value)}
+      className={inputStyle}
+    >
+      <option value="">בחר אלמנט</option>
+      <option value="fire">אש</option>
+      <option value="water">מים</option>
+      <option value="earth">אדמה</option>
+      <option value="air">אוויר</option>
+      <option value="metal">מתכת</option>
+    </select>
+  </div>
+
+  {/* Submit Button */}
+  <div className="col-span-1 md:col-span-2 mt-4">
+    <button
+      type="submit"
+      className="w-full py-3 px-4 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition"
+    >
+      הרשמה
+    </button>
+  </div>
+
+  {/* Login Link */}
+  <div className="col-span-1 md:col-span-2 text-center text-sm">
+    כבר יש לך חשבון?{" "}
+    <Link to="/login" className="text-indigo-600 hover:text-indigo-500 font-medium">
+      התחבר כאן
+    </Link>
+  </div>
+</form>
+  </div>
 
       {notification && (
         <Notification type={notification.type} message={notification.message} />
