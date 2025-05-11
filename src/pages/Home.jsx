@@ -12,6 +12,7 @@ import {
   ref, uploadBytes, getDownloadURL
 } from 'firebase/storage';
 
+import { getAuth } from 'firebase/auth';
 import Navbar from '../components/social/Navbar';
 import CreatePost from '../components/social/CreatePost';
 import PostList from '../components/social/Postlist';
@@ -21,7 +22,9 @@ import { Button } from '../components/ui/button';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 const Home = () => {
-  const [user, setUser] = useState(null); // ✅ Added user state
+  const auth = getAuth();
+  const uid = auth.currentUser?.uid;
+  const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [profile, setProfile] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -100,8 +103,8 @@ const Home = () => {
 
     const newPost = {
       authorId: user.uid,
-      authorName: user.username,
-      authorPhotoURL: user.photoURL || '',
+      authorName: profile.username,
+      authorPhotoURL: profile.photoURL || '',
       content: text,
       mediaType: mediaType || '',
       mediaUrl,
@@ -121,6 +124,8 @@ const Home = () => {
   };
 
   const handleLike = async (id, liked) => {
+    if (!user) return;
+
     try {
       const postRef = doc(db, 'posts', id);
       await updateDoc(postRef, {
@@ -163,18 +168,20 @@ const Home = () => {
           <div className="pt-20 px-4 flex justify-center">
             <div className="w-full max-w-4xl">
               {user && (
-                <CreatePost
-                  addPost={addPost}
-                  profilePic={profile?.photoURL || '/default-avatar.png'}
-                  element={profile?.element || 'earth'}
-                />
+                <>
+                  <CreatePost
+                    addPost={addPost}
+                    profilePic={profile?.photoURL || '/default-avatar.png'}
+                    element={profile?.element || 'earth'}
+                  />
+                  <PostList
+                    posts={posts}
+                    onLike={handleLike}
+                    currentUserId={user.uid}
+                    element={profile?.element || 'earth'}
+                  />
+                </>
               )}
-              <PostList
-                posts={posts}
-                onLike={handleLike}
-                currentUserId={profile?.uid}
-                element={profile?.element || 'earth'}
-              />
             </div>
           </div>
         </div>

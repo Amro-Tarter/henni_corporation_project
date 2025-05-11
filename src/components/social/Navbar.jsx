@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
-import { db, auth } from '@/config/firbaseConfig'; // Make sure 'auth' is imported
+import { db, auth } from '@/config/firbaseConfig';
 
 const navTabs = [
   { id: 'home', icon: '🏠', label: 'דף הבית', href: '/Home' },
@@ -30,17 +30,17 @@ const Navbar = ({ element }) => {
   const [showHistory, setShowHistory] = useState(true);
   const searchRef = useRef(null);
 
-  const user = auth.currentUser; // Get the current user
+  const user = auth.currentUser;
 
-  // Fetch search history for the current user from Firestore
+  // ✅ Fetch search history from profiles collection
   useEffect(() => {
     if (user) {
       const fetchHistory = async () => {
         try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-          if (userDoc.exists()) {
-            setSearchHistory(userDoc.data().searchHistory || []);
+          const profileDocRef = doc(db, 'profiles', user.uid);
+          const profileDoc = await getDoc(profileDocRef);
+          if (profileDoc.exists()) {
+            setSearchHistory(profileDoc.data().searchHistory || []);
           }
         } catch (err) {
           console.error('Error fetching search history:', err);
@@ -50,7 +50,6 @@ const Navbar = ({ element }) => {
     }
   }, [user]);
 
-  // Fetch profile suggestions based on search input
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (!searchInput) return setSearchResults([]);
@@ -98,7 +97,7 @@ const Navbar = ({ element }) => {
     }
   };
 
-  // Trigger search and update Firestore with new history
+  // ✅ Save search history in profiles collection
   const triggerSearch = async () => {
     if (searchInput && !searchHistory.includes(searchInput)) {
       const updatedHistory = [searchInput, ...searchHistory].slice(0, 5);
@@ -106,8 +105,8 @@ const Navbar = ({ element }) => {
 
       if (user) {
         try {
-          const userDocRef = doc(db, 'users', user.uid);
-          await updateDoc(userDocRef, { searchHistory: updatedHistory });
+          const profileDocRef = doc(db, 'profiles', user.uid);
+          await updateDoc(profileDocRef, { searchHistory: updatedHistory });
         } catch (err) {
           console.error('Error updating search history:', err);
         }
@@ -129,10 +128,7 @@ const Navbar = ({ element }) => {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const toggleSearchPopUp = () => {
@@ -140,10 +136,7 @@ const Navbar = ({ element }) => {
   };
 
   return (
-    <header
-      dir="rtl"
-      className={`fixed top-0 left-0 w-full bg-${element} border-b border-${element}-accent z-50`}
-    >
+    <header dir="rtl" className={`fixed top-0 left-0 w-full bg-${element} border-b border-${element}-accent z-50`}>
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
         {/* Navigation Tabs */}
         <nav className="flex flex-row-reverse items-center space-x-6 space-x-reverse">
@@ -152,9 +145,7 @@ const Navbar = ({ element }) => {
               key={tab.id}
               onClick={() => handleTabClick(tab.id, tab.href)}
               className={`flex items-center gap-2 px-3 py-2 rounded-md text-white text-base transition-colors duration-200 ${
-                activeTab === tab.id
-                  ? `bg-${element}-accent font-semibold`
-                  : `hover:bg-${element}-soft`
+                activeTab === tab.id ? `bg-${element}-accent font-semibold` : `hover:bg-${element}-soft`
               }`}
             >
               <span className="text-xl leading-none">{tab.icon}</span>
@@ -164,30 +155,21 @@ const Navbar = ({ element }) => {
         </nav>
 
         {/* Search Bar */}
-        <form
-          onSubmit={handleSearch}
-          className="flex-1 mx-6 max-w-md"
-        >
+        <form onSubmit={handleSearch} className="flex-1 mx-6 max-w-md">
           <div className="relative">
             <input
               type="text"
               placeholder="חפש פרופילים..."
               value={searchInput}
-              onChange={(e) => {
-                setSearchInput(e.target.value);
-              }}
-              onFocus={toggleSearchPopUp} // Toggle visibility on focus
-              onBlur={() => setTimeout(() => setShowSearchPopUp(false), 100)} // Hide after losing focus
+              onChange={(e) => setSearchInput(e.target.value)}
+              onFocus={toggleSearchPopUp}
+              onBlur={() => setTimeout(() => setShowSearchPopUp(false), 100)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') triggerSearch();
               }}
               className={`w-full border border-${element}-soft rounded-full py-2 pl-12 pr-4 text-gray-800 placeholder-gray-600 focus:border-${element}-accent focus:outline-none focus:ring-1 focus:ring-${element}-accent transition`}
             />
-            <span
-              className={`absolute left-4 top-1/2 -translate-y-1/2 text-xl text-${element}-accent`}
-            >
-              🔍
-            </span>
+            <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-xl text-${element}-accent`}>🔍</span>
 
             {/* Search Pop-up */}
             {showSearchPopUp && (
@@ -251,9 +233,7 @@ const Navbar = ({ element }) => {
           <button
             onClick={() => handleTabClick('notifications', '/notifications')}
             className={`relative p-2 rounded-full transition ${
-              activeTab === 'notifications'
-                ? `bg-${element}-accent`
-                : `hover:bg-${element}-soft`
+              activeTab === 'notifications' ? `bg-${element}-accent` : `hover:bg-${element}-soft`
             }`}
             aria-label="התראות"
           >
@@ -269,9 +249,7 @@ const Navbar = ({ element }) => {
           <button
             onClick={() => handleTabClick('profile', '/profile')}
             className={`p-2 rounded-full transition ${
-              activeTab === 'profile'
-                ? `bg-${element}-accent`
-                : `hover:bg-${element}-soft`
+              activeTab === 'profile' ? `bg-${element}-accent` : `hover:bg-${element}-soft`
             }`}
             aria-label="פרופיל"
           >
