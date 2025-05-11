@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaThumbsUp as ThumbsUpIcon, FaComment, FaEllipsisH, FaCameraRetro } from 'react-icons/fa';
+import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check } from 'lucide-react';
+import { Comment, CommentInput } from './comments';
 
-/**
- * ProfilePost component delegates data operations via callbacks.
- * Props:
- *  - post: { id, authorPhotoURL, authorName, createdAt, content, mediaUrl,
- *           likesCount, commentsCount, likedBy }
- *  - onDelete(id): called when user confirms deletion
- *  - onUpdate(id, { content, mediaFile }): called when user confirms edits
- *  - onLike(id, liked): called when user toggles like; parent should update DB
- */
-const ProfilePost = ({ post, onDelete, onUpdate, onLike }) => {
+const ProfilePost = ({
+  post,
+  element,
+  onDelete,
+  onUpdate,
+  onLike,
+  comments,
+  currentUser,
+  onAddComment,
+  onEditComment,
+  onDeleteComment
+}) => {
   const {
     id,
     authorPhotoURL,
@@ -26,15 +29,35 @@ const ProfilePost = ({ post, onDelete, onUpdate, onLike }) => {
   const [editing, setEditing] = useState(false);
   const [newContent, setNewContent] = useState(content);
   const [newMediaFile, setNewMediaFile] = useState(null);
-  const fileInputRef = useRef(null);
-
-  // Determine if this user has liked
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
   const [liked, setLiked] = useState(false);
-  useEffect(() => {
-    setLiked(Array.isArray(likedBy) && likedBy.includes(post.authorId || ''));
-  }, [likedBy, post.authorId]);
 
-  // Format timestamp
+  const fileInputRef = useRef(null);
+  const menuRef = useRef(null);
+  const commentsRef = useRef(null);
+
+  useEffect(() => {
+    setLiked(Array.isArray(likedBy) && likedBy.includes(currentUser.uid));
+  }, [likedBy, currentUser.uid]);
+
+  useEffect(() => {
+    const handleClickOutside = e => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (showComments && commentsRef.current) {
+      commentsRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [showComments]);
+
   const createdDate = createdAt?.toDate?.();
   const timeString = createdDate
     ? createdDate.toLocaleDateString('he-IL', {
@@ -43,158 +66,223 @@ const ProfilePost = ({ post, onDelete, onUpdate, onLike }) => {
       })
     : '';
 
-  // Video check
-  const isVideo = mediaUrl && /\.(mp4|webm|ogg)$/i.test(mediaUrl);
+  const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
 
-  // Handlers
   const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this post?')) {
+    if (window.confirm('האם אתה בטוח שברצונך למחוק את הפוסט הזה?')) {
       onDelete(id);
+      setMenuOpen(false);
     }
   };
 
-  const handleConfirm = () => {
+  const handleSaveEdit = () => {
     onUpdate(id, { content: newContent, mediaFile: newMediaFile });
     setEditing(false);
     setNewMediaFile(null);
   };
 
   const toggleLike = () => {
-    const newLiked = !liked;
-    setLiked(newLiked);
-    onLike(id, newLiked);
+    const newState = !liked;
+    setLiked(newState);
+    onLike(id, newState);
   };
 
-  const pickNewMedia = () => fileInputRef.current?.click();
-  const onFileChange = e => {
-    const f = e.target.files[0];
-    if (f) setNewMediaFile(f);
+  const toggleCommentsSection = () => {
+    setShowComments(prev => !prev);
+    if (showComments) setReplyTo(null);
+  };
+
+  const submitComment = text => {
+    if (replyTo) {
+      onAddComment(id, text, replyTo);
+      setReplyTo(null);
+    } else {
+      onAddComment(id, text);
+    }
+  };
+
+  const pickMedia = () => fileInputRef.current?.click();
+  const onMediaChange = e => {
+    const file = e.target.files[0];
+    if (file) setNewMediaFile(file);
   };
 
   return (
-    <div className="bg-white border border-orange-200 rounded-2xl overflow-hidden mb-6 max-w-4xl mx-auto" dir="rtl">
-      {/* Hidden file input for media change */}
+    <div
+      dir="rtl"
+      className={`mb-8 max-w-4xl mx-auto rounded-xl overflow-hidden shadow-sm bg-white border border-${element}-accent hover:shadow-md transition-shadow duration-300 pb-2`}
+    >
       <input
         ref={fileInputRef}
         type="file"
         className="hidden"
         accept={isVideo ? 'video/*' : 'image/*'}
-        onChange={onFileChange}
+        onChange={onMediaChange}
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3">
+      <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3">
           <img
             src={authorPhotoURL}
             alt={authorName}
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-orange-500"
+            className={`w-12 h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
           />
-          <div className="flex flex-col text-right">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-              {authorName}
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-500">{timeString}</p>
+          <div className="flex flex-col">
+            <h3 className="text-lg font-bold">{authorName}</h3>
+            <p className="text-xs text-gray-500">{timeString}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {editing && (
-            <>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(prev => !prev)}
+            className={`p-2 rounded-full transition-colors duration-200 text-${element}-accent hover:text-${element} hover:bg-${element}-soft`}
+          >
+            <MoreHorizontal size={20} />
+          </button>
+          {menuOpen && (
+            <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}> 
+              <button
+                onClick={() => { setEditing(prev => !prev); setMenuOpen(false); }}
+                className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors`}
+              >
+                {editing ? 'ביטול עריכה' : 'ערוך פוסט'}
+              </button>
               <button
                 onClick={handleDelete}
-                className="bg-red-100 text-red-600 px-3 py-1 rounded"
+                className={`w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-${element}-soft transition-colors`}
               >
                 מחק פוסט
               </button>
-              <button
-                onClick={handleConfirm}
-                className="bg-green-100 text-green-600 px-3 py-1 rounded"
-              >
-                אישור שינויים
-              </button>
-            </>
+            </div>
           )}
-          <button
-            onClick={() => setEditing(e => !e)}
-            className="p-2 text-gray-600 hover:text-gray-800 border hover:border-gray-300 rounded-lg"
-            style={{ fontSize: '1.5rem' }}
-            title="ערוך פוסט"
-          >
-            <FaEllipsisH />
-          </button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="px-4 py-3">
+      <div className="px-5 pb-4">
         {editing ? (
-          <textarea
-            value={newContent}
-            onChange={e => setNewContent(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg p-2 text-sm text-gray-800 resize-none"
-            rows={4}
-            dir="rtl"
-          />
+          <div className="relative mb-3">
+            <textarea
+              value={newContent}
+              onChange={e => setNewContent(e.target.value)}
+              rows={4}
+              dir="rtl"
+              className={`w-full border rounded-lg p-3 resize-none focus:ring-2 focus:ring-${element}-accent focus:border-${element}-accent border-${element}-soft transition-all outline-none`}
+              placeholder="מה בליבך?"
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <button
+                onClick={() => setEditing(false)}
+                className={`px-4 py-2 text-sm rounded-md text-${element}-accent bg-${element}-soft hover:bg-${element}-accent hover:text-white transition-colors`}
+              >
+                ביטול
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                className={`px-4 py-2 text-sm text-white rounded-md bg-${element} hover:bg-${element}-accent transition-colors flex items-center gap-1`}
+              >
+                <Check size={16} />
+                שמור שינויים
+              </button>
+            </div>
+          </div>
         ) : (
-          <p className="text-gray-700 text-sm sm:text-base leading-relaxed">
-            {content}
-          </p>
+          <p className="px-5 pb-2 text-base leading-relaxed">{content}</p>
         )}
       </div>
 
       {/* Media */}
       {mediaUrl && (
         <div
-          className={`relative w-full bg-gray-100 overflow-hidden ${editing ? 'cursor-pointer' : ''}`}
-          {...(editing ? { onClick: pickNewMedia } : {})}
+          className={`relative w-full overflow-hidden bg-${element}-soft ${editing ? 'cursor-pointer' : ''}`}
+          onClick={editing ? pickMedia : undefined}
         >
           {editing && (
-            <div className="absolute inset-0 bg-black bg-opacity-30 flex flex-col items-center justify-center z-10">
-              <FaCameraRetro className="w-10 h-10 text-white" />
-              <p className="text-white mt-2 text-sm">שנה תמונה</p>
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
+              <Camera className="w-10 h-10 text-white" />
+              <p className="text-white mt-2 font-medium">החלף מדיה</p>
             </div>
           )}
-          {isVideo ? (
-            <video
-              className={`${editing ? 'filter blur-sm ' : ''}w-full object-cover`}
-              controls
-            >
-              <source
+          <div className="w-full" style={{ height: '40rem' }}> 
+            {isVideo ? (
+              <video
+                className="absolute top-1/2 left-0 w-full transform -translate-y-1/2 object-cover"
+                controls
+              >
+                <source
+                  src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
+                  type="video/mp4"
+                />
+              </video>
+            ) : (
+              <img
                 src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
-                type="video/mp4"
+                alt="תוכן הפוסט"
+                className="absolute top-1/2 left-0 w-full transform -translate-y-1/2 object-cover"
               />
-            </video>
-          ) : (
-            <img
-              src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
-              alt="Post media"
-              className={`${editing ? 'filter blur-sm ' : ''}w-full object-cover`}
-            />
-          )}
+            )}
+          </div>
         </div>
       )}
 
       {/* Actions */}
-      <div className="px-4 py-2 border-t border-orange-200 flex gap-5 text-base">
-        <button onClick={toggleLike} className="flex items-center gap-2">
-          <ThumbsUpIcon
-            className="w-5 h-5"
-            style={
-              liked
-                ? { fill: 'orange' }
-                : { fill: 'transparent', stroke: 'orange', strokeWidth: 30 }
-            }
-          />
-          <span className="text-lg text-gray-800">{likesCount}</span>
-        </button>
-        <button className="flex items-center gap-2">
-          <FaComment
-            className="w-5 h-5"
-            style={{ fill: 'transparent', stroke: 'orange', strokeWidth: 30 }}
-          />
-          <span className="text-lg text-gray-600">{commentsCount}</span>
-        </button>
+      <div className={`px-5 py-3 flex items-center justify-between border-t border-${element}-soft`}> 
+        <div className="flex items-center gap-6">
+          <button onClick={toggleLike} className="flex items-center gap-2 group" aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}>
+            <div className={`p-1.5 rounded-full transition-colors ${liked ? `bg-${element} text-white` : `bg-${element}-soft text-${element} hover:bg-${element}-accent`} `}>
+              <ThumbsUp size={18} className={liked ? 'fill-white' : `group-hover:fill-${element}-accent`} />
+            </div>
+            <span className="text-sm font-medium transition-colors">{likesCount}</span>
+          </button>
+
+          <button onClick={toggleCommentsSection} className="flex items-center gap-2 group" aria-label="הצג תגובות">
+            <div className={`p-1.5 rounded-full transition-colors bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white`}>
+              <MessageCircle size={18} />
+            </div>
+            <span className="text-sm font-medium transition-colors group-hover:text-${element}">{commentsCount}</span>
+          </button>
+        </div>
+
+        {editing && (
+          <div className="flex items-center gap-2">
+            <button onClick={handleDelete} className="flex items-center gap-1 px-3 py-1.5 text-xs text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors">
+              <Trash2 size={14} /> מחק
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Comments Section */}
+      {showComments && (
+        <div ref={commentsRef} className="px-5 py-4 border-t border-gray-200">
+          <div className="flex gap-3 mb-4">
+            <img src={currentUser.photoURL} alt="" className="w-8 h-8 rounded-full" />
+            <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
+          </div>
+          {replyTo && (
+            <div className="ml-12 mb-4">
+              <CommentInput placeholder="הגב..." element={element} onSubmit={submitComment} onCancel={() => setReplyTo(null)} />
+            </div>
+          )}
+          {comments.length > 0 ? (
+            comments.map(c => (
+              <Comment
+                key={c.id}
+                comment={c}
+                element={element}
+                currentUser={currentUser}
+                onReply={setReplyTo}
+                onEdit={onEditComment}
+                onDelete={onDeleteComment}
+                postId={id}
+              />
+            ))
+          ) : (
+            <p className="text-center text-gray-500">אין תגובות עדיין.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

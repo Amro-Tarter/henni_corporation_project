@@ -2,11 +2,11 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 import { Calendar, X } from "lucide-react";
 import CTAButton from "@/components/CTAButton";
 import { db } from "@/config/firbaseConfig";
 import { collection, getDocs } from "firebase/firestore";
+import ElementalLoader from "@/theme/ElementalLoader";
 
 // Theme per element
 const elementStyles = {
@@ -138,9 +138,7 @@ const EventsSection = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center items-center h-40">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-fire" />
-          </div>
+             <ElementalLoader />
         ) : projects.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {projects.map((project, index) => (
@@ -161,7 +159,7 @@ const EventsSection = () => {
             href="/projects"
             variant="fire"
             size="lg"
-            className="px-6 py-3"
+           className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="צפו בכל הפרויקטים שלנו – ייפתח בכרטיסייה חדשה"

@@ -249,8 +249,7 @@ const ProgramSection = () => {
           <CTAButton
             variant="fire"
             size="lg"
-            className="shadow-2xl"
-          >
+            className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300">
             גלו את התכנית המלאה שלנו
           </CTAButton>
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -15,47 +14,51 @@ import LogIn from './pages/logIn';
 import SignUp from './pages/SignUp';
 import ForgotPassword from './pages/forgotPassword';
 import Home from './pages/Home';
-import ProfilePage from './pages/profilePage'; 
+import ProfilePage from './pages/profilePage';
 import Contact from './pages/Contact';
 import ChatApp from './pages/chatApp';
 import ElementalProjects from './pages/ElementalProjects';
 import PublicSettings from './pages/PublicSettings';
-// Create a react-query client
+import CommunityPage from './pages/CommunityPage';
+// import TeamPage from './pages/TeamPage';
+import ProtectedRoute from './components/ProtectedRoute';
+
 const queryClient = new QueryClient();
 
-const App = () => {
-  return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Main Pages */}
-              <Route path="/" element={<Index />} />
-              <Route path="/accessibility" element={<AccessibilityStatement />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
-              <Route path="/terms" element={<TermsOfUse />} />
-              <Route path="/contact" element={<Contact />} />
-              {/* New Pages */}
-              <Route path="/forgotPassword" element={<ForgotPassword />} />
-              <Route path="/signUp" element={<SignUp />} />   
-              <Route path="/logIn" element={<LogIn />}/>
-              <Route path="/home"  element={ <Home /> }/>
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/chat" element={<ChatApp />} />
-              <Route path="/projects" element={<ElementalProjects />} />
-              <Route path="/publicSettings" element={<PublicSettings />} />
+const App = () => (
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Public Pages */}
+            <Route path="/" element={<Index />} />
+            <Route path="/accessibility" element={<AccessibilityStatement />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfUse />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="/login" element={<LogIn />} />
+            <Route path="/community" element={<CommunityPage />} />
+            <Route path="/projects" element={<ElementalProjects />} />
 
-              {/* 404 Page */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </React.StrictMode>
-  );
-};
+            {/* Protected Pages */}
+            <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
+            <Route path="/public-settings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
+            {/* <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} /> */}
+
+            {/* 404 Page */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </React.StrictMode>
+);
 
 export default App;
