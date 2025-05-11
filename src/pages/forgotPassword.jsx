@@ -108,7 +108,7 @@ const ForgotPassword = () => {
 </div>
 
 
-      <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
+      <div className="max-w-md w-full bg-white/30 rounded-xl shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
         {/* Decorative element background */}
         <div className="absolute -top-14 -left-14 w-40 h-40 bg-red-100 rounded-full opacity-60"></div>
         <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-orange-100 rounded-full opacity-60"></div>
