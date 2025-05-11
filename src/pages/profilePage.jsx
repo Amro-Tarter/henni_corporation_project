@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from '../theme/ThemeProvider';
+import ElementalLoader from '../theme/ElementalLoader';
 
 import {
   doc,
@@ -16,7 +17,9 @@ import {
   serverTimestamp,
   increment,
   arrayUnion,
-  arrayRemove
+  arrayRemove,
+  onSnapshot,
+  limit
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import {
@@ -34,29 +37,31 @@ import ProfileInfo  from '../components/social/profileInfo.jsx';
 import CreatePost   from '../components/social/createpost';
 import ProfilePost  from '../components/social/ProfilePost.jsx';
 
-const TEST_UID = '123laith';
-
 const ProfilePage = () => {
   const auth = getAuth();
+  const uid = auth.currentUser?.uid;
   const [isRightOpen, setIsRightOpen] = useState(true);
   const [profile, setProfile] = useState(null);
   const [posts, setPosts]     = useState([]);
   const [loading, setLoading] = useState(true);
+  const [postComments, setPostComments] = useState({}); // Store comments by post ID
 
   // Fetch profile and posts
   useEffect(() => {
+    if (!uid) return;
+
     async function loadData() {
       // Profile
-      const profRef  = doc(db, 'profiles', TEST_UID);
+      const profRef  = doc(db, 'profiles', uid);
       const profSnap = await getDoc(profRef);
       if (profSnap.exists()) setProfile(profSnap.data());
-      else console.warn('No profile for', TEST_UID);
+      else console.warn('No profile for', uid);
 
       // Posts
       const postsCol   = collection(db, 'posts');
       const postsQuery = query(
         postsCol,
-        where('authorId', '==', TEST_UID),
+        where('authorId', '==', uid),
         orderBy('createdAt', 'desc')
       );
       const postsSnap = await getDocs(postsQuery);
@@ -65,7 +70,7 @@ const ProfilePage = () => {
         return {
           id: d.id,
           ...data,
-          liked: Array.isArray(data.likedBy) && data.likedBy.includes(TEST_UID),
+          liked: Array.isArray(data.likedBy) && data.likedBy.includes(uid),
         };
       });
       setPosts(loaded);
@@ -74,10 +79,75 @@ const ProfilePage = () => {
     loadData();
   }, []);
 
+  // Set up comment listeners for each post
+  useEffect(() => {
+    if (!posts.length) return;
+    
+    // Create an object to store cleanup functions
+    const unsubscribes = {};
+    
+    // Set up a listener for each post's comments
+    posts.forEach(post => {
+      const commentsRef = collection(db, 'posts', post.id, 'comments');
+      const commentsQuery = query(commentsRef, orderBy('timestamp', 'desc'));
+      
+      const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
+        const fetchedComments = [];
+        const topLevelComments = []; // Comments without parent
+        const commentReplies = {}; // Group replies by parent ID
+        
+        snapshot.forEach(doc => {
+          const commentData = {
+            id: doc.id,
+            ...doc.data(),
+            timestamp: doc.data().timestamp?.toDate() || new Date()
+          };
+          
+          fetchedComments.push(commentData);
+          
+          // Organize comments into a hierarchical structure
+          if (commentData.parentCommentId) {
+            // This is a reply
+            if (!commentReplies[commentData.parentCommentId]) {
+              commentReplies[commentData.parentCommentId] = [];
+            }
+            commentReplies[commentData.parentCommentId].push(commentData);
+          } else {
+            // This is a top-level comment
+            topLevelComments.push(commentData);
+          }
+        });
+        
+        // Process comments to add their replies
+        const processedComments = topLevelComments.map(comment => {
+          return {
+            ...comment,
+            replies: (commentReplies[comment.id] || []).sort(
+              (a, b) => a.timestamp - b.timestamp
+            )
+          };
+        });
+        
+        // Update the comments state for this post
+        setPostComments(prev => ({
+          ...prev,
+          [post.id]: processedComments
+        }));
+      });
+      
+      unsubscribes[post.id] = unsubscribe;
+    });
+    
+    // Clean up listeners when component unmounts
+    return () => {
+      Object.values(unsubscribes).forEach(unsubscribe => unsubscribe());
+    };
+  }, [posts]);
+
   // Update profile field
   const updateField = async (field, value) => {
-    const profileRef = doc(db, 'profiles', TEST_UID);
-    const userRef    = doc(db, 'users', TEST_UID);
+    const profileRef = doc(db, 'profiles', uid);
+    const userRef    = doc(db, 'users', uid);
     if (field === 'element') {
       const batch = writeBatch(db);
       batch.update(profileRef, { element: value, updatedAt: serverTimestamp() });
@@ -92,7 +162,7 @@ const ProfilePage = () => {
   // Upload profile picture
   const updateProfilePic = async file => {
     const storage = getStorage();
-    const ref     = storageRef(storage, `profiles/${TEST_UID}/profile.jpg`);
+    const ref     = storageRef(storage, `profiles/${uid}/profile.jpg`);
     await uploadBytes(ref, file);
     const url     = await getDownloadURL(ref);
     await updateField('photoURL', url);
@@ -101,7 +171,7 @@ const ProfilePage = () => {
   // Upload background picture
   const updateBackgroundPic = async file => {
     const storage = getStorage();
-    const ref     = storageRef(storage, `profiles/${TEST_UID}/background.jpg`);
+    const ref     = storageRef(storage, `profiles/${uid}/background.jpg`);
     await uploadBytes(ref, file);
     const url     = await getDownloadURL(ref);
     await updateField('backgroundURL', url);
@@ -114,12 +184,12 @@ const ProfilePage = () => {
       const ext     = mediaFile.name.split('.').pop();
       const name    = `${Date.now()}.${ext}`;
       const storage = getStorage();
-      const ref     = storageRef(storage, `posts/${TEST_UID}/${name}`);
+      const ref     = storageRef(storage, `posts/${uid}/${name}`);
       await uploadBytes(ref, mediaFile);
       mediaUrl = await getDownloadURL(ref);
     }
     const newPost = {
-      authorId:       TEST_UID,
+      authorId:       uid,
       authorName:     profile.username,
       authorPhotoURL: profile.photoURL,
       content:        text || '',
@@ -132,12 +202,18 @@ const ProfilePage = () => {
     };
     const postRef = await addDoc(collection(db, 'posts'), newPost);
     setPosts(prev => [{ id: postRef.id, ...newPost, liked: false }, ...prev]);
+    await updateDoc(doc(db, 'profiles', uid), {
+      postsCount: increment(1)
+    });
   };
 
   // Delete a post
   const handleDelete = async id => {
     await deleteDoc(doc(db, 'posts', id));
     setPosts(prev => prev.filter(p => p.id !== id));
+    await updateDoc(doc(db, 'profiles', uid), {
+      postsCount: increment(-1)
+    });
   };
 
   // Update a post
@@ -147,7 +223,7 @@ const ProfilePage = () => {
       const ext     = mediaFile.name.split('.').pop();
       const name    = `${Date.now()}.${ext}`;
       const storage = getStorage();
-      const ref     = storageRef(storage, `posts/${TEST_UID}/${name}`);
+      const ref     = storageRef(storage, `posts/${uid}/${name}`);
       await uploadBytes(ref, mediaFile);
       mediaUrl = await getDownloadURL(ref);
     }
@@ -162,15 +238,132 @@ const ProfilePage = () => {
     const postRef = doc(db, 'posts', id);
     await updateDoc(postRef, {
       likesCount: liked ? increment(1) : increment(-1),
-      likedBy: liked ? arrayUnion(TEST_UID) : arrayRemove(TEST_UID)
+      likedBy: liked ? arrayUnion(uid) : arrayRemove(uid)
     });
     setPosts(prev => prev.map(p =>
       p.id === id ? { ...p, likesCount: p.likesCount + (liked ? 1 : -1), liked } : p
     ));
   };
 
-  if (loading) return <div>טוען…</div>;
-  if (!profile) return <div>לא נמצא פרופיל עבור UID={TEST_UID}</div>;
+  // COMMENT SYSTEM FUNCTIONS
+
+  // Add a new comment to a post
+  const addComment = async (postId, text, parentCommentId = null) => {
+    if (!text.trim()) return;
+    
+    try {
+      const commentData = {
+        authorId: uid,
+        authorPhotoURL: profile.photoURL,
+        username: profile.username,
+        text: text.trim(),
+        timestamp: serverTimestamp(),
+        edited: false,
+      };
+      
+      // Add parentCommentId if this is a reply
+      if (parentCommentId) {
+        commentData.parentCommentId = parentCommentId;
+      }
+      
+      // Add the comment to Firestore
+      const commentsRef = collection(db, 'posts', postId, 'comments');
+      await addDoc(commentsRef, commentData);
+      
+      // Update the post's comment count
+      const postRef = doc(db, 'posts', postId);
+      await updateDoc(postRef, {
+        commentsCount: increment(1)
+      });
+      
+      // Update the commentsCount in the local state
+      setPosts(prev => prev.map(p => 
+        p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p
+      ));
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
+  };
+
+  // Edit an existing comment
+  const editComment = async (postId, commentId, newText) => {
+    if (!newText.trim()) return;
+    
+    try {
+      const commentRef = doc(db, 'posts', postId, 'comments', commentId);
+      await updateDoc(commentRef, {
+        text: newText.trim(),
+        edited: true,
+        timestamp: serverTimestamp() // Update timestamp when edited
+      });
+    } catch (error) {
+      console.error('Error editing comment:', error);
+    }
+  };
+
+  // Delete a comment
+  const deleteComment = async (postId, commentId, isReply = false, parentCommentId = null) => {
+    try {
+      // Confirm deletion
+      if (!window.confirm('האם אתה בטוח שברצונך למחוק את התגובה?')) {
+        return;
+      }
+      
+      // Delete the comment document
+      await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
+      
+      // If it's a top-level comment, also find and delete all its replies
+      if (!isReply) {
+        // Get all replies to this comment
+        const repliesQuery = query(
+          collection(db, 'posts', postId, 'comments'),
+          where('parentCommentId', '==', commentId)
+        );
+        const repliesSnapshot = await getDocs(repliesQuery);
+        
+        // Delete each reply
+        const batch = writeBatch(db);
+        repliesSnapshot.docs.forEach(replyDoc => {
+          batch.delete(doc(db, 'posts', postId, 'comments', replyDoc.id));
+        });
+        await batch.commit();
+        
+        // Decrement the post's comment count for the parent and all replies
+        const postRef = doc(db, 'posts', postId);
+        await updateDoc(postRef, {
+          commentsCount: increment(-(repliesSnapshot.size + 1))
+        });
+        
+        // Update local post state
+        setPosts(prev => prev.map(p => 
+          p.id === postId ? { ...p, commentsCount: p.commentsCount - (repliesSnapshot.size + 1) } : p
+        ));
+      } else {
+        // Just decrement by 1 for a reply
+        const postRef = doc(db, 'posts', postId);
+        await updateDoc(postRef, {
+          commentsCount: increment(-1)
+        });
+        
+        // Update local post state
+        setPosts(prev => prev.map(p => 
+          p.id === postId ? { ...p, commentsCount: p.commentsCount - 1 } : p
+        ));
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+    }
+  };
+
+  if (loading) {
+    // you can pass the current element if your loader adapts to it:
+    return (
+      <ThemeProvider element={profile?.element}>
+        <ElementalLoader />
+      </ThemeProvider>
+    );
+  }
+  if (!profile) return <div>לא נמצא פרופיל עבור UID={uid}</div>;
 
 
   return (
@@ -212,6 +405,15 @@ const ProfilePage = () => {
                 onDelete={handleDelete}
                 onUpdate={handleUpdate}
                 onLike={handleLike}
+                comments={postComments[p.id] || []}
+                currentUser={{
+                  uid,
+                  photoURL: profile.photoURL,
+                  username: profile.username
+                }}
+                onAddComment={addComment}
+                onEditComment={editComment}
+                onDeleteComment={deleteComment}
               />
             ))}
           </section>

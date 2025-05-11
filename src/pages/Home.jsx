@@ -21,8 +21,9 @@ import { Button } from '../components/ui/button';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 const Home = () => {
+  const [user, setUser] = useState(null); // ✅ Added user state
   const [posts, setPosts] = useState([]);
-  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const navigate = useNavigate();
@@ -50,6 +51,7 @@ const Home = () => {
             const profileData = profileSnapshot.docs[0].data();
             fullUser.photoURL = profileData.photoURL;
             fullUser.element = profileData.element || 'earth';
+            setProfile(profileData);
           }
         }
 
@@ -139,7 +141,7 @@ const Home = () => {
   };
 
   return (
-    <ThemeProvider element={user?.element || 'earth'}>
+    <ThemeProvider element={profile?.element || 'earth'}>
       <div className="flex min-h-screen bg-element-base">
         <Button
           onClick={() => setIsSidebarOpen(prev => !prev)}
@@ -149,12 +151,12 @@ const Home = () => {
         </Button>
 
         <div className="fixed left-0 h-full z-10">
-          {isLeftSidebarOpen && <LeftSidebar element={user?.element} />}
+          {isLeftSidebarOpen && <LeftSidebar element={profile?.element || 'earth'} />}
         </div>
 
         <div className={`flex-1 transition-all duration-300 ${isLeftSidebarOpen ? 'ml-80' : 'ml-0'} ${isSidebarOpen ? 'mr-80' : 'mr-0'}`}>
           <Navbar
-            element={user?.element}
+            element={profile?.element || 'earth'}
             isLeftSidebarOpen={isLeftSidebarOpen}
             setIsLeftSidebarOpen={setIsLeftSidebarOpen}
           />
@@ -163,22 +165,22 @@ const Home = () => {
               {user && (
                 <CreatePost
                   addPost={addPost}
-                  profilePic={user.photoURL || '/default-avatar.png'}
-                  element={user.element || 'earth'}
+                  profilePic={profile?.photoURL || '/default-avatar.png'}
+                  element={profile?.element || 'earth'}
                 />
               )}
               <PostList
                 posts={posts}
                 onLike={handleLike}
-                currentUserId={user?.uid}
-                element={user?.element}
+                currentUserId={profile?.uid}
+                element={profile?.element || 'earth'}
               />
             </div>
           </div>
         </div>
 
         <div className="fixed right-0 h-full">
-          <RightSidebar isOpen={isSidebarOpen} element={user?.element} />
+          <RightSidebar isOpen={isSidebarOpen} element={profile?.element || 'earth'} />
         </div>
       </div>
     </ThemeProvider>

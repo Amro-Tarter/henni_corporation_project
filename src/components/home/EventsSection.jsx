@@ -2,12 +2,11 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
 import { Calendar, X } from "lucide-react";
 import CTAButton from "@/components/CTAButton";
 import { db } from "@/config/firbaseConfig";
 import { collection, getDocs } from "firebase/firestore";
-import ElementalLoader from "@/components/ElementalLoader";
+import ElementalLoader from "@/theme/ElementalLoader";
 
 // Theme per element
 const elementStyles = {
