@@ -19,7 +19,7 @@ const LeftSidebar = ({ element }) => {
   return (
     <aside
       className={`
-        flex flex-col h-full w-64
+        mt-12 flex flex-col h-full w-64
         bg-white
         border-r border-${element}-accent
         p-6 overflow-y-auto

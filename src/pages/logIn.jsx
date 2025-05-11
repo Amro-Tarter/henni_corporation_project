@@ -108,6 +108,7 @@ const Login = () => {
       if (!userData.is_active) {
         await signOut(auth);
         throw new Error("user-inactive");
+
       }
 
       // 3. Update last_login timestamp
@@ -131,20 +132,24 @@ const Login = () => {
       
     } catch (error) {
       console.error("Login error:", error);
-      
       let message = "שגיאה בהתחברות. נסה שנית.";
-      
-      if (error.code === "auth/user-not-found" || error.message === "user-not-found") {
-        message = "לא נמצא משתמש עם האימייל הזה";
-      } else if (error.code === "auth/wrong-password") {
-        message = "סיסמה שגויה, נסה שנית";
-      } else if (error.code === "auth/too-many-requests") {
-        message = "יותר מדי נסיונות התחברות. נסה שוב מאוחר יותר";
-      } else if (error.code === "auth/invalid-email") {
-        message = "כתובת האימייל אינה תקינה";
-      } else if (error.message === "user-inactive") {
-        message = "המשתמש שלך אינו פעיל. פנה למנהל המערכת.";
-      }
+
+const code = error.code || "";
+const msg = error.message ;
+
+if (msg === "user-not-found") {
+  message = "לא נמצא משתמש עם המייל הזה";
+} else if (code === "auth/user-not-found") {
+  message = "לא נמצא משתמש עם המייל הזה";
+} else if (code === "auth/wrong-password") {
+  message = "סיסמה שגויה, נסה שנית";
+} else if (code === "auth/too-many-requests") {
+  message = "יותר מדי נסיונות התחברות. נסה שוב מאוחר יותר";
+} else if (code === "auth/invalid-email") {
+  message = "כתובת האימייל אינה תקינה";
+} else if (msg === "user-inactive") {
+  message = "המשתמש שלך אינו פעיל. פנה למנהל המערכת.";
+}
       
       showNotification(message, "error");
     } finally {
@@ -196,14 +201,14 @@ const Login = () => {
   </div>
 </div>
 
-      <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
+      <div className="max-w-md w-full  rounded-xl bg-white/30 shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
         {/* Decorative element background */}
         <div className="absolute -top-14 -left-14 w-40 h-40 bg-indigo-100 rounded-full opacity-60"></div>
         <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-100 rounded-full opacity-60"></div>
         
         {/* Logo */}
         <div className="text-center relative">
-          <h2 className="mt-2 text-3xl font-extrabold text-gray-900">לגלות את האור</h2>
+          <h2 className="mt-2 text-3xl font-extrabold text-gray-900">לגלות את האור הניני</h2>
           <p className="mt-2 text-sm text-gray-600">התחברות לחשבון שלך</p>
         </div>
 

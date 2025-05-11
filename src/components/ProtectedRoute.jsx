@@ -9,25 +9,30 @@ const ProtectedRoute = ({ children }) => {
   const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        if (user) {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
-          if (userSnap.exists() && userSnap.data().is_active) {
+          if (userSnap.exists() && userSnap.data().is_active === true) {
             setAllowed(true);
+          } else {
+            setAllowed(false);
           }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          setAllowed(false);
         }
-        setLoading(false);
-      });
+      } else {
+        setAllowed(false);
+      }
+      setLoading(false);
+    });
 
-      return () => unsubscribe();
-    };
-
-    checkAuth();
+    return () => unsubscribe();
   }, []);
 
-  if (loading) return null; // Or a spinner
+  if (loading) return null; // You can use a spinner here
 
   return allowed ? children : <Navigate to="/logIn" />;
 };
