@@ -20,7 +20,7 @@ export default function ConversationList({
   [filteredConversations, activeTab]);
   // Refactored conversation list component with elementColors props
   return (
-    <div className="w-full md:w-1/4 border-l border-gray-200 flex flex-col conversation-list" dir="rtl">
+    <div className="w-full md:w-1/4 border-l border-gray-200 flex flex-col conversation-list mt-16" dir="rtl">
       <div className="p-4">
         <h1 className="text-xl font-bold text-gray-900">כל הצ'אטים</h1>
         <h2 className="text-sm text-gray-500 mt-1">הודעות ({visibleConversations.length})</h2>
