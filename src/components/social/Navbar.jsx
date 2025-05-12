@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { Home, MessageSquare, Settings, Search, Bell, User } from 'lucide-react';
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
 
 const navTabs = [
-  { id: 'home', icon: '🏠', label: 'דף הבית', href: '/Home' },
-  { id: 'messenger', icon: '💬', label: 'הודעות', href: '/chat' },
-  { id: 'settings', icon: '⚙️', label: 'הגדרות', href: '/settings' },
+  { id: 'home', icon: <Home size={20} />, label: 'דף הבית', href: '/Home' },
+  { id: 'messenger', icon: <MessageSquare size={20} />, label: 'הודעות', href: '/chat' },
+  { id: 'settings', icon: <Settings size={20} />, label: 'הגדרות', href: '/settings' },
 ];
 
 const Navbar = ({ element }) => {
@@ -32,7 +31,6 @@ const Navbar = ({ element }) => {
 
   const user = auth.currentUser;
 
-  // ✅ Fetch search history from profiles collection
   useEffect(() => {
     if (user) {
       const fetchHistory = async () => {
@@ -97,7 +95,6 @@ const Navbar = ({ element }) => {
     }
   };
 
-  // ✅ Save search history in profiles collection
   const triggerSearch = async () => {
     if (searchInput && !searchHistory.includes(searchInput)) {
       const updatedHistory = [searchInput, ...searchHistory].slice(0, 5);
@@ -138,8 +135,7 @@ const Navbar = ({ element }) => {
   return (
     <header dir="rtl" className={`fixed top-0 left-0 w-full bg-${element} border-b border-${element}-accent z-50`}>
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
-        {/* Navigation Tabs */}
-        <nav className="flex flex-row-reverse items-center space-x-6 space-x-reverse">
+        <nav className="flex flex-row-reverse items-center gap-6">
           {navTabs.map((tab) => (
             <button
               key={tab.id}
@@ -148,13 +144,12 @@ const Navbar = ({ element }) => {
                 activeTab === tab.id ? `bg-${element}-accent font-semibold` : `hover:bg-${element}-soft`
               }`}
             >
-              <span className="text-xl leading-none">{tab.icon}</span>
+              {tab.icon}
               <span>{tab.label}</span>
             </button>
           ))}
         </nav>
 
-        {/* Search Bar */}
         <form onSubmit={handleSearch} className="flex-1 mx-6 max-w-md">
           <div className="relative">
             <input
@@ -169,15 +164,15 @@ const Navbar = ({ element }) => {
               }}
               className={`w-full border border-${element}-soft rounded-full py-2 pl-12 pr-4 text-gray-800 placeholder-gray-600 focus:border-${element}-accent focus:outline-none focus:ring-1 focus:ring-${element}-accent transition`}
             />
-            <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-xl text-${element}-accent`}>🔍</span>
+            <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-${element}-accent`}>
+              <Search size={20} />
+            </span>
 
-            {/* Search Pop-up */}
             {showSearchPopUp && (
               <div
                 ref={searchRef}
                 className="absolute top-full left-0 right-0 bg-white mt-1 border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50"
               >
-                {/* Search History */}
                 {showHistory && searchHistory.length > 0 && (
                   <div className="p-3">
                     <h3 className="font-semibold">חיפושים אחרונים</h3>
@@ -192,7 +187,7 @@ const Navbar = ({ element }) => {
                             }}
                             className="text-blue-600"
                           >
-                            🔍
+                            <Search size={16} />
                           </button>
                         </li>
                       ))}
@@ -200,7 +195,6 @@ const Navbar = ({ element }) => {
                   </div>
                 )}
 
-                {/* Suggestions */}
                 {searchInput && searchResults.length > 0 && (
                   <div>
                     {searchResults.map((profile, index) => (
@@ -227,9 +221,7 @@ const Navbar = ({ element }) => {
           </div>
         </form>
 
-        {/* Actions */}
         <div className="flex flex-row-reverse items-center space-x-4 space-x-reverse">
-          {/* Notifications */}
           <button
             onClick={() => handleTabClick('notifications', '/notifications')}
             className={`relative p-2 rounded-full transition ${
@@ -237,7 +229,7 @@ const Navbar = ({ element }) => {
             }`}
             aria-label="התראות"
           >
-            <span className="text-xl">🔔</span>
+            <Bell size={20} className={`text-white`} />
             <span
               className={`absolute -top-1 -left-1 bg-${element}-accent text-white rounded-full w-5 h-5 text-xs flex items-center justify-center`}
             >
@@ -245,7 +237,6 @@ const Navbar = ({ element }) => {
             </span>
           </button>
 
-          {/* Profile Icon */}
           <button
             onClick={() => handleTabClick('profile', '/profile')}
             className={`p-2 rounded-full transition ${
@@ -253,7 +244,7 @@ const Navbar = ({ element }) => {
             }`}
             aria-label="פרופיל"
           >
-            <span className="text-xl">👤</span>
+            <User size={20} className="text-white" />
           </button>
         </div>
       </div>

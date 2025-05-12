@@ -36,7 +36,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
   };
 
   return (
-    <div className="flex justify-center px-4 pt-10" dir="rtl">
+    <div className="mb-10 flex justify-center px-4 pt-10" dir="rtl">
       <div
         className={`
           w-full max-w-4xl
