@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, MessageSquare, Settings, Search, Bell, User } from 'lucide-react';
+import { Home, MessageSquare, Settings, Search, Bell, User, LogOut } from 'lucide-react';
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
+import { signOut } from 'firebase/auth';
 
 const navTabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', href: '/Home' },
@@ -27,7 +28,9 @@ const Navbar = ({ element }) => {
   const [searchHistory, setSearchHistory] = useState([]);
   const [showSearchPopUp, setShowSearchPopUp] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const searchRef = useRef(null);
+  const profileDropdownRef = useRef(null);
 
   const user = auth.currentUser;
 
@@ -117,10 +120,22 @@ const Navbar = ({ element }) => {
     window.location.href = href;
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      window.location.href = '/login'; // Redirect to login page after logout
+    } catch (error) {
+      console.error('Error signing out: ', error);
+    }
+  };
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setShowSearchPopUp(false);
+      }
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setShowProfileDropdown(false);
       }
     };
 
@@ -130,6 +145,10 @@ const Navbar = ({ element }) => {
 
   const toggleSearchPopUp = () => {
     setShowSearchPopUp((prev) => !prev);
+  };
+
+  const toggleProfileDropdown = () => {
+    setShowProfileDropdown((prev) => !prev);
   };
 
   return (
@@ -144,8 +163,7 @@ const Navbar = ({ element }) => {
                 activeTab === tab.id ? `bg-${element}-accent font-semibold` : `hover:bg-${element}-soft`
               }`}
             >
-              {tab.icon}
-              <span>{tab.label}</span>
+              {tab.icon} <span>{tab.label}</span>
             </button>
           ))}
         </nav>
@@ -158,7 +176,6 @@ const Navbar = ({ element }) => {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onFocus={toggleSearchPopUp}
-              onBlur={() => setTimeout(() => setShowSearchPopUp(false), 100)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') triggerSearch();
               }}
@@ -237,15 +254,50 @@ const Navbar = ({ element }) => {
             </span>
           </button>
 
-          <button
-            onClick={() => handleTabClick('profile', '/profile')}
-            className={`p-2 rounded-full transition ${
-              activeTab === 'profile' ? `bg-${element}-accent` : `hover:bg-${element}-soft`
-            }`}
-            aria-label="פרופיל"
-          >
-            <User size={20} className="text-white" />
-          </button>
+          <div className="relative" ref={profileDropdownRef}>
+            <button
+              onClick={toggleProfileDropdown}
+              className={`p-2 rounded-full transition ${
+                activeTab === 'profile' ? `bg-${element}-accent` : `hover:bg-${element}-soft`
+              }`}
+              aria-label="פרופיל"
+            >
+              <User size={20} className="text-white" />
+            </button>
+            
+            {showProfileDropdown && (
+              <div className="absolute left-0 top-12 w-60 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                {user && (
+                  <div className="p-4 border-b border-gray-200">
+                    <p className="text-gray-800 font-medium text-center">{user.email}</p>
+                  </div>
+                )}
+                <div className="py-2">
+                  <button
+                    onClick={() => handleTabClick('profile', '/profile')}
+                    className="w-full text-right px-4 py-2 hover:bg-gray-100 transition"
+                  >
+                    הפרופיל שלי
+                  </button>
+                  <button
+                    onClick={() => handleTabClick('settings', '/settings')}
+                    className="w-full text-right px-4 py-2 hover:bg-gray-100 transition"
+                  >
+                    הגדרות
+                  </button>
+                  <div className="border-t border-gray-200 mt-2">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-right px-4 py-2 text-red-600 hover:bg-gray-100 transition flex items-center"
+                    >
+                      <span className="ml-2">התנתקות</span>
+                      <LogOut size={16} className="mr-auto" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>
