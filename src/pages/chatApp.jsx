@@ -23,6 +23,7 @@ import ConversationList from "../components/chatComponents/ConversationList";
 import ChatArea from "../components/chatComponents/ChatArea";
 import Navbar from '../components/social/Navbar';
 import Sidebar from "../components/chatComponents/sidebar";
+import ElementalLoader from "../theme/ElementalLoader"; // Add this import
 
 export default function ChatApp() {
   const [authInitialized, setAuthInitialized] = useState(false);
@@ -729,7 +730,7 @@ export default function ChatApp() {
   };
 
   if (!authInitialized) {
-    return <div className="flex items-center justify-center h-screen">Loading chat...</div>;
+    return <ElementalLoader />
   }
   
   const elementColors = ELEMENT_COLORS[currentUser.element];
