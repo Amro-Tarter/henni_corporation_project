@@ -738,8 +738,8 @@ export default function ChatApp() {
 
 
   return (
-    <div id='messenger' className="flex h-screen bg-white">
-      <Navbar />
+    <div id='messenger' className="flex h-screen">
+      <Navbar element={userElement}/>
       <Sidebar 
         elementColors={ELEMENT_COLORS[currentUser.element]}
         userElement={userElement}
