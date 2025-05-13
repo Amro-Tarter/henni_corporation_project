@@ -39,7 +39,7 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfUse />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/forgotPassword" element={<ForgotPassword />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="/login" element={<LogIn />} />
             <Route path="/community" element={<CommunityPage />} />
@@ -49,7 +49,7 @@ const App = () => (
             <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
-            <Route path="/public-settings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
+            <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
             {/* <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} /> */}
 
             {/* 404 Page */}
