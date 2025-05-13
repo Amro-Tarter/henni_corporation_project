@@ -172,11 +172,12 @@ const Navigation = () => {
                   {currentUser ? (currentUser.displayName || 'החשבון שלי') : 'התחברות'}
                 </span>
               </button>
+                  {/* Auth Dropdown */}
               {showAuthDropdown && (
                 <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                   {currentUser ? (
                     <>
-                      <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200">
+                      <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200 truncate">
                         {currentUser.email}
                       </div>
                       <a href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
