@@ -94,9 +94,8 @@ const Rightsidebar = ({ element, onExpandChange }) => {
       className={`
         fixed top-[56.8px] bottom-0 right-0 
         ${isExpanded ? 'w-64' : 'w-16'} 
-        transition-all duration-300 ease-in-out
-        bg-white border-l border-${element}-accent
-        shadow-xl z-40 flex flex-col overflow-hidden
+        transition-[width] duration-500 ease-in-out
+        bg-white shadow-lg z-40 flex flex-col overflow-hidden
       `}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -165,8 +164,11 @@ const Rightsidebar = ({ element, onExpandChange }) => {
               ${activeTab === tab.id ? `bg-${element} text-white` : ''}
             `}
           >
-            {tab.icon}
-            <span className={`${isExpanded ? 'inline' : 'hidden'} font-medium`}>{tab.label}</span>
+            <span className="min-w-[24px] flex justify-center items-center transition-transform duration-500 group-hover:scale-110">
+              {tab.icon}
+            </span>
+            <span className={`font-medium overflow-hidden whitespace-nowrap transition-all duration-300
+              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0'}`}>{tab.label}</span>
           </button>
         ))}
       </nav>
@@ -174,13 +176,14 @@ const Rightsidebar = ({ element, onExpandChange }) => {
       <div className={`px-2 pb-6 space-y-2 ${isExpanded ? 'px-4' : ''}`}>
         <button
           onClick={() => setActiveTab('notifications')}
-          className={`flex items-center gap-3 rounded-md px-3 py-2 w-full text-${element} hover:bg-${element}-soft transition-colors duration-200 ${
-            activeTab === 'notifications' ? `bg-${element}-soft text-white` : ''
+          className={`flex items-center gap-3 rounded-md px-3 py-2 w-full text-${element} hover:bg-${element}-soft transition-colors duration-500 ${
+            activeTab === 'notifications' ? `bg-${element} text-white` : ''
           }`}
         >
           <Bell size={20} />
           {isExpanded && (
-            <span className="flex flex-1 justify-between">
+            <span className="flex flex-1 justify-between font-medium overflow-hidden whitespace-nowrap transition-all duration-300
+              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0">
               <span>התראות</span>
               <span className={`rounded-full bg-${element}-accent text-white px-2 py-1 text-xs`}>
                 3
@@ -192,7 +195,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         <button
           onClick={() => setActiveTab('profile')}
           className={`flex items-center gap-3 rounded-md px-3 py-2 w-full text-${element} hover:bg-${element}-soft transition-colors duration-200 ${
-            activeTab === 'profile' ? `bg-${element}-soft text-white` : ''
+            activeTab === 'profile' ? `bg-${element} text-white` : ''
           }`}
         >
           {userPhotoURL ? (
@@ -201,7 +204,8 @@ const Rightsidebar = ({ element, onExpandChange }) => {
             <User size={20} />
           )}
           {isExpanded && (
-            <span className="font-medium">פרופיל</span>
+            <span className="font-medium overflow-hidden whitespace-nowrap transition-all duration-300
+              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0">פרופיל</span>
           )}
         </button>
 
@@ -211,7 +215,8 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         >
           <LogOut size={20} />
           {isExpanded && (
-            <span className="font-medium">התנתק</span>
+            <span className="font-medium overflow-hidden whitespace-nowrap transition-all duration-300
+              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0">התנתק</span>
           )}
         </button>
       </div>
