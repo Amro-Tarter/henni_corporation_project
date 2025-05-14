@@ -1,15 +1,15 @@
-import {
-  HiOutlineChatBubbleBottomCenterText,
-  HiUserGroup,
-  HiMiniUsers,
-  HiMiniHome
-} from "react-icons/hi2";
+// Organize imports
+import { HiOutlineChatBubbleBottomCenterText, HiUserGroup, HiMiniUsers, HiMiniHome } from "react-icons/hi2";
 import { useState } from "react";
 
+/**
+ * Sidebar for chat navigation by type.
+ */
 export default function Sidebar({ elementColors, onTabChange, userElement }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [activeTab, setActiveTab] = useState("all"); // Default to all chats
 
+  // Define sidebar items
   const sidebarItems = [
     { icon: HiMiniHome, label: "All", type: "all" },
     { icon: HiOutlineChatBubbleBottomCenterText, label: "private", type: "direct" },
@@ -17,6 +17,7 @@ export default function Sidebar({ elementColors, onTabChange, userElement }) {
     { icon: HiUserGroup, label: `${userElement} Community`, type: "community" }
   ];
 
+  // Handle tab click
   const handleTabClick = (tabType) => {
     setActiveTab(tabType);
     onTabChange(tabType);

@@ -19,15 +19,18 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { auth, db, storage } from "../config/firbaseConfig";
-import ConversationList from "../components/chatComponents/ConversationList";
-import ChatArea from "../components/chatComponents/ChatArea";
+import ConversationList from "../components/chat/ConversationList";
+import ChatArea from "../components/chat/ChatArea";
 import Navbar from '../components/social/Navbar';
-import Sidebar from "../components/chatComponents/sidebar";
-import ElementalLoader from "../theme/ElementalLoader"; // Add this import
+import Sidebar from "../components/chat/sidebar";
+import ElementalLoader from '../theme/ElementalLoader';
+import { getChatPartner } from "../components/chat/utils/chatHelpers";
+import { useFileUpload } from "../components/chat/hooks/useFileUpload";
 
 export default function ChatApp() {
+  // --- State ---
   const [authInitialized, setAuthInitialized] = useState(false);
-  const [currentUser, setCurrentUser] = useState({ uid: null, username: '' });
+  const [currentUser, setCurrentUser] = useState({ uid: null, username: '', element: '' });
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -38,26 +41,61 @@ export default function ChatApp() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [mediaRecorder, setMediaRecorder] = useState(null);
-  const [audioBlob, setAudioBlob] = useState(null);
-  const [audioURL, setAudioURL] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef(null);
 
-  // Add this function
+  // File upload state/logic (moved to hook)
+  const {
+    file,
+    preview,
+    handleFileChange,
+    removeFile
+  } = useFileUpload();
+
+  // --- Constants ---
+  const ELEMENT_COLORS = {
+    fire: {
+      primary: '#ff4500',
+      hover: '#e63e00',
+      light: '#fff0e6',
+      darkHover: '#b33000'
+    },
+    earth: {
+      primary: '#228B22',
+      hover: '#1e7a1e',
+      light: '#f5ede6',
+      darkHover: '#5e2f0d'
+    },
+    metal: {
+      primary: '#c0c0c0',
+      hover: '#a8a8a8',
+      light: '#f5f5f5',
+      darkHover: '#808080'
+    },
+    water: {
+      primary: '#1e90ff',
+      hover: '#187bdb',
+      light: '#e6f2ff',
+      darkHover: '#0066cc'
+    },
+    air: {
+      primary: '#87ceeb',
+      hover: '#76bede',
+      light: '#eaf8ff',
+      darkHover: '#5ca8c4'
+    }
+  };
+
+  // --- User Search (for new chat dialog) ---
   const searchUsers = async (searchTerm) => {
     if (!searchTerm.trim()) {
       setSearchResults([]);
       return;
     }
-    
     try {
       setIsSearching(true);
       const q = query(
@@ -66,15 +104,10 @@ export default function ChatApp() {
         where("username", "<=", searchTerm.toLowerCase() + "\uf8ff"),
         limit(5)
       );
-      
       const snapshot = await getDocs(q);
       const results = snapshot.docs
         .filter(doc => doc.id !== currentUser.uid)
-        .map(doc => ({
-          id: doc.id,
-          username: doc.data().username
-        }));
-      
+        .map(doc => ({ id: doc.id, username: doc.data().username }));
       setSearchResults(results);
     } catch (error) {
       console.error("Search error:", error);
@@ -83,116 +116,323 @@ export default function ChatApp() {
     }
   };
 
-  // Update the partnerName handler
   const handlePartnerSearch = (value) => {
     setPartnerName(value);
-    
-    // Clear previous timeout
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    
-    // Debounce search
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => {
       searchUsers(value);
     }, 300);
   };
 
+  // --- Auth and User Initialization ---
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          const userElement = userDoc.data().element;
+          const userData = {
+            uid: user.uid,
+            username: userDoc.data().username,
+            element: userElement
+          };
+          setCurrentUser(userData);
+          // Ensure user is in their community
+          const community = await handleCommunityChatMembership(user.uid, userElement);
+          if (community) setSelectedConversation(community);
+          setAuthInitialized(true);
+        } catch (error) {
+          console.error("Error loading user:", error);
+        }
+      } else {
+        setAuthInitialized(true);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
-  // Add this in chatApp.jsx
-  const ELEMENT_COLORS = {
-    fire: {
-      primary: '#ff4500',  // Bright red-orange for fire
-      hover: '#e63e00',
-      light: '#fff0e6',
-      darkHover: '#b33000'  // Darker shade for fire
-    },
-    earth: {
-      primary: '#228B22',  // Forest green from tree
-      hover: '#1e7a1e',
-      light: '#f5ede6',     // Keep the earthy light tone
-      darkHover: '#5e2f0d'  // Dark brown
-    },
-    metal: {
-      primary: '#c0c0c0',  // Silver/metallic for metal
-      hover: '#a8a8a8',
-      light: '#f5f5f5',
-      darkHover: '#808080'  // Darker shade for metal
-    },
-    water: {
-      primary: '#1e90ff',  // Deep blue for water
-      hover: '#187bdb',
-      light: '#e6f2ff',
-      darkHover: '#0066cc'  // Darker shade for water
-    },
-    air: {
-      primary: '#87ceeb',  // Light sky blue
-      hover: '#76bede',    // Slightly darker sky
-      light: '#eaf8ff',    // Very light airy blue
-      darkHover: '#5ca8c4' // Deeper sky
+  // --- Conversation Filtering ---
+  const filteredConversations = useMemo(() => {
+    let filtered = conversations;
+    if (activeTab === "private") {
+      filtered = filtered.filter(conv => conv.type === "direct");
+    } else if (activeTab === "groups") {
+      filtered = filtered.filter(conv => conv.type === "group");
+    } else if (activeTab === "community") {
+      filtered = filtered.filter(conv =>
+        conv.type === "community" &&
+        conv.element === currentUser.element?.toLowerCase()
+      );
     }
-  };
-  
+    if (searchQuery) {
+      filtered = filtered.filter(conv =>
+        conv.participantNames?.some(name =>
+          name !== currentUser.username &&
+          name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+    }
+    return filtered;
+  }, [conversations, searchQuery, activeTab, currentUser.element]);
 
+  // --- Load Conversations ---
+  useEffect(() => {
+    if (!currentUser.uid) return;
+    setIsLoadingConversations(true);
+    const q = query(
+      collection(db, "conversations"),
+      where("participants", "array-contains", currentUser.uid),
+      orderBy("lastUpdated", "desc")
+    );
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const validConversations = [];
+      for (const conversationDoc of snapshot.docs) {
+        try {
+          const data = conversationDoc.data();
+          const base = {
+            id: conversationDoc.id,
+            ...data,
+            lastUpdated: data.lastUpdated?.toDate(),
+            createdAt: data.createdAt?.toDate()
+          };
+          if (data.type === "community") {
+            validConversations.push({
+              ...base,
+              participantNames: [`${data.element} Community`]
+            });
+            continue;
+          }
+          if (data.type === "direct") {
+            const partnerUid = data.participants?.find(p => p !== currentUser.uid);
+            if (!partnerUid) continue;
+            const userDocRef = doc(db, "users", partnerUid);
+            const partnerDoc = await getDoc(userDocRef);
+            validConversations.push({
+              ...base,
+              participantNames: [
+                currentUser.username,
+                partnerDoc.exists() ? partnerDoc.data().username : "Unknown"
+              ]
+            });
+            continue;
+          }
+          // Add other types here
+        } catch (error) {
+          console.error("Error processing conversation:", error);
+        }
+      }
+      setConversations(validConversations);
+      setIsLoadingConversations(false);
+    });
+    return () => unsubscribe();
+  }, [currentUser.uid]);
 
-  // Voice recording handlers
-  const startRecording = async () => {
+  // --- Load Messages for Selected Conversation ---
+  useEffect(() => {
+    if (!selectedConversation) return;
+    setIsLoadingMessages(true);
+    const q = query(
+      collection(db, "conversations", selectedConversation.id, "messages"),
+      orderBy("createdAt")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map((doc) => ({ 
+        id: doc.id, 
+        ...doc.data(),
+        duration: doc.data().duration || 0,
+        createdAt: doc.data().createdAt?.toDate() 
+      }));
+      setMessages(msgs);
+      setIsLoadingMessages(false);
+    });
+    return () => unsubscribe();
+  }, [selectedConversation?.id]);
+
+  // --- Send Message (handles text and file/image) ---
+  const sendMessage = async () => {
+    if ((!newMessage.trim() && !file) || !selectedConversation || isSending || isUploading) {
+      return;
+    }
+    const messageToSend = newMessage;
+    setNewMessage("");
+    removeFile();
+    setUploadProgress(0);
+    setIsSending(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      setMediaRecorder(recorder);
-      
-      const audioChunks = [];
-      recorder.ondataavailable = (e) => audioChunks.push(e.data);
-      
-      recorder.onstop = () => {
-        const blob = new Blob(audioChunks, { type: 'audio/webm' });
-        setAudioBlob(blob);
-        setAudioURL(URL.createObjectURL(blob));
-        stream.getTracks().forEach(track => track.stop());
+      let messageData = {
+        sender: currentUser.uid,
+        senderName: currentUser.username,
+        createdAt: serverTimestamp(),
       };
-      
-      recorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      console.error('Error starting recording:', err);
+      if (file) {
+        setIsUploading(true);
+        const storageRef = ref(
+          storage,
+          `messages/${selectedConversation.id}/${Date.now()}_${file.name}`
+        );
+        const uploadTask = uploadBytesResumable(storageRef, file, {
+          contentType: file.type,
+          customMetadata: { uploadedBy: currentUser.uid }
+        });
+        uploadTask.on('state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setUploadProgress(progress);
+          },
+          (error) => {
+            console.error("Upload error:", error);
+            setUploadProgress(0);
+            throw error;
+          }
+        );
+        await uploadTask;
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+        messageData = {
+          ...messageData,
+          mediaURL: downloadURL,
+          mediaType: file.type.startsWith('image/') ? 'image' : 'unknown',
+          fileName: file.name,
+          fileSize: file.size
+        };
+      } else {
+        messageData.text = messageToSend;
+      }
+      // Optimistic update (optional)
+      const tempMessageId = `temp-${Date.now()}`;
+      const optimisticMessage = {
+        id: tempMessageId,
+        ...messageData,
+        createdAt: new Date()
+      };
+      setMessages(prev => [...prev, optimisticMessage]);
+      // Batched writes
+      const batch = writeBatch(db);
+      const messagesRef = collection(db, "conversations", selectedConversation.id, "messages");
+      const newMessageRef = doc(messagesRef);
+      batch.set(newMessageRef, messageData);
+      const conversationRef = doc(db, "conversations", selectedConversation.id);
+      batch.update(conversationRef, {
+        lastMessage: file ? (file.type.startsWith('image/') ? 'Sent an image' : 'Sent a voice message') : messageToSend,
+        lastUpdated: serverTimestamp(),
+      });
+      await batch.commit();
+      setMessages(prev => prev.filter(msg => msg.id !== tempMessageId));
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setNewMessage(messageToSend);
+      alert(`Message failed: ${error.message}`);
+    } finally {
+      setIsSending(false);
+      setIsUploading(false);
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorder) {
-      mediaRecorder.stop();
-      setIsRecording(false);
+  // --- Create New Conversation ---
+  const createNewConversation = async () => {
+    const partnerUsername = partnerName.trim();
+    if (!partnerUsername) return;
+    try {
+      const usersRef = collection(db, "users");
+      const userQuery = query(
+        usersRef, 
+        where("username", "==", partnerUsername)
+      );
+      const userSnapshot = await getDocs(userQuery);
+      if (userSnapshot.empty) {
+        alert("User does not exist");
+        return;
+      }
+      const partner = userSnapshot.docs[0];
+      const partnerUid = partner.id;
+      if (partnerUid === currentUser.uid) {
+        alert("You cannot message yourself");
+        return;
+      }
+      const participants = [currentUser.uid, partnerUid].sort();
+      const existingConversationsQuery = query(
+        collection(db, "conversations"),
+        where("participants", "array-contains", currentUser.uid),
+        where("type", "==", "direct")
+      );
+      const convSnapshot = await getDocs(existingConversationsQuery);
+      const existingConversation = convSnapshot.docs.find(doc => {
+        const convParticipants = doc.data().participants;
+        return convParticipants.includes(partnerUid);
+      });
+      if (existingConversation) {
+        setSelectedConversation({
+          id: existingConversation.id,
+          ...existingConversation.data(),
+          lastUpdated: existingConversation.data().lastUpdated?.toDate(),
+          createdAt: existingConversation.data().createdAt?.toDate()
+        });
+        setShowNewChatDialog(false);
+        setPartnerName("");
+        return;
+      }
+      const batch = writeBatch(db);
+      const convoRef = doc(collection(db, "conversations"));
+      const convoData = {
+        participants: participants,
+        participantNames: [currentUser.username, partner.data().username],
+        type: "direct",
+        lastMessage: "",
+        lastUpdated: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      };
+      batch.set(convoRef, convoData);
+      await batch.commit();
+      const newConvo = await getDoc(convoRef);
+      setSelectedConversation({ 
+        id: newConvo.id,
+        ...newConvo.data(),
+        lastUpdated: newConvo.data().lastUpdated?.toDate(),
+        createdAt: newConvo.data().createdAt?.toDate()
+      });
+      setShowNewChatDialog(false);
+      setPartnerName("");
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      alert(`Error creating conversation: ${error.message}`);
     }
   };
 
-  const removeAudio = () => {
-    setAudioBlob(null);
-    setAudioURL("");
-  };
-
-
-    // Add this function inside the ChatApp component
-  // Add this function inside the ChatApp component
+  // --- Community Chat Membership ---
   const handleCommunityChatMembership = async (userId, userElement) => {
     try {
       const normalizedElement = userElement.toLowerCase();
-  
-      // Get user data
       const userDoc = await getDoc(doc(db, "users", userId));
       const username = userDoc.data().username;
-  
-      // Find all community conversations for this element
+      // 1. Find all community conversations the user is currently in
+      const allCommunitiesQuery = query(
+        collection(db, "conversations"),
+        where("type", "==", "community"),
+        where("participants", "array-contains", userId)
+      );
+      const allCommunitiesSnapshot = await getDocs(allCommunitiesQuery);
+      // 2. Remove user from all communities except the new one
+      for (const communityDoc of allCommunitiesSnapshot.docs) {
+        const data = communityDoc.data();
+        if (data.element !== normalizedElement) {
+          await updateDoc(communityDoc.ref, {
+            participants: data.participants.filter((id) => id !== userId),
+            participantNames: data.participantNames.filter((name) => name !== username),
+          });
+          await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
+            text: `${username} left the community`,
+            type: "system",
+            createdAt: serverTimestamp(),
+          });
+        }
+      }
+      // 3. Find or create the new community for the user's current element
       const q = query(
         collection(db, "conversations"),
         where("type", "==", "community"),
         where("element", "==", normalizedElement)
       );
-  
       const querySnapshot = await getDocs(q);
-  
       let communityDoc;
-  
       if (querySnapshot.empty) {
         // No community exists for this element → create it
         const newCommunityRef = doc(collection(db, "conversations"));
@@ -205,28 +445,21 @@ export default function ChatApp() {
           lastUpdated: serverTimestamp(),
           createdAt: serverTimestamp(),
         });
-  
-        // Add system message
         await addDoc(collection(db, "conversations", newCommunityRef.id, "messages"), {
           text: "Community created! Welcome!",
           type: "system",
           createdAt: serverTimestamp(),
         });
-  
         communityDoc = await getDoc(newCommunityRef);
       } else {
         // A community already exists — use the first one
         communityDoc = querySnapshot.docs[0];
-  
         const data = communityDoc.data();
-  
-        // Join if not already in it
         if (!data.participants.includes(userId)) {
           await updateDoc(communityDoc.ref, {
             participants: arrayUnion(userId),
             participantNames: arrayUnion(username),
           });
-  
           await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
             text: `${username} joined the community`,
             type: "system",
@@ -234,7 +467,6 @@ export default function ChatApp() {
           });
         }
       }
-  
       return {
         id: communityDoc.id,
         ...communityDoc.data(),
@@ -245,503 +477,19 @@ export default function ChatApp() {
       console.error("Error handling community chat:", error);
     }
   };
-  
-  
-    
-  // Update the auth useEffect to call this function
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          const userElement = userDoc.data().element;
-  
-          const userData = {
-            uid: user.uid,
-            username: userDoc.data().username,
-            element: userElement
-          };
-  
-          setCurrentUser(userData);
-  
-          // Make sure community is joined
-          const community = await handleCommunityChatMembership(user.uid, userElement);
-  
-          // Optional: auto-select community on login
-          if (community) {
-            setSelectedConversation(community);
-          }
-  
-          setAuthInitialized(true);
-        } catch (error) {
-          console.error("Error loading user:", error);
-        }
-      } else {
-        setAuthInitialized(true);
-      }
-    });
-  
-    return () => unsubscribe();
-  }, []);
-  
-
-  const getChatPartner = useCallback((participants, conversationType, element) => {
-    if (conversationType === "community") {
-      return `${element} Community`;
-    }
-    
-    if (!participants || !currentUser.uid) return "Unknown";
-    const partnerUid = participants.find((p) => p !== currentUser.uid);
-    const conversation = conversations.find(conv => 
-      conv.participants.includes(partnerUid)
-    );
-    
-    return conversation?.participantNames?.find(name => name !== currentUser.username) || "Unknown";
-  }, [currentUser.uid, currentUser.username, conversations]);
-
-  const filteredConversations = useMemo(() => {
-    let filtered = conversations;
-    
-    // Apply tab filter
-    if (activeTab === "private") {
-      filtered = filtered.filter(conv => conv.type === "direct");
-    } else if (activeTab === "groups") {
-      filtered = filtered.filter(conv => conv.type === "group");
-    } else if (activeTab === "community") {
-      filtered = filtered.filter(conv => 
-        conv.type === "community" && 
-        conv.element === currentUser.element.toLowerCase()
-      );
-    }
-  
-    // Apply search filter
-    if (searchQuery) {
-      filtered = filtered.filter(conv =>
-        conv.participantNames?.some(name =>
-          name !== currentUser.username && // exclude current user
-          name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      );
-    }
-  
-    return filtered;
-  }, [conversations, searchQuery, activeTab, currentUser.element]);
-
-
-  // Load conversations
-// chatApp.jsx - Key Optimizations
-  useEffect(() => {
-    if (!currentUser.uid) return;
-
-    setIsLoadingConversations(true);
-    const q = query(
-      collection(db, "conversations"),
-      where("participants", "array-contains", currentUser.uid),
-      orderBy("lastUpdated", "desc")
-    );
-
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const validConversations = [];
-      
-      for (const conversationDoc of snapshot.docs) {
-        try {
-          const data = conversationDoc.data();
-          
-          // Base conversation data
-          const base = {
-            id: conversationDoc.id,
-            ...data,
-            lastUpdated: data.lastUpdated?.toDate(),
-            createdAt: data.createdAt?.toDate()
-          };
-
-          // Community Chat
-          if (data.type === "community") {
-            validConversations.push({
-              ...base,
-              participantNames: [`${data.element} Community`]
-            });
-            continue;
-          }
-
-          // Direct Message
-          if (data.type === "direct") {
-            const partnerUid = data.participants?.find(p => p !== currentUser.uid);
-            if (!partnerUid) continue;
-
-            const userDocRef = doc(db, "users", partnerUid);
-            const partnerDoc = await getDoc(userDocRef);
-            
-            validConversations.push({
-              ...base,
-              participantNames: [
-                currentUser.username,
-                partnerDoc.exists() ? partnerDoc.data().username : "Unknown"
-              ]
-            });
-            continue;
-          }
-
-          // Add other types here
-        } catch (error) {
-          console.error("Error processing conversation:", error);
-        }
-      }
-
-      setConversations(validConversations);
-      setIsLoadingConversations(false);
-    });
-
-    return () => unsubscribe();
-  }, [currentUser.uid]);
-
-
-  // Load messages for selected conversation
-  useEffect(() => {
-    if (!selectedConversation) return;
-
-    setIsLoadingMessages(true);
-    const q = query(
-      collection(db, "conversations", selectedConversation.id, "messages"),
-      orderBy("createdAt")
-    );
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map((doc) => ({ 
-        id: doc.id, 
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() 
-      }));
-      setMessages(msgs);
-      setIsLoadingMessages(false);
-    });
-
-    return () => unsubscribe();
-  }, [selectedConversation?.id]);
-
-
-// Enhanced image compression
-  const compressImage = async (file) => {
-    const MAX_DIMENSION = 800;
-    const QUALITY = 0.6;
-    
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      const img = new Image();
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height && width > MAX_DIMENSION) {
-          height *= MAX_DIMENSION / width;
-          width = MAX_DIMENSION;
-        } else if (height > MAX_DIMENSION) {
-          width *= MAX_DIMENSION / height;
-          height = MAX_DIMENSION;
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob(blob => {
-          resolve(new File([blob], file.name, {
-            type: 'image/webp', // Better compression
-            lastModified: Date.now()
-          }));
-        }, 'image/webp', QUALITY);
-      };
-      img.src = URL.createObjectURL(file);
-    });
-  };
-
-  const handleFileChange = async (e) => {
-    const selectedFile = e.target.files[0];
-    if (!selectedFile) return;
-
-    // Validate file type and size
-    if (!selectedFile.type.startsWith('image/')) {
-      alert('Only image files allowed');
-      return;
-    }
-
-    // Limit file size (10MB for images, 50MB for videos)
-    const maxSize = selectedFile.type.startsWith('image/') ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
-    if (selectedFile.size > maxSize) {
-      alert(`File too large. Max ${maxSize/(1024*1024)}MB allowed`);
-      return;
-    }
-
-    // For images, compress before showing preview
-    if (selectedFile.type.startsWith('image/')) {
-      try {
-        const compressedFile = await compressImage(selectedFile);
-        setFile(compressedFile);
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setPreview({
-            url: e.target.result,
-            type: 'image'
-          });
-        };
-        reader.readAsDataURL(compressedFile);
-      } catch (error) {
-        console.error("Image compression failed:", error);
-        // Fallback to original if compression fails
-        setFile(selectedFile);
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          setPreview({
-            url: e.target.result,
-            type: 'image'
-          });
-        };
-        reader.readAsDataURL(selectedFile);
-      }
-    }
-  };
-
-  const removeFile = () => {
-    if (preview?.url) {
-      URL.revokeObjectURL(preview.url);
-    }
-    setFile(null);
-    setPreview(null);
-    setUploadProgress(0);
-  };
-
-  const sendMessage = async () => {
-    if ((!newMessage.trim() && !file && !audioBlob) || !selectedConversation || isSending || isUploading) {
-      return;
-    }
-  
-    // Immediately clear the input and reset state for better UX
-    const messageToSend = newMessage;
-    setNewMessage("");
-    setFile(null);
-    setPreview(null);
-    setUploadProgress(0);
-    removeAudio();
-  
-    setIsSending(true);
-    
-    try {
-      let messageData = {
-        sender: currentUser.uid,
-        senderName: currentUser.username,
-        createdAt: serverTimestamp(),
-      };
-  
-      if (file) {
-        setIsUploading(true);
-        
-        const storageRef = ref(
-          storage,
-          `messages/${selectedConversation.id}/${Date.now()}_${file.name}`
-        );
-  
-        const uploadTask = uploadBytesResumable(storageRef, file, {
-          contentType: file.type,
-          customMetadata: {
-            uploadedBy: currentUser.uid
-          }
-        });
-  
-        uploadTask.on('state_changed',
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgress(progress);
-          },
-          (error) => {
-            console.error("Upload error:", error);
-            setUploadProgress(0);
-            throw error;
-          }
-        );
-  
-        await uploadTask;
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-  
-        messageData = {
-          ...messageData,
-          mediaURL: downloadURL,
-          mediaType: file.type.startsWith('image/') ? 'image' : 'unknown',
-          fileName: file.name,
-          fileSize: file.size
-        };
-      } else if (audioBlob) {
-        const storageRef = ref(
-          storage,
-          `audio_messages/${selectedConversation.id}/${Date.now()}.webm`
-        );
-  
-        const uploadTask = uploadBytesResumable(storageRef, audioBlob, {
-          contentType: 'audio/webm',
-          customMetadata: { uploadedBy: currentUser.uid }
-        });
-  
-        await uploadTask;
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-  
-        messageData = {
-          ...messageData,
-          audioURL: downloadURL,
-          type: 'audio'
-        };
-      } else {
-        messageData.text = messageToSend;
-      }
-  
-      // Optimistic update - add the message to local state immediately
-      const tempMessageId = `temp-${Date.now()}`;
-      const optimisticMessage = {
-        id: tempMessageId,
-        ...messageData,
-        createdAt: new Date() // Use local timestamp temporarily
-      };
-      
-      setMessages(prev => [...prev, optimisticMessage]);
-  
-      // Use batched writes for atomic updates
-      const batch = writeBatch(db);
-      
-      // Add message
-      const messagesRef = collection(db, "conversations", selectedConversation.id, "messages");
-      const newMessageRef = doc(messagesRef);
-      batch.set(newMessageRef, messageData);
-      
-      // Update conversation
-      const conversationRef = doc(db, "conversations", selectedConversation.id);
-      batch.update(conversationRef, {
-        lastMessage: file ? (file.type.startsWith('image/') ? 'Sent an image' : 'Sent a voice message') : messageToSend,
-        lastUpdated: serverTimestamp(),
-      });
-  
-      await batch.commit();
-  
-      // Remove the temporary message and let Firestore update handle the real one
-      setMessages(prev => prev.filter(msg => msg.id !== tempMessageId));
-  
-    } catch (error) {
-      console.error("Error sending message:", error);
-      // Revert optimistic updates on error
-      setNewMessage(messageToSend);
-      if (file) {
-        setFile(file);
-        setPreview(preview);
-      }
-      if (audioBlob) {
-        setAudioBlob(audioBlob);
-        setAudioURL(audioURL);
-      }
-      alert(`Message failed: ${error.message}`);
-    } finally {
-      setIsSending(false);
-      setIsUploading(false);
-    }
-  };
-
-
-  const createNewConversation = async () => {
-    const partnerUsername = partnerName.trim();
-    if (!partnerUsername) return;
-  
-    try {
-      const usersRef = collection(db, "users");
-      const userQuery = query(
-        usersRef, 
-        where("username", "==", partnerUsername)
-      );
-      const userSnapshot = await getDocs(userQuery);
-  
-      if (userSnapshot.empty) {
-        alert("User does not exist");
-        return;
-      }
-  
-      const partner = userSnapshot.docs[0];
-      const partnerUid = partner.id;
-  
-      if (partnerUid === currentUser.uid) {
-        alert("You cannot message yourself");
-        return;
-      }
-  
-      const participants = [currentUser.uid, partnerUid].sort();
-  
-      // Fixed query with type filter
-      const existingConversationsQuery = query(
-        collection(db, "conversations"),
-        where("participants", "array-contains", currentUser.uid),
-        where("type", "==", "direct") // Critical fix here
-      );
-  
-      const convSnapshot = await getDocs(existingConversationsQuery);
-      
-      const existingConversation = convSnapshot.docs.find(doc => {
-        const convParticipants = doc.data().participants;
-        return convParticipants.includes(partnerUid);
-      });
-      
-      if (existingConversation) {
-        setSelectedConversation({
-          id: existingConversation.id,
-          ...existingConversation.data(),
-          lastUpdated: existingConversation.data().lastUpdated?.toDate(),
-          createdAt: existingConversation.data().createdAt?.toDate()
-        });
-        setShowNewChatDialog(false);
-        setPartnerName("");
-        return;
-      }
-  
-      const batch = writeBatch(db);
-      const convoRef = doc(collection(db, "conversations"));
-      const convoData = {
-        participants: participants,
-        participantNames: [currentUser.username, partner.data().username],
-        type: "direct",
-        lastMessage: "",
-        lastUpdated: serverTimestamp(),
-        createdAt: serverTimestamp(),
-      };
-  
-      batch.set(convoRef, convoData);
-      await batch.commit();
-  
-      const newConvo = await getDoc(convoRef);
-      setSelectedConversation({ 
-        id: newConvo.id,
-        ...newConvo.data(),
-        lastUpdated: newConvo.data().lastUpdated?.toDate(),
-        createdAt: newConvo.data().createdAt?.toDate()
-      });
-  
-      setShowNewChatDialog(false);
-      setPartnerName("");
-  
-    } catch (error) {
-      console.error("Error creating conversation:", error);
-      alert(`Error creating conversation: ${error.message}`);
-    }
-  };
 
   if (!authInitialized) {
-    return <ElementalLoader />
+    return <ElementalLoader />;
   }
-  
-  const elementColors = ELEMENT_COLORS[currentUser.element];
-  const userElement = currentUser.element
 
+  const elementColors = ELEMENT_COLORS[currentUser.element];
+  const userElement = currentUser.element;
 
   return (
     <div id='messenger' className="flex h-screen">
       <Navbar element={userElement}/>
       <Sidebar 
-        elementColors={ELEMENT_COLORS[currentUser.element]}
+        elementColors={elementColors}
         userElement={userElement}
         onTabChange={setActiveTab}
       />
@@ -755,11 +503,10 @@ export default function ChatApp() {
         filteredConversations={filteredConversations}
         isLoadingConversations={isLoadingConversations}
         setShowNewChatDialog={setShowNewChatDialog}
-        getChatPartner={getChatPartner}
-        elementColors={ELEMENT_COLORS[currentUser.element]}
+        getChatPartner={(participants, type, element) => getChatPartner(participants, type, element, currentUser, conversations)}
+        elementColors={elementColors}
         activeTab={activeTab}
       />
-
       <ChatArea
         selectedConversation={selectedConversation}
         currentUser={currentUser}
@@ -770,22 +517,15 @@ export default function ChatApp() {
         isSending={isSending}
         isLoadingMessages={isLoadingMessages}
         setShowNewChatDialog={setShowNewChatDialog}
-        getChatPartner={getChatPartner}
+        getChatPartner={(participants, type, element) => getChatPartner(participants, type, element, currentUser, conversations)}
         file={file}
         preview={preview}
         isUploading={isUploading}
         uploadProgress={uploadProgress}
         handleFileChange={handleFileChange}
         removeFile={removeFile}
-        audioBlob={audioBlob}
-        isRecording={isRecording}
-        startRecording={startRecording}
-        stopRecording={stopRecording}
-        audioURL={audioURL}
-        removeAudio={removeAudio}
-        elementColors={ELEMENT_COLORS[currentUser.element]}
+        elementColors={elementColors}
       />
-
       {showNewChatDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
@@ -805,7 +545,6 @@ export default function ChatApp() {
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
                   </div>
                 )}
-                
                 {searchResults.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
                     {searchResults.map((user) => (
