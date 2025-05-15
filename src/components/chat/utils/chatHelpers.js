@@ -6,10 +6,19 @@
  * @param {Object} currentUser
  * @param {Array} conversations
  * @param {string} groupName
+ * @param {Array} participantNames
  */
-export function getChatPartner(participants, conversationType, element, currentUser, conversations, groupName) {
+export function getChatPartner(participants, conversationType, element, currentUser, conversations, groupName, participantNames) {
   if (conversationType === "group") {
-    return groupName && groupName.trim() !== "" ? groupName : "Unnamed Group";
+    if (groupName && groupName.trim() !== "") {
+      return groupName;
+    }
+    // Fallback: try to use participantNames (excluding current user)
+    if (Array.isArray(participantNames) && currentUser?.username) {
+      const names = participantNames.filter(name => name !== currentUser.username);
+      return names.length > 0 ? names.join(", ") : "Unnamed Group";
+    }
+    return "Unnamed Group";
   }
   
   if (conversationType === "community") {

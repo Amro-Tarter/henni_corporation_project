@@ -4,7 +4,7 @@ import { db } from '@/config/firbaseConfig';
 import { ELEMENT_COLORS } from './utils/ELEMENT_COLORS';
 import { useNavigate } from "react-router-dom";
 
-export default function ChatInfoSidebar({ open, onClose, conversation, currentUser, messages, elementColors }) {
+export default function ChatInfoSidebar({ open, onClose, conversation, currentUser, messages, elementColors, setSelectedConversation }) {
   const [showAllImages, setShowAllImages] = useState(false);
   const [partnerElement, setPartnerElement] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -15,6 +15,8 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   const [addUserResults, setAddUserResults] = useState([]);
   const [isAdding, setIsAdding] = useState(false);
   const navigate = useNavigate();
+  // Local optimistic state for participants
+  const [localParticipants, setLocalParticipants] = useState(conversation.participants || []);
 
   useEffect(() => {
     if (open) {
@@ -76,6 +78,11 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     }
   }, [open, conversation, conversation.participants]);
 
+  // Sync localParticipants to conversation.participants when it changes
+  useEffect(() => {
+    setLocalParticipants(conversation.participants || []);
+  }, [conversation.participants]);
+
   const handleAnimationEnd = () => {
     if (!open) setIsMounted(false);
   };
@@ -83,9 +90,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   const handleOpenDirectChat = async (partnerUid) => {
     // 1. Check if a direct conversation exists between currentUser.uid and partnerUid
     // 2. If exists, get its ID; if not, create it and get its ID
-    // 3. Navigate to /chat/{conversationId}
-
-    // Example Firestore query (pseudo-code, adapt as needed):
+    // 3. Select the conversation using setSelectedConversation
     const participants = [currentUser.uid, partnerUid].sort();
     const q = query(
       collection(db, "conversations"),
@@ -94,10 +99,12 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     );
     const convSnapshot = await getDocs(q);
     let conversationId = null;
-    convSnapshot.forEach(doc => {
-      const data = doc.data();
+    let conversationData = null;
+    convSnapshot.forEach(docSnap => {
+      const data = docSnap.data();
       if (data.participants.includes(partnerUid)) {
-        conversationId = doc.id;
+        conversationId = docSnap.id;
+        conversationData = { id: docSnap.id, ...data };
       }
     });
     if (!conversationId) {
@@ -110,8 +117,12 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         createdAt: serverTimestamp(),
       });
       conversationId = convoRef.id;
+      // Fetch the new conversation data
+      const newDoc = await getDoc(convoRef);
+      conversationData = { id: newDoc.id, ...newDoc.data() };
     }
-    navigate(`/chat/${conversationId}`);
+    // Use setSelectedConversation to select the conversation
+    setSelectedConversation(conversationData);
   };
 
   if (!isMounted) return null;
@@ -242,7 +253,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   // GROUP CHAT INFO
   if (conversation.type === 'group') {
     const groupName = conversation.name || 'קבוצת צ׳אט';
-    const memberUids = conversation.participants || [];
+    const memberUids = localParticipants;
     const adminUid = conversation.admin;
     const isAdmin = currentUser.uid === adminUid;
     // All images sent in the conversation
@@ -254,28 +265,55 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       setIsAdding(true);
       try {
         const groupRef = doc(db, "conversations", conversation.id);
+        if (localParticipants.includes(user.id)) {
+          setIsAdding(false);
+          return;
+        }
         await updateDoc(groupRef, {
           participants: arrayUnion(user.id),
           participantNames: arrayUnion(user.username)
         });
+        setLocalParticipants(prev => [...prev, user.id]);
+        setUsernames(prev => ({ ...prev, [user.id]: user.username }));
+        await addDoc(collection(db, "conversations", conversation.id, "messages"), {
+          text: `${currentUser.username} הוסיף את ${user.username} לקבוצה`,
+          type: "system",
+          createdAt: serverTimestamp(),
+        });
         setAddUserSearch("");
         setAddUserResults([]);
+        window.toast && window.toast.success && window.toast.success(`המשתמש ${user.username} נוסף בהצלחה!`);
       } catch (e) {
         alert("שגיאה בהוספת משתמש: " + e.message);
       }
       setIsAdding(false);
     };
 
-    // Kick member handler
+    // Kick member handler with confirmation
     const handleKickMember = async (uid) => {
       if (uid === adminUid) return;
+      const username = usernames[uid] || uid;
+      if (!window.confirm(`האם אתה בטוח שברצונך להסיר את ${username} מהקבוצה?`)) return;
       try {
         const groupRef = doc(db, "conversations", conversation.id);
-        const username = usernames[uid] || uid;
+        const userDoc = await getDoc(doc(db, "users", uid));
+        const latestUsername = userDoc.exists() ? userDoc.data().username : username;
         await updateDoc(groupRef, {
           participants: arrayRemove(uid),
-          participantNames: arrayRemove(username)
+          participantNames: arrayRemove(latestUsername)
         });
+        setLocalParticipants(prev => prev.filter(id => id !== uid));
+        setUsernames(prev => {
+          const copy = { ...prev };
+          delete copy[uid];
+          return copy;
+        });
+        await addDoc(collection(db, "conversations", conversation.id, "messages"), {
+          text: `${currentUser.username} הסיר את ${latestUsername} מהקבוצה`,
+          type: "system",
+          createdAt: serverTimestamp(),
+        });
+        window.toast && window.toast.success && window.toast.success(`המשתמש ${latestUsername} הוסר בהצלחה!`);
       } catch (e) {
         alert("שגיאה בהרחקת משתמש: " + e.message);
       }
@@ -299,7 +337,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           className="absolute top-4 left-6 px-3.5 py-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
           style={{ color: elementColors.primary }}
           onClick={onClose}
-          aria-label="Close sidebar"
+          aria-label="סגור סיידבר"
         >
           ✕
         </button>
@@ -311,95 +349,121 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         <div className="mb-2 text-xs text-gray-500">מנהל: {usernames[adminUid] || adminUid} <span className="ml-1 px-2 py-0.5 bg-yellow-300 text-yellow-900 rounded-full">Admin</span></div>
         {/* Add member UI (admin only) */}
         {isAdmin && (
-          <div className="mb-4">
+          <div className="mb-6">
             <label className="block text-sm font-medium mb-1">הוסף חבר:</label>
-            <input
-              type="text"
-              className="w-full p-2 border rounded text-right"
-              value={addUserSearch}
-              onChange={async (e) => {
-                setAddUserSearch(e.target.value);
-                if (!e.target.value.trim()) {
-                  setAddUserResults([]);
-                  return;
-                }
-                const q = query(
-                  collection(db, "users"),
-                  where("username", ">=", e.target.value.toLowerCase()),
-                  where("username", "<=", e.target.value.toLowerCase() + "\uf8ff"),
-                  // Don't show users already in group
-                );
-                const snapshot = await getDocs(q);
-                const results = snapshot.docs
-                  .filter(doc => doc.id !== adminUid && !memberUids.includes(doc.id))
-                  .map(doc => ({
-                    id: doc.id,
-                    username: doc.data().username,
-                    photoURL: doc.data().photoURL
-                  }));
-                setAddUserResults(results);
-              }}
-              placeholder="חפש משתמשים"
-            />
-            {addUserResults.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
-                {addUserResults.map((user) => (
-                  <div
-                    key={user.id}
-                    className="p-2 hover:bg-gray-100 cursor-pointer text-right flex items-center gap-2"
-                    onClick={() => handleAddMember(user)}
-                  >
-                    {user.photoURL && (
-                      <img src={user.photoURL} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
-                    )}
-                    <span>{user.username}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="relative">
+              <input
+                type="text"
+                className="w-full p-2 border rounded-lg text-right focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition"
+                value={addUserSearch}
+                onChange={async (e) => {
+                  setAddUserSearch(e.target.value);
+                  if (!e.target.value.trim()) {
+                    setAddUserResults([]);
+                    return;
+                  }
+                  const q = query(
+                    collection(db, "users"),
+                    where("username", ">=", e.target.value.toLowerCase()),
+                    where("username", "<=", e.target.value.toLowerCase() + "\uf8ff"),
+                  );
+                  const snapshot = await getDocs(q);
+                  const results = snapshot.docs
+                    .filter(doc => doc.id !== adminUid && !memberUids.includes(doc.id))
+                    .map(doc => ({
+                      id: doc.id,
+                      username: doc.data().username,
+                      photoURL: doc.data().photoURL
+                    }));
+                  setAddUserResults(results);
+                }}
+                placeholder="חפש משתמשים"
+                aria-label="חפש משתמשים להוספה"
+                disabled={isAdding}
+              />
+              {isAdding && (
+                <div className="absolute left-2 top-3">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500"></div>
+                </div>
+              )}
+              {addUserResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto transition-all">
+                  {addUserResults.map((user) => (
+                    <div
+                      key={user.id}
+                      className="p-2 hover:bg-primary-100 cursor-pointer text-right flex items-center gap-2 transition-all"
+                      onClick={() => handleAddMember(user)}
+                      tabIndex={0}
+                      aria-label={`הוסף את ${user.username}`}
+                    >
+                      {user.photoURL && (
+                        <img src={user.photoURL} alt="avatar" className="w-6 h-6 rounded-full object-cover border border-primary-200" />
+                      )}
+                      <span className="font-medium">{user.username}</span>
+                      <span className="ml-auto text-primary-500 font-bold text-lg">+</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
         {/* Members List */}
-        <div className="mb-6">
-          <div className="font-semibold text-gray-700 mb-2">חברי הקבוצה</div>
-          <div className="flex flex-col gap-2 max-h-40 overflow-y-auto">
+        <div className="mb-8">
+          <div className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <span className="text-lg">👥</span> חברי הקבוצה
+          </div>
+          <div className="flex flex-col gap-3 max-h-56 overflow-y-auto transition-all">
             {memberUids.map(uid => (
-              <div key={uid} className="flex items-center gap-2 justify-between w-full">
+              <div key={uid} className="flex items-center gap-3 bg-white rounded-lg shadow p-2 transition-all border border-gray-100 hover:shadow-md">
+                <img
+                  src={userElements[uid] && ELEMENT_COLORS[userElements[uid]]?.icon ? undefined : '/default_user_pic.jpg'}
+                  alt={usernames[uid] || uid}
+                  className="w-9 h-9 rounded-full object-cover border border-primary-100 bg-gray-100"
+                  style={{ minWidth: 36 }}
+                />
                 <div className="flex-1 min-w-0">
-                  <div
-                    className="px-3 py-1 rounded transition text-sm text-left truncate"
-                    style={{ backgroundColor: elementColors.primary, color: elementColors.light, width: '120px', display: 'inline-block' }}
-                  >
+                  <div className="font-medium text-gray-900 truncate flex items-center gap-1">
                     {usernames[uid] || uid}
-                    {uid === adminUid && <span className="ml-1 text-yellow-300">★</span>}
+                    {uid === currentUser.uid && <span className="ml-1 px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full text-xs">אתה</span>}
+                    {uid === adminUid && <span className="ml-1 px-2 py-0.5 bg-yellow-300 text-yellow-900 rounded-full text-xs">מנהל</span>}
                   </div>
+                  {userElements && userElements[uid] && (
+                    <span className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                      {ELEMENT_COLORS[userElements[uid]]?.icon}
+                      {userElements[uid]}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
-                  <a
-                    href={`/profile/${uid}`}
+                  <button
                     className="p-1 rounded-full hover:bg-gray-200 transition"
                     title="מעבר לפרופיל"
+                    aria-label="מעבר לפרופיל"
+                    onClick={() => window.open(`/profile/${uid}`, '_blank')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
                     </svg>
-                  </a>
+                  </button>
                   <button
-                    className="p-1 rounded-full hover:bg-gray-200 transition"
+                    className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
                     title="פתח צ'אט"
+                    aria-label="פתח צ'אט"
                     onClick={() => handleOpenDirectChat(uid)}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-green-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 15.75a6.375 6.375 0 100-12.75 6.375 6.375 0 000 12.75zM15.75 15.75v-1.125a3.375 3.375 0 00-3.375-3.375H8.625a3.375 3.375 0 00-3.375 3.375V15.75" />
                     </svg>
                   </button>
-                  {/* Kick button (admin only, not for admin) */}
                   {isAdmin && uid !== adminUid && (
                     <button
                       className="p-1 rounded-full hover:bg-red-100 transition text-red-600"
                       title="הסר מהקבוצה"
+                      aria-label={`הסר את ${usernames[uid] || uid} מהקבוצה`}
                       onClick={() => handleKickMember(uid)}
+                      disabled={isAdding}
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -409,11 +473,16 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                 </div>
               </div>
             ))}
+            {memberUids.length === 0 && (
+              <div className="text-gray-400 text-center py-4">אין חברים בקבוצה.</div>
+            )}
           </div>
         </div>
         {/* Images Gallery */}
         <div className="mb-4">
-          <div className="font-semibold text-gray-700 mb-2">תמונות שנשלחו</div>
+          <div className="font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <span className="text-lg">🖼️</span> תמונות שנשלחו
+          </div>
           {images.length === 0 ? (
             <div className="text-gray-400 text-sm">לא נשלחו תמונות בצ'אט זה.</div>
           ) : (

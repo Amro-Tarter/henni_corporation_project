@@ -14,7 +14,8 @@ import {
   setDoc,
   getDoc,
   arrayUnion,
-  limit
+  limit,
+  deleteDoc
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { ref, uploadBytesResumable, getDownloadURL, getStorage, ref as storageRef } from "firebase/storage";
@@ -58,6 +59,7 @@ export default function ChatApp() {
   const [groupUserSearch, setGroupUserSearch] = useState("");
   const [groupUserResults, setGroupUserResults] = useState([]);
   const [selectedGroupUsers, setSelectedGroupUsers] = useState([]);
+  const [pendingSelectedConversationId, setPendingSelectedConversationId] = useState(null);
 
   // File upload state/logic (moved to hook)
   const {
@@ -400,12 +402,7 @@ export default function ChatApp() {
         return convParticipants.includes(partnerUid);
       });
       if (existingConversation) {
-        setSelectedConversation({
-          id: existingConversation.id,
-          ...existingConversation.data(),
-          lastUpdated: existingConversation.data().lastUpdated?.toDate(),
-          createdAt: existingConversation.data().createdAt?.toDate()
-        });
+        setPendingSelectedConversationId(existingConversation.id);
         setShowNewChatDialog(false);
         setPartnerName("");
         return;
@@ -423,12 +420,7 @@ export default function ChatApp() {
       batch.set(convoRef, convoData);
       await batch.commit();
       const newConvo = await getDoc(convoRef);
-      setSelectedConversation({ 
-        id: newConvo.id,
-        ...newConvo.data(),
-        lastUpdated: newConvo.data().lastUpdated?.toDate(),
-        createdAt: newConvo.data().createdAt?.toDate()
-      });
+      setPendingSelectedConversationId(newConvo.id);
       setShowNewChatDialog(false);
       setPartnerName("");
     } catch (error) {
@@ -520,35 +512,61 @@ export default function ChatApp() {
     }
   };
 
-  // Load conversation by chatId from URL
-  useEffect(() => {
-    if (!chatId || !currentUser.uid) return;
-    const fetchConversation = async () => {
-      const convoDoc = await getDoc(doc(db, "conversations", chatId));
-      if (convoDoc.exists()) {
-        setSelectedConversation({
-          id: convoDoc.id,
-          ...convoDoc.data(),
-          lastUpdated: convoDoc.data().lastUpdated?.toDate(),
-          createdAt: convoDoc.data().createdAt?.toDate()
-        });
-      } else {
-        setSelectedConversation(null);
-      }
-    };
-    fetchConversation();
-  }, [chatId, currentUser.uid]);
-
-  // When a conversation is selected, navigate to /chat/:chatId
+  // When a conversation is selected, always use the full object from conversations array
   const handleSelectConversation = (conv) => {
     if (!conv) {
       setSelectedConversation(null);
       navigate(`/chat`);
       return;
     }
-    setSelectedConversation(conv);
-    navigate(`/chat/${conv.id}`);
+    // If conv is an ID, or partial, find the full object
+    const convId = conv.id || conv;
+    const fullConv = conversations.find(c => c.id === convId);
+    if (fullConv) {
+      setSelectedConversation(fullConv);
+      navigate(`/chat/${fullConv.id}`);
+    } else {
+      // fallback: set as is
+      setSelectedConversation(conv);
+      navigate(`/chat/${convId}`);
+    }
   };
+
+  // When conversations update, if there's a pending selection, select it
+  useEffect(() => {
+    if (pendingSelectedConversationId && conversations.length > 0) {
+      const found = conversations.find(c => c.id === pendingSelectedConversationId);
+      if (found) {
+        setSelectedConversation(found);
+        setPendingSelectedConversationId(null);
+        navigate(`/chat/${found.id}`);
+      }
+    }
+  }, [pendingSelectedConversationId, conversations, navigate]);
+
+  // Reset to /chat if no conversation is selected (e.g., after reload)
+  useEffect(() => {
+    if (selectedConversation === null) {
+      navigate('/chat');
+    }
+  }, [selectedConversation, navigate]);
+
+  // TEMP: Admin-only delete all conversations button
+  async function handleDeleteAllConversations() {
+    if (!window.confirm("האם אתה בטוח שברצונך למחוק את כל הצ'אטים? פעולה זו אינה הפיכה!")) return;
+    const conversationsSnapshot = await getDocs(collection(db, "conversations"));
+    for (const conversationDoc of conversationsSnapshot.docs) {
+      // Delete all messages in subcollection
+      const messagesSnapshot = await getDocs(collection(db, "conversations", conversationDoc.id, "messages"));
+      for (const messageDoc of messagesSnapshot.docs) {
+        await deleteDoc(doc(db, "conversations", conversationDoc.id, "messages", messageDoc.id));
+      }
+      // Delete the conversation itself
+      await deleteDoc(doc(db, "conversations", conversationDoc.id));
+    }
+    window.toast && window.toast.success && window.toast.success("כל הצ'אטים נמחקו בהצלחה!");
+    alert("כל הצ'אטים נמחקו בהצלחה!");
+  }
 
   if (!authInitialized) {
     return <ElementalLoader />;
@@ -560,6 +578,15 @@ export default function ChatApp() {
 
   return (
     <div id='messenger' className="flex h-screen">
+      {/* TEMP: Admin-only delete all conversations button 
+      <button
+          onClick={handleDeleteAllConversations}
+          className="fixed self-center justify-center z-50 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
+        >
+          מחק את כל הצ'אטים (אדמין)
+        </button>
+        */}
+
       <Navbar element={userElement}/>
       <Sidebar 
         elementColors={elementColors}
@@ -584,8 +611,8 @@ export default function ChatApp() {
       />
       <ChatArea
         selectedConversation={selectedConversation}
-        currentUser={currentUser}  // FIXED: correct prop name
-        messages={messages}  // FIXED: missing value for messages prop
+        currentUser={currentUser}
+        messages={messages}
         newMessage={newMessage}
         setNewMessage={setNewMessage}
         sendMessage={sendMessage}
@@ -604,6 +631,7 @@ export default function ChatApp() {
         activeTab={activeTab}
         setShowNewGroupDialog={setShowNewGroupDialog}
         conversations={conversations}
+        setSelectedConversation={handleSelectConversation}
       />
       {showNewChatDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -775,12 +803,7 @@ export default function ChatApp() {
                     batch.set(groupRef, groupData);
                     await batch.commit();
                     const newGroupDoc = await getDoc(groupRef);
-                    setSelectedConversation({
-                      id: newGroupDoc.id,
-                      ...newGroupDoc.data(),
-                      lastUpdated: newGroupDoc.data().lastUpdated?.toDate(),
-                      createdAt: newGroupDoc.data().createdAt?.toDate()
-                    });
+                    setPendingSelectedConversationId(newGroupDoc.id);
                     setShowNewGroupDialog(false);
                     setGroupName("");
                     setGroupUserSearch("");

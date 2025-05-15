@@ -33,7 +33,8 @@ export default function ChatArea({
   userAvatars,
   activeTab,
   setShowNewGroupDialog,
-  conversations
+  conversations,
+  setSelectedConversation
 }) {
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
@@ -92,7 +93,14 @@ export default function ChatArea({
     setShowBubble(false);
     setIsSendingImage(false);
   };
-  
+
+  // Helper to get avatar for direct chat
+  const getDirectAvatar = () => {
+    if (selectedConversation.type === 'direct') {
+      return selectedConversation.partnerProfilePic || null;
+    }
+    return undefined;
+  };
 
   return (
     <div className='flex-1 flex flex-col relative' dir="rtl">
@@ -107,12 +115,12 @@ export default function ChatArea({
               selectedConversation.type,
               selectedConversation.element,
               currentUser,
-              conversations,
+              undefined,
               selectedConversation.type === 'group' ? selectedConversation.groupName : undefined
             )}
             type={selectedConversation.type}
             icon={selectedConversation.type === 'community' ? elementColors.icon : undefined}
-            avatar={selectedConversation.type === 'direct' ? selectedConversation.partnerProfilePic : undefined}
+            avatar={selectedConversation.type === 'direct' ? getDirectAvatar() : undefined}
             onInfoClick={() => setShowInfoSidebar(true)}
           />
           <ChatInfoSidebar
@@ -122,6 +130,7 @@ export default function ChatArea({
             currentUser={currentUser}
             messages={messages}
             elementColors={elementColors}
+            setSelectedConversation={setSelectedConversation}
           />
           <div className="flex-1 overflow-y-auto p-4 bg-white"  style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
             {isLoadingMessages ? (
