@@ -17,7 +17,7 @@ import CommunityPage from '../../pages/CommunityPage';
 const sections = [
   { id: 'about-section', label: 'אודות העמותה', icon: faLeaf },
   { id: 'leadership-program', label: 'תכנית המנהיגות', icon: faHammer },
-  { id: 'projects', label: 'יצירות ופרויקטים', icon: faWind },
+  { id: 'gallery', label: 'יצירות ופרויקטים', icon: faWind },
   { id: 'community', label: 'קהילת העמותה', icon: faWater },
   { id: 'join-us', label: 'הצטרפו אלינו', icon: faFire },
 ];
@@ -172,8 +172,7 @@ const Navigation = () => {
                     href={item.id === 'community' ? '/community' : `#${item.id}`}
                     onClick={(e) => item.id !== 'community' ? handleSectionClick(e, item.id) : null}
                     className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
-                      activeSection === item.id && 'bg-white/20'
+                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10'
                     )}
                   >
                     <FontAwesomeIcon icon={item.icon} className="text-xl" />
