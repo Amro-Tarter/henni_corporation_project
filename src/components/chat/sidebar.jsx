@@ -12,7 +12,7 @@ export default function Sidebar({ elementColors, onTabChange, userElement, activ
   const sidebarItems = [
     { icon: HiMiniHome, label: "All", type: "all" },
     { icon: HiOutlineChatBubbleBottomCenterText, label: "private", type: "direct" },
-    { icon: HiMiniUsers, label: "Groups", type: "groups" },
+    { icon: HiMiniUsers, label: "Groups", type: "group" },
     { icon: HiUserGroup, label: `${userElement} Community`, type: "community" }
   ];
 

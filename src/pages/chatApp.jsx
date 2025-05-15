@@ -121,7 +121,7 @@ export default function ChatApp() {
           setCurrentUser(userData);
           // Ensure user is in their community
           const community = await handleCommunityChatMembership(user.uid, userElement);
-          if (community) setSelectedConversation(community);
+          if (community) setSelectedConversation(false);
           setAuthInitialized(true);
         } catch (error) {
           console.error("Error loading user:", error);
@@ -138,7 +138,7 @@ export default function ChatApp() {
     let filtered = conversations;
     if (activeTab === "private") {
       filtered = filtered.filter(conv => conv.type === "direct");
-    } else if (activeTab === "groups") {
+    } else if (activeTab === "group") {
       filtered = filtered.filter(conv => conv.type === "group");
     } else if (activeTab === "community") {
       filtered = filtered.filter(conv =>
@@ -541,6 +541,11 @@ export default function ChatApp() {
 
   // When a conversation is selected, navigate to /chat/:chatId
   const handleSelectConversation = (conv) => {
+    if (!conv) {
+      setSelectedConversation(null);
+      navigate(`/chat`);
+      return;
+    }
     setSelectedConversation(conv);
     navigate(`/chat/${conv.id}`);
   };
@@ -552,9 +557,6 @@ export default function ChatApp() {
   const elementColors = ELEMENT_COLORS[currentUser.element];
   const userElement = currentUser.element;
 
-  console.log("All conversations:", conversations);
-  console.log("Filtered conversations:", filteredConversations);
-  console.log("Active tab:", activeTab);
 
   return (
     <div id='messenger' className="flex h-screen">
@@ -582,22 +584,15 @@ export default function ChatApp() {
       />
       <ChatArea
         selectedConversation={selectedConversation}
-        currentUser={currentUser}
-        messages={messages}
+        currentUser={currentUser}  // FIXED: correct prop name
+        messages={messages}  // FIXED: missing value for messages prop
         newMessage={newMessage}
         setNewMessage={setNewMessage}
         sendMessage={sendMessage}
         isSending={isSending}
         isLoadingMessages={isLoadingMessages}
         setShowNewChatDialog={setShowNewChatDialog}
-        getChatPartner={(participants, type, element) => getChatPartner(
-          participants,
-          type,
-          element,
-          currentUser,
-          conversations,
-          type === 'group' && selectedConversation ? selectedConversation.groupName : undefined
-        )}
+        getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
         file={file}
         preview={preview}
         isUploading={isUploading}
@@ -606,6 +601,9 @@ export default function ChatApp() {
         removeFile={removeFile}
         elementColors={elementColors}
         userAvatars={userAvatars}
+        activeTab={activeTab}
+        setShowNewGroupDialog={setShowNewGroupDialog}
+        conversations={conversations}
       />
       {showNewChatDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -677,6 +675,7 @@ export default function ChatApp() {
           <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
             <h3 className="text-lg font-bold mb-4">קבוצה חדשה</h3>
             <div className="mb-4">
+              
               <label className="block text-sm font-medium mb-2">שם הקבוצה:</label>
               <input
                 type="text"

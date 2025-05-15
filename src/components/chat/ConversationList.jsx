@@ -61,8 +61,8 @@ export default function ConversationList({
               );
             } else if (conv.type === 'group') {
               avatar = (
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-200 text-xl text-blue-700 font-bold">
-                  <span role="img" aria-label="group">👥</span>
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-xl text-gray-400">
+                  <span role="img" aria-label="avatar">👤</span>
                 </div>
               );
             } else if (conv.partnerProfilePic) {
@@ -96,7 +96,7 @@ export default function ConversationList({
                       conv.element,
                       currentUser,
                       undefined,
-                      conv.type === 'group' ? conv.groupName : undefined
+                      conv.type === 'group' ? conv.groupName : 'undefined'
                     )}
                   </div>
                   <div className="text-sm text-gray-500 truncate">
@@ -120,7 +120,7 @@ export default function ConversationList({
           </button>
         </div>
       )}
-      {activeTab === "groups" && (
+      {activeTab === "group" && (
         <div className="p-4 border-t border-gray-200">
           <button
             onClick={() => setShowNewGroupDialog(true)}

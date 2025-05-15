@@ -30,7 +30,10 @@ export default function ChatArea({
   handleFileChange,
   removeFile,
   elementColors,
-  userAvatars
+  userAvatars,
+  activeTab,
+  setShowNewGroupDialog,
+  conversations
 }) {
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
@@ -89,6 +92,7 @@ export default function ChatArea({
     setShowBubble(false);
     setIsSendingImage(false);
   };
+  
 
   return (
     <div className='flex-1 flex flex-col relative' dir="rtl">
@@ -101,7 +105,10 @@ export default function ChatArea({
             chatTitle={getChatPartner(
               selectedConversation.participants,
               selectedConversation.type,
-              selectedConversation.element
+              selectedConversation.element,
+              currentUser,
+              conversations,
+              selectedConversation.type === 'group' ? selectedConversation.groupName : undefined
             )}
             type={selectedConversation.type}
             icon={selectedConversation.type === 'community' ? elementColors.icon : undefined}
@@ -190,16 +197,41 @@ export default function ChatArea({
           />
         </>
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-white text-right">
+        activeTab === "direct" ? (
+          <div className="flex-1 flex items-center justify-center bg-white text-right">
+            <div className="text-center text-gray-500">
+              <p className="text-lg">בחר צ'אט או צור חדש כדי להתחיל</p>
+              <button
+                onClick={() => setShowNewChatDialog(true)}
+                className="mt-4 text-white px-4 py-2 rounded-lg"
+                style={{ backgroundColor: elementColors.primary }}
+              >
+                צ'אט חדש
+              </button>
+            </div>
+          </div>
+        ) : activeTab === "group" ? (
+          <div className="flex-1 flex items-center justify-center bg-white text-right">
+            <div className="text-center text-gray-500">
+              <p className="text-lg">בחר קבוצה או צור חדשה</p>
+              <button
+                onClick={() => setShowNewGroupDialog(true)}
+                className="mt-4 text-white px-4 py-2 rounded-lg"
+                style={{ backgroundColor: elementColors.primary }}
+              >
+                קבוצה חדשה
+              </button>
+            </div>
+          </div>
+        ) : activeTab === "community" ? (
+          <div className="flex-1 flex items-center justify-center bg-white text-right">
+            <div className="text-center text-gray-500">
+              <p className="text-lg">בחר קהילה או צור חדשה</p>
+            </div>
+          </div>
+        ) : <div className="flex-1 flex items-center justify-center bg-white text-right">
           <div className="text-center text-gray-500">
-            <p className="text-lg">בחר צ'אט או צור חדש כדי להתחיל</p>
-            <button
-              onClick={() => setShowNewChatDialog(true)}
-              className="mt-4 text-white px-4 py-2 rounded-lg"
-              style={{ backgroundColor: elementColors.primary }}
-            >
-              צ'אט חדש
-            </button>
+            <p className="text-lg">בחר  </p>
           </div>
         </div>
       )}
