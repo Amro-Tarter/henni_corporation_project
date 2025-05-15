@@ -1,12 +1,12 @@
 // Organize imports
-import { useCallback, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import ChatHeader from './ChatHeader';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
 import MessageLoadingState from './MessageLoadingState';
 import { useChatScroll } from './hooks/useChatScroll';
 import { useEmojiPicker } from './hooks/useEmojiPicker';
-import getDirection from './utils/identifyLang';
+import BubbleAnimation from './animations/BubbleAnimation';
 /**
  * ChatArea is the main chat window, displaying messages and input.
  */
@@ -32,6 +32,8 @@ export default function ChatArea({
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
   const [isSendingImage, setIsSendingImage] = useState(false);
+  const [showBubble, setShowBubble] = useState(false);
+  const sendButtonRef = useRef(null);
 
   // Add emoji to message
   const onEmojiClick = (emojiObject) => {
@@ -48,20 +50,28 @@ export default function ChatArea({
     }
   }, [messagesContainerRef, messagesEndRef]);
 
-  // Handle sending message (show skeleton only for images)
+  // Handle sending message (show bubble animation before sending)
   const handleSendMessage = async () => {
     let sendingImage = false;
     if (file && file.type && file.type.startsWith('image/')) {
       setIsSendingImage(true);
       sendingImage = true;
     }
+    setShowBubble(true);
+  };
+
+  const handleBubbleEnd = async () => {
     await sendMessage();
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    if (sendingImage) setIsSendingImage(false);
+    setShowBubble(false);
+    setIsSendingImage(false);
   };
 
   return (
-    <div className="flex-1 flex flex-col" dir="rtl">
+    <div className='flex-1 flex flex-col relative' dir="rtl">
+      {showBubble && (
+        <BubbleAnimation onAnimationEnd={handleBubbleEnd} elementColors={elementColors} sendButtonRef={sendButtonRef} icon={elementColors.icon} />
+      )}
       {selectedConversation ? (
         <>
           <ChatHeader
@@ -70,8 +80,11 @@ export default function ChatArea({
               selectedConversation.type,
               selectedConversation.element
             )}
+            type={selectedConversation.type}
+            icon={selectedConversation.type === 'community' ? elementColors.icon : undefined}
+            avatar={selectedConversation.type === 'direct' ? selectedConversation.partnerProfilePic : undefined}
           />
-          <div className="flex-1 overflow-y-auto p-4 bg-white" ref={messagesContainerRef}>
+          <div className="flex-1 overflow-y-auto p-4 bg-white"  style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
             {isLoadingMessages ? (
               <div className="space-y-4">
                 <MessageLoadingState type="text" isOwnMessage={false} elementColors={elementColors} />
@@ -127,6 +140,7 @@ export default function ChatArea({
             setShowEmojiPicker={setShowEmojiPicker}
             onEmojiClick={onEmojiClick}
             emojiPickerRef={emojiPickerRef}
+            sendButtonRef={sendButtonRef}
           />
         </>
       ) : (

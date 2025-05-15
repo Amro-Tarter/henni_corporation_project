@@ -12,8 +12,9 @@ export default function ConversationList({
   isLoadingConversations,
   setShowNewChatDialog,
   getChatPartner,
-  elementColors,
-  activeTab
+  elementColorsMap,
+  activeTab,
+  currentUser
 }) {
   const visibleConversations = useMemo(() =>
     filteredConversations.filter((conv) => {
@@ -33,7 +34,7 @@ export default function ConversationList({
             type="text"
             placeholder="חיפוש"
             className={`w-full p-2 pr-8 bg-gray-100 rounded-lg text-sm text-right focus:ring-1 focus:outline-none`}
-            style={{ borderColor: "transparent", outlineColor: elementColors.primary }}
+            style={{ borderColor: "transparent", outlineColor: elementColorsMap[currentUser?.element]?.primary || '#ccc' }}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -49,7 +50,26 @@ export default function ConversationList({
         ) : (
           visibleConversations.map((conv) => {
             const isSelected = selectedConversation?.id === conv.id;
-            const bgColorStyle = isSelected ? { backgroundColor: elementColors.light } : {};
+            let avatar = null;
+            if (conv.type === 'community') {
+              const icon = elementColorsMap[conv.element]?.icon;
+              avatar = (
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
+                  {icon}
+                </div>
+              );
+            } else if (conv.partnerProfilePic) {
+              avatar = (
+                <img src={conv.partnerProfilePic} alt="avatar" className="w-10 h-10 object-cover rounded-full" />
+              );
+            } else {
+              avatar = (
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-xl text-gray-400">
+                  <span role="img" aria-label="avatar">👤</span>
+                </div>
+              );
+            }
+            const bgColorStyle = isSelected ? { backgroundColor: elementColorsMap[currentUser?.element]?.light || '#f5f5f5' } : {};
             return (
               <div
                 key={conv.id}
@@ -57,14 +77,17 @@ export default function ConversationList({
                   e.stopPropagation();
                   setSelectedConversation(conv);
                 }}
-                className={`p-3 rounded-md border-b border-gray-100 cursor-pointer hover:bg-gray-50 text-right mx-auto mb-2 w-full max-w-full`}
+                className={`p-3 rounded-md border-b border-gray-100 cursor-pointer hover:bg-gray-50 text-right mx-auto mb-2 w-full max-w-full flex items-center gap-3`}
                 style={bgColorStyle}
               >
-                <div className="font-medium text-gray-900">
-                  {getChatPartner(conv.participants, conv.type, conv.element)}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {conv.lastMessage || "אין הודעות עדיין"}
+                {avatar}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 truncate">
+                    {getChatPartner(conv.participants, conv.type, conv.element)}
+                  </div>
+                  <div className="text-sm text-gray-500 truncate">
+                    {conv.lastMessage || "אין הודעות עדיין"}
+                  </div>
                 </div>
               </div>
             );
@@ -76,7 +99,7 @@ export default function ConversationList({
           <button
             onClick={() => setShowNewChatDialog(true)}
             className="w-full text-white py-2 rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
-            style={{ backgroundColor: elementColors.primary }}
+            style={{ backgroundColor: elementColorsMap[currentUser?.element]?.primary || '#888' }}
           >
             <span className="text-xl">+</span>
             <span>צ'אט חדש</span>
