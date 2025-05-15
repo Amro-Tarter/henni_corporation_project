@@ -1,12 +1,14 @@
 // Organize imports
-import { useCallback, useState, useRef } from "react";
-import ChatHeader from './ChatHeader';
-import MessageItem from './MessageItem';
-import ChatInput from './ChatInput';
-import MessageLoadingState from './MessageLoadingState';
+import { useCallback, useState, useRef, useEffect } from "react";
+import ChatHeader from './components/ChatHeader';
+import MessageItem from './components/MessageItem';
+import ChatInput from './components/ChatInput';
+import MessageLoadingState from './components/MessageLoadingState';
 import { useChatScroll } from './hooks/useChatScroll';
 import { useEmojiPicker } from './hooks/useEmojiPicker';
 import BubbleAnimation from './animations/BubbleAnimation';
+import ChatInfoSidebar from './ChatIntoSidebar';
+
 /**
  * ChatArea is the main chat window, displaying messages and input.
  */
@@ -27,13 +29,34 @@ export default function ChatArea({
   uploadProgress,
   handleFileChange,
   removeFile,
-  elementColors
+  elementColors,
+  userAvatars
 }) {
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
   const [isSendingImage, setIsSendingImage] = useState(false);
   const [showBubble, setShowBubble] = useState(false);
   const sendButtonRef = useRef(null);
+  const [showInfoSidebar, setShowInfoSidebar] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+
+  // Show scroll-to-bottom button if user scrolls up too far
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const handleScroll = () => {
+      const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+      setShowScrollToBottom(distanceFromBottom > 200);
+    };
+    container.addEventListener('scroll', handleScroll);
+    // Initial check
+    handleScroll();
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [messagesContainerRef, selectedConversation]);
+
+  const handleScrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+  };
 
   // Add emoji to message
   const onEmojiClick = (emojiObject) => {
@@ -83,6 +106,15 @@ export default function ChatArea({
             type={selectedConversation.type}
             icon={selectedConversation.type === 'community' ? elementColors.icon : undefined}
             avatar={selectedConversation.type === 'direct' ? selectedConversation.partnerProfilePic : undefined}
+            onInfoClick={() => setShowInfoSidebar(true)}
+          />
+          <ChatInfoSidebar
+            open={showInfoSidebar}
+            onClose={() => setShowInfoSidebar(false)}
+            conversation={selectedConversation}
+            currentUser={currentUser}
+            messages={messages}
+            elementColors={elementColors}
           />
           <div className="flex-1 overflow-y-auto p-4 bg-white"  style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
             {isLoadingMessages ? (
@@ -98,6 +130,7 @@ export default function ChatArea({
                     key={msg.id}
                     message={msg}
                     currentUser={currentUser}
+                    avatarUrl={userAvatars[msg.sender]}
                     selectedConversation={selectedConversation}
                     getChatPartner={getChatPartner}
                     elementColors={elementColors}
@@ -115,6 +148,7 @@ export default function ChatArea({
                     key={msg.id}
                     message={msg}
                     currentUser={currentUser}
+                    avatarUrl={userAvatars[msg.sender]}
                     selectedConversation={selectedConversation}
                     getChatPartner={getChatPartner}
                     elementColors={elementColors}
@@ -125,6 +159,18 @@ export default function ChatArea({
             )}
             <div ref={messagesEndRef} />
           </div>
+          {showScrollToBottom && (
+            <button
+              onClick={handleScrollToBottom}
+              className="fixed bottom-24 left-8 z-10 bg-white border border-gray-300 shadow-lg rounded-full p-2 hover:bg-gray-100 transition"
+              style={{ color: elementColors.primary }}
+              aria-label="גלול למטה"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12.75L12 20.25M12 20.25L4.5 12.75M12 20.25V3.75" />
+              </svg>
+            </button>
+          )}
           <ChatInput
             newMessage={newMessage}
             setNewMessage={setNewMessage}

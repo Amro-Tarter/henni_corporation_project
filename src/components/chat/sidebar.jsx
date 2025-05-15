@@ -5,9 +5,8 @@ import { useState } from "react";
 /**
  * Sidebar for chat navigation by type.
  */
-export default function Sidebar({ elementColors, onTabChange, userElement }) {
+export default function Sidebar({ elementColors, onTabChange, userElement, activeTab }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
-  const [activeTab, setActiveTab] = useState("all"); // Default to all chats
 
   // Define sidebar items
   const sidebarItems = [
@@ -19,7 +18,6 @@ export default function Sidebar({ elementColors, onTabChange, userElement }) {
 
   // Handle tab click
   const handleTabClick = (tabType) => {
-    setActiveTab(tabType);
     onTabChange(tabType);
   };
 

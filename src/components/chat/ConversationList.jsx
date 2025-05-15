@@ -11,6 +11,7 @@ export default function ConversationList({
   filteredConversations,
   isLoadingConversations,
   setShowNewChatDialog,
+  setShowNewGroupDialog,
   getChatPartner,
   elementColorsMap,
   activeTab,
@@ -25,7 +26,7 @@ export default function ConversationList({
   );
 
   return (
-    <div className="w-full md:w-1/4 border-l z-50 shadow-md flex flex-col conversation-list mt-16" dir="rtl">
+    <div className="w-full md:w-1/4 z-50 shadow-md flex flex-col conversation-list mt-16" dir="rtl">
       <div className="p-4">
         <h1 className="text-xl font-bold text-gray-900">כל הצ'אטים</h1>
         <h2 className="text-sm text-gray-500 mt-1">הודעות ({visibleConversations.length})</h2>
@@ -58,6 +59,12 @@ export default function ConversationList({
                   {icon}
                 </div>
               );
+            } else if (conv.type === 'group') {
+              avatar = (
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-200 text-xl text-blue-700 font-bold">
+                  <span role="img" aria-label="group">👥</span>
+                </div>
+              );
             } else if (conv.partnerProfilePic) {
               avatar = (
                 <img src={conv.partnerProfilePic} alt="avatar" className="w-10 h-10 object-cover rounded-full" />
@@ -83,7 +90,14 @@ export default function ConversationList({
                 {avatar}
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-gray-900 truncate">
-                    {getChatPartner(conv.participants, conv.type, conv.element)}
+                    {getChatPartner(
+                      conv.participants,
+                      conv.type,
+                      conv.element,
+                      currentUser,
+                      undefined,
+                      conv.type === 'group' ? conv.groupName : undefined
+                    )}
                   </div>
                   <div className="text-sm text-gray-500 truncate">
                     {conv.lastMessage || "אין הודעות עדיין"}
@@ -103,6 +117,18 @@ export default function ConversationList({
           >
             <span className="text-xl">+</span>
             <span>צ'אט חדש</span>
+          </button>
+        </div>
+      )}
+      {activeTab === "groups" && (
+        <div className="p-4 border-t border-gray-200">
+          <button
+            onClick={() => setShowNewGroupDialog(true)}
+            className="w-full text-white py-2 rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+            style={{ backgroundColor: elementColorsMap[currentUser?.element]?.primary || '#888' }}
+          >
+            <span className="text-xl">+</span>
+            <span>קבוצה חדשה</span>
           </button>
         </div>
       )}

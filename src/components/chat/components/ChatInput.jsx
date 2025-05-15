@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import EmojiPicker from 'emoji-picker-react';
-import getDirection from './utils/identifyLang';
-import './animations/ChatInput.css';
+import getDirection from '../utils/identifyLang';
+import '../animations/ChatInput.css';
 /**
  * ChatInput handles message input, emoji picker, and file upload.
  */
@@ -74,6 +74,7 @@ const ChatInput = ({
           className="text-white px-2 py-2 rounded-full transition duration-200 opacity-85 disabled:opacity-50 hover:opacity-100 hover:scale-90"
           style={{ backgroundColor: elementColors.primary }}
           onClick={handleSendMessage}
+          onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
           disabled={(!newMessage.trim() && !file) || (newMessage.trim() && file) || isUploading}
           ref={sendButtonRef}
         >
@@ -87,44 +88,45 @@ const ChatInput = ({
         </button>
 
         {/* Input with Emoji Button Inside */}
-        <div className="relative flex-1" ref={emojiPickerRef}>
-          <input
-            type="text"
-            className="w-full p-2 pr-10 border border-gray-300 rounded-full focus:outline-none focus:ring bg-wat placeholder:text-right"
-            style={{ borderColor: 'rgb(209, 213, 219)' }}
-            placeholder={file ? disabledPlaceholder : "...הקלד הודעה"}
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-            dir={getDirection(newMessage)}
-            disabled={!!file}
-          />
-          <button
-            type="button"
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-500 transition-colors p-1"
-            style={{ opacity: 0.5 }}
-            title="הוסף אימוג'י (Ctrl/Cmd + E)"
-          >
-            <span className="text-xl">😊</span>
-          </button>
-          {showEmojiPicker && (
-            <div className="absolute bottom-full right-0 mb-2 z-50">
-              <div className="shadow-lg rounded-lg bg-white">
-                <EmojiPicker
-                  onEmojiClick={(emojiObject) => {
-                    setNewMessage(prev => prev + emojiObject.emoji);
-                    // Do NOT close the picker here
-                  }}
-                  searchPlaceholder="חפש אימוג'י..."
-                  width={300}
-                  height={400}
-                  style={{ direction: 'rtl', textAlign: 'right' }}
-                />
+        {!preview && (
+          <div className="relative flex-1" ref={emojiPickerRef}>
+            <input
+              type="text"
+              className="w-full p-2 pr-10 border border-gray-300 rounded-full focus:outline-none focus:ring bg-wat placeholder:text-right"
+              style={{ borderColor: 'rgb(209, 213, 219)' }}
+              placeholder={"...הקלד הודעה"}
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              dir={getDirection(newMessage)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-500 transition-colors p-1"
+              style={{ opacity: 0.5 }}
+              title="הוסף אימוג'י (Ctrl/Cmd + E)"
+            >
+              <span className="text-xl">😊</span>
+            </button>
+            {showEmojiPicker && (
+              <div className="absolute bottom-full right-0 mb-2 z-50">
+                <div className="shadow-lg rounded-lg bg-white">
+                  <EmojiPicker
+                    onEmojiClick={(emojiObject) => {
+                      setNewMessage(prev => prev + emojiObject.emoji);
+                      // Do NOT close the picker here
+                    }}
+                    searchPlaceholder="חפש אימוג'י..."
+                    width={300}
+                    height={400}
+                    style={{ direction: 'rtl', textAlign: 'right' }}
+                  />
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

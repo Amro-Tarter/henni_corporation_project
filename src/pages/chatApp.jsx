@@ -17,7 +17,7 @@ import {
   limit
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, getStorage, ref as storageRef } from "firebase/storage";
 import { auth, db, storage } from "../config/firbaseConfig";
 import ConversationList from "../components/chat/ConversationList";
 import ChatArea from "../components/chat/ChatArea";
@@ -26,14 +26,12 @@ import Sidebar from "../components/chat/sidebar";
 import ElementalLoader from '../theme/ElementalLoader';
 import { getChatPartner } from "../components/chat/utils/chatHelpers";
 import { useFileUpload } from "../components/chat/hooks/useFileUpload";
-import AirIcon from '@mui/icons-material/Air';
-import WaterIcon from '@mui/icons-material/WaterDrop';
-import FireIcon from '@mui/icons-material/Whatshot';
-import EarthIcon from '@mui/icons-material/Nature';
-import MetalIcon from '@mui/icons-material/Build';
-
+import { ELEMENT_COLORS } from '../components/chat/utils/ELEMENT_COLORS';
+import { useParams, useNavigate } from "react-router-dom";
 
 export default function ChatApp() {
+  const { chatId } = useParams();
+  const navigate = useNavigate();
   // --- State ---
   const [authInitialized, setAuthInitialized] = useState(false);
   const [currentUser, setCurrentUser] = useState({ uid: null, username: '', element: '' });
@@ -54,6 +52,12 @@ export default function ChatApp() {
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [userAvatars, setUserAvatars] = useState({});
+  const [showNewGroupDialog, setShowNewGroupDialog] = useState(false);
+  const [groupName, setGroupName] = useState("");
+  const [groupUserSearch, setGroupUserSearch] = useState("");
+  const [groupUserResults, setGroupUserResults] = useState([]);
+  const [selectedGroupUsers, setSelectedGroupUsers] = useState([]);
 
   // File upload state/logic (moved to hook)
   const {
@@ -63,49 +67,6 @@ export default function ChatApp() {
     removeFile
   } = useFileUpload();
 
-  // --- Constants ---
-  const ELEMENT_COLORS = {
-    fire: {
-      primary: '#ff4500',
-      hover: '#e63e00',
-      light: '#fff0e6',
-      darkHover: '#b33000',
-      background: '#fff7f2',
-      icon: <FireIcon style={{color: '#ff4500'}} />
-    },
-    earth: {
-      primary: '#228B22',
-      hover: '#1e7a1e',
-      light: '#f5ede6',
-      darkHover: '#5e2f0d',
-      background: '#fcf8f3',
-      icon: <EarthIcon style={{color: '#228B22'}} />
-    },
-    metal: {
-      primary: '#c0c0c0',
-      hover: '#a8a8a8',
-      light: '#f5f5f5',
-      darkHover: '#808080',
-      background: '#fafafa',
-      icon: <MetalIcon style={{color: '#c0c0c0'}} />
-    },
-    water: {
-      primary: '#1e90ff',
-      hover: '#187bdb',
-      light: '#e6f2ff',
-      darkHover: '#0066cc',
-      background: '#f3f8ff',
-      icon: <WaterIcon style={{color: '#1e90ff'}} />
-    },
-    air: {
-      primary: '#87ceeb',
-      hover: '#76bede',
-      light: '#eaf8ff',
-      darkHover: '#5ca8c4',
-      background: '#f7fcff',
-      icon: <AirIcon style={{color: '#87ceeb'}} />
-    }
-  };
 
   // --- User Search (for new chat dialog) ---
   const searchUsers = async (searchTerm) => {
@@ -249,6 +210,15 @@ export default function ChatApp() {
             });
             continue;
           }
+          if (data.type === "group") {
+            validConversations.push({
+              ...base,
+              participantNames: data.participantNames,
+              groupName: data.name,
+              admin: data.admin
+            });
+            continue;
+          }
           // Add other types here
         } catch (error) {
           console.error("Error processing conversation:", error);
@@ -260,6 +230,29 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, [currentUser.uid]);
 
+  // Utility to fetch a user's profile picture (Firestore, then Storage fallback)
+  async function fetchUserAvatar(uid) {
+    try {
+      const profileDoc = await getDoc(doc(db, 'profiles', uid));
+      let photoURL = null;
+      if (profileDoc.exists()) {
+        photoURL = profileDoc.data().photoURL || null;
+      }
+      if (!photoURL) {
+        try {
+          const storage = getStorage();
+          const ref = storageRef(storage, `profiles/${uid}/profile.jpg`);
+          photoURL = await getDownloadURL(ref);
+        } catch (e) {
+          photoURL = null;
+        }
+      }
+      return photoURL;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // --- Load Messages for Selected Conversation ---
   useEffect(() => {
     if (!selectedConversation) return;
@@ -268,7 +261,7 @@ export default function ChatApp() {
       collection(db, "conversations", selectedConversation.id, "messages"),
       orderBy("createdAt")
     );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
       const msgs = snapshot.docs.map((doc) => ({ 
         id: doc.id, 
         ...doc.data(),
@@ -277,9 +270,23 @@ export default function ChatApp() {
       }));
       setMessages(msgs);
       setIsLoadingMessages(false);
+
+      // Build a set of unique sender UIDs (including currentUser)
+      const senderUids = new Set(msgs.map(m => m.sender));
+      senderUids.add(currentUser.uid);
+      // For direct chats, add partner UID
+      if (selectedConversation.type === 'direct') {
+        const partnerUid = selectedConversation.participants.find(p => p !== currentUser.uid);
+        if (partnerUid) senderUids.add(partnerUid);
+      }
+      // Fetch avatars for all senders
+      const avatarEntries = await Promise.all(
+        Array.from(senderUids).map(async uid => [uid, await fetchUserAvatar(uid)])
+      );
+      setUserAvatars(Object.fromEntries(avatarEntries));
     });
     return () => unsubscribe();
-  }, [selectedConversation?.id]);
+  }, [selectedConversation?.id, currentUser.uid]);
 
   // --- Send Message (handles text and file/image) ---
   const sendMessage = async () => {
@@ -513,12 +520,41 @@ export default function ChatApp() {
     }
   };
 
+  // Load conversation by chatId from URL
+  useEffect(() => {
+    if (!chatId || !currentUser.uid) return;
+    const fetchConversation = async () => {
+      const convoDoc = await getDoc(doc(db, "conversations", chatId));
+      if (convoDoc.exists()) {
+        setSelectedConversation({
+          id: convoDoc.id,
+          ...convoDoc.data(),
+          lastUpdated: convoDoc.data().lastUpdated?.toDate(),
+          createdAt: convoDoc.data().createdAt?.toDate()
+        });
+      } else {
+        setSelectedConversation(null);
+      }
+    };
+    fetchConversation();
+  }, [chatId, currentUser.uid]);
+
+  // When a conversation is selected, navigate to /chat/:chatId
+  const handleSelectConversation = (conv) => {
+    setSelectedConversation(conv);
+    navigate(`/chat/${conv.id}`);
+  };
+
   if (!authInitialized) {
     return <ElementalLoader />;
   }
 
   const elementColors = ELEMENT_COLORS[currentUser.element];
   const userElement = currentUser.element;
+
+  console.log("All conversations:", conversations);
+  console.log("Filtered conversations:", filteredConversations);
+  console.log("Active tab:", activeTab);
 
   return (
     <div id='messenger' className="flex h-screen">
@@ -527,18 +563,20 @@ export default function ChatApp() {
         elementColors={elementColors}
         userElement={userElement}
         onTabChange={setActiveTab}
+        activeTab={activeTab}
       />
       <ConversationList
         currentUser={currentUser}
         conversations={conversations}
         selectedConversation={selectedConversation}
-        setSelectedConversation={setSelectedConversation}
+        setSelectedConversation={handleSelectConversation}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         filteredConversations={filteredConversations}
         isLoadingConversations={isLoadingConversations}
         setShowNewChatDialog={setShowNewChatDialog}
-        getChatPartner={(participants, type, element) => getChatPartner(participants, type, element, currentUser, conversations)}
+        setShowNewGroupDialog={setShowNewGroupDialog}
+        getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
         elementColorsMap={ELEMENT_COLORS}
         activeTab={activeTab}
       />
@@ -552,7 +590,14 @@ export default function ChatApp() {
         isSending={isSending}
         isLoadingMessages={isLoadingMessages}
         setShowNewChatDialog={setShowNewChatDialog}
-        getChatPartner={(participants, type, element) => getChatPartner(participants, type, element, currentUser, conversations)}
+        getChatPartner={(participants, type, element) => getChatPartner(
+          participants,
+          type,
+          element,
+          currentUser,
+          conversations,
+          type === 'group' && selectedConversation ? selectedConversation.groupName : undefined
+        )}
         file={file}
         preview={preview}
         isUploading={isUploading}
@@ -560,6 +605,7 @@ export default function ChatApp() {
         handleFileChange={handleFileChange}
         removeFile={removeFile}
         elementColors={elementColors}
+        userAvatars={userAvatars}
       />
       {showNewChatDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -618,6 +664,146 @@ export default function ChatApp() {
                 onClick={() => {
                   setShowNewChatDialog(false);
                   setSearchResults([]);
+                }}
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showNewGroupDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
+            <h3 className="text-lg font-bold mb-4">קבוצה חדשה</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">שם הקבוצה:</label>
+              <input
+                type="text"
+                className="w-full p-2 border rounded text-right mb-2"
+                value={groupName}
+                onChange={e => setGroupName(e.target.value)}
+                placeholder="הזן שם קבוצה"
+              />
+              <label className="block text-sm font-medium mb-2 mt-2">הוסף חברים:</label>
+              <input
+                type="text"
+                className="w-full p-2 border rounded text-right"
+                value={groupUserSearch}
+                onChange={async (e) => {
+                  setGroupUserSearch(e.target.value);
+                  if (!e.target.value.trim()) {
+                    setGroupUserResults([]);
+                    return;
+                  }
+                  setIsSearching(true);
+                  const q = query(
+                    collection(db, "users"),
+                    where("username", ">=", e.target.value.toLowerCase()),
+                    where("username", "<=", e.target.value.toLowerCase() + "\uf8ff"),
+                    limit(5)
+                  );
+                  const snapshot = await getDocs(q);
+                  const results = snapshot.docs
+                    .filter(doc => doc.id !== currentUser.uid && !selectedGroupUsers.some(u => u.id === doc.id))
+                    .map(doc => ({
+                      id: doc.id,
+                      username: doc.data().username,
+                      photoURL: doc.data().photoURL
+                    }));
+                  setGroupUserResults(results);
+                  setIsSearching(false);
+                }}
+                placeholder="חפש משתמשים"
+              />
+              {isSearching && (
+                <div className="absolute left-2 top-3">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                </div>
+              )}
+              {groupUserResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
+                  {groupUserResults.map((user) => (
+                    <div
+                      key={user.id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer text-right flex items-center gap-2"
+                      onClick={() => {
+                        setSelectedGroupUsers([...selectedGroupUsers, user]);
+                        setGroupUserResults([]);
+                        setGroupUserSearch("");
+                      }}
+                    >
+                      {user.photoURL && (
+                        <img src={user.photoURL} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
+                      )}
+                      <span>{user.username}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedGroupUsers.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedGroupUsers.map(user => (
+                    <div key={user.id} className="flex items-center gap-1 bg-gray-200 px-2 py-1 rounded-full">
+                      {user.username}
+                      <button className="ml-1 text-red-500" onClick={() => setSelectedGroupUsers(selectedGroupUsers.filter(u => u.id !== user.id))}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                className='px-4 py-2 text-white rounded-lg hover:scale-105 disabled:opacity-50'
+                onClick={async () => {
+                  if (!groupName.trim()) return;
+                  try {
+                    const batch = writeBatch(db);
+                    const groupRef = doc(collection(db, "conversations"));
+                    const adminUid = currentUser.uid;
+                    const participants = [adminUid, ...selectedGroupUsers.map(u => u.id)];
+                    const participantNames = [currentUser.username, ...selectedGroupUsers.map(u => u.username)];
+                    const groupData = {
+                      type: "group",
+                      name: groupName.trim(),
+                      admin: adminUid,
+                      participants,
+                      participantNames,
+                      lastMessage: "",
+                      lastUpdated: serverTimestamp(),
+                      createdAt: serverTimestamp(),
+                    };
+                    batch.set(groupRef, groupData);
+                    await batch.commit();
+                    const newGroupDoc = await getDoc(groupRef);
+                    setSelectedConversation({
+                      id: newGroupDoc.id,
+                      ...newGroupDoc.data(),
+                      lastUpdated: newGroupDoc.data().lastUpdated?.toDate(),
+                      createdAt: newGroupDoc.data().createdAt?.toDate()
+                    });
+                    setShowNewGroupDialog(false);
+                    setGroupName("");
+                    setGroupUserSearch("");
+                    setGroupUserResults([]);
+                    setSelectedGroupUsers([]);
+                  } catch (error) {
+                    alert("שגיאה ביצירת קבוצה: " + error.message);
+                  }
+                }}
+                disabled={!groupName.trim()}
+                style={{ backgroundColor: elementColors.primary }}
+              >
+                צור קבוצה
+              </button>
+              <button
+                className="px-4 py-2 border rounded-lg hover:bg-gray-200"
+                onClick={() => {
+                  setShowNewGroupDialog(false);
+                  setGroupName("");
+                  setGroupUserSearch("");
+                  setGroupUserResults([]);
+                  setSelectedGroupUsers([]);
                 }}
               >
                 ביטול
