@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, query, getDocs, collection, where, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, query, getDocs, collection, where, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { ELEMENT_COLORS } from './utils/ELEMENT_COLORS';
 import { useNavigate } from "react-router-dom";
@@ -148,6 +148,36 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       alert('שגיאה בהעלאת תמונת קבוצה');
     }
     setIsUploadingAvatar(false);
+  };
+
+  // Handler to delete all messages in a direct conversation
+  const handleDeleteAllMessages = async () => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק את כל ההודעות בצ׳אט זה? פעולה זו אינה הפיכה!')) return;
+    try {
+      const messagesRef = collection(db, 'conversations', conversation.id, 'messages');
+      const snapshot = await getDocs(messagesRef);
+      const batchSize = 500;
+      let batch = [];
+      for (const docSnap of snapshot.docs) {
+        batch.push(docSnap.ref);
+        if (batch.length === batchSize) {
+          await Promise.all(batch.map(ref => deleteDoc(ref)));
+          batch = [];
+        }
+      }
+      if (batch.length > 0) {
+        await Promise.all(batch.map(ref => deleteDoc(ref)));
+      }
+      // Reset lastMessage and lastUpdated in the conversation document
+      await updateDoc(doc(db, 'conversations', conversation.id), {
+        lastMessage: null,
+        lastUpdated: serverTimestamp(),
+      });
+      window.toast && window.toast.success && window.toast.success('כל ההודעות נמחקו בהצלחה!');
+      alert('כל ההודעות נמחקו בהצלחה!');
+    } catch (e) {
+      alert('שגיאה במחיקת הודעות: ' + e.message);
+    }
   };
 
   if (!isMounted) return null;
@@ -591,9 +621,9 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         ${shouldShow ? 'translate-x-0' : '-translate-x-full'}
         `}
         style={{
-            backgroundColor: 'white',
-            borderRight: `2px solid ${elementColors.primary}`
-          }}
+          backgroundColor: elementColors.light,
+          borderRight: `2px solid ${elementColors.primary}`
+        }}
       onTransitionEnd={handleAnimationEnd}
     >
       <button 
@@ -622,6 +652,13 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           מעבר לפרופיל
         </a>
         <div className="text-gray-500 mt-1 text-sm">סוג האלמנט: {partnerElement || '...'} {ELEMENT_COLORS[partnerElement]?.icon}</div>
+        {/* Delete all messages button */}
+        <button
+          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition font-bold"
+          onClick={handleDeleteAllMessages}
+        >
+          מחק את כל ההודעות בצ׳אט
+        </button>
       </div>
       {/* Images Gallery */}
       <div className="mb-4">
