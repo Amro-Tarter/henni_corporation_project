@@ -11,14 +11,15 @@ import {
 import { auth } from '@/config/firbaseConfig';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import Cookies from "js-cookie";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import CommunityPage from '../../pages/CommunityPage';
 
 const sections = [
-  { id: 'about-us', label: 'אודות העמותה', icon: faLeaf },
+  { id: 'about-section', label: 'אודות העמותה', icon: faLeaf },
   { id: 'leadership-program', label: 'תכנית המנהיגות', icon: faHammer },
   { id: 'projects', label: 'יצירות ופרויקטים', icon: faWind },
   { id: 'community', label: 'קהילת העמותה', icon: faWater },
-  { id: 'events', label: 'הצטרפו אלינו', icon: faFire },
+  { id: 'join-us', label: 'הצטרפו אלינו', icon: faFire },
 ];
 
 const Navigation = () => {
@@ -30,6 +31,7 @@ const Navigation = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const authDropdownRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Scroll & active section tracking + progress bar
   useEffect(() => {
@@ -101,6 +103,43 @@ const Navigation = () => {
     setShowAuthDropdown(prev => !prev);
   };
 
+  const handleSectionClick = (e, sectionId) => {
+    e.preventDefault();
+    
+    // Close mobile menu if open
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+    }
+    
+    // If we're not on the home page, navigate to home and then scroll
+    if (location.pathname !== '/') {
+      navigate('/', { state: { scrollToSection: sectionId } });
+    } else {
+      // Otherwise, just scroll to the section
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  // Check for scrollToSection in location state when component mounts or updates
+  useEffect(() => {
+    if (location.state?.scrollToSection) {
+      const sectionId = location.state.scrollToSection;
+      const element = document.getElementById(sectionId);
+      
+      if (element) {
+        // Small timeout to ensure DOM is fully rendered
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth' });
+          // Clear the state to prevent scrolling again on subsequent renders
+          navigate('/', { replace: true, state: {} });
+        }, 100);
+      }
+    }
+  }, [location.state, navigate]);
+
   const cn = (...classes) => classes.filter(Boolean).join(' ');
 
   return (
@@ -130,7 +169,8 @@ const Navigation = () => {
               {sections.map(item => (
                 <li key={item.id}>
                   <a
-                    href={`#${item.id}`}
+                    href={item.id === 'community' ? '/community' : `#${item.id}`}
+                    onClick={(e) => item.id !== 'community' ? handleSectionClick(e, item.id) : null}
                     className={cn(
                       'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
                       activeSection === item.id && 'bg-white/20'
@@ -172,11 +212,12 @@ const Navigation = () => {
                   {currentUser ? (currentUser.displayName || 'החשבון שלי') : 'התחברות'}
                 </span>
               </button>
+                  {/* Auth Dropdown */}
               {showAuthDropdown && (
                 <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                   {currentUser ? (
                     <>
-                      <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200">
+                      <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200 truncate">
                         {currentUser.email}
                       </div>
                       <a href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
@@ -258,7 +299,11 @@ const Navigation = () => {
           <ul className="flex-1 flex flex-col p-4 space-y-4 text-white text-lg">
             {sections.map(item => (
               <li key={item.id}>
-                <a href={`#${item.id}`} onClick={() => setIsMenuOpen(false)} className="flex items-center gap-2">
+                <a 
+                  href={item.id === 'community' ? '/community' : `#${item.id}`}
+                  onClick={item.id !== 'community' ? (e) => handleSectionClick(e, item.id) : null} 
+                  className="flex items-center gap-2"
+                >
                   <FontAwesomeIcon icon={item.icon} className="text-xl" />
                   <span>{item.label}</span>
                 </a>

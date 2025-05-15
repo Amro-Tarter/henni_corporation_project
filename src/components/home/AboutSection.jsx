@@ -127,7 +127,7 @@ const AboutSection = () => {
   return (
     <section
       id="about-section"
-      className="relative py-20 md:py-28 bg-gradient-to-br from-orange-100 via-orange-200 to-yellow-100 overflow-hidden"
+      className="relative py-20 md:py-28 bg-gradient-to-br from-green-400 via-green-200 to-lime-100 overflow-hidden"
       dir="rtl"
     >
       {/* Decorative background elements */}
