@@ -17,6 +17,9 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   const navigate = useNavigate();
   // Local optimistic state for participants
   const [localParticipants, setLocalParticipants] = useState(conversation.participants || []);
+  // Group avatar upload state
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState(null);
 
   useEffect(() => {
     if (open) {
@@ -123,6 +126,28 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     }
     // Use setSelectedConversation to select the conversation
     setSelectedConversation(conversationData);
+  };
+
+  // Handler for group avatar upload
+  const handleGroupAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    setAvatarPreview(URL.createObjectURL(file));
+    try {
+      // Upload to Firebase Storage
+      const storage = (await import('firebase/storage')).getStorage();
+      const { ref, uploadBytesResumable, getDownloadURL } = await import('firebase/storage');
+      const groupRef = ref(storage, `group_avatars/${conversation.id}.jpg`);
+      await uploadBytesResumable(groupRef, file);
+      const url = await getDownloadURL(groupRef);
+      // Update Firestore
+      await updateDoc(doc(db, 'conversations', conversation.id), { avatarURL: url });
+      setAvatarPreview(null);
+    } catch (e) {
+      alert('שגיאה בהעלאת תמונת קבוצה');
+    }
+    setIsUploadingAvatar(false);
   };
 
   if (!isMounted) return null;
@@ -341,12 +366,38 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         >
           ✕
         </button>
-        <div className="font-bold text-lg right-6 px-3.5 py-2 -mt-12" style={{ color: elementColors.primary }}>
-          {groupName}
+        {/* Group Avatar and Name (for group chats) */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="relative">
+            <img
+              src={avatarPreview || conversation.avatarURL || '/default_group_avatar.jpg'}
+              alt={conversation.groupName || 'קבוצה'}
+              className="w-20 h-20 rounded-full object-cover border-4 mb-2"
+              style={{ borderColor: elementColors.primary, backgroundColor: elementColors.light }}
+            />
+            {/* Only admin can change group avatar */}
+            {currentUser.uid === conversation.admin && (
+              <label className="absolute bottom-0 right-0 bg-white bg-opacity-80 rounded-full p-1 cursor-pointer shadow hover:bg-opacity-100 transition" title="שנה תמונת קבוצה">
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleGroupAvatarChange}
+                  disabled={isUploadingAvatar}
+                />
+                {isUploadingAvatar ? (
+                  <span className="w-6 h-6 flex items-center justify-center animate-spin">🔄</span>
+                ) : (
+                  <span className="w-6 h-6 flex items-center justify-center">📷</span>
+                )}
+              </label>
+            )}
+          </div>
+          <div className="font-semibold text-gray-800 text-lg mb-2" style={{ color: elementColors.primary }}>{conversation.groupName}</div>
         </div>
-        <div className="text-gray-500 text-sm mb-4">מספר חברים: {memberUids.length}</div>
+        <div className="text-gray-500 text-sm -mt-6 mb-4 text-center">מספר חברים: {memberUids.length}</div>
         {/* Admin badge */}
-        <div className="mb-2 text-xs text-gray-500">מנהל: {usernames[adminUid] || adminUid} <span className="ml-1 px-2 py-0.5 bg-yellow-300 text-yellow-900 rounded-full">Admin</span></div>
+        <div className="mb-3 text-xs text-gray-500 text-center">מנהל: {usernames[adminUid] || adminUid} <span className="ml-1 px-2 py-0.5 bg-yellow-300 text-yellow-900 rounded-full">Admin</span></div>
         {/* Add member UI (admin only) */}
         {isAdmin && (
           <div className="mb-6">
@@ -517,6 +568,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
             </>
           )}
         </div>
+        
       </div>
     );
   }

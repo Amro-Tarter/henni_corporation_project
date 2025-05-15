@@ -60,7 +60,9 @@ export default function ConversationList({
                 </div>
               );
             } else if (conv.type === 'group') {
-              avatar = (
+              avatar = conv.avatarURL ? (
+                <img src={conv.avatarURL} alt="group avatar" className="w-10 h-10 object-cover rounded-full" />
+              ) : (
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-xl text-gray-400">
                   <span role="img" aria-label="avatar">👤</span>
                 </div>

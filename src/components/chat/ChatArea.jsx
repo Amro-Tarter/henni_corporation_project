@@ -120,7 +120,13 @@ export default function ChatArea({
             )}
             type={selectedConversation.type}
             icon={selectedConversation.type === 'community' ? elementColors.icon : undefined}
-            avatar={selectedConversation.type === 'direct' ? getDirectAvatar() : undefined}
+            avatar={
+              selectedConversation.type === 'group'
+                ? selectedConversation.avatarURL || undefined
+                : selectedConversation.type === 'direct'
+                  ? getDirectAvatar()
+                  : undefined
+            }
             onInfoClick={() => setShowInfoSidebar(true)}
           />
           <ChatInfoSidebar

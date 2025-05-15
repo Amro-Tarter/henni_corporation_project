@@ -61,6 +61,8 @@ export default function ChatApp() {
   const [groupUserResults, setGroupUserResults] = useState([]);
   const [selectedGroupUsers, setSelectedGroupUsers] = useState([]);
   const [pendingSelectedConversationId, setPendingSelectedConversationId] = useState(null);
+  const [groupAvatarFile, setGroupAvatarFile] = useState(null);
+  const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
 
   // File upload state/logic (moved to hook)
   const {
@@ -218,7 +220,8 @@ export default function ChatApp() {
               ...base,
               participantNames: data.participantNames,
               groupName: data.name,
-              admin: data.admin
+              admin: data.admin,
+              avatarURL: data.avatarURL || null
             });
             continue;
           }
@@ -715,7 +718,6 @@ export default function ChatApp() {
           <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
             <h3 className="text-lg font-bold mb-4">קבוצה חדשה</h3>
             <div className="mb-4">
-              
               <label className="block text-sm font-medium mb-2">שם הקבוצה:</label>
               <input
                 type="text"
@@ -724,6 +726,27 @@ export default function ChatApp() {
                 onChange={e => setGroupName(e.target.value)}
                 placeholder="הזן שם קבוצה"
               />
+              {/* Group avatar upload */}
+              <label className="block text-sm font-medium mb-2 mt-2">תמונת קבוצה (אופציונלי):</label>
+              <input
+                type="file"
+                accept="image/*"
+                className="w-full p-2 border rounded text-right mb-2"
+                onChange={e => {
+                  const file = e.target.files[0];
+                  setGroupAvatarFile(file || null);
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = ev => setGroupAvatarPreview(ev.target.result);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setGroupAvatarPreview(null);
+                  }
+                }}
+              />
+              {groupAvatarPreview && (
+                <div className="mb-2 flex justify-center"><img src={groupAvatarPreview} alt="Group Preview" className="w-20 h-20 object-cover rounded-full border" /></div>
+              )}
               <label className="block text-sm font-medium mb-2 mt-2">הוסף חברים:</label>
               <input
                 type="text"
@@ -814,6 +837,14 @@ export default function ChatApp() {
                     };
                     batch.set(groupRef, groupData);
                     await batch.commit();
+                    let avatarURL = null;
+                    if (groupAvatarFile) {
+                      // Upload avatar to Storage
+                      const avatarRef = storageRef(storage, `group_avatars/${groupRef.id}.jpg`);
+                      await uploadBytesResumable(avatarRef, groupAvatarFile);
+                      avatarURL = await getDownloadURL(avatarRef);
+                      await updateDoc(groupRef, { avatarURL });
+                    }
                     const newGroupDoc = await getDoc(groupRef);
                     setPendingSelectedConversationId(newGroupDoc.id);
                     setShowNewGroupDialog(false);
@@ -821,6 +852,8 @@ export default function ChatApp() {
                     setGroupUserSearch("");
                     setGroupUserResults([]);
                     setSelectedGroupUsers([]);
+                    setGroupAvatarFile(null);
+                    setGroupAvatarPreview(null);
                   } catch (error) {
                     alert("שגיאה ביצירת קבוצה: " + error.message);
                   }
@@ -838,6 +871,8 @@ export default function ChatApp() {
                   setGroupUserSearch("");
                   setGroupUserResults([]);
                   setSelectedGroupUsers([]);
+                  setGroupAvatarFile(null);
+                  setGroupAvatarPreview(null);
                 }}
               >
                 ביטול
