@@ -29,6 +29,7 @@ import { getChatPartner } from "../components/chat/utils/chatHelpers";
 import { useFileUpload } from "../components/chat/hooks/useFileUpload";
 import { ELEMENT_COLORS } from '../components/chat/utils/ELEMENT_COLORS';
 import { useParams, useNavigate } from "react-router-dom";
+import { badWords } from "../components/chat/utils/badWords";
 
 export default function ChatApp() {
   const { chatId } = useParams();
@@ -294,6 +295,17 @@ export default function ChatApp() {
   const sendMessage = async () => {
     if ((!newMessage.trim() && !file) || !selectedConversation || isSending || isUploading) {
       return;
+    }
+    // Bad words filter (only for text messages)
+    if (!file && newMessage.trim()) {
+      const lowerMsg = newMessage.toLowerCase();
+      // Efficient: check if any bad word is a substring (can be improved to whole word if needed)
+      const hasBadWord = badWords.some(word => word && lowerMsg.includes(word.toLowerCase()));
+      if (hasBadWord) {
+        alert('ההודעה שלך מכילה מילים אסורות. אנא נסח מחדש.');
+        setNewMessage("");
+        return;
+      }
     }
     const messageToSend = newMessage;
     setNewMessage("");
