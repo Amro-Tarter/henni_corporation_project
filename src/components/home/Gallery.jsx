@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import CommunityPage from '../../pages/CommunityPage';
+import CTAButton from "@/components/CTAButton";
+
 
 const galleryItems = [
   {
@@ -178,9 +181,22 @@ const Gallery = () => {
           </div>
         </div>
 
+      {/* button to move to community page */}
+        <div className="mt-24 text-center">
+         <CTAButton
+            href="/community"
+            variant="water"
+            size="lg"
+            className="bg-water text-white border border-water hover:bg-water-accent hover:scale-105 shadow-lg hover:shadow-water/50"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+          קראו עוד
+          </CTAButton>
+        </div>
+
       </div>
     </section>
   );
 };
-
 export default Gallery;
