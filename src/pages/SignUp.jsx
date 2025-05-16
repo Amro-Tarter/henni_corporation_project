@@ -25,6 +25,13 @@ function Signup() {
   const [phone, setPhone] = useState("");
   const inputStyle = "appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right";
 
+  const elementGradients = {
+    fire: 'bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500',
+    water: 'bg-gradient-to-r from-blue-400 via-teal-400 to-cyan-500',
+    earth: 'bg-gradient-to-r from-green-600 via-yellow-700 to-brown-500',
+    air: 'bg-gradient-to-r from-sky-300 via-white to-sky-300',
+    metal: 'bg-gradient-to-r from-gray-300 via-gray-500 to-gray-700',
+  };
 
   const [notification, setNotification] = useState(null);
 
@@ -234,18 +241,7 @@ function Signup() {
     />
   </div>
 
-  {/* Phone */}
-  <div className="flex flex-col">
-    <label className="mb-1 text-sm font-medium text-gray-700">מספר טלפון</label>
-    <input
-      type="tel"
-      required
-      value={phone}
-      onChange={(e) => setPhone(e.target.value)}
-      placeholder="מספר טלפון"
-      className={inputStyle}
-    />
-  </div>
+ 
 
   {/* Password */}
   <div className="flex flex-col">
@@ -256,6 +252,20 @@ function Signup() {
       value={password}
       onChange={(e) => setPassword(e.target.value)}
       placeholder="סיסמה"
+      className={inputStyle}
+    />
+  </div>
+
+
+  {/* Phone */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">מספר טלפון</label>
+    <input
+      type="tel"
+      required
+      value={phone}
+      onChange={(e) => setPhone(e.target.value)}
+      placeholder="מספר טלפון"
       className={inputStyle}
     />
   </div>
@@ -287,32 +297,71 @@ function Signup() {
   </div>
 
   {/* Element */}
-  <div className="flex flex-col">
-    <label className="mb-1 text-sm font-medium text-gray-700">אלמנט</label>
+  <div className="col-span md:col-span-2 mt-2 flex flex-col items-center">
+  <label className="mb-2 text-center ">אלמנט</label>
     <select
       required
       value={element}
       onChange={(e) => setElement(e.target.value)}
-      className={inputStyle}
+  className={`${inputStyle} ${elementGradients[element] || "bg-white"}`}
     >
-      <option value="">בחר אלמנט</option>
-      <option value="fire">אש</option>
-      <option value="water">מים</option>
-      <option value="earth">אדמה</option>
-      <option value="air">אוויר</option>
-      <option value="metal">מתכת</option>
+
+  <option
+    value=""
+    className="mb-2 text-center"
+  >
+    בחר אלמנט
+  </option>
+  <option
+    value="fire"
+    className="mb-2 text-center"
+  >
+    אש
+  </option>
+  <option
+    value="water"
+    className="mb-2 text-center"
+  >
+    מים
+  </option>
+  <option
+    value="earth"
+    className="mb-2 text-center"
+  >
+    אדמה
+  </option>
+  <option
+    value="air"
+    className="mb-2 text-center"
+  >
+    אוויר
+  </option>
+  <option
+    value="metal"
+    className="mb-2 text-center"
+  >
+    מתכת
+  </option>
     </select>
   </div>
 
   {/* Submit Button */}
-  <div className="col-span-1 md:col-span-2 mt-4">
-    <button
-      type="submit"
-      className="w-full py-3 px-4 rounded-md bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition"
-    >
-      הרשמה
-    </button>
+  <div className={`
+  relative z-10 col-span-1 md:col-span-2  mt-4 w-full py-3 px-4 rounded-md font-medium text-black
+  transition hover:opacity-90 
+  ${elementGradients[element] || "bg-gray-300"}
+`}>
+  
+      
+      <button></button>
+
   </div>
+  <Button
+  text="הרשמה"
+  type="submit"
+  onClick={handleSubmit}
+  className={elementGradients[element] || "bg-gray-300"}
+/>
 
   {/* Login Link */}
   <div className="col-span-1 md:col-span-2 text-center text-sm">

@@ -201,7 +201,7 @@ if (msg === "user-not-found") {
   </div>
 </div>
 
-      <div className="max-w-md w-full  rounded-xl bg-white/30 shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
+      <div className="max-w-md w-full  rounded-xl bg-white shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
         {/* Decorative element background */}
         <div className="absolute -top-14 -left-14 w-40 h-40 bg-indigo-100 rounded-full opacity-60"></div>
         <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-100 rounded-full opacity-60"></div>
