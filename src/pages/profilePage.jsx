@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import ElementalLoader from '../theme/ElementalLoader';
+import { useParams } from 'react-router-dom';
 
 import {
   doc,
   getDoc,
   collection,
+  collectionGroup,
   getDocs,
   writeBatch,
   query,
@@ -38,18 +40,61 @@ import CreatePost   from '../components/social/createpost';
 import ProfilePost  from '../components/social/ProfilePost.jsx';
 
 const ProfilePage = () => {
-  const auth = getAuth();
-  const uid = auth.currentUser?.uid;
+  const { username } = useParams();
+  const [uid, setUid] = useState(null);
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [viewerProfile, setViewerProfile] = useState(null);
   const [posts, setPosts]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [postComments, setPostComments] = useState({}); // Store comments by post ID
   const [sameElementUsers, setSameElementUsers] = useState([]);
+  const [authorProfilesCache, setAuthorProfilesCache] = useState({});
+
+  useEffect(() => {
+  async function loadUIDByUsername() {
+    try {
+      const q = query(collection(db, 'profiles'), where('username', '==', username));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        setUid(snapshot.docs[0].id); // The UID is the document ID
+      } else {
+        console.warn('Username not found:', username);
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Failed to fetch UID:', err);
+      setLoading(false);
+    }
+  }
+
+  if (username) loadUIDByUsername();
+}, [username]);
+
+useEffect(() => {
+  const fetchViewerProfile = async () => {
+    const auth = getAuth();
+    const viewerUid = auth.currentUser?.uid;
+    if (!viewerUid) return;
+
+    try {
+      const snap = await getDoc(doc(db, 'profiles', viewerUid));
+      if (snap.exists()) {
+        setViewerProfile({ uid: viewerUid, ...snap.data() });
+      }
+    } catch (error) {
+      console.error('Error fetching viewer profile:', error);
+    }
+  };
+
+  fetchViewerProfile();
+}, []);
+
+
 
   // Fetch profile and posts
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || !viewerProfile?.uid) return;
 
     async function loadData() {
       
@@ -72,7 +117,7 @@ const ProfilePage = () => {
         return {
           id: d.id,
           ...data,
-          liked: Array.isArray(data.likedBy) && data.likedBy.includes(uid),
+          liked: Array.isArray(data.likedBy) && data.likedBy.includes(viewerProfile.uid),
         };
       });
       setPosts(loaded);
@@ -84,7 +129,7 @@ const ProfilePage = () => {
         }
       }
     loadData();
-  }, []);
+  }, [uid, viewerProfile]);
 
   useEffect(() => {
   const fetchSimilarElementUsers = async () => {
@@ -172,10 +217,58 @@ const ProfilePage = () => {
     };
   }, [posts]);
 
+  const getAuthorProfile = async (uid) => {
+    if (!uid) return null;
+
+    if (authorProfilesCache && authorProfilesCache[uid]) {
+      return authorProfilesCache[uid];
+    }
+
+    try {
+      const snap = await getDoc(doc(db, 'profiles', uid));
+      if (snap.exists()) {
+        const profile = snap.data();
+        setAuthorProfilesCache(prev => ({ ...prev, [uid]: profile }));
+        return profile;
+      }
+    } catch (err) {
+      console.error('Failed to load profile for', uid, err);
+    }
+
+    return null;
+  };
+
   // Update profile field
   const updateField = async (field, value) => {
     const profileRef = doc(db, 'profiles', uid);
     const userRef    = doc(db, 'users', uid);
+    if (field === 'username') {
+    // Check if username exists
+    const q = query(collection(db, 'profiles'), where('username', '==', value));
+    const snap = await getDocs(q);
+    const taken = snap.docs.some(doc => doc.id !== uid);
+    if (taken) {
+      alert('שם המשתמש הזה כבר תפוס. אנא בחר שם אחר.');
+      return;
+    }
+
+    const batch = writeBatch(db);
+    batch.update(profileRef, { username: value, updatedAt: serverTimestamp() });
+    batch.update(userRef,    { username: value });
+
+    const commentsQuery = query(
+      collectionGroup(db, 'comments'),
+      where('authorId', '==', uid)
+    );
+    const commentsSnap = await getDocs(commentsQuery);
+    commentsSnap.forEach(comment => {
+      batch.update(comment.ref, { username: value });
+    });
+
+    await batch.commit();
+    setProfile(prev => ({ ...prev, [field]: value }));
+  }
+
     if (field === 'element') {
       const batch = writeBatch(db);
       batch.update(profileRef, { element: value, updatedAt: serverTimestamp() });
@@ -266,14 +359,14 @@ const ProfilePage = () => {
     const postRef = doc(db, 'posts', id);
     await updateDoc(postRef, {
       likesCount: liked ? increment(1) : increment(-1),
-      likedBy: liked ? arrayUnion(uid) : arrayRemove(uid)
+      likedBy: liked ? arrayUnion(viewerProfile.uid) : arrayRemove(viewerProfile.uid)
     });
     setPosts(prev => prev.map(p =>
-      p.id === id ? { ...p, likesCount: p.likesCount + (liked ? 1 : -1), liked } : p
+      p.id === id ? { ...p, likesCount: p.likesCount + (liked ? 1 : -1), liked,likedBy: liked
+              ? [...(p.likedBy || []), viewerProfile.uid]
+              : (p.likedBy || []).filter(uid => uid !== viewerProfile.uid)  } : p
     ));
   };
-
-  // COMMENT SYSTEM FUNCTIONS
 
   // Add a new comment to a post
   const addComment = async (postId, text, parentCommentId = null) => {
@@ -281,9 +374,7 @@ const ProfilePage = () => {
     
     try {
       const commentData = {
-        authorId: uid,
-        authorPhotoURL: profile.photoURL,
-        username: profile.username,
+        authorId: viewerProfile?.uid,
         text: text.trim(),
         timestamp: serverTimestamp(),
         edited: false,
@@ -404,10 +495,11 @@ const ProfilePage = () => {
         </aside>
 
         <main className={`
-            flex-1 pt-2 space-y-12 transition-all duration-500 ease-in-out
-            lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}`}
+            flex-1 pt-2 space-y-12 pb-4 transition-all duration-500 ease-in-out
+            lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}` }
         >
           <ProfileInfo
+            isOwner={uid === getAuth().currentUser?.uid}
             profilePic={profile.photoURL}
             backgroundPic={profile.backgroundURL}
             username={profile.username}
@@ -422,7 +514,13 @@ const ProfilePage = () => {
             onUpdateBackgroundPic={updateBackgroundPic}
           />
 
-          <CreatePost element={profile.element} addPost={createPost} profilePic={profile.photoURL} />
+          {uid === getAuth().currentUser?.uid && (
+            <CreatePost
+              element={profile.element}
+              addPost={createPost}
+              profilePic={profile.photoURL}
+            />
+          )}
 
           <section className="space-y-6">
             {posts.map(p => (
@@ -435,13 +533,15 @@ const ProfilePage = () => {
                 onLike={handleLike}
                 comments={postComments[p.id] || []}
                 currentUser={{
-                  uid,
-                  photoURL: profile.photoURL,
-                  username: profile.username
+                  uid: viewerProfile?.uid,
+                  photoURL: viewerProfile?.photoURL || '',
+                  username: viewerProfile?.username || '',
                 }}
                 onAddComment={addComment}
                 onEditComment={editComment}
                 onDeleteComment={deleteComment}
+                isOwner={uid === getAuth().currentUser?.uid}
+                getAuthorProfile={getAuthorProfile}
               />
             ))}
           </section>

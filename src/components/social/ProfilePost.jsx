@@ -12,7 +12,9 @@ const ProfilePost = ({
   currentUser,
   onAddComment,
   onEditComment,
-  onDeleteComment
+  onDeleteComment,
+  isOwner,
+  getAuthorProfile
 }) => {
   const {
     id,
@@ -33,10 +35,20 @@ const ProfilePost = ({
   const [showComments, setShowComments] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [liked, setLiked] = useState(false);
+  const [authorProfile, setAuthorProfile] = useState(null);
 
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const commentsRef = useRef(null);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const profile = await getAuthorProfile(post.authorId);
+      setAuthorProfile(profile);
+    };
+    fetch();
+  }, [post.authorId, getAuthorProfile]);
+
 
   useEffect(() => {
     setLiked(Array.isArray(likedBy) && likedBy.includes(currentUser.uid));
@@ -124,39 +136,41 @@ const ProfilePost = ({
       <div className="flex items-center justify-between px-5 py-4">
         <div className="flex items-center gap-3">
           <img
-            src={authorPhotoURL}
-            alt={authorName}
+            src={authorProfile?.photoURL || '/default_user_pic.jpg'}
+            alt={authorProfile?.username || 'משתמש'}
             className={`w-12 h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
           />
           <div className="flex flex-col">
-            <h3 className="text-lg font-bold">{authorName}</h3>
+            <h3 className="text-lg font-bold">{authorProfile?.username || '...'}</h3>
             <p className="text-xs text-gray-500">{timeString}</p>
           </div>
         </div>
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setMenuOpen(prev => !prev)}
-            className={`p-2 rounded-full transition-colors duration-200 text-${element}-accent hover:text-${element} hover:bg-${element}-soft`}
-          >
-            <MoreHorizontal size={20} />
-          </button>
-          {menuOpen && (
-            <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}> 
-              <button
-                onClick={() => { setEditing(prev => !prev); setMenuOpen(false); }}
-                className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors`}
-              >
-                {editing ? 'ביטול עריכה' : 'ערוך פוסט'}
-              </button>
-              <button
-                onClick={handleDelete}
-                className={`w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-${element}-soft transition-colors`}
-              >
-                מחק פוסט
-              </button>
-            </div>
-          )}
-        </div>
+        {isOwner &&(
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(prev => !prev)}
+              className={`p-2 rounded-full transition-colors duration-200 text-${element}-accent hover:text-${element} hover:bg-${element}-soft`}
+            >
+              <MoreHorizontal size={20} />
+            </button>
+            {menuOpen && (
+              <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}> 
+                <button
+                  onClick={() => { setEditing(prev => !prev); setMenuOpen(false); }}
+                  className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors`}
+                >
+                  {editing ? 'ביטול עריכה' : 'ערוך פוסט'}
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className={`w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-${element}-soft transition-colors`}
+                >
+                  מחק פוסט
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -272,6 +286,8 @@ const ProfilePost = ({
                 onEdit={onEditComment}
                 onDelete={onDeleteComment}
                 postId={id}
+                postAuthorId={post.authorId}
+                getAuthorProfile={getAuthorProfile}
               />
             ))
           ) : (
