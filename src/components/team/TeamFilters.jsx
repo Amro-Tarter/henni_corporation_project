@@ -6,29 +6,31 @@ export default function TeamFilters({ regions, expertises, filters, onChange, cl
   
   return (
     <div className={`flex flex-wrap items-center gap-3 ${className}`}>
-      <div className="flex items-center text-gray-500 mr-1">
-        <FaFilter className="mr-2" /> 
-        <span className="hidden sm:inline">Filters:</span>
+      <div className="flex items-center text-element/80 mr-1">
+        <FaFilter className="ml-2" /> 
+        <span className="hidden sm:inline">סינון:</span>
       </div>
       
       <div className="flex flex-wrap gap-3 flex-1">
         <select
           value={filters.region}
           onChange={e => onChange({ ...filters, region: e.target.value })}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 min-w-[150px]"
-          aria-label="Filter by region"
+          className="border border-element/20 rounded-lg px-3 py-2 text-foreground bg-element-soft focus:ring-2 focus:ring-element focus:border-element flex-1 min-w-[150px]"
+          aria-label="סינון לפי אזור"
+          dir="rtl"
         >
-          <option value="">All Regions</option>
+          <option value="">כל האזורים</option>
           {regions.map(r => <option key={r} value={r}>{r}</option>)}
         </select>
 
         <select
           value={filters.expertise}
           onChange={e => onChange({ ...filters, expertise: e.target.value })}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex-1 min-w-[150px]"
-          aria-label="Filter by expertise"
+          className="border border-element/20 rounded-lg px-3 py-2 text-foreground bg-element-soft focus:ring-2 focus:ring-element focus:border-element flex-1 min-w-[150px]"
+          aria-label="סינון לפי מומחיות"
+          dir="rtl"
         >
-          <option value="">All Expertise</option>
+          <option value="">כל המומחיות</option>
           {expertises.map(x => <option key={x} value={x}>{x}</option>)}
         </select>
       </div>
@@ -36,11 +38,11 @@ export default function TeamFilters({ regions, expertises, filters, onChange, cl
       {hasActiveFilters && (
         <button
           onClick={() => onChange({ region: '', expertise: '' })}
-          className="flex items-center text-sm text-gray-600 hover:text-red-600 transition-colors"
-          aria-label="Clear all filters"
+          className="flex items-center text-sm text-element/80 hover:text-element transition-colors"
+          aria-label="נקה את כל המסננים"
         >
-          <FaTimes className="mr-1" />
-          <span>Clear</span>
+          <FaTimes className="ml-1" />
+          <span>נקה</span>
         </button>
       )}
     </div>

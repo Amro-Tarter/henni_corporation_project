@@ -24,7 +24,7 @@ export default function RoleSection({ role, members }) {
     <section>
       <h2 className="text-2xl font-bold mb-6 flex items-center">
         {role}
-        <span className="ml-3 bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
+        <span className="mr-3 bg-element-soft text-element px-3 py-1 rounded-full text-sm">
           {members.length}
         </span>
       </h2>
