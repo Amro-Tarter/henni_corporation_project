@@ -277,7 +277,17 @@ const Navbar = ({ element }) => {
                 )}
                 <div className="py-2">
                   <button
-                    onClick={() => handleTabClick('profile', '/profile')}
+                    onClick={async () => {
+                      try {
+                        const docSnap = await getDoc(doc(db, 'profiles', user.uid));
+                        if (docSnap.exists()) {
+                          const username = docSnap.data().username;
+                          navigate(`/profile/${username}`);
+                        }
+                      } catch (err) {
+                        console.error('Failed to fetch username for profile redirection:', err);
+                      }
+                    }}
                     className="w-full text-right px-4 py-2 hover:bg-gray-100 transition"
                   >
                     הפרופיל שלי
