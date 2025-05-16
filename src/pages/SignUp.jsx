@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth ,db } from "../config/firbaseConfig";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import Notification from "../components/Notification";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLeaf,
@@ -13,8 +12,12 @@ import {
   faFire
 } from '@fortawesome/free-solid-svg-icons';
 import { Phone } from "lucide-react";
+import './auth.css';
+import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff } from "lucide-react"; // optional if using Lucide
 
 function Signup() {
+  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,16 +27,18 @@ function Signup() {
   const [element, setElement] = useState("");
   const [phone, setPhone] = useState("");
   const inputStyle = "appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right";
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
 
   const elementGradients = {
-    fire: 'bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500',
-    water: 'bg-gradient-to-r from-blue-400 via-teal-400 to-cyan-500',
-    earth: 'bg-gradient-to-r from-green-600 via-yellow-700 to-brown-500',
-    air: 'bg-gradient-to-r from-sky-300 via-white to-sky-300',
-    metal: 'bg-gradient-to-r from-gray-300 via-gray-500 to-gray-700',
+    fire: 'bg-gradient-to-r from-rose-700 via-amber-550 to-yellow-500',
+    water: 'bg-gradient-to-r from-indigo-500 via-blue-400 to-teal-300',
+    earth: 'bg-gradient-to-r from-lime-700 via-amber-600 to-stone-400',
+    air: 'bg-gradient-to-r from-white via-sky-200 to-indigo-100',
+    metal: 'bg-gradient-to-r from-zinc-300 via-slate-00 to-neutral-700',
   };
 
-  const [notification, setNotification] = useState(null);
 
 
   const navigate = useNavigate();
@@ -65,29 +70,58 @@ function Signup() {
      // Basic custom validations
   const cityRegex = /^[A-Za-zא-ת\s]+$/;
   const phoneRegex = /^0\d{9}$/;
-  const usernameRegex = /^[a-zA-Z0-9_א-ת]+$/;
 
   if (!cityRegex.test(location)) {
-    setNotification({ type: "error", message: "שם העיר חייב להכיל אותיות בלבד" });
+    toast({
+      variant: "destructive",
+      title: "שגיאה",
+      description: "שם העיר חייב להכיל אותיות בלבד" ,
+    });
+
     return;
   }
 
   if (!phoneRegex.test(phone)) {
-    setNotification({ type: "error", message: "מספר הטלפון חייב להכיל מספרים בלבד" });
-    return;
-  }
+   
+    toast({
+      variant: "destructive",
+      title: "שגיאה",
+      description: "מספר הטלפון חייב להכיל מספרים בלבד" ,
+    });
 
-  if (!usernameRegex.test(username)) {
-    setNotification({ type: "error", message: "שם המשתמש יכול להכיל רק אותיות, מספרים וקו תחתון" });
+
     return;
   }
 
   if (password !== confirmPassword) {
-    setNotification({ type: "error", message: "הסיסמאות אינן תואמות" });
+  
+
+    toast({
+      variant: "destructive",
+      title: "שגיאה",
+      description: "הסיסמאות אינן תואמות"  ,
+    });
+
     return;
   }
 
     try {
+
+      const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+
+if (!strongPasswordRegex.test(password)) {
+  
+
+  toast({
+    variant: "destructive",
+    title: "שגיאה",
+    description: "הסיסמה חייבת לכלול לפחות אות אחת קטנה, אות אחת גדולה, מספר אחד ותו מיוחד לפחות 8 תווים."  ,
+  });
+
+
+  return;
+}
+
       const res = await createUserWithEmailAndPassword(auth, email, password);
 
       await updateProfile(res.user, { displayName });
@@ -101,7 +135,7 @@ function Signup() {
         element,
         updatedAt: serverTimestamp(),
         createdAt:serverTimestamp(),
-        is_active:"false",
+        is_active:false,
         last_login:serverTimestamp(),
         phone,
         location,
@@ -123,16 +157,39 @@ function Signup() {
       });
 
 
-      setNotification({ type: "success", message: "נרשמת בהצלחה!" });
+
+      
+    toast({
+      variant: "destructive",
+      title: "שגיאה",
+      description: "נרשמת בהצלחה!"  ,
+    });
+
+
       setTimeout(() => {
         navigate("/");
       }, 1000);
     } catch (err) {
       console.error(err);
       if (err.code === "auth/email-already-in-use") {
-        setNotification({ type: "error", message: "האימייל הזה כבר בשימוש. נסה להתחבר או השתמש באימייל אחר." });
+
+        
+    toast({
+      variant: "destructive",
+      title: "שגיאה",
+      description: "האימייל הזה כבר בשימוש. נסה להתחבר או השתמש באימייל אחר."  ,
+    });
+
+
       } else {
-        setNotification({ type: "error", message: "אירעה שגיאה ביצירת החשבון" });
+
+        
+    toast({
+      variant: "destructive",
+      title: "שגיאה",
+      description: "אירעה שגיאה ביצירת החשבון" ,
+    });
+
       }
     }
   };
@@ -183,10 +240,10 @@ function Signup() {
 
  
   
-  <div className="w-full max-w-2xl bg-white/30 backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
+  <div className="w-full max-w-2xl bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
      {/* Decorative Circles */}
   <div className="absolute -top-14 -left-14 w-40 h-40 bg-indigo-100 rounded-full opacity-60"></div>
-  <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-100 rounded-full opacity-60"></div>
+  <div className="absolute z-10  -bottom-10 -right-10 w-32 h-32 bg-cyan-100 rounded-full opacity-60"></div>
 
     {/* Heading */}
     <div className="text-center mb-6">
@@ -210,23 +267,11 @@ function Signup() {
       required
       value={displayName}
       onChange={(e) => setDisplayName(e.target.value)}
-      placeholder="שם מלא"
+      placeholder="שם מלא *"
       className={inputStyle}
     />
   </div>
 
-  {/* Username */}
-  <div className="flex flex-col">
-    <label className="mb-1 text-sm font-medium text-gray-700">שם משתמש ייחודי</label>
-    <input
-      type="text"
-      required
-      value={username}
-      onChange={(e) => setUsername(e.target.value)}
-      placeholder="שם משתמש ייחודי"
-      className={inputStyle}
-    />
-  </div>
 
   {/* Email */}
   <div className="flex flex-col">
@@ -236,25 +281,76 @@ function Signup() {
       required
       value={email}
       onChange={(e) => setEmail(e.target.value)}
-      placeholder="כתובת אימייל"
+      placeholder="כתובת אימייל *"
       className={inputStyle}
     />
   </div>
 
- 
 
-  {/* Password */}
+{/* Container with 2 columns */}
+<div className="grid grid-cols-1 gap-4 w-full">
+
+  {/* Password (structured identically) */}
   <div className="flex flex-col">
-    <label className="mb-1 text-sm font-medium text-gray-700">סיסמה</label>
-    <input
-      type="password"
-      required
-      value={password}
-      onChange={(e) => setPassword(e.target.value)}
-      placeholder="סיסמה"
-      className={inputStyle}
-    />
-  </div>
+      <label className="mb-1 text-sm font-medium text-gray-700 flex items-center gap-1">
+        סיסמה
+        <div className="group relative cursor-pointer text-blue-600">
+          ⓘ
+          <div className="absolute w-64 right-0 top-full mt-1 bg-white border border-gray-300 rounded shadow-md p-2 text-xs text-gray-800 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none text-right rtl">
+            הסיסמה חייבת לכלול:
+            <ul className="list-disc list-inside mt-1">
+              <li>אות קטנה</li>
+              <li>אות גדולה</li>
+              <li>מספר</li>
+              <li>תו מיוחד (כמו @, #, !, ?)</li>
+              <li>לפחות 8 תווים</li>
+            </ul>
+          </div>
+        </div>
+      </label>
+
+      <div className="relative">
+        <input
+          type={showPassword ? "text" : "password"}
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="סיסמה *"
+          className={`${inputStyle} pr-10`} // make room for icon
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute inset-y-0 left-2 flex items-center text-gray-600"
+        >
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+    </div>
+</div>
+
+  {/* Confirm Password */}
+  <div className="flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">אימות סיסמה</label>
+
+      <div className="relative">
+        <input
+          type={showConfirmPassword ? "text" : "password"}
+          required
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="אימות סיסמה *"
+          className={`${inputStyle} pr-10`} // space for icon
+        />
+        <button
+          type="button"
+          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          className="absolute inset-y-0 left-2 flex items-center text-gray-600"
+        >
+          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
+    </div>
 
 
   {/* Phone */}
@@ -265,23 +361,11 @@ function Signup() {
       required
       value={phone}
       onChange={(e) => setPhone(e.target.value)}
-      placeholder="מספר טלפון"
+      placeholder="* מספר טלפון"
       className={inputStyle}
     />
   </div>
 
-  {/* Confirm Password */}
-  <div className="flex flex-col">
-    <label className="mb-1 text-sm font-medium text-gray-700">אימות סיסמה</label>
-    <input
-      type="password"
-      required
-      value={confirmPassword}
-      onChange={(e) => setConfirmPassword(e.target.value)}
-      placeholder="אימות סיסמה"
-      className={inputStyle}
-    />
-  </div>
 
   {/* Location */}
   <div className="flex flex-col">
@@ -291,30 +375,35 @@ function Signup() {
       required
       value={location}
       onChange={(e) => setLocation(e.target.value)}
-      placeholder="מיקום"
+      placeholder="מיקום *"
       className={inputStyle}
     />
   </div>
 
   {/* Element */}
-  <div className="col-span md:col-span-2 mt-2 flex flex-col items-center">
+  <div className=" shine-button col-span md:col-span-2 mt-2 flex flex-col items-center ">
   <label className="mb-2 text-center ">אלמנט</label>
-    <select
-      required
-      value={element}
-      onChange={(e) => setElement(e.target.value)}
-  className={`${inputStyle} ${elementGradients[element] || "bg-white"}`}
-    >
+  <select
+  required
+  value={element}
+  onChange={(e) => setElement(e.target.value)}
+  style={{ outline: 'none', boxShadow: 'none' }}
 
+  className={` 
+     mb-2 text-center focus:ring-0 focus:border-gray-300		 border border-gray-300 ${inputStyle} ${elementGradients[element] || "bg-white"}`}
+ 
+ >
   <option
     value=""
-    className="mb-2 text-center"
+    className="mb-2 text-center 	"
   >
+     
+
     בחר אלמנט
   </option>
   <option
     value="fire"
-    className="mb-2 text-center"
+    className="mb-2 text-center  "
   >
     אש
   </option>
@@ -342,26 +431,22 @@ function Signup() {
   >
     מתכת
   </option>
-    </select>
-  </div>
+</select>
+<span className="shine"></span>
 
+</div>
   {/* Submit Button */}
-  <div className={`
-  relative z-10 col-span-1 md:col-span-2  mt-4 w-full py-3 px-4 rounded-md font-medium text-black
-  transition hover:opacity-90 
-  ${elementGradients[element] || "bg-gray-300"}
-`}>
-  
-      
-      <button></button>
-
-  </div>
-  <Button
-  text="הרשמה"
-  type="submit"
-  onClick={handleSubmit}
-  className={elementGradients[element] || "bg-gray-300"}
-/>
+  <div className="col-span-1 md:col-span-2 ">
+  <button
+    type="submit"
+    className={`relative overflow-hidden z-10 w-full py-3 px-4 rounded-md font-medium text-black text-lg
+      transition hover:opacity-95 
+      ${elementGradients[element] || "bg-gray-300"} shine-button`}
+  >
+    הרשם
+    <span className="shine" />
+  </button>
+</div>
 
   {/* Login Link */}
   <div className="col-span-1 md:col-span-2 text-center text-sm">
@@ -373,9 +458,6 @@ function Signup() {
 </form>
   </div>
 
-      {notification && (
-        <Notification type={notification.type} message={notification.message} />
-      )}
     </div>
   );
 }

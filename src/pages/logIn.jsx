@@ -9,7 +9,7 @@ import {
   serverTimestamp
 } from "firebase/firestore";
 import { auth, db } from "../config/firbaseConfig";
-import { User, Lock, AlertCircle, CheckCircle, Loader } from "lucide-react";
+import { User, Lock, Loader } from "lucide-react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faLeaf,
@@ -18,13 +18,23 @@ import {
   faWater,
   faFire
 } from '@fortawesome/free-solid-svg-icons';
+import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff } from "lucide-react"; // or use emojis if you prefer
+
+class CustomAuthError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+  }
+}
 
 const Login = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [form, setForm] = useState({ email: "", password: "" });
-  const [notification, setNotification] = useState(null);
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Check for saved email in localStorage
   useEffect(() => {
@@ -39,8 +49,7 @@ const Login = () => {
   useEffect(() => {
     const styleSheet = document.createElement("style");
     styleSheet.type = "text/css";
-    styleSheet.innerText = `
-      @keyframes float {
+    styleSheet.innerText = `       @keyframes float {
         0% { transform: translateY(0) rotate(0deg); }
         50% { transform: translateY(-20px) rotate(5deg); }
         100% { transform: translateY(0) rotate(0deg); }
@@ -55,7 +64,7 @@ const Login = () => {
       .animate-float-8 { animation: float 10s ease-in-out 1s infinite; }
     `;
     document.head.appendChild(styleSheet);
-    
+
     return () => {
       document.head.removeChild(styleSheet);
     };
@@ -67,11 +76,6 @@ const Login = () => {
 
   const handleRememberMe = () => {
     setRememberMe(!rememberMe);
-  };
-
-  const showNotification = (message, type) => {
-    setNotification({ message, type });
-    setTimeout(() => setNotification(null), 5000);
   };
 
   const handleSubmit = async (e) => {
@@ -100,16 +104,15 @@ const Login = () => {
 
       if (!userSnap.exists()) {
         await signOut(auth);
-        throw new Error("user-not-found");
-      }
+        throw { code: "user-not-found" };
+          }
 
       const userData = userSnap.data();
 
       if (!userData.is_active) {
         await signOut(auth);
-        throw new Error("user-inactive");
-
-      }
+        throw { code: "user-inactive" };
+            }
 
       // 3. Update last_login timestamp
       await updateDoc(userRef, {
@@ -123,8 +126,12 @@ const Login = () => {
       // Store user element for theming
       localStorage.setItem("userElement", userData.element || "fire");
 
-      // 5. Show success notification and redirect
-      showNotification("התחברת בהצלחה! מעביר אותך לדף הבית...", "success");
+      // 5. Show success notification and redirect using toast
+      toast({
+        variant: "default",
+        title: "התחברת בהצלחה",
+        description: "מעביר אותך לדף הבית...",
+      });
       
       setTimeout(() => {
         navigate("/home");
@@ -132,26 +139,35 @@ const Login = () => {
       
     } catch (error) {
       console.error("Login error:", error);
-      let message = "שגיאה בהתחברות. נסה שנית.";
+      let title = "שגיאה";
+      let description = "שגיאה בהתחברות. נסה שנית.";
 
-const code = error.code || "";
-const msg = error.message ;
-
-if (msg === "user-not-found") {
-  message = "לא נמצא משתמש עם המייל הזה";
-} else if (code === "auth/user-not-found") {
-  message = "לא נמצא משתמש עם המייל הזה";
-} else if (code === "auth/wrong-password") {
-  message = "סיסמה שגויה, נסה שנית";
-} else if (code === "auth/too-many-requests") {
-  message = "יותר מדי נסיונות התחברות. נסה שוב מאוחר יותר";
-} else if (code === "auth/invalid-email") {
-  message = "כתובת האימייל אינה תקינה";
-} else if (msg === "user-inactive") {
-  message = "המשתמש שלך אינו פעיל. פנה למנהל המערכת.";
-}
-      
-      showNotification(message, "error");
+      const code = error.code;
+      switch (error.code) {
+        case "user-not-found":
+        case "auth/user-not-found":
+          description = "לא נמצא משתמש עם המייל הזה";
+          break;
+        case "auth/wrong-password":
+          description = "סיסמה שגויה, נסה שנית";
+          break;
+        case "auth/too-many-requests":
+          description = "יותר מדי נסיונות התחברות. נסה שוב מאוחר יותר";
+          break;
+        case "auth/invalid-email":
+          description = "כתובת האימייל אינה תקינה";
+          break;
+        case "user-inactive":
+          description = "המשתמש שלך אינו פעיל. פנה למנהל המערכת.";
+          break;
+        default:
+          description = "שגיאה בהתחברות. נסה שנית.";
+      }
+      toast({
+        variant: "destructive",
+        title: title,
+        description: description,
+      });
     } finally {
       setLoading(false);
     }
@@ -160,48 +176,47 @@ if (msg === "user-not-found") {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-100 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
       {/* Floating Element Icons */}
-      {/* Floating Element Icons */}
-<div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-  {/* Element 1 - Leaf */}
-  <div className="absolute top-10 left-10 opacity-40 animate-float-1">
-    <FontAwesomeIcon icon={faLeaf} className="w-16 h-16 text-green-500" />
-  </div>
-  
-  {/* Element 2 - Hammer */}
-  <div className="absolute top-1/3 right-5 opacity-50 animate-float-2">
-    <FontAwesomeIcon icon={faHammer} className="w-14 h-14 text-indigo-600" />
-  </div>
-  
-  {/* Element 3 - Wind */}
-  <div className="absolute top-1/2 left-1/4 opacity-45 animate-float-3">
-    <FontAwesomeIcon icon={faWind} className="w-12 h-12 text-cyan-600" />
-  </div>
-  
-  {/* Element 4 - Water */}
-  <div className="absolute bottom-10 right-20 opacity-50 animate-float-4">
-    <FontAwesomeIcon icon={faWater} className="w-14 h-14 text-blue-500" />
-  </div>
-  
-  {/* Element 5 - Fire */}
-  <div className="absolute bottom-1/4 left-5 opacity-40 animate-float-5">
-    <FontAwesomeIcon icon={faFire} className="w-16 h-16 text-red-500" />
-  </div>
-  
-  {/* Additional decorative icons */}
-  <div className="absolute top-16 right-10 opacity-30 animate-float-6">
-    <FontAwesomeIcon icon={faLeaf} className="w-12 h-12 text-green-400" />
-  </div>
-  
-  <div className="absolute bottom-24 left-1/3 opacity-30 animate-float-7">
-    <FontAwesomeIcon icon={faWind} className="w-10 h-10 text-teal-500" />
-  </div>
-  
-  <div className="absolute top-3/5 left-1/4 opacity-35 animate-float-8">
-    <FontAwesomeIcon icon={faWater} className="w-12 h-12 text-blue-400" />
-  </div>
-</div>
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        {/* Element 1 - Leaf */}
+        <div className="absolute top-10 left-10 opacity-40 animate-float-1">
+          <FontAwesomeIcon icon={faLeaf} className="w-16 h-16 text-green-500" />
+        </div>
 
-      <div className="max-w-md w-full  rounded-xl bg-white shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
+        {/* Element 2 - Hammer */}
+        <div className="absolute top-1/3 right-5 opacity-50 animate-float-2">
+          <FontAwesomeIcon icon={faHammer} className="w-14 h-14 text-indigo-600" />
+        </div>
+
+        {/* Element 3 - Wind */}
+        <div className="absolute top-1/2 left-1/4 opacity-45 animate-float-3">
+          <FontAwesomeIcon icon={faWind} className="w-12 h-12 text-cyan-600" />
+        </div>
+
+        {/* Element 4 - Water */}
+        <div className="absolute bottom-10 right-20 opacity-50 animate-float-4">
+          <FontAwesomeIcon icon={faWater} className="w-14 h-14 text-blue-500" />
+        </div>
+
+        {/* Element 5 - Fire */}
+        <div className="absolute bottom-1/4 left-5 opacity-40 animate-float-5">
+          <FontAwesomeIcon icon={faFire} className="w-16 h-16 text-red-500" />
+        </div>
+
+        {/* Additional decorative icons */}
+        <div className="absolute top-16 right-10 opacity-30 animate-float-6">
+          <FontAwesomeIcon icon={faLeaf} className="w-12 h-12 text-green-400" />
+        </div>
+
+        <div className="absolute bottom-24 left-1/3 opacity-30 animate-float-7">
+          <FontAwesomeIcon icon={faWind} className="w-10 h-10 text-teal-500" />
+        </div>
+
+        <div className="absolute top-3/5 left-1/4 opacity-35 animate-float-8">
+          <FontAwesomeIcon icon={faWater} className="w-12 h-12 text-blue-400" />
+        </div>
+      </div>
+
+      <div className="max-w-md w-full rounded-xl bg-white shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
         {/* Decorative element background */}
         <div className="absolute -top-14 -left-14 w-40 h-40 bg-indigo-100 rounded-full opacity-60"></div>
         <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-100 rounded-full opacity-60"></div>
@@ -211,32 +226,6 @@ if (msg === "user-not-found") {
           <h2 className="mt-2 text-3xl font-extrabold text-gray-900">לגלות את האור הניני</h2>
           <p className="mt-2 text-sm text-gray-600">התחברות לחשבון שלך</p>
         </div>
-
-        {/* Notification */}
-        {notification && (
-          <div 
-            className={`rounded-md p-4 flex items-center justify-between ${
-              notification.type === "error" 
-                ? "bg-red-50 text-red-800 border border-red-200" 
-                : "bg-green-50 text-green-800 border border-green-200"
-            }`}
-          >
-            <div className="flex items-center">
-              {notification.type === "error" ? (
-                <AlertCircle className="ml-3 h-5 w-5 text-red-400" />
-              ) : (
-                <CheckCircle className="ml-3 h-5 w-5 text-green-400" />
-              )}
-              <p className="text-sm">{notification.message}</p>
-            </div>
-            <button 
-              onClick={() => setNotification(null)}
-              className="text-gray-400 hover:text-gray-500"
-            >
-              &times;
-            </button>
-          </div>
-        )}
 
         <form className="mt-8 space-y-6 relative" onSubmit={handleSubmit}>
           <div className="rounded-md -space-y-px">
@@ -258,31 +247,49 @@ if (msg === "user-not-found") {
                   onChange={handleChange}
                   className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="הכנס את האימייל שלך"
-                  dir="ltr"
+                  dir="rtl"
                 />
               </div>
             </div>
+
             <div className="mb-1">
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 סיסמה
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                  <Lock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={form.password}
-                  onChange={handleChange}
-                  className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="הכנס את הסיסמה שלך"
-                  dir="ltr"
-                />
-              </div>
+            <div className="relative">
+     
+      
+      
+
+      {/* Password Input */}
+      <div className="flex flex-col">
+          <div className="relative">
+            <input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              value={form.password}
+              onChange={handleChange}
+              className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm pr-10"
+              placeholder="הכנס את הסיסמה שלך"
+              dir="rtl"
+            />
+
+             {/* Eye Icon Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 left-2 flex items-center text-gray-600 z-10"
+            >
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+      
+    </div>
+
             </div>
           </div>
 
@@ -312,10 +319,10 @@ if (msg === "user-not-found") {
             <button
               type="submit"
               disabled={loading}
-              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
+              className={`shine-button group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
                 loading 
                   ? "bg-indigo-400 cursor-not-allowed" 
-                  : "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  : "bg-indigo-500 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               }`}
             >
               {loading ? (
@@ -326,6 +333,7 @@ if (msg === "user-not-found") {
               ) : (
                 "התחבר"
               )}
+              <span className="shine" />
             </button>
           </div>
         </form>
