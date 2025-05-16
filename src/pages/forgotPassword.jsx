@@ -108,7 +108,7 @@ const ForgotPassword = () => {
 </div>
 
 
-      <div className="max-w-md w-full bg-white/30 rounded-xl shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
         {/* Decorative element background */}
         <div className="absolute -top-14 -left-14 w-40 h-40 bg-red-100 rounded-full opacity-60"></div>
         <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-orange-100 rounded-full opacity-60"></div>
@@ -148,23 +148,20 @@ const ForgotPassword = () => {
           </div>
 
           <div>
-          <button
+      <button
   type="submit"
   disabled={loading}
-  className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
+
+  
+  className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white   transition hover:opacity-95 
+     shine-button ${
     loading
       ? "bg-indigo-400 cursor-not-allowed"
-      : "bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+      : "bg-indigo-500 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
   }`}
 >
-  {loading ? (
-    <span className="flex items-center">
-      <Loader className="animate-spin -ml-1 mr-2 h-4 w-4" />
-      מתחבר...
-    </span>
-  ) : (
-    "שלח קישור לאיפוס סיסמה"
-  )}
+שלח קישור לאיפוס סיסמה
+<span className="shine" />
 </button>
 
           </div>

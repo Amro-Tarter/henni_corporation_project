@@ -49,6 +49,7 @@ const App = () => (
             <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/profile/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
+            <Route path="/chat/:chatId" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
             <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
             {/* <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} /> */}
 

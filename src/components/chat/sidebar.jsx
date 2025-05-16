@@ -1,30 +1,29 @@
-import {
-  HiOutlineChatBubbleBottomCenterText,
-  HiUserGroup,
-  HiMiniUsers,
-  HiMiniHome
-} from "react-icons/hi2";
+// Organize imports
+import { HiOutlineChatBubbleBottomCenterText, HiUserGroup, HiMiniUsers, HiMiniHome } from "react-icons/hi2";
 import { useState } from "react";
 
-export default function Sidebar({ elementColors, onTabChange, userElement }) {
+/**
+ * Sidebar for chat navigation by type.
+ */
+export default function Sidebar({ elementColors, onTabChange, userElement, activeTab }) {
   const [hoveredIndex, setHoveredIndex] = useState(null);
-  const [activeTab, setActiveTab] = useState("all"); // Default to all chats
 
+  // Define sidebar items
   const sidebarItems = [
     { icon: HiMiniHome, label: "All", type: "all" },
     { icon: HiOutlineChatBubbleBottomCenterText, label: "private", type: "direct" },
-    { icon: HiMiniUsers, label: "Groups", type: "groups" },
+    { icon: HiMiniUsers, label: "Groups", type: "group" },
     { icon: HiUserGroup, label: `${userElement} Community`, type: "community" }
   ];
 
+  // Handle tab click
   const handleTabClick = (tabType) => {
-    setActiveTab(tabType);
     onTabChange(tabType);
   };
 
   return (
     <div
-      className="mt-16 w-12 hover:w-48 transition-all duration-300 border-l border-gray-200 flex flex-col items-start py-4 gap-2 overflow-hidden"
+      className="mt-16 w-12 shadow-md hover:w-48 transition-all duration-300 border-l border-gray-200 flex flex-col items-start py-4 gap-2 overflow-hidden"
       style={{ backgroundColor: elementColors.light }}
     >
       {sidebarItems.map((item, idx) => {

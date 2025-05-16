@@ -9,6 +9,7 @@ import JoinUs from '../components/home/JoinUs';
 import Footer from '../components/layout/Footer';
 import Gallery from '@/components/home/Gallery';
 import AboutSection from '../components/home/AboutSection';
+import MusicPlayer from '../components/MusicPlayer';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -36,6 +37,7 @@ const HomePage = () => {
         <EventsSection/>
         <JoinUs />
       </main>
+      <MusicPlayer />
       <Footer />
     </div>
   );
