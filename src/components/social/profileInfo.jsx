@@ -44,6 +44,8 @@ const ProfileInfo = ({
   onUpdateProfilePic,
   onUpdateBackgroundPic,
   isOwner,
+  isFollowing,
+  onFollowToggle
 }) => {
   const [editing, setEditing] = useState(null);
   const [tempValue, setTempValue] = useState('');
@@ -221,6 +223,22 @@ const ProfileInfo = ({
             </>
           )}
         </div>
+
+        {!isOwner && (
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={onFollowToggle}
+              className={`
+                px-20 py-3 rounded-full text-sm font-medium shadow-md transition-transform hover:scale-105
+                ${isFollowing
+                  ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                  : `bg-${element} text-white hover:bg-${element}-accent`}
+              `}
+            >
+              {isFollowing ? 'בטל מעקב' : 'עקוב'}
+            </button>
+          </div>
+        )}
 
         <div className={`mt-8 grid grid-cols-3 gap-x-40 gap-y-4 sm:flex sm:justify-center bg-${element}-soft rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow duration-300`}>
           <Stat element={element} icon={<MessageSquare className="w-5 h-5" />} count={postsCount} label="פוסטים" />

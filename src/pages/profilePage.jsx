@@ -21,8 +21,8 @@ import {
   arrayUnion,
   arrayRemove,
   onSnapshot,
-  limit
-} from 'firebase/firestore';
+}
+ from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import {
   getStorage,
@@ -50,6 +50,7 @@ const ProfilePage = () => {
   const [postComments, setPostComments] = useState({}); // Store comments by post ID
   const [sameElementUsers, setSameElementUsers] = useState([]);
   const [authorProfilesCache, setAuthorProfilesCache] = useState({});
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
   async function loadUIDByUsername() {
@@ -132,6 +133,14 @@ useEffect(() => {
     loadData();
   }, [uid, viewerProfile]);
 
+
+  useEffect(() => {
+    if (profile && viewerProfile && profile.uid !== viewerProfile.uid) {
+      setIsFollowing(profile.followers?.includes(viewerProfile.uid));
+    }
+  }, [profile, viewerProfile]);
+
+  // Fetch users with the same element
   useEffect(() => {
   const fetchSimilarElementUsers = async () => {
     if (!profile?.element || !uid) return;
@@ -237,6 +246,47 @@ useEffect(() => {
     }
 
     return null;
+  };
+
+  const handleFollowToggle = async (targetUserId) => {
+    const myUid = viewerProfile?.uid;
+    if (!myUid || myUid === targetUserId) return;
+
+    const isFollowing = viewerProfile.following?.includes(targetUserId);
+    const myRef = doc(db, 'profiles', myUid);
+    const targetRef = doc(db, 'profiles', targetUserId);
+
+    try {
+      // Update Firestore
+      await updateDoc(myRef, {
+        following: isFollowing ? arrayRemove(targetUserId) : arrayUnion(targetUserId),
+        followingCount: increment(isFollowing ? -1 : 1),
+      });
+
+      await updateDoc(targetRef, {
+        followers: isFollowing ? arrayRemove(myUid) : arrayUnion(myUid),
+        followersCount: increment(isFollowing ? -1 : 1),
+      });
+
+      // Update viewerProfile state
+      setViewerProfile(prev => ({
+        ...prev,
+        following: isFollowing
+          ? prev.following.filter(uid => uid !== targetUserId)
+          : [...(prev.following || []), targetUserId],
+      }));
+
+      // ✅ If viewing this profile, update its followersCount too
+      if (profile?.uid === targetUserId) {
+        setProfile(prev => ({
+          ...prev,
+          followersCount: prev.followersCount + (isFollowing ? -1 : 1),
+        }));
+      }
+
+    } catch (error) {
+      console.error('Follow action failed:', error);
+    }
   };
 
   // Update profile field
@@ -492,7 +542,12 @@ useEffect(() => {
       <Navbar element={profile.element}/>
       <div className="flex flex-1 pt-[56.8px]">
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
-          <LeftSidebar element={profile.element}  users={sameElementUsers}/>
+          <LeftSidebar 
+            element={profile.element}  
+            users={sameElementUsers}
+            viewerProfile={viewerProfile}
+            onFollowToggle={handleFollowToggle}
+            />
         </aside>
 
         <main className={`
@@ -501,6 +556,7 @@ useEffect(() => {
         >
           <ProfileInfo
             isOwner={uid === getAuth().currentUser?.uid}
+            isFollowing={isFollowing}
             profilePic={profile.photoURL}
             backgroundPic={profile.backgroundURL}
             username={profile.username}
@@ -513,6 +569,7 @@ useEffect(() => {
             onUpdateField={updateField}
             onUpdateProfilePic={updateProfilePic}
             onUpdateBackgroundPic={updateBackgroundPic}
+            onFollowToggle={handleFollowToggle}
           />
 
           {uid === getAuth().currentUser?.uid && (
