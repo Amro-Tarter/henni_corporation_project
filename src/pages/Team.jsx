@@ -5,7 +5,6 @@ import RoleSection from '../components/team/RoleSection'
 import TeamSearch from '../components/team/TeamSearch'
 import TeamEmptyState from '../components/team/TeamEmptyState'
 import useTeamData from '../hooks/useTeamData'
-import { Helmet } from 'react-helmet'
 import Layout from '../components/layout/Layout'
 import { ThemeProvider } from '../theme/ThemeProvider'
 import { useElement } from '../theme/ThemeProvider'
@@ -26,11 +25,6 @@ export default function Team() {
   return (
     <ThemeProvider element={element}>
       <Layout>
-        <Helmet>
-          <title>צוות המנטורים | פלטפורמת חונכות אמנות</title>
-          <meta name="description" content="הכירו את הצוות המסור שלנו של מנטורים, מתנדבים ומורים לאמנות." />
-        </Helmet>
-        
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
