@@ -15,7 +15,8 @@ import {
   getDoc,
   arrayUnion,
   limit,
-  deleteDoc
+  deleteDoc,
+  increment
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { ref, uploadBytesResumable, getDownloadURL, getStorage, ref as storageRef } from "firebase/storage";
@@ -31,6 +32,7 @@ import { ELEMENT_COLORS } from '../components/chat/utils/ELEMENT_COLORS';
 import { useParams, useNavigate } from "react-router-dom";
 import { badWords } from "../components/chat/utils/badWords";
 import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
+import notificationSound from '../assets/notification.mp3';
 
 export default function ChatApp() {
   const { chatId } = useParams();
@@ -300,6 +302,11 @@ export default function ChatApp() {
     if ((!newMessage.trim() && !file) || !selectedConversation || isSending || isUploading) {
       return;
     }
+    // Clear input and file immediately for fast UX
+    setNewMessage("");
+    removeFile();
+    setUploadProgress(0);
+    setIsSending(true);
     // Bad words filter (only for text messages)
     if (!file && newMessage.trim()) {
       const lowerMsg = newMessage.toLowerCase();
@@ -312,10 +319,6 @@ export default function ChatApp() {
       }
     }
     const messageToSend = newMessage;
-    setNewMessage("");
-    removeFile();
-    setUploadProgress(0);
-    setIsSending(true);
     try {
       let messageData = {
         sender: currentUser.uid,
@@ -373,6 +376,19 @@ export default function ChatApp() {
         lastMessage: file ? (file.type.startsWith('image/') ? 'Sent an image' : 'Sent a voice message') : messageToSend,
         lastUpdated: serverTimestamp(),
       });
+      // --- Only increment unread for users who do not have the chat open (all chat types) ---
+      const unreadUpdate = {};
+      selectedConversation.participants.forEach(uid => {
+        if (uid !== currentUser.uid) {
+          // If lastRead exists and is recent, do not increment unread
+          const lastRead = selectedConversation.lastRead?.[uid];
+          // If lastRead is missing or not a Date, increment unread
+          if (!lastRead || (lastRead.toDate ? lastRead.toDate() : lastRead) < new Date()) {
+            unreadUpdate[`unread.${uid}`] = increment(1);
+          }
+        }
+      });
+      batch.update(conversationRef, unreadUpdate);
       await batch.commit();
       setMessages(prev => prev.filter(msg => msg.id !== tempMessageId));
     } catch (error) {
@@ -407,6 +423,10 @@ export default function ChatApp() {
         return;
       }
       const participants = [currentUser.uid, partnerUid].sort();
+      const unread = {};
+      participants.forEach(uid => {
+        unread[uid] = 0;
+      });
       const existingConversationsQuery = query(
         collection(db, "conversations"),
         where("participants", "array-contains", currentUser.uid),
@@ -432,6 +452,7 @@ export default function ChatApp() {
         lastMessage: "",
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
+        unread,
       };
       batch.set(convoRef, convoData);
       await batch.commit();
@@ -541,6 +562,12 @@ export default function ChatApp() {
     if (fullConv) {
       setSelectedConversation(fullConv);
       navigate(`/chat/${fullConv.id}`);
+      // --- Reset unread count for current user and update lastRead timestamp ---
+      const conversationRef = doc(db, "conversations", fullConv.id);
+      updateDoc(conversationRef, {
+        [`unread.${currentUser.uid}`]: 0,
+        [`lastRead.${currentUser.uid}`]: serverTimestamp()
+      });
     } else {
       // fallback: set as is
       setSelectedConversation(conv);
@@ -583,6 +610,33 @@ export default function ChatApp() {
     window.toast && window.toast.success && window.toast.success("כל הצ'אטים נמחקו בהצלחה!");
     alert("כל הצ'אטים נמחקו בהצלחה!");
   }
+
+  // --- Notification Sound on New Message ---
+  useEffect(() => {
+    if (!currentUser.uid) return;
+    const q = query(
+      collection(db, "conversations"),
+      where("participants", "array-contains", currentUser.uid)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach(change => {
+        const data = change.doc.data();
+        if (change.type === "modified" && data.lastMessage && data.lastUpdated) {
+          // If this conversation is not currently open, and unread for this user increased
+          if (!selectedConversation || change.doc.id !== selectedConversation.id) {
+            const prevUnread = conversations.find(c => c.id === change.doc.id)?.unread?.[currentUser.uid] || 0;
+            const newUnread = data.unread?.[currentUser.uid] || 0;
+            if (newUnread > prevUnread) {
+              // Play notification sound
+              const audio = new window.Audio(notificationSound);
+              audio.play();
+            }
+          }
+        }
+      });
+    });
+    return () => unsubscribe();
+  }, [currentUser.uid, selectedConversation, conversations]);
 
   if (!authInitialized) {
     return <ElementalLoader />;

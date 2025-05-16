@@ -91,7 +91,7 @@ export default function ConversationList({
               >
                 {avatar}
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 truncate">
+                  <div className="font-medium text-gray-900 truncate flex items-center gap-2">
                     {getChatPartner(
                       conv.participants,
                       conv.type,
@@ -99,6 +99,16 @@ export default function ConversationList({
                       currentUser,
                       undefined,
                       conv.type === 'group' ? conv.groupName : 'undefined'
+                    )}
+                    {/* Unread badge */}
+                    {conv.unread?.[currentUser.uid] > 0 && (
+                      <span
+                        className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white shadow"
+                        aria-label={`יש ${conv.unread[currentUser.uid]} הודעות שלא נקראו`}
+                        title={`יש ${conv.unread[currentUser.uid]} הודעות שלא נקראו`}
+                      >
+                        {conv.unread[currentUser.uid]}
+                      </span>
                     )}
                   </div>
                   <div className="text-sm text-gray-500 truncate">
