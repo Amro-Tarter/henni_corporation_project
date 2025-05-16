@@ -1,15 +1,34 @@
+// components/social/Postlist.jsx
 import React from 'react';
 import Post from './Post';
 
-const PostList = ({ posts }) => {
+const PostList = ({
+  posts,
+  onLike,
+  onDelete,
+  onUpdate,
+  comments,
+  currentUser,
+  onAddComment,
+  onEditComment,
+  onDeleteComment,
+  element
+}) => {
   return (
-    <div className="space-y-4">
-      {posts.map((post, idx) => (
-        <Post 
-          key={idx} 
-          text={post.text} 
-          author={post.author || { name: 'Anonymous', avatar: '' }}
-          media={post.media}
+    <div className="space-y-6">
+      {posts.map(post => (
+        <Post
+          key={post.id}
+          post={post}
+          element={element}
+          onDelete={onDelete}
+          onUpdate={onUpdate}
+          onLike={onLike}
+          comments={comments[post.id] || []}
+          currentUser={currentUser}
+          onAddComment={onAddComment}
+          onEditComment={onEditComment}
+          onDeleteComment={onDeleteComment}
         />
       ))}
     </div>

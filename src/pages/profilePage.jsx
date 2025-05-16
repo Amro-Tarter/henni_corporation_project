@@ -34,23 +34,25 @@ import Navbar       from '../components/social/Navbar.jsx';
 import LeftSidebar  from '../components/social/LeftSideBar';
 import RightSidebar from '../components/social/Rightsidebar.jsx';
 import ProfileInfo  from '../components/social/profileInfo.jsx';
-import CreatePost   from '../components/social/CreatePost';
+import CreatePost   from '../components/social/createpost';
 import ProfilePost  from '../components/social/ProfilePost.jsx';
 
 const ProfilePage = () => {
   const auth = getAuth();
   const uid = auth.currentUser?.uid;
-  const [isRightOpen, setIsRightOpen] = useState(true);
+  const [isRightOpen, setIsRightOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [posts, setPosts]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [postComments, setPostComments] = useState({}); // Store comments by post ID
+  const [sameElementUsers, setSameElementUsers] = useState([]);
 
   // Fetch profile and posts
   useEffect(() => {
     if (!uid) return;
 
     async function loadData() {
+      
       // Profile
       const profRef  = doc(db, 'profiles', uid);
       const profSnap = await getDoc(profRef);
@@ -75,9 +77,35 @@ const ProfilePage = () => {
       });
       setPosts(loaded);
       setLoading(false);
-    }
+
+      if (profSnap.exists()) {
+      const userProfile = profSnap.data();
+      setProfile(userProfile);
+        }
+      }
     loadData();
   }, []);
+
+  useEffect(() => {
+  const fetchSimilarElementUsers = async () => {
+    if (!profile?.element || !uid) return;
+
+    const othersQuery = query(
+      collection(db, 'profiles'),
+      where('element', '==', profile.element)
+    );
+    const othersSnap = await getDocs(othersQuery);
+
+    const others = othersSnap.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(u => u.id !== uid); // Exclude current user
+
+    const shuffled = others.sort(() => 0.5 - Math.random()).slice(0, 5);
+    setSameElementUsers(shuffled);
+  };
+
+  fetchSimilarElementUsers();
+}, [profile?.element, uid]);
 
   // Set up comment listeners for each post
   useEffect(() => {
@@ -372,12 +400,12 @@ const ProfilePage = () => {
       <Navbar element={profile.element}/>
       <div className="flex flex-1 pt-[56.8px]">
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
-          <LeftSidebar element={profile.element}/>
+          <LeftSidebar element={profile.element}  users={sameElementUsers}/>
         </aside>
 
         <main className={`
-            flex-1 pt-4 space-y-12 transition-all duration-300 ease-in-out
-            lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-0'}`}
+            flex-1 pt-2 space-y-12 transition-all duration-500 ease-in-out
+            lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}`}
         >
           <ProfileInfo
             profilePic={profile.photoURL}
@@ -419,11 +447,10 @@ const ProfilePage = () => {
           </section>
         </main>
 
-        <aside className="hidden lg:block fixed top-[56.8px] bottom-0 right-0 w-64">
+        <aside className="hidden lg:block fixed top-[56.8px] bottom-0 right-0 w-16">
           <RightSidebar
             element={profile.element}
-            isOpen={isRightOpen}
-            toggle={() => setIsRightOpen(o => !o)}
+            onExpandChange={setIsRightOpen}
           />
         </aside>
       </div>

@@ -174,7 +174,7 @@ const years = [
 
 const ProgramSection = () => {
   return (
-    <section className="py-24 bg-gradient-to-b from-white to-orange-50 rtl">
+    <section className="py-24 bg-gradient-to-b from-white to-orange-50 rtl" id="leadership-program">
       <div className="container mx-auto px-6">
         <div className="text-center mb-20">
           <h2 className="font-gveret-levin text-4xl md:text-5xl text-red-800 mb-4">
@@ -206,54 +206,41 @@ const ProgramSection = () => {
         </Tabs>
 
        {/* Flip Cards – תחומי אמנות ומיומנויות מנהיגות */}
-<div className="mt-28">
-  <div className="text-center mb-12" dir="rtl">
-    <h3 className="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4 tracking-tight leading-snug">
-      כלים ותחומי אמנות
-    </h3>
-    <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-      כרטיסיות ויזואליות שמציגות כיצד כל תחום אמנותי בתכנית מחזק מיומנויות מנהיגות שונות.
-    </p>
-  </div>
-
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-6xl mx-auto" dir="rtl">
-    {artSkills.map((item, index) => (
-      <motion.div
-        key={index}
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: index * 0.1 }}
-        viewport={{ once: true }}
-        className="group perspective"
-      >
-        <div className="relative w-full h-60 md:h-64 transform transition-transform duration-700 preserve-3d group-hover:rotate-y-180">
-          {/* Front side */}
-          <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-xl shadow-xl p-6 backface-hidden ${item.color}`}>
-            <div className="mb-4">{item.icon}</div>
-            <h4 className={`text-xl text-center ${item.font} tracking-tight`}>{item.title}</h4>
+        <div className="mt-28">
+          <div className="text-center mb-12" dir="rtl">
+            <h3 className="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4 tracking-tight leading-snug">
+              כלים ותחומי אמנות
+            </h3>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              כרטיסיות ויזואליות שמציגות כיצד כל תחום אמנותי בתכנית מחזק מיומנויות מנהיגות שונות.
+            </p>
           </div>
 
-          {/* Back side */}
-          <div className="absolute inset-0 bg-white text-gray-700 text-right flex items-center justify-center rounded-xl p-6 backface-hidden rotate-y-180">
-            <p className="text-base leading-relaxed">{item.description}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 max-w-6xl mx-auto" dir="rtl">
+            {artSkills.map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="group perspective"
+              >
+                <div className="relative w-full h-60 md:h-64 transform transition-transform duration-700 preserve-3d group-hover:rotate-y-180">
+                  {/* Front side */}
+                  <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-xl shadow-xl p-6 backface-hidden ${item.color}`}>
+                    <div className="mb-4">{item.icon}</div>
+                    <h4 className={`text-xl text-center ${item.font} tracking-tight`}>{item.title}</h4>
+                  </div>
+
+                  {/* Back side */}
+                  <div className="absolute inset-0 bg-white text-gray-700 text-right flex items-center justify-center rounded-xl p-6 backface-hidden rotate-y-180">
+                    <p className="text-base leading-relaxed">{item.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
-        </div>
-      </motion.div>
-    ))}
-  </div>
-</div>
-
-
-        <div className="mt-20 text-center">
-          <Link to="/program">
-          <CTAButton
-            variant="fire"
-            size="lg"
-            className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300">
-            גלו את התכנית המלאה שלנו
-          </CTAButton>
-
-          </Link>
         </div>
       </div>
     </section>

@@ -147,7 +147,7 @@ if (!strongPasswordRegex.test(password)) {
         displayName,
         username,
         element,
-        bio:null,
+        bio:"",
         location,
         followersCount: 0,
         followingCount: 0,

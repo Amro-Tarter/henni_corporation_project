@@ -204,22 +204,18 @@ const ProfilePost = ({
               <p className="text-white mt-2 font-medium">החלף מדיה</p>
             </div>
           )}
-          <div className="w-full" style={{ height: '40rem' }}> 
+          <div className="w-full max-h-[40rem] overflow-hidden flex justify-center items-center bg-${element}-soft">
             {isVideo ? (
               <video
-                className="absolute top-1/2 left-0 w-full transform -translate-y-1/2 object-cover"
+                src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
                 controls
-              >
-                <source
-                  src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
-                  type="video/mp4"
-                />
-              </video>
+                className="max-h-[40rem] w-auto object-contain"
+              />
             ) : (
               <img
                 src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
                 alt="תוכן הפוסט"
-                className="absolute top-1/2 left-0 w-full transform -translate-y-1/2 object-cover"
+                className="max-h-[40rem] w-full object-cover"
               />
             )}
           </div>
