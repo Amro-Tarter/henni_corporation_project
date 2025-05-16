@@ -4,7 +4,7 @@ import TeamFilters from '../components/team/TeamFilters'
 import RoleSection from '../components/team/RoleSection'
 import TeamSearch from '../components/team/TeamSearch'
 import TeamEmptyState from '../components/team/TeamEmptyState'
-import AddUserButton from '../components/team/addUserButton'
+import PendingUsersButton from '../components/team/addUserButton'
 import ElementalLoader from '../theme/ElementalLoader'
 import useTeamData from '../hooks/useTeamData'
 import Layout from '../components/layout/Layout'
@@ -18,7 +18,8 @@ export default function Team() {
   const { 
     groupedByRole, 
     regions, 
-    expertises, 
+    expertises,
+    locations,
     filters, 
     setFilters, 
     isLoading,
@@ -88,11 +89,12 @@ export default function Team() {
                     <TeamFilters
                       regions={regions}
                       expertises={expertises}
+                      locations={locations}
                       filters={filters}
                       onChange={setFilters}
                       className="w-full md:flex-1"
                     />
-                    <AddUserButton />
+                    <PendingUsersButton />
                   </div>
                 </motion.div>
 
@@ -119,7 +121,7 @@ export default function Team() {
                   <motion.div variants={itemVariants}>
                     <TeamEmptyState onReset={() => {
                       setSearchQuery('')
-                      setFilters({ region: '', expertise: '' })
+                      setFilters({ region: '', expertise: '', location: '' })
                     }} />
                   </motion.div>
                 )}

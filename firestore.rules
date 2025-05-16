@@ -2,17 +2,28 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // ✅ Specific access for your collections
     match /elemental_projects/{document=**} {
-      allow read, write: if true; // DEV ONLY
+      allow read: if true;
+      allow write: if isAdmin();
     }
+    
     match /events/{document=**} {
-      allow read, write: if true; // DEV ONLY
+      allow read: if true;
+      allow write: if isAdmin();
     }
+    
     match /team/{document=**} {
-      allow read: if true;  // Allow public read access
-      allow write: if request.auth != null;  // Allow authenticated users to write
+      allow read: if true;
+      allow write: if isAdmin();
     }
+
     // Staff and Mentors collections
     match /staff/{document=**} {
       allow read: if true;  // Allow public read access
@@ -23,47 +34,42 @@ service cloud.firestore {
       allow write: if request.auth != null;  // Allow authenticated users to write
     }
 
-    // 🚫 Default deny fallback
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // ── Conversations & messages ───────────────────
-    match /conversations/{convoId} {
-      allow read, write: if true;              // TEMPORARY
-      match /messages/{msgId} {
-        allow read, write: if true;            // TEMPORARY
-      }
-    }
-    match /conversations/{convoId}/messages/{messageId} {
-      allow create: if request.auth != null && 
-        request.resource.data.type == "system" && 
-        request.resource.data.text.matches("^Community created!");
-    }
-
     // ── Users collection ───────────────────────────
     match /users/{userId} {
-      allow read:  if true;                    // TEMPORARY: public read
-      //allow write: if request.auth.uid == userId;
-      allow write: if true;
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
     }
 
-    // ── Profiles (public-facing) ───────────────────
-    match /profiles/{uid} {
-      allow read:  if true;                   // public read
-      //allow write: if request.auth.uid == uid;
-      allow write: if true;               // TEMPORARY (remove later)
+    // ── Profiles collection ───────────────────────
+    match /profiles/{userId} {
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin();
     }
 
     // ── Posts collection ───────────────────────────
     match /posts/{postId} {
-      allow read:  if true;                   // public read
-      //allow write: if request.auth.uid == uid;
-      allow write: if true;               // TEMPORARY (remove later)
+      allow read: if true;
+      allow write: if request.auth != null;
       
       match /comments/{commentId} {
-        allow read, write: if true;  			// Temporary
+        allow read: if true;
+        allow write: if request.auth != null;
       }
+    }
+
+    // ── Conversations & messages ───────────────────
+    match /conversations/{convoId} {
+      allow read, write: if request.auth != null;
+      match /messages/{msgId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+
+    // 🚫 Default deny fallback
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
