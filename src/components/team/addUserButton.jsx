@@ -1,40 +1,86 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaUserPlus, FaTimes } from 'react-icons/fa';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../config/firbaseConfig';
+import { useUser } from '../../hooks/useUser';
 
 const AddUserForm = ({ onClose, onSubmit }) => {
+  const { user } = useUser();
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
+    // User fields
+    associated_id: '',
+    role: '',
+    email: '',
+    username: '',
+    element: '',
+    is_active: true,
+    phone: '',
+    location: '',
+    // Profile fields
+    displayName: '',
     bio: '',
-    region: '',
     expertise: '',
-    role: 'עובד',
-    imageURL: '',
-    social: {
-      linkedin: '',
-      twitter: ''
-    }
+    region: '',
+    photoURL: ''
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name.startsWith('social.')) {
-      const socialField = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
-        social: { ...prev.social, [socialField]: value }
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Create user document
+      const userRef = doc(db, 'users', formData.email);
+      const userData = {
+        associated_id: formData.associated_id,
+        role: formData.role,
+        email: formData.email,
+        username: formData.username,
+        element: formData.element,
+        is_active: true,
+        phone: formData.phone,
+        location: formData.location,
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        last_login: serverTimestamp(),
+      };
+      await setDoc(userRef, userData);
+
+      // Create profile document
+      const profileRef = doc(db, 'profiles', formData.email);
+      const profileData = {
+        associated_id: formData.associated_id,
+        displayName: formData.displayName || formData.username,
+        username: formData.username,
+        element: formData.element,
+        bio: formData.bio,
+        location: formData.location,
+        followersCount: 0,
+        followingCount: 0,
+        postsCount: 0,
+        createdAt: serverTimestamp(),
+        photoURL: formData.photoURL,
+        expertise: formData.expertise,
+        region: formData.region,
+      };
+      await setDoc(profileRef, profileData);
+
+      onSubmit(formData);
+      onClose();
+    } catch (error) {
+      console.error('Error adding user:', error);
+      alert('שגיאה בהוספת משתמש. אנא נסה שוב.');
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-    onClose();
-  };
+  // Only show the form if user is admin
+  if (!user?.isAdmin) {
+    return null;
+  }
 
   return (
     <motion.div
@@ -53,7 +99,7 @@ const AddUserForm = ({ onClose, onSubmit }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">הוספת איש צוות חדש</h2>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">הוספת משתמש חדש</h2>
           <button
             onClick={onClose}
             className="p-2 text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-white rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -66,19 +112,41 @@ const AddUserForm = ({ onClose, onSubmit }) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {[
-              ['first_name', 'שם פרטי'],
-              ['last_name', 'שם משפחה']
+              ['email', 'אימייל'],
+              ['username', 'שם משתמש'],
+              ['displayName', 'שם תצוגה'],
+              ['associated_id', 'מזהה מקושר'],
+              ['phone', 'טלפון'],
+              ['location', 'מיקום'],
+              ['element', 'יסוד'],
+              ['role', 'תפקיד'],
+              ['expertise', 'תחום מומחיות'],
+              ['region', 'אזור']
             ].map(([field, label]) => (
               <div key={field}>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>
-                <input
-                  type="text"
-                  name={field}
-                  value={formData[field]}
-                  onChange={handleChange}
-                  required
-                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-white"
-                />
+                {field === 'role' ? (
+                  <select
+                    name={field}
+                    value={formData[field]}
+                    onChange={handleChange}
+                    required
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-white"
+                  >
+                    <option value="admin">מנהל</option>
+                    <option value="user">משתמש</option>
+                    <option value="editor">עורך</option>
+                  </select>
+                ) : (
+                  <input
+                    type={field === 'email' ? 'email' : 'text'}
+                    name={field}
+                    value={formData[field]}
+                    onChange={handleChange}
+                    required={field !== 'associated_id' && field !== 'displayName'}
+                    className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-white"
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -94,75 +162,16 @@ const AddUserForm = ({ onClose, onSubmit }) => {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              ['region', 'אזור'],
-              ['expertise', 'תחום מומחיות']
-            ].map(([field, label]) => (
-              <div key={field}>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>
-                <input
-                  type="text"
-                  name={field}
-                  value={formData[field]}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-white"
-                />
-              </div>
-            ))}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">תפקיד</label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 appearance-none bg-white dark:bg-slate-800 dark:text-white"
-              style={{
-                backgroundImage:
-                  "url(\"data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e\")",
-                backgroundPosition: "left 0.5rem center",
-                backgroundRepeat: "no-repeat",
-                backgroundSize: "1.5em 1.5em",
-                paddingLeft: "2.5rem"
-              }}
-            >
-              <option value="מנכ&quot;ל">מנכ"ל</option>
-              <option value="עובד">עובד</option>
-              <option value="מתנדב">מתנדב</option>
-              <option value="מנטור">מנטור</option>
-            </select>
-          </div>
-
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">קישור לתמונה</label>
             <input
               type="url"
-              name="imageURL"
-              value={formData.imageURL}
+              name="photoURL"
+              value={formData.photoURL}
               onChange={handleChange}
               className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-white"
               placeholder="https://example.com/image.jpg"
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              ['social.linkedin', 'LinkedIn'],
-              ['social.twitter', 'Twitter']
-            ].map(([field, label]) => (
-              <div key={field}>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{label}</label>
-                <input
-                  type="url"
-                  name={field}
-                  value={field === 'social.linkedin' ? formData.social.linkedin : formData.social.twitter}
-                  onChange={handleChange}
-                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-slate-800 dark:text-white"
-                />
-              </div>
-            ))}
           </div>
 
           <div className="flex justify-end space-x-3 rtl:space-x-reverse">
@@ -182,7 +191,7 @@ const AddUserForm = ({ onClose, onSubmit }) => {
               type="submit"
               className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-400 shadow"
             >
-              הוסף איש צוות
+              הוסף משתמש
             </motion.button>
           </div>
         </form>
@@ -193,11 +202,17 @@ const AddUserForm = ({ onClose, onSubmit }) => {
 
 export default function AddUserButton() {
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const { user } = useUser();
 
   const handleAddUser = (userData) => {
     console.log('Adding new user:', userData);
-    alert(`איש צוות חדש נוסף: ${userData.first_name} ${userData.last_name}`);
+    alert(`משתמש חדש נוסף: ${userData.username}`);
   };
+
+  // Only show the button if user is admin
+  if (!user?.isAdmin) {
+    return null;
+  }
 
   return (
     <>
@@ -208,7 +223,7 @@ export default function AddUserButton() {
         className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow"
       >
         <FaUserPlus className="ml-2" />
-        הוסף איש צוות
+        הוסף משתמש
       </motion.button>
 
       <AnimatePresence>
