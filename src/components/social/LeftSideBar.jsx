@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const elementOptions = {
   fire: { icon: '🔥' },
@@ -9,6 +10,7 @@ const elementOptions = {
 };
 
 const LeftSidebar = ({ element, users = [] }) => {
+  const navigate = useNavigate();
   return (
     <aside
       className={`
@@ -26,7 +28,10 @@ const LeftSidebar = ({ element, users = [] }) => {
           <div className="space-y-4">
             {users.map((user, idx) => (
               <div key={idx} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
+                  onClick={() => navigate(`/profile/${user.username}`)}
+                >
+                  {/* User profile picture */}
                   <img
                     src={user.photoURL || '/default_user_pic.jpg'}
                     alt={user.username}

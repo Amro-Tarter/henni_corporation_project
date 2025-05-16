@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check } from 'lucide-react';
 import { Comment, CommentInput } from './comments';
+import { useNavigate } from 'react-router-dom';
 
 const ProfilePost = ({
   post,
@@ -18,8 +19,6 @@ const ProfilePost = ({
 }) => {
   const {
     id,
-    authorPhotoURL,
-    authorName,
     createdAt,
     content,
     mediaUrl,
@@ -40,6 +39,7 @@ const ProfilePost = ({
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const commentsRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetch = async () => {
@@ -134,7 +134,10 @@ const ProfilePost = ({
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 cursor-pointer"
+          onClick={() => navigate(`/profile/${authorProfile?.username}`)}
+        >
+          {/* User profile picture */}
           <img
             src={authorProfile?.photoURL || '/default_user_pic.jpg'}
             alt={authorProfile?.username || 'משתמש'}

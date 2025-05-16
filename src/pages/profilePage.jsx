@@ -53,6 +53,7 @@ const ProfilePage = () => {
 
   useEffect(() => {
   async function loadUIDByUsername() {
+    setLoading(true);
     try {
       const q = query(collection(db, 'profiles'), where('username', '==', username));
       const snapshot = await getDocs(q);
