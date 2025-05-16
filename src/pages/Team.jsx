@@ -73,12 +73,6 @@ export default function Team() {
                   variants={itemVariants}
                   className="text-center mb-12"
                 >
-                  <h1 className="text-4xl md:text-5xl font-bold mb-3 bg-gradient-to-r from-element-accent to-element text-transparent bg-clip-text">
-                    הכירו את הצוות שלנו
-                  </h1>
-                  <p className="text-foreground/70 max-w-2xl mx-auto">
-                    הצוות שלנו מורכב מאנשי מקצוע מוכשרים ומסורים שעובדים בשיתוף פעולה כדי להשיג את המטרות שלנו
-                  </p>
                 </motion.div>
                 
                 <motion.div 
