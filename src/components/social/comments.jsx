@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Trash2, Check, Edit2, X, Send, Reply } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../config/firbaseConfig.ts'; 
 
-/**
- * Renders a single comment (and its nested replies).
- */
+
+
 export const Comment = ({
   comment,
   element,
@@ -15,17 +16,31 @@ export const Comment = ({
   onSubmitReply,
   onCancelReply,
   isReply = false,
-  postId
+  postId,
+  postAuthorId,
+  getAuthorProfile
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.text);
-  const isAuthor = currentUser.uid === comment.authorId;
+  const [authorProfile,setAuthorProfile] = useState(null);
+  const isCommentAuthor = currentUser.uid === comment.authorId;
+  const isPostOwner = currentUser.uid === postAuthorId;
+  const canEditOrDelete = isCommentAuthor || isPostOwner;
   const formattedTime = comment.timestamp
     ? new Intl.DateTimeFormat('he-IL', {
         year: 'numeric', month: 'short', day: 'numeric',
         hour: '2-digit', minute: '2-digit'
       }).format(comment.timestamp)
     : '';
+
+  useEffect(() => {
+  const fetch = async () => {
+    const profile = await getAuthorProfile(comment.authorId);
+    setAuthorProfile(profile);
+  };
+  fetch();
+}, [comment.authorId, getAuthorProfile]);
+ 
 
   const handleSave = () => {
     if (editText.trim() !== comment.text) {
@@ -37,15 +52,15 @@ export const Comment = ({
   return (
     <div className={`flex gap-3 ${isReply ? 'mr-12 mt-3' : 'mt-4'}`}>  
       <img
-        src={comment.authorPhotoURL}
-        alt={comment.username}
+        src={authorProfile?.photoURL || '/default_user_pic.jpg'}
+        alt={authorProfile?.username || '...'}
         className="w-8 h-8 rounded-full object-cover mt-1"
       />
       <div className="flex-1">
         <div className={`p-3 rounded-lg bg-${element}-soft relative`}>  
           <div className="flex justify-between">
-            <h4 className="font-semibold text-sm">{comment.username}</h4>
-            {isAuthor && !isEditing && (
+            <h4 className="font-semibold text-sm">{authorProfile?.username}</h4>
+            {canEditOrDelete && !isEditing && (
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsEditing(true)}
@@ -108,7 +123,7 @@ export const Comment = ({
         {replyingToId === comment.id && (
           <div className="mt-2">
             <CommentInput
-              placeholder={`הגב ל${comment.username}`}
+              placeholder={`הגב ל${authorProfile?.username || 'משתמש'}`}
               element={element}
               initialValue={''}
               autoFocus
@@ -135,6 +150,8 @@ export const Comment = ({
                 onCancelReply={onCancelReply}
                 isReply
                 postId={postId}
+                postAuthorId={postAuthorId}
+                getAuthorProfile={getAuthorProfile}
               />
             ))}
           </div>

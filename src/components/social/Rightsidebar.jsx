@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/config/firbaseConfig';
+import { useNavigate } from 'react-router-dom';
 
 const tabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית' },
@@ -20,6 +21,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const searchRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -138,7 +140,11 @@ const Rightsidebar = ({ element, onExpandChange }) => {
               <li
                 key={index}
                 className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
-                onClick={() => setSearchInput(profile.username)}
+                onClick={() => {
+                  setSearchInput('');
+                  navigate(`/profile/${profile.username}`);
+                }}
+
               >
                 <img
                   src={profile.photoURL}

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import ElementalLoader from '../theme/ElementalLoader';
+import { useParams } from 'react-router-dom';
 
 import {
   doc,
   getDoc,
   collection,
+  collectionGroup,
   getDocs,
   writeBatch,
   query,
@@ -19,8 +21,8 @@ import {
   arrayUnion,
   arrayRemove,
   onSnapshot,
-  limit
-} from 'firebase/firestore';
+}
+ from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import {
   getStorage,
@@ -38,18 +40,63 @@ import CreatePost   from '../components/social/createpost';
 import ProfilePost  from '../components/social/ProfilePost.jsx';
 
 const ProfilePage = () => {
-  const auth = getAuth();
-  const uid = auth.currentUser?.uid;
+  const { username } = useParams();
+  const [uid, setUid] = useState(null);
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [viewerProfile, setViewerProfile] = useState(null);
   const [posts, setPosts]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [postComments, setPostComments] = useState({}); // Store comments by post ID
   const [sameElementUsers, setSameElementUsers] = useState([]);
+  const [authorProfilesCache, setAuthorProfilesCache] = useState({});
+  const [isFollowing, setIsFollowing] = useState(false);
+
+  useEffect(() => {
+  async function loadUIDByUsername() {
+    setLoading(true);
+    try {
+      const q = query(collection(db, 'profiles'), where('username', '==', username));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        setUid(snapshot.docs[0].id); // The UID is the document ID
+      } else {
+        console.warn('Username not found:', username);
+        setLoading(false);
+      }
+    } catch (err) {
+      console.error('Failed to fetch UID:', err);
+      setLoading(false);
+    }
+  }
+
+  if (username) loadUIDByUsername();
+}, [username]);
+
+useEffect(() => {
+  const fetchViewerProfile = async () => {
+    const auth = getAuth();
+    const viewerUid = auth.currentUser?.uid;
+    if (!viewerUid) return;
+
+    try {
+      const snap = await getDoc(doc(db, 'profiles', viewerUid));
+      if (snap.exists()) {
+        setViewerProfile({ uid: viewerUid, ...snap.data() });
+      }
+    } catch (error) {
+      console.error('Error fetching viewer profile:', error);
+    }
+  };
+
+  fetchViewerProfile();
+}, []);
+
+
 
   // Fetch profile and posts
   useEffect(() => {
-    if (!uid) return;
+    if (!uid || !viewerProfile?.uid) return;
 
     async function loadData() {
       
@@ -72,7 +119,7 @@ const ProfilePage = () => {
         return {
           id: d.id,
           ...data,
-          liked: Array.isArray(data.likedBy) && data.likedBy.includes(uid),
+          liked: Array.isArray(data.likedBy) && data.likedBy.includes(viewerProfile.uid),
         };
       });
       setPosts(loaded);
@@ -84,8 +131,16 @@ const ProfilePage = () => {
         }
       }
     loadData();
-  }, []);
+  }, [uid, viewerProfile]);
 
+
+  useEffect(() => {
+    if (profile && viewerProfile && profile.uid !== viewerProfile.uid) {
+      setIsFollowing(profile.followers?.includes(viewerProfile.uid));
+    }
+  }, [profile, viewerProfile]);
+
+  // Fetch users with the same element
   useEffect(() => {
   const fetchSimilarElementUsers = async () => {
     if (!profile?.element || !uid) return;
@@ -172,10 +227,99 @@ const ProfilePage = () => {
     };
   }, [posts]);
 
+  const getAuthorProfile = async (uid) => {
+    if (!uid) return null;
+
+    if (authorProfilesCache && authorProfilesCache[uid]) {
+      return authorProfilesCache[uid];
+    }
+
+    try {
+      const snap = await getDoc(doc(db, 'profiles', uid));
+      if (snap.exists()) {
+        const profile = snap.data();
+        setAuthorProfilesCache(prev => ({ ...prev, [uid]: profile }));
+        return profile;
+      }
+    } catch (err) {
+      console.error('Failed to load profile for', uid, err);
+    }
+
+    return null;
+  };
+
+  const handleFollowToggle = async (targetUserId) => {
+    const myUid = viewerProfile?.uid;
+    if (!myUid || myUid === targetUserId) return;
+
+    const isFollowing = viewerProfile.following?.includes(targetUserId);
+    const myRef = doc(db, 'profiles', myUid);
+    const targetRef = doc(db, 'profiles', targetUserId);
+
+    try {
+      // Update Firestore
+      await updateDoc(myRef, {
+        following: isFollowing ? arrayRemove(targetUserId) : arrayUnion(targetUserId),
+        followingCount: increment(isFollowing ? -1 : 1),
+      });
+
+      await updateDoc(targetRef, {
+        followers: isFollowing ? arrayRemove(myUid) : arrayUnion(myUid),
+        followersCount: increment(isFollowing ? -1 : 1),
+      });
+
+      // Update viewerProfile state
+      setViewerProfile(prev => ({
+        ...prev,
+        following: isFollowing
+          ? prev.following.filter(uid => uid !== targetUserId)
+          : [...(prev.following || []), targetUserId],
+      }));
+
+      // ✅ If viewing this profile, update its followersCount too
+      if (profile?.uid === targetUserId) {
+        setProfile(prev => ({
+          ...prev,
+          followersCount: prev.followersCount + (isFollowing ? -1 : 1),
+        }));
+      }
+
+    } catch (error) {
+      console.error('Follow action failed:', error);
+    }
+  };
+
   // Update profile field
   const updateField = async (field, value) => {
     const profileRef = doc(db, 'profiles', uid);
     const userRef    = doc(db, 'users', uid);
+    if (field === 'username') {
+    // Check if username exists
+    const q = query(collection(db, 'profiles'), where('username', '==', value));
+    const snap = await getDocs(q);
+    const taken = snap.docs.some(doc => doc.id !== uid);
+    if (taken) {
+      alert('שם המשתמש הזה כבר תפוס. אנא בחר שם אחר.');
+      return;
+    }
+
+    const batch = writeBatch(db);
+    batch.update(profileRef, { username: value, updatedAt: serverTimestamp() });
+    batch.update(userRef,    { username: value });
+
+    const commentsQuery = query(
+      collectionGroup(db, 'comments'),
+      where('authorId', '==', uid)
+    );
+    const commentsSnap = await getDocs(commentsQuery);
+    commentsSnap.forEach(comment => {
+      batch.update(comment.ref, { username: value });
+    });
+
+    await batch.commit();
+    setProfile(prev => ({ ...prev, [field]: value }));
+  }
+
     if (field === 'element') {
       const batch = writeBatch(db);
       batch.update(profileRef, { element: value, updatedAt: serverTimestamp() });
@@ -266,14 +410,14 @@ const ProfilePage = () => {
     const postRef = doc(db, 'posts', id);
     await updateDoc(postRef, {
       likesCount: liked ? increment(1) : increment(-1),
-      likedBy: liked ? arrayUnion(uid) : arrayRemove(uid)
+      likedBy: liked ? arrayUnion(viewerProfile.uid) : arrayRemove(viewerProfile.uid)
     });
     setPosts(prev => prev.map(p =>
-      p.id === id ? { ...p, likesCount: p.likesCount + (liked ? 1 : -1), liked } : p
+      p.id === id ? { ...p, likesCount: p.likesCount + (liked ? 1 : -1), liked,likedBy: liked
+              ? [...(p.likedBy || []), viewerProfile.uid]
+              : (p.likedBy || []).filter(uid => uid !== viewerProfile.uid)  } : p
     ));
   };
-
-  // COMMENT SYSTEM FUNCTIONS
 
   // Add a new comment to a post
   const addComment = async (postId, text, parentCommentId = null) => {
@@ -281,9 +425,7 @@ const ProfilePage = () => {
     
     try {
       const commentData = {
-        authorId: uid,
-        authorPhotoURL: profile.photoURL,
-        username: profile.username,
+        authorId: viewerProfile?.uid,
         text: text.trim(),
         timestamp: serverTimestamp(),
         edited: false,
@@ -400,14 +542,21 @@ const ProfilePage = () => {
       <Navbar element={profile.element}/>
       <div className="flex flex-1 pt-[56.8px]">
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
-          <LeftSidebar element={profile.element}  users={sameElementUsers}/>
+          <LeftSidebar 
+            element={profile.element}  
+            users={sameElementUsers}
+            viewerProfile={viewerProfile}
+            onFollowToggle={handleFollowToggle}
+            />
         </aside>
 
         <main className={`
-            flex-1 pt-2 space-y-12 transition-all duration-500 ease-in-out
-            lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}`}
+            flex-1 pt-2 space-y-12 pb-4 transition-all duration-500 ease-in-out
+            lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}` }
         >
           <ProfileInfo
+            isOwner={uid === getAuth().currentUser?.uid}
+            isFollowing={isFollowing}
             profilePic={profile.photoURL}
             backgroundPic={profile.backgroundURL}
             username={profile.username}
@@ -420,9 +569,16 @@ const ProfilePage = () => {
             onUpdateField={updateField}
             onUpdateProfilePic={updateProfilePic}
             onUpdateBackgroundPic={updateBackgroundPic}
+            onFollowToggle={handleFollowToggle}
           />
 
-          <CreatePost element={profile.element} addPost={createPost} profilePic={profile.photoURL} />
+          {uid === getAuth().currentUser?.uid && (
+            <CreatePost
+              element={profile.element}
+              addPost={createPost}
+              profilePic={profile.photoURL}
+            />
+          )}
 
           <section className="space-y-6">
             {posts.map(p => (
@@ -435,13 +591,15 @@ const ProfilePage = () => {
                 onLike={handleLike}
                 comments={postComments[p.id] || []}
                 currentUser={{
-                  uid,
-                  photoURL: profile.photoURL,
-                  username: profile.username
+                  uid: viewerProfile?.uid,
+                  photoURL: viewerProfile?.photoURL || '',
+                  username: viewerProfile?.username || '',
                 }}
                 onAddComment={addComment}
                 onEditComment={editComment}
                 onDeleteComment={deleteComment}
+                isOwner={uid === getAuth().currentUser?.uid}
+                getAuthorProfile={getAuthorProfile}
               />
             ))}
           </section>

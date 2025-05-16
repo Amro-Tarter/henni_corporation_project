@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const elementOptions = {
   fire: { icon: '🔥' },
@@ -8,7 +9,9 @@ const elementOptions = {
   metal: { icon: '⚙️' },
 };
 
-const LeftSidebar = ({ element, users = [] }) => {
+const LeftSidebar = ({ element, users = [], viewerProfile, onFollowToggle }) => {
+  const navigate = useNavigate();
+  
   return (
     <aside
       className={`
@@ -26,7 +29,10 @@ const LeftSidebar = ({ element, users = [] }) => {
           <div className="space-y-4">
             {users.map((user, idx) => (
               <div key={idx} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
+                  onClick={() => navigate(`/profile/${user.username}`)}
+                >
+                  {/* User profile picture */}
                   <img
                     src={user.photoURL || '/default_user_pic.jpg'}
                     alt={user.username}
@@ -38,15 +44,24 @@ const LeftSidebar = ({ element, users = [] }) => {
                   </p>
                 </div>
 
-                <button
-                  className={`
-                    px-3 py-1 text-xs font-semibold text-white
-                    bg-${element} rounded-full
-                    hover:bg-${element}-accent transition
-                  `}
-                >
-                  לעקוב
-                </button>
+                {(() => {
+                  const isFollowing = viewerProfile?.following?.includes(user.id);
+
+                  return (
+                    <button
+                      onClick={() => onFollowToggle(user.id)}
+                      className={`
+                        px-3 py-2 text-xs font-semibold rounded-full transition
+                        ${isFollowing
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                          : `bg-${element} text-white hover:bg-${element}-accent`}
+                      `}
+                    >
+                      {isFollowing ? 'בטל מעקב' : 'עקוב'}
+                    </button>
+                  );
+                })()}
+
               </div>
             ))}
           </div>
