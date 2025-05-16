@@ -20,6 +20,9 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   // Group avatar upload state
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [liveAvatarURL, setLiveAvatarURL] = useState(null);
+  const [userAvatars, setUserAvatars] = useState({});
+  const [usernamesLoading, setUsernamesLoading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -50,13 +53,15 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     if (open && conversation.type === 'community') {
       const memberUids = conversation.participants || [];
       if (memberUids.length > 0) {
+        setUsernamesLoading(true);
         Promise.all(
           memberUids.map(uid =>
-            getDoc(doc(db, 'users', uid)).then(docSnap =>
+            getDoc(doc(db, 'profiles', uid)).then(docSnap =>
               [uid, docSnap.exists() ? docSnap.data().username : uid]
             )
           )
         ).then(entries => setUsernames(Object.fromEntries(entries)));
+        setUsernamesLoading(false);
       }
     }
   }, [open, conversation.participants]);
@@ -65,17 +70,21 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     if (open && conversation.type === 'group') {
       const memberUids = conversation.participants || [];
       if (memberUids.length > 0) {
+        setUsernamesLoading(true);
         Promise.all(
           memberUids.map(uid =>
-            getDoc(doc(db, 'users', uid)).then(docSnap => [
+            getDoc(doc(db, 'profiles', uid)).then(docSnap => [
               uid,
               docSnap.exists() ? docSnap.data().username : uid,
-              docSnap.exists() ? docSnap.data().element : null
+              docSnap.exists() ? docSnap.data().element : null,
+              docSnap.exists() ? docSnap.data().photoURL : null
             ])
           )
         ).then(entries => {
           setUsernames(Object.fromEntries(entries.map(([uid, username]) => [uid, username])));
           setUserElements(Object.fromEntries(entries.map(([uid, _, element]) => [uid, element])));
+          setUserAvatars(Object.fromEntries(entries.map(([uid, _, __, photoURL]) => [uid, photoURL])));
+          setUsernamesLoading(false);
         });
       }
     }
@@ -85,6 +94,24 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   useEffect(() => {
     setLocalParticipants(conversation.participants || []);
   }, [conversation.participants]);
+
+  // Real-time listener for group avatar
+  useEffect(() => {
+    if (open && conversation.type === 'group' && conversation.id) {
+      const groupRef = doc(db, 'conversations', conversation.id);
+      const unsubscribe = (async () => {
+        const { onSnapshot } = await import('firebase/firestore');
+        return onSnapshot(groupRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setLiveAvatarURL(docSnap.data().avatarURL || null);
+          }
+        });
+      })();
+      return () => {
+        Promise.resolve(unsubscribe).then(unsub => typeof unsub === 'function' && unsub());
+      };
+    }
+  }, [open, conversation.type, conversation.id]);
 
   const handleAnimationEnd = () => {
     if (!open) setIsMounted(false);
@@ -222,46 +249,65 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         <div className="mb-6">
           <div className="font-semibold text-gray-700 mb-2">חברי הקהילה</div>
           <div className="flex flex-col gap-2 max-h-40 overflow-y-auto">
-            {memberUids.map(uid => (
-              <div key={uid} className="flex items-center gap-2 justify-between w-full">
-                <div className="flex-1 min-w-0">
-                  <div
-                    className="px-3 py-1 rounded-full transition text-sm text-left truncate"
-                    style={{ backgroundColor: elementColors.primary, color: elementColors.light, width: '120px', display: 'inline-block' }}
-                  >
-                    {usernames[uid] || uid}
+            {usernamesLoading
+              ? memberUids.map(uid => (
+                  <div key={uid} className="flex items-center gap-2 justify-between w-full animate-pulse">
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="px-3 py-1 rounded-full bg-gray-200 text-sm text-left truncate"
+                        style={{ width: '120px', display: 'inline-block', minHeight: 20 }}
+                      >
+                        &nbsp;
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="w-5 h-5 rounded-full bg-gray-200 block" />
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  {userElements && userElements[uid] && (
-                    <span className="flex items-center gap-1 text-xs text-gray-500 ml-2">
-                      {ELEMENT_COLORS[userElements[uid]]?.icon}
-                      {userElements[uid]}
-                    </span>
-                  )}
-                  <a
-                    href={`/profile/${uid}`}
-                    className="p-1 rounded-full hover:bg-gray-200 transition"
-                    title="מעבר לפרופיל"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
-                    </svg>
-                  </a>
-                  <button
-                    className="p-1 rounded-full hover:bg-gray-200 transition"
-                    title="פתח צ'אט"
-                    onClick={() => handleOpenDirectChat(uid)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-green-600">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 15.75a6.375 6.375 0 100-12.75 6.375 6.375 0 000 12.75zM15.75 15.75v-1.125a3.375 3.375 0 00-3.375-3.375H8.625a3.375 3.375 0 00-3.375 3.375V15.75" />
-                    </svg>
-                  </button>
-                  
-                </div>
-              </div>
-            ))}
+                ))
+              : memberUids.map(uid => (
+                  <div key={uid} className="flex items-center gap-2 justify-between w-full">
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="px-3 py-1 rounded-full transition text-sm text-left truncate"
+                        style={{ backgroundColor: elementColors.primary, color: elementColors.light, width: '120px', display: 'inline-block' }}
+                      >
+                        {usernames[uid] || ''}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {userElements && userElements[uid] && (
+                        <span className="flex items-center gap-1 text-xs text-gray-500 ml-2">
+                          {ELEMENT_COLORS[userElements[uid]]?.icon}
+                          {userElements[uid]}
+                        </span>
+                      )}
+                      {uid !== currentUser.uid && (
+                        <>
+                          <a
+                            href={`/profile/${uid}`}
+                            className="p-1 rounded-full hover:bg-gray-200 transition"
+                            title="מעבר לפרופיל"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
+                            </svg>
+                          </a>
+                          <button
+                            className="p-1 rounded-full hover:bg-gray-200 transition"
+                            title="פתח צ'אט"
+                            onClick={() => handleOpenDirectChat(uid)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-green-600">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 15.75a6.375 6.375 0 100-12.75 6.375 6.375 0 000 12.75zM15.75 15.75v-1.125a3.375 3.375 0 00-3.375-3.375H8.625a3.375 3.375 0 00-3.375 3.375V15.75" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))}
           </div>
         </div>
         {/* Images Gallery */}
@@ -374,6 +420,36 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       }
     };
 
+    // Leave group handler for non-admins
+    const handleLeaveGroup = async () => {
+      if (!window.confirm('האם אתה בטוח שברצונך לעזוב את הקבוצה?')) return;
+      try {
+        const groupRef = doc(db, "conversations", conversation.id);
+        // Remove user from participants and participantNames
+        await updateDoc(groupRef, {
+          participants: arrayRemove(currentUser.uid),
+          participantNames: arrayRemove(currentUser.username)
+        });
+        setLocalParticipants(prev => prev.filter(id => id !== currentUser.uid));
+        setUsernames(prev => {
+          const copy = { ...prev };
+          delete copy[currentUser.uid];
+          return copy;
+        });
+        await addDoc(collection(db, "conversations", conversation.id, "messages"), {
+          text: `${currentUser.username} עזב/ה את הקבוצה`,
+          type: "system",
+          createdAt: serverTimestamp(),
+        });
+        window.toast && window.toast.success && window.toast.success('עזבת את הקבוצה בהצלחה!');
+        // Optionally close sidebar or redirect
+        onClose && onClose();
+        setSelectedConversation && setSelectedConversation(null);
+      } catch (e) {
+        alert("שגיאה בעזיבת קבוצה: " + e.message);
+      }
+    };
+
     return (
       <div
         className={`fixed left-0 top-16 mt-0.5 bottom-0
@@ -400,7 +476,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         <div className="flex flex-col items-center mb-6">
           <div className="relative">
             <img
-              src={avatarPreview || conversation.avatarURL || '/default_group_avatar.jpg'}
+              src={avatarPreview || liveAvatarURL || conversation.avatarURL || '/default_group_avatar.jpg'}
               alt={conversation.groupName || 'קבוצה'}
               className="w-20 h-20 rounded-full object-cover border-4 mb-2"
               style={{ borderColor: elementColors.primary, backgroundColor: elementColors.light }}
@@ -445,8 +521,8 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                   }
                   const q = query(
                     collection(db, "users"),
-                    where("username", ">=", e.target.value.toLowerCase()),
-                    where("username", "<=", e.target.value.toLowerCase() + "\uf8ff"),
+                    where("username", ">=", e.target.value),
+                    where("username", "<=", e.target.value + "\uf8ff"),
                   );
                   const snapshot = await getDocs(q);
                   const results = snapshot.docs
@@ -495,70 +571,103 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
             <span className="text-lg">👥</span> חברי הקבוצה
           </div>
           <div className="flex flex-col gap-3 max-h-56 overflow-y-auto transition-all">
-            {memberUids.map(uid => (
-              <div key={uid} className="flex items-center gap-3 bg-white rounded-lg shadow p-2 transition-all border border-gray-100 hover:shadow-md">
-                <img
-                  src={userElements[uid] && ELEMENT_COLORS[userElements[uid]]?.icon ? undefined : '/default_user_pic.jpg'}
-                  alt={usernames[uid] || uid}
-                  className="w-9 h-9 rounded-full object-cover border border-primary-100 bg-gray-100"
-                  style={{ minWidth: 36 }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 truncate flex items-center gap-1">
-                    {usernames[uid] || uid}
-                    {uid === currentUser.uid && <span className="ml-1 px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full text-xs">אתה</span>}
-                    {uid === adminUid && <span className="ml-1 px-2 py-0.5 bg-yellow-300 text-yellow-900 rounded-full text-xs">מנהל</span>}
+            {usernamesLoading
+              ? memberUids.map(uid => (
+                  <div key={uid} className="flex items-center gap-3 bg-white rounded-lg shadow p-2 transition-all border border-gray-100 animate-pulse">
+                    <span className="w-9 h-9 rounded-full bg-gray-200 block" style={{ minWidth: 36 }} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate flex items-center gap-1">
+                        <span className="w-20 h-4 rounded bg-gray-200 block" />
+                      </div>
+                      <span className="flex items-center gap-1 text-xs text-gray-200 mt-0.5">
+                        <span className="w-10 h-3 rounded bg-gray-200 block" />
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="w-5 h-5 rounded-full bg-gray-200 block" />
+                    </div>
                   </div>
-                  {userElements && userElements[uid] && (
-                    <span className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
-                      {ELEMENT_COLORS[userElements[uid]]?.icon}
-                      {userElements[uid]}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    className="p-1 rounded-full hover:bg-gray-200 transition"
-                    title="מעבר לפרופיל"
-                    aria-label="מעבר לפרופיל"
-                    onClick={() => window.open(`/profile/${uid}`, '_blank')}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
-                    </svg>
-                  </button>
-                  <button
-                    className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
-                    title="פתח צ'אט"
-                    aria-label="פתח צ'אט"
-                    onClick={() => handleOpenDirectChat(uid)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 15.75a6.375 6.375 0 100-12.75 6.375 6.375 0 000 12.75zM15.75 15.75v-1.125a3.375 3.375 0 00-3.375-3.375H8.625a3.375 3.375 0 00-3.375 3.375V15.75" />
-                    </svg>
-                  </button>
-                  {isAdmin && uid !== adminUid && (
-                    <button
-                      className="p-1 rounded-full hover:bg-red-100 transition text-red-600"
-                      title="הסר מהקבוצה"
-                      aria-label={`הסר את ${usernames[uid] || uid} מהקבוצה`}
-                      onClick={() => handleKickMember(uid)}
-                      disabled={isAdding}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+                ))
+              : memberUids.map(uid => (
+                  <div key={uid} className="flex items-center gap-3 bg-white rounded-lg shadow p-2 transition-all border border-gray-100 hover:shadow-md">
+                    <img
+                      src={userAvatars[uid] || '/default_user_pic.jpg'}
+                      alt={usernames[uid] || ''}
+                      className="w-9 h-9 rounded-full object-cover border border-primary-100 bg-gray-100"
+                      style={{ minWidth: 36 }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate flex items-center gap-1">
+                        {usernames[uid] || ''}
+                        {uid === currentUser.uid && <span className="ml-1 px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full text-xs">אתה</span>}
+                        {uid === adminUid && <span className="ml-1 px-2 py-0.5 bg-yellow-300 text-yellow-900 rounded-full text-xs">מנהל</span>}
+                      </div>
+                      {userElements && userElements[uid] && (
+                        <span className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                          {ELEMENT_COLORS[userElements[uid]]?.icon}
+                          {userElements[uid]}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {uid !== currentUser.uid && (
+                        <>
+                          <button
+                            className="p-1 rounded-full hover:bg-gray-200 transition"
+                            title="מעבר לפרופיל"
+                            aria-label="מעבר לפרופיל"
+                            onClick={() => window.open(`/profile/${uid}`, '_blank')}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
+                            </svg>
+                          </button>
+                          <button
+                            className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
+                            title="פתח צ'אט"
+                            aria-label="פתח צ'אט"
+                            onClick={() => handleOpenDirectChat(uid)}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 15.75a6.375 6.375 0 100-12.75 6.375 6.375 0 000 12.75zM15.75 15.75v-1.125a3.375 3.375 0 00-3.375-3.375H8.625a3.375 3.375 0 00-3.375 3.375V15.75" />
+                            </svg>
+                          </button>
+                        </>
+                      )}
+                      {isAdmin && uid !== adminUid && (
+                        <button
+                          className="p-1 rounded-full hover:bg-red-100 transition text-red-600"
+                          title="הסר מהקבוצה"
+                          aria-label={`הסר את ${usernames[uid] || ''} מהקבוצה`}
+                          onClick={() => handleKickMember(uid)}
+                          disabled={isAdding}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
             {memberUids.length === 0 && (
               <div className="text-gray-400 text-center py-4">אין חברים בקבוצה.</div>
             )}
           </div>
         </div>
+        {/* Leave Group Button for non-admins */}
+        {!isAdmin && (
+          <div className="mb-6 flex justify-center">
+            <button
+              className="px-6 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition font-bold"
+              onClick={handleLeaveGroup}
+              disabled={isAdding}
+            >
+              עזוב קבוצה
+            </button>
+          </div>
+        )}
         {/* Images Gallery */}
         <div className="mb-4">
           <div className="font-semibold text-gray-700 mb-2 flex items-center gap-2">

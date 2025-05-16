@@ -30,6 +30,7 @@ import { useFileUpload } from "../components/chat/hooks/useFileUpload";
 import { ELEMENT_COLORS } from '../components/chat/utils/ELEMENT_COLORS';
 import { useParams, useNavigate } from "react-router-dom";
 import { badWords } from "../components/chat/utils/badWords";
+import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
 
 export default function ChatApp() {
   const { chatId } = useParams();
@@ -83,8 +84,8 @@ export default function ChatApp() {
       setIsSearching(true);
       const q = query(
         collection(db, "users"),
-        where("username", ">=", searchTerm.toLowerCase()),
-        where("username", "<=", searchTerm.toLowerCase() + "\uf8ff"),
+        where("username", ">=", searchTerm),
+        where("username", "<=", searchTerm + "\uf8ff"),
         limit(5)
       );
       const snapshot = await getDocs(q);
@@ -601,8 +602,9 @@ export default function ChatApp() {
           מחק את כל הצ'אטים (אדמין)
         </button>
         */}
-
-      <Navbar element={userElement}/>
+      <ThemeProvider element={userElement}>
+        <Navbar element={userElement}/>
+      </ThemeProvider>
       <Sidebar 
         elementColors={elementColors}
         userElement={userElement}

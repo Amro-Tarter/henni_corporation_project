@@ -8,6 +8,8 @@ import { useChatScroll } from './hooks/useChatScroll';
 import { useEmojiPicker } from './hooks/useEmojiPicker';
 import BubbleAnimation from './animations/BubbleAnimation';
 import ChatInfoSidebar from './ChatIntoSidebar';
+import { doc } from 'firebase/firestore';
+import { db } from '@/config/firbaseConfig';
 
 /**
  * ChatArea is the main chat window, displaying messages and input.
@@ -43,6 +45,7 @@ export default function ChatArea({
   const sendButtonRef = useRef(null);
   const [showInfoSidebar, setShowInfoSidebar] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [liveGroupAvatarURL, setLiveGroupAvatarURL] = useState(null);
 
   // Show scroll-to-bottom button if user scrolls up too far
   useEffect(() => {
@@ -57,6 +60,27 @@ export default function ChatArea({
     handleScroll();
     return () => container.removeEventListener('scroll', handleScroll);
   }, [messagesContainerRef, selectedConversation]);
+
+  // Real-time listener for group avatarURL
+  useEffect(() => {
+    let unsubscribe;
+    if (selectedConversation && selectedConversation.type === 'group' && selectedConversation.id) {
+      (async () => {
+        const { onSnapshot } = await import('firebase/firestore');
+        const groupRef = doc(db, 'conversations', selectedConversation.id);
+        unsubscribe = onSnapshot(groupRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setLiveGroupAvatarURL(docSnap.data().avatarURL || null);
+          }
+        });
+      })();
+    } else {
+      setLiveGroupAvatarURL(null);
+    }
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [selectedConversation && selectedConversation.id, selectedConversation && selectedConversation.type]);
 
   const handleScrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
@@ -122,7 +146,7 @@ export default function ChatArea({
             icon={selectedConversation.type === 'community' ? elementColors.icon : undefined}
             avatar={
               selectedConversation.type === 'group'
-                ? selectedConversation.avatarURL || undefined
+                ? liveGroupAvatarURL || selectedConversation.avatarURL || undefined
                 : selectedConversation.type === 'direct'
                   ? getDirectAvatar()
                   : undefined
