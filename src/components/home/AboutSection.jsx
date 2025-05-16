@@ -206,7 +206,7 @@ const AboutSection = () => {
           </p>
           <a href="/community">
             <Button className="bg-orange-500 hover:bg-orange-600 text-white text-base md:text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-orange-300/50 hover:shadow-xl hover:-translate-y-1">
-              קראו עוד על העמותה שלנו
+              צפו בניוזלטר שלנו! 
             </Button>
           </a>
         </motion.div>
