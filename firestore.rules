@@ -12,15 +12,15 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    function isValidUserType() {
-      let userType = request.resource.data.userType;
-      return userType in ['participant', 'family', 'staff', 'mentor'];
+    function isValidRole() {
+      let role = request.resource.data.role;
+      return role in ['participant', 'family', 'staff', 'mentor', 'admin'];
     }
 
     function hasValidUserData() {
-      return request.resource.data.keys().hasAll(['email', 'userType', 'is_active']) &&
+      return request.resource.data.keys().hasAll(['email', 'role', 'is_active']) &&
         request.resource.data.email is string &&
-        request.resource.data.userType is string &&
+        request.resource.data.role is string &&
         request.resource.data.is_active is bool;
     }
 
@@ -47,7 +47,7 @@ service cloud.firestore {
       // Allow creating new users with proper validation
       allow create: if isAuthenticated() &&
         hasValidUserData() &&
-        isValidUserType() &&
+        isValidRole() &&
         request.resource.data.is_active == false;
       
       // Allow users to update their own data if not active

@@ -11,6 +11,7 @@ const {onRequest} = require("firebase-functions/v2/https");
 const logger = require("firebase-functions/logger");
 const functions = require('firebase-functions');
 const nodemailer = require('nodemailer');
+const admin = require('firebase-admin');
 
 // Create and deploy your first functions
 // https://firebase.google.com/docs/functions/get-started
@@ -55,6 +56,45 @@ exports.sendRequestNotification = functions.https.onCall(async (data, context) =
     throw new functions.https.HttpsError(
       'internal',
       'Error sending email notification'
+    );
+  }
+});
+
+admin.initializeApp();
+
+exports.deleteUser = functions.https.onCall(async (data, context) => {
+  // Check if the request is authenticated
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'The function must be called while authenticated.'
+    );
+  }
+
+  // Check if the user has admin privileges
+  const callerUid = context.auth.uid;
+  const callerDoc = await admin.firestore().collection('users').doc(callerUid).get();
+  const callerData = callerDoc.data();
+
+  if (!callerData || (callerData.role !== 'admin' && callerData.role !== 'staff')) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Only admins and staff can delete users.'
+    );
+  }
+
+  try {
+    const { uid } = data;
+    
+    // Delete the user from Firebase Auth
+    await admin.auth().deleteUser(uid);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      'An error occurred while deleting the user.'
     );
   }
 });
