@@ -62,26 +62,29 @@ export default function Team() {
   }
 
   const confirmDelete = async () => {
+    if (!currentUser) {
+      toast.error("עליך להיות מחובר כדי לבצע פעולה זו.");
+      return;
+    }
+
+    // Check if user has admin or staff role
+    if (!canEdit) {
+      toast.error("אין לך הרשאות למחוק משתמשים.");
+      return;
+    }
+
     try {
-      const functions = getFunctions()
-      const deleteUserFunction = httpsCallable(functions, 'deleteUser')
-
-      // Delete user from Firebase Auth and all related documents
-      // No need to get token manually, Firebase handles this
-      await deleteUserFunction({ 
-        uid: memberToDelete.id
-      })
-
-      // Refresh the data
-      await refreshData()
-
-      toast.success(`${memberToDelete.displayName} נמחק מהמערכת בהצלחה`)
-
-      setIsDeleting(false)
-      setMemberToDelete(null)
+      const deleteUserFunction = httpsCallable(functions, 'deleteUser');
+      
+      await deleteUserFunction({ uid: memberToDelete.id });
+      
+      await refreshData();
+      toast.success(`${memberToDelete.displayName} נמחק מהמערכת בהצלחה`);
+      setIsDeleting(false);
+      setMemberToDelete(null);
     } catch (error) {
-      console.error('Error deleting member:', error)
-      toast.error(error.message || "אירעה שגיאה בעת ניסיון למחוק את המשתמש")
+      console.error('Error deleting member:', error);
+      toast.error(error?.message || "אירעה שגיאה בעת ניסיון למחוק את המשתמש");
     }
   }
 
