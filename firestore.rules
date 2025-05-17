@@ -12,132 +12,60 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    function isValidRole() {
-      let role = request.resource.data.role;
-      return role in ['participant', 'family', 'staff', 'mentor', 'admin'];
-    }
-
-    function hasValidUserData() {
-      return request.resource.data.keys().hasAll(['email', 'role', 'is_active']) &&
-        request.resource.data.email is string &&
-        request.resource.data.role is string &&
-        request.resource.data.is_active is bool;
-    }
-
-    // ✅ Specific access for your collections
-    match /elemental_projects/{document=**} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    
-    match /events/{document=**} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-    
-    match /team/{document=**} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     // ── Users collection ───────────────────────────
     match /users/{userId} {
       allow read: if true;
-      
-      // Allow creating new users with proper validation
-      allow create: if isAuthenticated() &&
-        hasValidUserData() &&
-        isValidRole() &&
-        request.resource.data.is_active == false;
-      
-      // Allow users to update their own data if not active
-      allow update: if request.auth.uid == userId &&
-        (!resource.data.is_active || !request.resource.data.is_active);
-      
-      // Allow admins to update any user
-      allow update: if isAdmin();
-      
-      // Allow admins to delete users
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || request.auth.uid == userId;
       allow delete: if isAdmin();
     }
 
     // ── Participants collection ───────────────────
     match /participants/{userId} {
       allow read: if true;
-      
-      // Allow creating participant document for new users
       allow create: if isAuthenticated() &&
-        get(/databases/$(database)/documents/users/$(userId)).data.userType == 'participant';
-      
-      // Allow users to update their own participant data
-      allow update: if request.auth.uid == userId;
-      
-      // Allow admins to update any participant
-      allow update: if isAdmin();
-      
-      // Allow admins to delete participants
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'participant';
+      allow update: if isAdmin() || request.auth.uid == userId;
       allow delete: if isAdmin();
     }
 
     // ── Family collection ─────────────────────────
     match /family/{userId} {
       allow read: if true;
-      
-      // Allow creating family document for new users
       allow create: if isAuthenticated() &&
-        get(/databases/$(database)/documents/users/$(userId)).data.userType == 'family';
-      
-      // Allow users to update their own family data
-      allow update: if request.auth.uid == userId;
-      
-      // Allow admins to update any family member
-      allow update: if isAdmin();
-      
-      // Allow admins to delete family members
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'family';
+      allow update: if isAdmin() || request.auth.uid == userId;
       allow delete: if isAdmin();
     }
 
     // ── Staff collection ─────────────────────────
     match /staff/{userId} {
       allow read: if true;
-      
-      // Allow creating staff document for new users
       allow create: if isAuthenticated() &&
-        get(/databases/$(database)/documents/users/$(userId)).data.userType == 'staff';
-      
-      // Allow users to update their own staff data
-      allow update: if request.auth.uid == userId;
-      
-      // Allow admins to update any staff member
-      allow update: if isAdmin();
-      
-      // Allow admins to delete staff members
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'staff';
+      allow update: if isAdmin() || request.auth.uid == userId;
       allow delete: if isAdmin();
     }
 
     // ── Mentors collection ───────────────────────
     match /mentors/{userId} {
       allow read: if true;
-      
-      // Allow creating mentor document for new users
       allow create: if isAuthenticated() &&
-        get(/databases/$(database)/documents/users/$(userId)).data.userType == 'mentor';
-      
-      // Allow users to update their own mentor data
-      allow update: if request.auth.uid == userId;
-      
-      // Allow admins to update any mentor
-      allow update: if isAdmin();
-      
-      // Allow admins to delete mentors
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'mentor';
+      allow update: if isAdmin() || request.auth.uid == userId;
       allow delete: if isAdmin();
+    }
+
+    // ── Profiles collection ───────────────────────
+    match /profiles/{userId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
     }
 
     // ── Posts collection ───────────────────────────
     match /posts/{postId} {
       allow read: if true;
       allow write: if isAuthenticated();
-      
       match /comments/{commentId} {
         allow read: if true;
         allow write: if isAuthenticated();
@@ -146,20 +74,24 @@ service cloud.firestore {
 
     // ── Conversations & messages ───────────────────
     match /conversations/{convoId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
-      
+      allow read, write: if isAuthenticated();
       match /messages/{msgId} {
-        allow read: if isAuthenticated();
-        allow write: if isAuthenticated();
+        allow read, write: if isAuthenticated();
       }
     }
 
-    // ── Profiles collection ───────────────────────
-    match /profiles/{userId} {
+    // ── Other public collections ─────────────
+    match /elemental_projects/{document=**} {
       allow read: if true;
-      allow create: if isAdmin();
-      allow update, delete: if isAdmin();
+      allow write: if isAdmin();
+    }
+    match /events/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /team/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // 🚫 Default deny fallback
@@ -168,5 +100,3 @@ service cloud.firestore {
     }
   }
 }
-
-// AFTER UPDATING RUN THIS: firebase deploy --only firestore:rules
