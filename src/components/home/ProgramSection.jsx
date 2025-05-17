@@ -175,7 +175,7 @@ const years = [
 const ProgramSection = () => {
   return (
     <section 
-    className="py-24 bg-gradient-to-tr from-sky-100 to-blue-100 rtl"
+    className="py-24  bg-gradient-to-tr from-cyan-100 to-blue-200 rtl"
      id="leadership-program">
       <div className="container mx-auto px-6">
         <div className="text-center mb-20">

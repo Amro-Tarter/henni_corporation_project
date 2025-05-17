@@ -225,7 +225,7 @@ const AboutSection = () => {
   return (
     <section
       id="about-section"
-      className="relative py-20 md:py-28 bg-gradient-to-tr from-teal-200 to-green-100 overflow-hidden"
+      className="relative py-20 md:py-28 bg-gradient-to-br from-orange-100 via-orange-200 to-yellow-100 overflow-hidden"
       >
       {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-64 h-64 rounded-full bg-pink-200/30 -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>

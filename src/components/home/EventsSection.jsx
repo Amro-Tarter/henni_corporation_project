@@ -128,7 +128,7 @@ const EventsSection = () => {
 
   return (
     <section 
-    className="relative py-20 md:py-28 bg-gradient-to-tr from-cyan-100 to-blue-200 overflow-hidden"
+    className="relative py-20 md:py-28 bg-gradient-to-tr from-green-100 to-lime-50 overflow-hidden"
      id="projects" dir="rtl">
       <div className="container mx-auto px-4">
         <div className="text-center mb-20">
