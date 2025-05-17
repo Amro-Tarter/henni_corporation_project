@@ -66,13 +66,10 @@ export default function Team() {
       const functions = getFunctions()
       const deleteUserFunction = httpsCallable(functions, 'deleteUser')
 
-      // Get the current user's ID token
-      const idToken = await currentUser.getIdToken()
-
       // Delete user from Firebase Auth and all related documents
+      // No need to get token manually, Firebase handles this
       await deleteUserFunction({ 
-        uid: memberToDelete.id,
-        auth: idToken // Pass the auth token
+        uid: memberToDelete.id
       })
 
       // Refresh the data
