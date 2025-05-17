@@ -6,6 +6,7 @@ import { db } from '../../config/firbaseConfig';
 import { useUser } from '../../hooks/useUser';
 import { toast } from 'sonner';
 import { sendRequestNotification } from '../../utils/sendEmail';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 const PendingUsersModal = ({ onClose }) => {
   const { user } = useUser();
@@ -65,15 +66,11 @@ const PendingUsersModal = ({ onClose }) => {
         // Send rejection email before deleting
         await sendRequestNotification(userEmail, 'reject', displayName);
         
-        // Delete both user and profile documents
-        const userRef = doc(db, 'users', userId);
-        const profileRef = doc(db, 'profiles', userId);
+        const functions = getFunctions()
+        const deleteUserFunction = httpsCallable(functions, 'deleteUser')
         
-        // Delete both documents
-        await Promise.all([
-          deleteDoc(userRef),
-          deleteDoc(profileRef)
-        ]);
+        // Delete user from Firebase Auth and all related documents
+        await deleteUserFunction({ uid: userId })
         
         // Update UI immediately without reloading
         setPendingUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
