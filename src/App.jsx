@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { AuthProvider } from './context/AuthContext';
 
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
@@ -26,42 +27,44 @@ import Team from './pages/Team';
 const queryClient = new QueryClient();
 
 const App = () => (
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Public Pages */}
-            <Route path="/" element={<Index />} />
-            <Route path="/accessibility" element={<AccessibilityStatement />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsOfUse />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/forgotPassword" element={<ForgotPassword />} />
-            <Route path="/signup" element={<SignUp />} />
-            <Route path="/login" element={<LogIn />} />
-            <Route path="/community" element={<CommunityPage />} />
-            <Route path="/projects" element={<ElementalProjects />} />
-            <Route path="/team" element={<Team />} />
+  <AuthProvider>
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public Pages */}
+              <Route path="/" element={<Index />} />
+              <Route path="/accessibility" element={<AccessibilityStatement />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfUse />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/forgotPassword" element={<ForgotPassword />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="/login" element={<LogIn />} />
+              <Route path="/community" element={<CommunityPage />} />
+              <Route path="/projects" element={<ElementalProjects />} />
+              <Route path="/team" element={<Team />} />
 
 
-            {/* Protected Pages */}
-            <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-            <Route path="/profile/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-            <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
-            <Route path="/chat/:chatId" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
-            <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
-            {/* <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} /> */}
+              {/* Protected Pages */}
+              <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+              <Route path="/profile/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
+              <Route path="/chat/:chatId" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
+              <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
+              {/* <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} /> */}
 
-            {/* 404 Page */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </React.StrictMode>
+              {/* 404 Page */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
+  </AuthProvider>
 );
 
 export default App;
