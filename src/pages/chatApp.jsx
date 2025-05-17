@@ -297,9 +297,12 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, [selectedConversation?.id, currentUser.uid]);
 
-  // --- Send Message (handles text and file/image) ---
-  const sendMessage = async () => {
-    if ((!newMessage.trim() && !file) || !selectedConversation || isSending || isUploading) {
+  // --- Send Message (handles text and file/image/voice) ---
+  const sendMessage = async (opts = {}) => {
+    // Support: opts.fileOverride, opts.mediaTypeOverride
+    const fileToSend = opts.fileOverride || file;
+    const mediaTypeOverride = opts.mediaTypeOverride;
+    if ((!newMessage.trim() && !fileToSend) || !selectedConversation || isSending || isUploading) {
       return;
     }
     // Clear input and file immediately for fast UX
@@ -308,7 +311,7 @@ export default function ChatApp() {
     setUploadProgress(0);
     setIsSending(true);
     // Bad words filter (only for text messages)
-    if (!file && newMessage.trim()) {
+    if (!fileToSend && newMessage.trim()) {
       const lowerMsg = newMessage.toLowerCase();
       // Efficient: check if any bad word is a substring (can be improved to whole word if needed)
       const hasBadWord = badWords.some(word => word && lowerMsg.includes(word.toLowerCase()));
@@ -325,14 +328,18 @@ export default function ChatApp() {
         senderName: currentUser.username,
         createdAt: serverTimestamp(),
       };
-      if (file) {
+      // Add duration if provided (for audio messages)
+      if (opts.durationOverride) {
+        messageData.duration = opts.durationOverride;
+      }
+      if (fileToSend) {
         setIsUploading(true);
         const storageRef = ref(
           storage,
-          `messages/${selectedConversation.id}/${Date.now()}_${file.name}`
+          `messages/${selectedConversation.id}/${Date.now()}_${fileToSend.name}`
         );
-        const uploadTask = uploadBytesResumable(storageRef, file, {
-          contentType: file.type,
+        const uploadTask = uploadBytesResumable(storageRef, fileToSend, {
+          contentType: fileToSend.type,
           customMetadata: { uploadedBy: currentUser.uid }
         });
         uploadTask.on('state_changed',
@@ -351,9 +358,9 @@ export default function ChatApp() {
         messageData = {
           ...messageData,
           mediaURL: downloadURL,
-          mediaType: file.type.startsWith('image/') ? 'image' : 'unknown',
-          fileName: file.name,
-          fileSize: file.size
+          mediaType: mediaTypeOverride || (fileToSend.type.startsWith('image/') ? 'image' : fileToSend.type.startsWith('audio/') ? 'audio' : 'unknown'),
+          fileName: fileToSend.name,
+          fileSize: fileToSend.size
         };
       } else {
         messageData.text = messageToSend;
@@ -373,7 +380,7 @@ export default function ChatApp() {
       batch.set(newMessageRef, messageData);
       const conversationRef = doc(db, "conversations", selectedConversation.id);
       batch.update(conversationRef, {
-        lastMessage: file ? (file.type.startsWith('image/') ? 'Sent an image' : 'Sent a voice message') : messageToSend,
+        lastMessage: fileToSend ? (mediaTypeOverride === 'audio' || fileToSend.type.startsWith('audio/') ? 'Sent a voice message' : fileToSend.type.startsWith('image/') ? 'Sent an image' : 'Sent a file') : messageToSend,
         lastUpdated: serverTimestamp(),
       });
       // --- Only increment unread for users who do not have the chat open (all chat types) ---

@@ -10,6 +10,7 @@ import BubbleAnimation from './animations/BubbleAnimation';
 import ChatInfoSidebar from './ChatIntoSidebar';
 import { doc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
+import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 
 /**
  * ChatArea is the main chat window, displaying messages and input.
@@ -46,6 +47,15 @@ export default function ChatArea({
   const [showInfoSidebar, setShowInfoSidebar] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [liveGroupAvatarURL, setLiveGroupAvatarURL] = useState(null);
+  const {
+    isRecording,
+    audioURL,
+    audioBlob,
+    recordingTime,
+    startRecording,
+    stopRecording,
+    resetRecording,
+  } = useVoiceRecorder();
 
   // Show scroll-to-bottom button if user scrolls up too far
   useEffect(() => {
@@ -107,6 +117,14 @@ export default function ChatArea({
     if (file && file.type && file.type.startsWith('image/')) {
       setIsSendingImage(true);
       sendingImage = true;
+    }
+    // If a voice recording is ready, send it
+    if (audioBlob && !isRecording) {
+      setShowBubble(true);
+      await sendMessage({ fileOverride: new File([audioBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' }), mediaTypeOverride: 'audio', durationOverride: recordingTime });
+      resetRecording();
+      setShowBubble(false);
+      return;
     }
     setShowBubble(true);
   };
@@ -233,6 +251,14 @@ export default function ChatArea({
             onEmojiClick={onEmojiClick}
             emojiPickerRef={emojiPickerRef}
             sendButtonRef={sendButtonRef}
+            // Voice recording props
+            isRecording={isRecording}
+            recordingTime={recordingTime}
+            startRecording={startRecording}
+            stopRecording={stopRecording}
+            audioURL={audioURL}
+            audioBlob={audioBlob}
+            resetRecording={resetRecording}
           />
         </>
       ) : (

@@ -4,6 +4,9 @@ import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 
 const DEFAULT_AVATAR = 'https://www.gravatar.com/avatar/?d=mp&f=y';
 
+// Format seconds as mm:ss
+const formatTime = (s) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.round(s%60)).padStart(2,'0')}`;
+
 const MessageItem = ({
   message,
   currentUser,
@@ -160,6 +163,52 @@ const MessageItem = ({
             </div>
           )}
 
+          {/* Audio Message */}
+          {message.mediaURL && message.mediaType === 'audio' && (
+            <div
+              className={`relative flex items-center gap-3 px-3 py-2 rounded-2xl shadow-lg transition-all duration-300 max-w-full w-80
+                ${isOwn ? 'hover:-translate-y-1' : 'hover:-translate-y-1'}
+                before:content-[''] before:absolute before:w-3 before:h-3 before:rotate-45
+                ${isOwn ? 'before:-right-1.5' : 'before:-left-1.5'} before:bottom-3`}
+              style={{
+                background: isOwn
+                  ? `linear-gradient(135deg, ${elementColors.primary} 60%, ${elementColors.hover} 100%)`
+                  : `linear-gradient(135deg, ${elementColors.light} 60%, #f0f4fa 100%)`,
+                border: `2px solid ${isOwn ? elementColors.hover : `${elementColors.light}80`}`,
+                boxShadow: `0 4px 20px ${elementColors.light}30`,
+                alignItems: 'center',
+                // Bubble pointer
+                ...(isOwn ? {
+                  before: {
+                    backgroundColor: elementColors.primary,
+                    right: '-0.35rem'
+                  }
+                } : {
+                  before: {
+                    backgroundColor: elementColors.light,
+                    left: '-0.35rem'
+                  }
+                })
+              }}
+            >
+              {/* Audio icon */}
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/70 shadow -mr-1">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-blue-600">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 18a6 6 0 006-6V9a6 6 0 10-12 0v3a6 6 0 006 6zm0 0v2m0 0h3m-3 0H9" />
+                </svg>
+              </span>
+              <audio
+                src={message.mediaURL}
+                controls
+                controlsList="nodownload noplaybackrate notime "
+                className="flex-1 min-w-0"
+                style={{ background: 'transparent', borderRadius: 8, outline: 'none' }}
+              />
+              {/* Show total duration if available */}
+              
+            </div>
+          )}
+
           {/* Text Message Bubble (only if text exists) */}
           {message.text && (
             <div
@@ -169,7 +218,7 @@ const MessageItem = ({
                 ${isOwn ? 'before:-right-1.5' : 'before:-left-1.5'} before:bottom-3`}
               style={{
                 background: isOwn 
-                  ? `linear-gradient(135deg, ${elementColors.primary}, ${elementColors.hover})`
+                  ? `linear-gradient(135deg, ${elementColors.primary} 60%, ${elementColors.hover} 100%)`
                   : elementColors.light,
                 border: `1px solid ${isOwn ? elementColors.hover : `${elementColors.light}80`}`,
                 boxShadow: `0 4px 20px ${elementColors.light}30`,
@@ -194,18 +243,26 @@ const MessageItem = ({
             </div>
           )}
 
-          {/* Timestamp */}
-          <div
-            className={`text-xs mt-1 px-2 py-1 rounded-full backdrop-blur-sm ${
-              isOwn ? 'text-right' : 'text-left'
-            }`}
-            style={{
-              color:  elementColors.darkHover,
-              backgroundColor:
-                `${elementColors.darkHover}20` 
-            }}
-          >
-            {formattedTime}
+          {/* Timestamp and Duration on the same line, different sides */}
+          <div className="flex items-center justify-between mt-1 w-full">
+            <div
+              className={`text-xs text-center px-2 py-1 rounded-full backdrop-blur-sm ${isOwn ? 'order-1' : 'order-2'}`}
+              style={{
+                color: elementColors.darkHover,
+                backgroundColor: `${elementColors.darkHover}20`,
+                minWidth: 70
+              }}
+            >
+              {formattedTime}
+            </div>
+            {message.duration > 0 && (
+              <div className={`text-xs text-white font-semibold px-3 py-1 rounded-full shadow backdrop-blur-sm ${isOwn ? 'order-2' : 'order-1'}`}
+                style={{ letterSpacing: 1, backgroundColor: elementColors.darkHover, minWidth: 70 }}
+                aria-label={'total audio duration'}
+              >
+                {`⏱ ${formatTime(message.duration)}`}
+              </div>
+            )}
           </div>
         </div>
       </div>
