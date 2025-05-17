@@ -132,7 +132,7 @@ const EventsSection = () => {
      id="projects" dir="rtl">
       <div className="container mx-auto px-4">
         <div className="text-center mb-20">
-          <h2 className="font-gveret-levin text-4xl md:text-5xl text-fire-dark mb-6">פרויקטים מהשטח</h2>
+          <h2 className="font-gveret-levin text-4xl md:text-5xl text-emerald-800 mb-6">פרויקטים מהשטח</h2>
           <div className="h-1 w-24 mx-auto bg-fire rounded-full mb-6"></div>
           <p className="text-lg text-gray-700 max-w-2xl mx-auto">
             הצצה לפרויקטים יצירתיים שנולדו מהתכנית – נבחרת אקראית מתוך המאגר.
@@ -159,9 +159,9 @@ const EventsSection = () => {
         <div className="mt-16 text-center">
           <CTAButton
             href="/projects"
-            variant="fire"
+            variant="earth"
             size="lg"
-           className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300"
+           className="bg-green-500 hover:bg-green-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="צפו בכל הפרויקטים שלנו – ייפתח בכרטיסייה חדשה"

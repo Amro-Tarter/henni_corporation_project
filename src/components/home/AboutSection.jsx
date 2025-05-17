@@ -329,7 +329,7 @@ const AboutSection = () => {
           viewport={{ once: true }}
           variants={fadeSlideUp}
         >
-          <h3 className="text-3xl md:text-4xl font-semibold text-gray-800 mb-2">צוות העמותה</h3>
+          <h3 className="text-3xl md:text-4xl font-semibold text-orange-800 mb-2">צוות העמותה</h3>
           <p className="text-gray-600 mb-8">הכירו את האנשים שמובילים את החזון שלנו</p>
 
           {/* Container for relative positioning */}
