@@ -18,7 +18,9 @@ import {
   arrayUnion,
   arrayRemove,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch,
+  onSnapshot
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Navbar from '../components/social/Navbar';
@@ -33,9 +35,10 @@ const Home = () => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
-  const [comments, setComments] = useState({});
+  const [postComments, setPostComments] = useState({});
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
+  const [sameElementUsers, setSameElementUsers] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -63,6 +66,7 @@ const Home = () => {
         fullUser.photoURL = profData.photoURL;
         fullUser.element = profData.element || 'earth';
         fullUser.profile = profData;
+        fullUser.username = profData.username || fullUser.username;
         setProfile(profData);
       }
 
@@ -87,22 +91,75 @@ const Home = () => {
         };
       });
       setPosts(loaded);
-      fetchAllComments(loaded);
     } catch (err) {
       console.error('Error fetching posts:', err);
     }
   };
 
-  const fetchAllComments = async (posts) => {
-    const commentsData = {};
-    for (const post of posts) {
-      const commentsSnap = await getDocs(
-        query(collection(db, 'posts', post.id, 'comments'), orderBy('createdAt'))
-      );
-      commentsData[post.id] = commentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
-    setComments(commentsData);
-  };
+  // Set up comment listeners for each post
+  useEffect(() => {
+    if (!posts.length) return;
+    
+    // Create an object to store cleanup functions
+    const unsubscribes = {};
+    
+    // Set up a listener for each post's comments
+    posts.forEach(post => {
+      const commentsRef = collection(db, 'posts', post.id, 'comments');
+      const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
+      
+      const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
+        const fetchedComments = [];
+        const topLevelComments = []; // Comments without parent
+        const commentReplies = {}; // Group replies by parent ID
+        
+        snapshot.forEach(doc => {
+          const commentData = {
+            id: doc.id,
+            ...doc.data(),
+            timestamp: doc.data().createdAt?.toDate() || new Date()
+          };
+          
+          fetchedComments.push(commentData);
+          
+          // Organize comments into a hierarchical structure
+          if (commentData.parentId) {
+            // This is a reply
+            if (!commentReplies[commentData.parentId]) {
+              commentReplies[commentData.parentId] = [];
+            }
+            commentReplies[commentData.parentId].push(commentData);
+          } else {
+            // This is a top-level comment
+            topLevelComments.push(commentData);
+          }
+        });
+        
+        // Process comments to add their replies
+        const processedComments = topLevelComments.map(comment => {
+          return {
+            ...comment,
+            replies: (commentReplies[comment.id] || []).sort(
+              (a, b) => b.timestamp - a.timestamp
+            )
+          };
+        });
+        
+        // Update the comments state for this post
+        setPostComments(prev => ({
+          ...prev,
+          [post.id]: processedComments
+        }));
+      });
+      
+      unsubscribes[post.id] = unsubscribe;
+    });
+    
+    // Clean up listeners when component unmounts
+    return () => {
+      Object.values(unsubscribes).forEach(unsubscribe => unsubscribe());
+    };
+  }, [posts]);
 
   const addPost = async ({ text, mediaFile }) => {
     if (!user) return;
@@ -182,64 +239,181 @@ const Home = () => {
     }
   };
 
-  const handleAddComment = async (postId, text, parentId) => {
+  const handleAddComment = async (postId, text, parentId = null) => {
+    if (!text.trim()) return;
+    
     try {
-      const commentRef = await addDoc(collection(db, 'posts', postId, 'comments'), {
-        authorId: user.uid,
-        authorName: user.username,
-        authorPhotoURL: user.photoURL,
-        content: text,
-        parentId: parentId || null,
+      const commentData = {
+        authorId: user?.uid,
+        authorName: user?.username,
+        authorPhotoURL: user?.photoURL,
+        content: text.trim(),
+        parentId: parentId,
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-
-      await updateDoc(doc(db, 'posts', postId), {
+        updatedAt: serverTimestamp(),
+        edited: false
+      };
+      
+      // Add the comment to Firestore
+      const commentsRef = collection(db, 'posts', postId, 'comments');
+      await addDoc(commentsRef, commentData);
+      
+      // Update the post's comment count
+      const postRef = doc(db, 'posts', postId);
+      await updateDoc(postRef, {
         commentsCount: increment(1)
       });
-
-      setComments(prev => ({
-        ...prev,
-        [postId]: [...(prev[postId] || []), { id: commentRef.id, ...commentRef.data() }]
-      }));
-    } catch (err) {
-      console.error('Error adding comment:', err);
+      
+      // Update the commentsCount in the local state
+      setPosts(prev => prev.map(p => 
+        p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p
+      ));
+    } catch (error) {
+      console.error('Error adding comment:', error);
     }
   };
 
   const handleEditComment = async (postId, commentId, newText) => {
+    if (!newText.trim()) return;
+    
     try {
-      await updateDoc(doc(db, 'posts', postId, 'comments', commentId), {
-        content: newText,
-        updatedAt: serverTimestamp()
+      const commentRef = doc(db, 'posts', postId, 'comments', commentId);
+      await updateDoc(commentRef, {
+        content: newText.trim(),
+        updatedAt: serverTimestamp(),
+        edited: true
       });
-
-      setComments(prev => ({
-        ...prev,
-        [postId]: prev[postId].map(c =>
-          c.id === commentId ? { ...c, content: newText } : c
-        )
-      }));
-    } catch (err) {
-      console.error('Error editing comment:', err);
+    } catch (error) {
+      console.error('Error editing comment:', error);
     }
   };
 
-  const handleDeleteComment = async (postId, commentId) => {
+  const handleDeleteComment = async (postId, commentId, isReply = false, parentId = null) => {
     try {
+      // Confirm deletion
+      if (!window.confirm('האם אתה בטוח שברצונך למחוק את התגובה?')) {
+        return;
+      }
+      
+      // Delete the comment document
       await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
-      await updateDoc(doc(db, 'posts', postId), {
-        commentsCount: increment(-1)
-      });
-
-      setComments(prev => ({
-        ...prev,
-        [postId]: prev[postId].filter(c => c.id !== commentId)
-      }));
-    } catch (err) {
-      console.error('Error deleting comment:', err);
+      
+      // If it's a top-level comment, also find and delete all its replies
+      if (!isReply) {
+        // Get all replies to this comment
+        const repliesQuery = query(
+          collection(db, 'posts', postId, 'comments'),
+          where('parentId', '==', commentId)
+        );
+        const repliesSnapshot = await getDocs(repliesQuery);
+        
+        // Delete each reply
+        const batch = writeBatch(db);
+        repliesSnapshot.docs.forEach(replyDoc => {
+          batch.delete(doc(db, 'posts', postId, 'comments', replyDoc.id));
+        });
+        await batch.commit();
+        
+        // Decrement the post's comment count for the parent and all replies
+        const postRef = doc(db, 'posts', postId);
+        await updateDoc(postRef, {
+          commentsCount: increment(-(repliesSnapshot.size + 1))
+        });
+        
+        // Update local post state
+        setPosts(prev => prev.map(p => 
+          p.id === postId ? { ...p, commentsCount: p.commentsCount - (repliesSnapshot.size + 1) } : p
+        ));
+      } else {
+        // Just decrement by 1 for a reply
+        const postRef = doc(db, 'posts', postId);
+        await updateDoc(postRef, {
+          commentsCount: increment(-1)
+        });
+        
+        // Update local post state
+        setPosts(prev => prev.map(p => 
+          p.id === postId ? { ...p, commentsCount: p.commentsCount - 1 } : p
+        ));
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
     }
   };
+
+  const getAuthorProfile = async (authorId) => {
+    try {
+      const profileRef = doc(db, 'profiles', authorId);
+      const profileSnap = await getDoc(profileRef);
+      if (profileSnap.exists()) {
+        return { id: profileSnap.id, ...profileSnap.data() };
+      }
+      return null;
+    } catch (err) {
+      console.error('Error fetching author profile:', err);
+      return null;
+    }
+  };
+
+  const fetchSameElementUsers = async () => {
+    if (!profile?.element || !user?.uid) return;
+
+    try {
+      const othersQuery = query(
+        collection(db, 'profiles'),
+        where('element', '==', profile.element)
+      );
+      const othersSnap = await getDocs(othersQuery);
+
+      const others = othersSnap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(u => u.id !== user.uid); // Exclude current user
+
+      const shuffled = others.sort(() => 0.5 - Math.random()).slice(0, 5);
+      setSameElementUsers(shuffled);
+    } catch (err) {
+      console.error('Error fetching same element users:', err);
+      setSameElementUsers([]);
+    }
+  };
+
+  const handleFollowToggle = async (targetUserId) => {
+    if (!user) return;
+
+    try {
+      const isFollowing = user.following?.includes(targetUserId);
+      const batch = writeBatch(db);
+
+      const userRef = doc(db, 'profiles', user.uid);
+      batch.update(userRef, {
+        following: isFollowing ? arrayRemove(targetUserId) : arrayUnion(targetUserId),
+        followingCount: increment(isFollowing ? -1 : 1)
+      });
+
+      const targetRef = doc(db, 'profiles', targetUserId);
+      batch.update(targetRef, {
+        followers: isFollowing ? arrayRemove(user.uid) : arrayUnion(user.uid),
+        followersCount: increment(isFollowing ? -1 : 1)
+      });
+
+      await batch.commit();
+
+      setUser(prev => ({
+        ...prev,
+        following: isFollowing
+          ? prev.following.filter(id => id !== targetUserId)
+          : [...(prev.following || []), targetUserId]
+      }));
+    } catch (err) {
+      console.error('Error toggling follow:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (profile?.element && user?.uid) {
+      fetchSameElementUsers();
+    }
+  }, [profile?.element, user?.uid]);
 
   // Handler for right sidebar expansion state
   const handleRightSidebarExpandChange = (expanded) => {
@@ -252,10 +426,16 @@ const Home = () => {
     <ThemeProvider element={profile.element}>
       <div className="flex min-h-screen bg-element-base">
         {/* Left Sidebar with shadow */}
-        <div className={`fixed left-0 h-full z-10 shadow-2xl transition-transform duration-300 ${
+        <div className={`fixed left-0 h-full z-10 shadow-2xl transition-transform duration-300 top-[56.8px] ${
           isLeftSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
-          <LeftSidebar element={profile.element} className="h-full" />
+          <LeftSidebar 
+            element={profile.element}
+            users={sameElementUsers}
+            viewerProfile={user}
+            onFollowToggle={handleFollowToggle}
+            className="h-full"
+          />
         </div>
 
         <div
@@ -293,13 +473,14 @@ const Home = () => {
                 onLike={handleLike}
                 onDelete={handleDeletePost}
                 onUpdate={handleUpdatePost}
-                comments={comments}
+                comments={postComments}
                 currentUser={user}
                 onAddComment={handleAddComment}
                 onEditComment={handleEditComment}
                 onDeleteComment={handleDeleteComment}
                 element={profile.element}
                 postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
+                getAuthorProfile={getAuthorProfile}
               />
             </div>
           </div>
