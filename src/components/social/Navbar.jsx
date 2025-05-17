@@ -3,6 +3,7 @@ import { Home, MessageSquare, Settings, Search, Bell, User, LogOut } from 'lucid
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const navTabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', href: '/Home' },
@@ -172,19 +173,28 @@ const Navbar = ({ element }) => {
   };
 
   return (
-    <header dir="rtl" className={`fixed top-0 left-0 w-full bg-${element} border-b border-${element}-accent z-50`}>
+    <header dir="rtl" className={`fixed top-0 left-0 w-full bg-${element} backdrop-blur-md shadow-md border-b border-${element}-accent z-50`}>
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
         <nav className="flex flex-row-reverse items-center gap-6">
           {navTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id, tab.href)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-md text-white text-base transition-colors duration-200 ${
-                activeTab === tab.id ? `bg-${element}-accent font-semibold` : `hover:bg-${element}-soft`
+              className={`group flex items-center gap-2 px-3 py-2 rounded-md text-white text-base transition-all duration-200 transform ${
+                activeTab === tab.id
+                  ? `bg-${element}-accent font-semibold`
+                  : `hover:bg-${element}-accent`
               }`}
             >
-              {tab.icon} <span>{tab.label}</span>
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+              >
+                {tab.icon}
+              </motion.div>
+              <span>{tab.label}</span>
             </button>
+
           ))}
         </nav>
 
@@ -205,9 +215,14 @@ const Navbar = ({ element }) => {
               <Search size={20} />
             </span>
 
+            <AnimatePresence>
             {showSearchPopUp && (
-              <div
+              <motion.div
                 ref={searchRef}
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                transition={{ duration: 0.2 }}
                 className="absolute top-full left-0 right-0 bg-white mt-1 border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50"
               >
                 {showHistory && searchHistory.length > 0 && (
@@ -233,46 +248,64 @@ const Navbar = ({ element }) => {
                 )}
 
                 {searchInput && searchResults.length > 0 && (
-                  <div>
+                  <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto overflow-x-hidden">
                     {searchResults.map((profile, index) => (
-                      <div
+                      <motion.div
                         key={index}
-                        className="flex items-center p-3 hover:bg-gray-100 cursor-pointer"
+                        whileHover={{ scale: 1.015 }}
+                        whileTap={{ scale: 0.98 }}
+                        transition={{ duration: 0.15, ease: 'easeOut' }}
+                        className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-100"
                         onClick={() => {
                           setSearchInput(profile.username);
                           triggerSearch();
                         }}
                       >
                         <img
-                          src={profile.photoURL}
+                          src={profile.photoURL || '/default-avatar.png'}
                           alt={profile.username}
-                          className="w-10 h-10 rounded-full mr-3"
+                          className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
                         />
-                        <span>{profile.username}</span>
-                      </div>
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-sm font-medium text-gray-800 truncate">
+                            {profile.username}
+                          </span>
+                          {profile.name && (
+                            <span className="text-xs text-gray-500 truncate">{profile.name}</span>
+                          )}
+                        </div>
+                      </motion.div>
                     ))}
                   </div>
                 )}
-              </div>
+
+              </motion.div>
             )}
+          </AnimatePresence>
+
           </div>
         </form>
 
         <div className="flex flex-row-reverse items-center space-x-4 space-x-reverse">
           <button
             onClick={() => handleTabClick('notifications', '/notifications')}
-            className={`relative p-2 rounded-full transition ${
-              activeTab === 'notifications' ? `bg-${element}-accent` : `hover:bg-${element}-soft`
+            className={`relative p-2 rounded-full transition group ${
+              activeTab === 'notifications' ? `bg-${element}-accent` : `hover:bg-${element}-accent`
             }`}
             aria-label="התראות"
           >
-            <Bell size={20} className={`text-white`} />
-            <span
+            <motion.div whileHover={{ scale: 1.1 }} transition={{ type: 'spring', stiffness: 300 }}>
+              <Bell size={20} className="text-white" />
+            </motion.div>
+            <motion.span
               className={`absolute -top-1 -left-1 bg-${element}-accent text-white rounded-full w-5 h-5 text-xs flex items-center justify-center`}
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 1 }}
             >
               3
-            </span>
+            </motion.span>
           </button>
+
 
           <div className="relative" ref={profileDropdownRef}>
             <button
@@ -285,8 +318,15 @@ const Navbar = ({ element }) => {
               <User size={20} className="text-white" />
             </button>
             
+            <AnimatePresence>
             {showProfileDropdown && (
-              <div className="absolute left-0 top-12 w-60 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="absolute left-0 top-12 w-60 bg-white rounded-md shadow-lg border border-gray-200 z-50"
+              >
                 {user && (
                   <div className="p-4 border-b border-gray-200">
                     <p className="text-gray-800 font-medium text-center">{user.email}</p>
@@ -315,8 +355,10 @@ const Navbar = ({ element }) => {
                     </button>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )}
+          </AnimatePresence>
+
           </div>
         </div>
       </div>

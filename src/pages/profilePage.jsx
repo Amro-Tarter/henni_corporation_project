@@ -377,6 +377,11 @@ useEffect(() => {
     await updateDoc(doc(db, 'profiles', uid), {
       postsCount: increment(1)
     });
+    setProfile(prev => ({
+      ...prev,
+      postsCount: (prev.postsCount || 0) + 1
+    }));
+
   };
 
   // Delete a post
@@ -386,6 +391,10 @@ useEffect(() => {
     await updateDoc(doc(db, 'profiles', uid), {
       postsCount: increment(-1)
     });
+    setProfile(prev => ({
+      ...prev,
+      postsCount: Math.max((prev.postsCount || 1) - 1, 0)
+    }));
   };
 
   // Update a post
@@ -437,7 +446,8 @@ useEffect(() => {
       }
       
       // Add the comment to Firestore
-      const commentsRef = collection(db, 'posts', postId, 'comments');
+      const commentsRef = collection(db, 'posts', postId, 'comments');;
+
       await addDoc(commentsRef, commentData);
       
       // Update the post's comment count
