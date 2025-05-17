@@ -96,7 +96,7 @@ const JoinUs = () => {
   return (
     <section
       id="join-us"
-      className="relative py-24 md:py-32 bg-gradient-to-br from-orange-50 via-orange-100 to-yellow-50 overflow-hidden"
+      className="relative py-24 md:py-32 bg-gradient-to-tr from-rose-100 to-orange-100 overflow-hidden"
       dir="rtl"
     >
       {/* Animated canvas background */}

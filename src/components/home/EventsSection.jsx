@@ -127,7 +127,9 @@ const EventsSection = () => {
   }, []);
 
   return (
-    <section className="py-24 bg-gradient-to-b from-white to-slate-100" id="projects" dir="rtl">
+    <section 
+    className="relative py-20 md:py-28 bg-gradient-to-tr from-cyan-100 to-blue-200 overflow-hidden"
+     id="projects" dir="rtl">
       <div className="container mx-auto px-4">
         <div className="text-center mb-20">
           <h2 className="font-gveret-levin text-4xl md:text-5xl text-fire-dark mb-6">פרויקטים מהשטח</h2>

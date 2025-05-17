@@ -33,7 +33,7 @@ const Gallery = () => {
   return (
     <section
       id="gallery"
-      className="py-24 bg-gradient-to-b from-white via-blue-50 to-purple-50"
+      className="py-24 bg-gradient-to-tr from-slate-100 to-gray-100"
       dir="rtl"
     >
       <div className="container mx-auto px-6">
