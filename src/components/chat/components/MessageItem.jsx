@@ -244,26 +244,39 @@ const MessageItem = ({
           )}
 
           {/* Timestamp and Duration on the same line, different sides */}
-          <div className="flex items-center justify-between mt-1 w-full">
-            <div
-              className={`text-xs text-center px-2 py-1 rounded-full backdrop-blur-sm ${isOwn ? 'order-1' : 'order-2'}`}
-              style={{
-                color: elementColors.darkHover,
-                backgroundColor: `${elementColors.darkHover}20`,
-                minWidth: 70
-              }}
-            >
-              {formattedTime}
-            </div>
-            {message.duration > 0 && (
+          {message.duration > 0 ? (
+            <div className="flex items-center justify-between mt-1 w-full">
+              <div
+                className={`text-xs text-center px-2 py-1 rounded-full backdrop-blur-sm ${isOwn ? 'order-1' : 'order-2'}`}
+                style={{
+                  color: elementColors.darkHover,
+                  backgroundColor: `${elementColors.darkHover}20`,
+                  minWidth: 70
+                }}
+              >
+                {formattedTime}
+              </div>
               <div className={`text-xs text-white font-semibold px-3 py-1 rounded-full shadow backdrop-blur-sm ${isOwn ? 'order-2' : 'order-1'}`}
                 style={{ letterSpacing: 1, backgroundColor: elementColors.darkHover, minWidth: 70 }}
                 aria-label={'total audio duration'}
               >
                 {`⏱ ${formatTime(message.duration)}`}
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className={`flex items-center mt-1 w-full ${isOwn ? 'justify-start' : 'justify-end'}`}> 
+              <div
+                className="text-xs text-center px-2 py-1 rounded-full backdrop-blur-sm"
+                style={{
+                  color: elementColors.darkHover,
+                  backgroundColor: `${elementColors.darkHover}20`,
+                  minWidth: 70
+                }}
+              >
+                {formattedTime}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
