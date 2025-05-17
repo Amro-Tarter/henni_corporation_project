@@ -63,18 +63,22 @@ const AboutSection = () => {
           const userData = userDoc.data();
           console.log('Team member document:', userDoc.id, userData);
           
-          // Fetch the user's profile
-          const profileDoc = await getDoc(doc(db, 'profiles', userDoc.id));
+          // Get the associated_id from userData
+          const associatedId = userData.associated_id || userDoc.id;
+          
+          // Fetch the user's profile using associated_id
+          const profileDoc = await getDoc(doc(db, 'profiles', associatedId));
           const profileData = profileDoc.exists() ? profileDoc.data() : {};
           
           // Create a member object with data from both collections
           const member = {
             id: userDoc.id,
-            displayName: userData.displayName,
+            associated_id: associatedId,
+            displayName: profileData.displayName || userData.displayName || 'Team Member',
             role: userData.role,
             title: userData.title || getDefaultTitle(userData.role),
-            photoURL: profileData.photoURL || '/team.png', // Get photoURL from profiles collection
-            bio: userData.bio || getDefaultBio(userData.role),
+            photoURL: profileData.photoURL || '/team.png',
+            bio: profileData.bio || userData.bio || getDefaultBio(userData.role),
             is_active: userData.is_active
           };
           
