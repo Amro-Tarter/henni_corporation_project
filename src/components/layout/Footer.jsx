@@ -200,7 +200,7 @@ const Footer = () => {
                         />
                       </svg>
                     </div>
-                    <span>הצטרפו לקבוצת הווצאפ</span>
+                    <span>WhatsApp</span>
                   </a>
                 </div>
               </div>
@@ -219,26 +219,22 @@ const Footer = () => {
         </div>
       </div>
       
-      {/* Don't forget to add the necessary CSS for the ember animation */}
-      <style jsx>{`
-        @keyframes riseAndFade {
+      <style>{`
+        .ember {
+          position: absolute;
+          border-radius: 50%;
+          animation: float-up linear infinite;
+        }
+
+        @keyframes float-up {
           0% {
-            transform: translateY(0);
-            opacity: 0.1;
-          }
-          20% {
-            opacity: 0.8;
+            transform: translateY(0) scale(1);
+            opacity: 1;
           }
           100% {
-            transform: translateY(-100vh);
+            transform: translateY(-100vh) scale(0);
             opacity: 0;
           }
-        }
-        
-        .ember {
-          border-radius: 50%;
-          animation: riseAndFade 10s ease-out infinite;
-          box-shadow: 0 0 10px 2px rgba(255, 165, 0, 0.5);
         }
       `}</style>
     </footer>
