@@ -21,29 +21,30 @@ export const Comment = ({
   getAuthorProfile
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(comment.text);
-  const [authorProfile,setAuthorProfile] = useState(null);
+  const [editText, setEditText] = useState(comment.content || comment.text || '');
+  const [authorProfile, setAuthorProfile] = useState(null);
   const isCommentAuthor = currentUser.uid === comment.authorId;
   const isPostOwner = currentUser.uid === postAuthorId;
   const canEditOrDelete = isCommentAuthor || isPostOwner;
-  const formattedTime = comment.timestamp
+  
+  const commentTime = comment.createdAt || comment.timestamp;
+  const formattedTime = commentTime
     ? new Intl.DateTimeFormat('he-IL', {
         year: 'numeric', month: 'short', day: 'numeric',
         hour: '2-digit', minute: '2-digit'
-      }).format(comment.timestamp)
+      }).format(typeof commentTime === 'object' ? commentTime : commentTime.toDate())
     : '';
 
   useEffect(() => {
-  const fetch = async () => {
-    const profile = await getAuthorProfile(comment.authorId);
-    setAuthorProfile(profile);
-  };
-  fetch();
-}, [comment.authorId, getAuthorProfile]);
- 
+    const fetch = async () => {
+      const profile = await getAuthorProfile(comment.authorId);
+      setAuthorProfile(profile);
+    };
+    fetch();
+  }, [comment.authorId, getAuthorProfile]);
 
   const handleSave = () => {
-    if (editText.trim() !== comment.text) {
+    if (editText.trim() !== (comment.content || comment.text)) {
       onEdit(postId, comment.id, editText);
     }
     setIsEditing(false);
@@ -89,7 +90,7 @@ export const Comment = ({
               />
               <div className="flex justify-end gap-2 mt-2">
                 <button
-                  onClick={() => { setEditText(comment.text); setIsEditing(false); }}
+                  onClick={() => { setEditText(comment.content || comment.text); setIsEditing(false); }}
                   className="px-3 py-1 text-xs bg-gray-100 rounded-md flex items-center gap-1 hover:bg-gray-200 transition-colors"
                 >
                   <X size={12} /> ביטול
@@ -103,7 +104,7 @@ export const Comment = ({
               </div>
             </>
           ) : (
-            <p className="text-sm mt-1 whitespace-pre-wrap">{comment.text}</p>
+            <p className="text-sm mt-1 whitespace-pre-wrap">{comment.content || comment.text}</p>
           )}
         </div>
 

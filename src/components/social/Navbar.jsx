@@ -3,7 +3,6 @@ import { Home, MessageSquare, Settings, Search, Bell, User, LogOut } from 'lucid
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
 
 const navTabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', href: '/Home' },
@@ -12,7 +11,6 @@ const navTabs = [
 ];
 
 const Navbar = ({ element }) => {
-  const navigate = useNavigate();
   const getInitialTab = () => {
     const path = window.location.pathname;
     if (path.startsWith('/Home')) return 'home';
@@ -31,10 +29,24 @@ const Navbar = ({ element }) => {
   const [showSearchPopUp, setShowSearchPopUp] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   const searchRef = useRef(null);
   const profileDropdownRef = useRef(null);
 
   const user = auth.currentUser;
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (user) {
+        const profileRef = doc(db, 'profiles', user.uid);
+        const profileSnap = await getDoc(profileRef);
+        if (profileSnap.exists()) {
+          setUserProfile(profileSnap.data());
+        }
+      }
+    };
+    fetchUserProfile();
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -153,6 +165,12 @@ const Navbar = ({ element }) => {
     setShowProfileDropdown((prev) => !prev);
   };
 
+  const handleProfileClick = () => {
+    if (userProfile?.username) {
+      handleTabClick('profile', `/profile/${userProfile.username}`);
+    }
+  };
+
   return (
     <header dir="rtl" className={`fixed top-0 left-0 w-full bg-${element} border-b border-${element}-accent z-50`}>
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
@@ -221,9 +239,8 @@ const Navbar = ({ element }) => {
                         key={index}
                         className="flex items-center p-3 hover:bg-gray-100 cursor-pointer"
                         onClick={() => {
-                          setShowSearchPopUp(false);
-                          setSearchInput('');
-                          navigate(`/profile/${profile.username}`);
+                          setSearchInput(profile.username);
+                          triggerSearch();
                         }}
                       >
                         <img
@@ -277,17 +294,7 @@ const Navbar = ({ element }) => {
                 )}
                 <div className="py-2">
                   <button
-                    onClick={async () => {
-                      try {
-                        const docSnap = await getDoc(doc(db, 'profiles', user.uid));
-                        if (docSnap.exists()) {
-                          const username = docSnap.data().username;
-                          navigate(`/profile/${username}`);
-                        }
-                      } catch (err) {
-                        console.error('Failed to fetch username for profile redirection:', err);
-                      }
-                    }}
+                    onClick={handleProfileClick}
                     className="w-full text-right px-4 py-2 hover:bg-gray-100 transition"
                   >
                     הפרופיל שלי

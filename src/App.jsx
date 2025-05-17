@@ -20,8 +20,8 @@ import ChatApp from './pages/chatApp';
 import ElementalProjects from './pages/ElementalProjects';
 import PublicSettings from './pages/PublicSettings';
 import CommunityPage from './pages/CommunityPage';
-// import TeamPage from './pages/TeamPage';
 import ProtectedRoute from './components/ProtectedRoute';
+import Team from './pages/Team';
 
 const queryClient = new QueryClient();
 
@@ -44,6 +44,8 @@ const App = () => (
             <Route path="/login" element={<LogIn />} />
             <Route path="/community" element={<CommunityPage />} />
             <Route path="/projects" element={<ElementalProjects />} />
+            <Route path="/team" element={<Team />} />
+
 
             {/* Protected Pages */}
             <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />

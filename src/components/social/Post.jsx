@@ -1,30 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check } from 'lucide-react';
 import { Comment, CommentInput } from './comments';
+import { useNavigate } from 'react-router-dom';
 
 const Post = ({
   post,
-  element,
+  element = 'earth',
   onDelete,
   onUpdate,
   onLike,
-  comments,
+  comments = [],
   currentUser,
   onAddComment,
   onEditComment,
-  onDeleteComment
+  onDeleteComment,
+  isOwner = false,
+  getAuthorProfile
 }) => {
   const {
     id,
-    authorPhotoURL,
-    authorName,
     createdAt,
-    content,
-    mediaUrl,
-    likesCount,
-    commentsCount,
-    likedBy = []
-  } = post;
+    content = '',
+    mediaUrl = '',
+    likesCount = 0,
+    commentsCount = 0,
+    likedBy = [],
+    authorId
+  } = post || {};
 
   const [editing, setEditing] = useState(false);
   const [newContent, setNewContent] = useState(content);
@@ -33,14 +35,34 @@ const Post = ({
   const [showComments, setShowComments] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [liked, setLiked] = useState(false);
+  const [authorProfile, setAuthorProfile] = useState(null);
+  const [error, setError] = useState(null);
 
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const commentsRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    setLiked(Array.isArray(likedBy) && likedBy.includes(currentUser.uid));
-  }, [likedBy, currentUser.uid]);
+    const fetchAuthorProfile = async () => {
+      if (!authorId) return;
+      
+      try {
+        const profile = await getAuthorProfile(authorId);
+        setAuthorProfile(profile);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching author profile:', err);
+        setError('Failed to load author profile');
+      }
+    };
+
+    fetchAuthorProfile();
+  }, [authorId, getAuthorProfile]);
+
+  useEffect(() => {
+    setLiked(Array.isArray(likedBy) && currentUser?.uid && likedBy.includes(currentUser.uid));
+  }, [likedBy, currentUser?.uid]);
 
   useEffect(() => {
     const handleClickOutside = e => {
@@ -68,23 +90,44 @@ const Post = ({
 
   const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    if (!id || !onDelete) return;
+    
     if (window.confirm('האם אתה בטוח שברצונך למחוק את הפוסט הזה?')) {
-      onDelete(id);
-      setMenuOpen(false);
+      try {
+        await onDelete(id);
+        setMenuOpen(false);
+      } catch (err) {
+        console.error('Error deleting post:', err);
+        alert('Failed to delete post. Please try again.');
+      }
     }
   };
 
-  const handleSaveEdit = () => {
-    onUpdate(id, { content: newContent, mediaFile: newMediaFile });
-    setEditing(false);
-    setNewMediaFile(null);
+  const handleSaveEdit = async () => {
+    if (!id || !onUpdate) return;
+    
+    try {
+      await onUpdate(id, { content: newContent, mediaFile: newMediaFile });
+      setEditing(false);
+      setNewMediaFile(null);
+    } catch (err) {
+      console.error('Error updating post:', err);
+      alert('Failed to update post. Please try again.');
+    }
   };
 
-  const toggleLike = () => {
-    const newState = !liked;
-    setLiked(newState);
-    onLike(id, newState);
+  const toggleLike = async () => {
+    if (!id || !onLike || !currentUser) return;
+    
+    try {
+      const newState = !liked;
+      await onLike(id, newState);
+      setLiked(newState);
+    } catch (err) {
+      console.error('Error toggling like:', err);
+      alert('Failed to update like. Please try again.');
+    }
   };
 
   const toggleCommentsSection = () => {
@@ -107,6 +150,14 @@ const Post = ({
     if (file) setNewMediaFile(file);
   };
 
+  /*if (!post || !authorProfile) {
+    return <div className="p-4 text-center">Loading...</div>;
+  }*/
+
+  if (error) {
+    return <div className="p-4 text-center text-red-500">{error}</div>;
+  }
+
   return (
     <div
       dir="rtl"
@@ -122,41 +173,46 @@ const Post = ({
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 cursor-pointer"
+          onClick={() => navigate(`/profile/${authorProfile?.username}`)}
+        >
+          {/* User profile picture */}
           <img
-            src={authorPhotoURL}
-            alt={authorName}
+            src={authorProfile?.photoURL || '/default_user_pic.jpg'}
+            alt={authorProfile?.username || 'משתמש'}
             className={`w-12 h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
           />
           <div className="flex flex-col">
-            <h3 className="text-lg font-bold">{authorName}</h3>
+            <h3 className="text-lg font-bold">{authorProfile?.username || '...'}</h3>
             <p className="text-xs text-gray-500">{timeString}</p>
           </div>
         </div>
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setMenuOpen(prev => !prev)}
-            className={`p-2 rounded-full transition-colors duration-200 text-${element}-accent hover:text-${element} hover:bg-${element}-soft`}
-          >
-            <MoreHorizontal size={20} />
-          </button>
-          {menuOpen && (
-            <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}> 
-              <button
-                onClick={() => { setEditing(prev => !prev); setMenuOpen(false); }}
-                className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors`}
-              >
-                {editing ? 'ביטול עריכה' : 'ערוך פוסט'}
-              </button>
-              <button
-                onClick={handleDelete}
-                className={`w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-${element}-soft transition-colors`}
-              >
-                מחק פוסט
-              </button>
-            </div>
-          )}
-        </div>
+        {isOwner && (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(prev => !prev)}
+              className={`p-2 rounded-full transition-colors duration-200 text-${element}-accent hover:text-${element} hover:bg-${element}-soft`}
+            >
+              <MoreHorizontal size={20} />
+            </button>
+            {menuOpen && (
+              <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}> 
+                <button
+                  onClick={() => { setEditing(prev => !prev); setMenuOpen(false); }}
+                  className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors`}
+                >
+                  {editing ? 'ביטול עריכה' : 'ערוך פוסט'}
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className={`w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-${element}-soft transition-colors`}
+                >
+                  מחק פוסט
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content */}
@@ -204,22 +260,18 @@ const Post = ({
               <p className="text-white mt-2 font-medium">החלף מדיה</p>
             </div>
           )}
-          <div className="w-full" style={{ height: '40rem' }}> 
+          <div className="w-full max-h-[40rem] overflow-hidden flex justify-center items-center bg-${element}-soft">
             {isVideo ? (
               <video
-                className="absolute top-1/2 left-0 w-full transform -translate-y-1/2 object-cover"
+                src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
                 controls
-              >
-                <source
-                  src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
-                  type="video/mp4"
-                />
-              </video>
+                className="max-h-[40rem] w-auto object-contain"
+              />
             ) : (
               <img
                 src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
                 alt="תוכן הפוסט"
-                className="absolute top-1/2 left-0 w-full transform -translate-y-1/2 object-cover"
+                className="max-h-[40rem] w-full object-cover"
               />
             )}
           </div>
@@ -276,6 +328,8 @@ const Post = ({
                 onEdit={onEditComment}
                 onDelete={onDeleteComment}
                 postId={id}
+                postAuthorId={post.authorId}
+                getAuthorProfile={getAuthorProfile}
               />
             ))
           ) : (

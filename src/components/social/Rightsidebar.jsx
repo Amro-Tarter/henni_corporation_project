@@ -3,23 +3,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Search, Bell, Home, MessageSquare, Settings, User, LogOut,
 } from 'lucide-react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 
 const tabs = [
-  { id: 'home', icon: <Home size={20} />, label: 'דף הבית' },
-  { id: 'messenger', icon: <MessageSquare size={20} />, label: 'הודעות' },
-  { id: 'settings', icon: <Settings size={20} />, label: 'הגדרות' },
+  { id: 'home', icon: <Home size={20} />, label: 'דף הבית', route: '/home' },
+  { id: 'messenger', icon: <MessageSquare size={20} />, label: 'הודעות', route: '/chat' },
+  { id: 'settings', icon: <Settings size={20} />, label: 'הגדרות', route: '/settings' },
 ];
 
 const Rightsidebar = ({ element, onExpandChange }) => {
   const [searchInput, setSearchInput] = useState('');
   const [isSearching, setIsSearching] = useState(false);
-  const [activeTab, setActiveTab] = useState('settings');
+  const [activeTab, setActiveTab] = useState('home');
   const [searchResults, setSearchResults] = useState([]);
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   const searchRef = useRef(null);
   const navigate = useNavigate();
 
@@ -27,15 +28,25 @@ const Rightsidebar = ({ element, onExpandChange }) => {
     const fetchUserProfile = async () => {
       const user = auth.currentUser;
       if (user) {
-        const q = query(collection(db, 'profiles'), where('uid', '==', user.uid));
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const userData = querySnapshot.docs[0].data();
+        const profileRef = doc(db, 'profiles', user.uid);
+        const profileSnap = await getDoc(profileRef);
+        if (profileSnap.exists()) {
+          const userData = profileSnap.data();
           setUserPhotoURL(userData.photoURL);
+          setUserProfile(userData);
         }
       }
     };
     fetchUserProfile();
+  }, []);
+
+  useEffect(() => {
+    // Set active tab based on current route
+    const path = window.location.pathname;
+    const tab = tabs.find(t => path.startsWith(t.route));
+    if (tab) {
+      setActiveTab(tab.id);
+    }
   }, []);
 
   useEffect(() => {
@@ -61,7 +72,6 @@ const Rightsidebar = ({ element, onExpandChange }) => {
     fetchSearchResults();
   }, [searchInput]);
 
-  // Notify parent component when expanded state changes
   useEffect(() => {
     if (onExpandChange) {
       onExpandChange(isExpanded);
@@ -77,18 +87,33 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const handleLogout = async () => {
     try {
       await auth.signOut();
+      navigate('/login');
     } catch (error) {
       console.error('Error logging out:', error);
     }
   };
 
-  // Handle hover to toggle expanded state
+  const handleTabClick = (tabId) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab) {
+      setActiveTab(tabId);
+      navigate(tab.route);
+    }
+  };
+
   const handleMouseEnter = () => {
     setIsExpanded(true);
   };
 
   const handleMouseLeave = () => {
     setIsExpanded(false);
+  };
+
+  const handleProfileClick = () => {
+    const user = auth.currentUser;
+    if (user && userProfile?.username) {
+      navigate(`/profile/${userProfile.username}`);
+    }
   };
 
   return (
@@ -144,7 +169,6 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                   setSearchInput('');
                   navigate(`/profile/${profile.username}`);
                 }}
-
               >
                 <img
                   src={profile.photoURL}
@@ -162,7 +186,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
             className={`
               flex items-center gap-3 rounded-md px-3 py-2
               text-${element} transition-colors duration-200
@@ -181,15 +205,14 @@ const Rightsidebar = ({ element, onExpandChange }) => {
 
       <div className={`px-2 pb-6 space-y-2 ${isExpanded ? 'px-4' : ''}`}>
         <button
-          onClick={() => setActiveTab('notifications')}
+          onClick={() => navigate('/notifications')}
           className={`flex items-center gap-3 rounded-md px-3 py-2 w-full text-${element} hover:bg-${element}-soft transition-colors duration-500 ${
             activeTab === 'notifications' ? `bg-${element} text-white` : ''
           }`}
         >
           <Bell size={20} />
           {isExpanded && (
-            <span className="flex flex-1 justify-between font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0">
+            <span className="flex flex-1 justify-between font-medium overflow-hidden whitespace-nowrap transition-all duration-300">
               <span>התראות</span>
               <span className={`rounded-full bg-${element}-accent text-white px-2 py-1 text-xs`}>
                 3
@@ -199,7 +222,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         </button>
 
         <button
-          onClick={() => setActiveTab('profile')}
+          onClick={handleProfileClick}
           className={`flex items-center gap-3 rounded-md px-3 py-2 w-full text-${element} hover:bg-${element}-soft transition-colors duration-200 ${
             activeTab === 'profile' ? `bg-${element} text-white` : ''
           }`}
@@ -210,8 +233,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
             <User size={20} />
           )}
           {isExpanded && (
-            <span className="font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0">פרופיל</span>
+            <span className="font-medium overflow-hidden whitespace-nowrap transition-all duration-300">פרופיל</span>
           )}
         </button>
 
@@ -221,8 +243,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         >
           <LogOut size={20} />
           {isExpanded && (
-            <span className="font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0">התנתק</span>
+            <span className="font-medium overflow-hidden whitespace-nowrap transition-all duration-300">התנתק</span>
           )}
         </button>
       </div>

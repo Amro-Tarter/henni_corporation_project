@@ -1,73 +1,57 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const elementOptions = {
-  fire: { icon: '🔥' },
-  water: { icon: '💧' },
-  air:   { icon: '🌪️' },
-  earth: { icon: '🌍' },
-  metal: { icon: '⚙️' },
-};
-
 const LeftSidebar = ({ element, users = [], viewerProfile, onFollowToggle }) => {
   const navigate = useNavigate();
-  
-  return (
-    <aside
-      className={`
-        fixed top-[56.8px] bottom-0 left-0 w-64 z-30
-        bg-white shadow-md p-6 overflow-y-auto
-      `}
-    >
-      <section className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">משתמשים עם אותו אלמנט</h2>
-        <div className={`h-0.5 w-12 bg-${element} rounded mb-4`} />
 
-        {users.length === 0 ? (
-          <p className="text-sm text-gray-500">לא נמצאו משתמשים</p>
-        ) : (
+  return (
+    <div className="w-64 h-[calc(100vh-56.8px)] bg-white shadow-lg overflow-y-auto">
+      <div className="p-6">
+        <h2 className={`text-${element} text-xl font-bold mb-6 text-right`}>
+          משתמשים מאותו היסוד
+        </h2>
+        
+        {users && users.length > 0 ? (
           <div className="space-y-4">
-            {users.map((user, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <div className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
+            {users.map((user) => (
+              <div key={user.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
+                <div 
+                  className="flex items-center gap-3 cursor-pointer"
                   onClick={() => navigate(`/profile/${user.username}`)}
                 >
-                  {/* User profile picture */}
                   <img
-                    src={user.photoURL || '/default_user_pic.jpg'}
+                    src={user.photoURL || '/default-avatar.png'}
                     alt={user.username}
                     className="w-10 h-10 rounded-full object-cover"
                   />
-                  <p className="flex items-center gap-1 font-medium text-sm">
-                    {user.username}
-                    <span>{elementOptions[user.element]?.icon}</span>
-                  </p>
+                  <div className="text-right">
+                    <h3 className="font-medium text-gray-900">{user.username}</h3>
+                    <p className="text-sm text-gray-500">{user.bio?.slice(0, 30)}</p>
+                  </div>
                 </div>
-
-                {(() => {
-                  const isFollowing = viewerProfile?.following?.includes(user.id);
-
-                  return (
-                    <button
-                      onClick={() => onFollowToggle(user.id)}
-                      className={`
-                        px-3 py-2 text-xs font-semibold rounded-full transition
-                        ${isFollowing
-                          ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                          : `bg-${element} text-white hover:bg-${element}-accent`}
-                      `}
-                    >
-                      {isFollowing ? 'בטל מעקב' : 'עקוב'}
-                    </button>
-                  );
-                })()}
-
+                
+                {viewerProfile && viewerProfile.uid !== user.id && (
+                  <button
+                    onClick={() => onFollowToggle(user.id)}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors
+                      ${(viewerProfile.following || []).includes(user.id)
+                        ? `bg-${element} text-white hover:bg-${element}-dark`
+                        : `border border-${element} text-${element} hover:bg-${element}-soft`
+                      }`}
+                  >
+                    {(viewerProfile.following || []).includes(user.id) ? 'עוקב' : 'עקוב'}
+                  </button>
+                )}
               </div>
             ))}
           </div>
+        ) : (
+          <p className="text-center text-gray-500 mt-4">
+            לא נמצאו משתמשים מאותו היסוד
+          </p>
         )}
-      </section>
-    </aside>
+      </div>
+    </div>
   );
 };
 
