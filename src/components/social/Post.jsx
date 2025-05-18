@@ -3,7 +3,6 @@ import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check, X } fro
 import { Comment, CommentInput } from './comments';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import PostModalContent from './PostModalContent';
 
 const Post = ({
   post,
@@ -40,7 +39,6 @@ const Post = ({
   const [authorProfile, setAuthorProfile] = useState(null);
   const [error, setError] = useState(null);
   const [floatLike, setFloatLike] = useState(false);
-  const [showPostModal, setShowPostModal] = useState(false);
 
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
@@ -151,14 +149,60 @@ const Post = ({
   };
 
   const pickMedia = () => fileInputRef.current?.click();
-  const onMediaChange = e => {
+  
+  const onMediaChange = async e => {
     const file = e.target.files[0];
-    if (file) setNewMediaFile(file);
-  };
+    if (!file) return;
 
-  /*if (!post || !authorProfile) {
-    return <div className="p-4 text-center">Loading...</div>;
-  }*/
+    // Validate file size (max 100MB for videos, 10MB for images)
+    const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`File too large. Max ${isVideo ? '100MB' : '10MB'} allowed`);
+      return;
+    }
+
+    // Validate file type
+    const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    
+    if (isVideo && !validVideoTypes.includes(file.type)) {
+      alert('Invalid video format. Please use MP4, WebM, or OGG format.');
+      return;
+    }
+    
+    if (!isVideo && !validImageTypes.includes(file.type)) {
+      alert('Invalid image format. Please use JPEG, PNG, GIF, or WebP format.');
+      return;
+    }
+
+    try {
+      // For videos, we might want to check if the video is playable
+      if (isVideo) {
+        const videoBlob = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.src = videoBlob;
+        
+        await new Promise((resolve, reject) => {
+          video.onloadedmetadata = () => {
+            URL.revokeObjectURL(videoBlob);
+            // Check if video duration is reasonable (e.g., max 5 minutes)
+            if (video.duration > 300) { // 5 minutes in seconds
+              reject(new Error('Video too long. Maximum duration is 5 minutes.'));
+            } else {
+              resolve();
+            }
+          };
+          video.onerror = () => reject(new Error('Invalid video file'));
+        });
+      }
+
+      setNewMediaFile(file);
+    } catch (err) {
+      alert(err.message || 'Error processing media file');
+      e.target.value = ''; // Reset input
+      return;
+    }
+  };
 
   if (error) {
     return <div className="p-4 text-center text-red-500">{error}</div>;
@@ -258,11 +302,8 @@ const Post = ({
       {mediaUrl && (
         <div
           className={`relative w-full overflow-hidden bg-${element}-soft ${
-            editing || showPostModal ? '' : 'cursor-pointer group'
+            editing ? '' : 'cursor-pointer group'
           }`}
-          onClick={() => {
-            if (!editing && !showPostModal) setShowPostModal(true);
-          }}
         >
           {editing && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
@@ -270,12 +311,7 @@ const Post = ({
               <p className="text-white mt-2 font-medium">החלף מדיה</p>
             </div>
           )}
-          <div className={`group relative w-full max-h-[40rem] overflow-hidden flex justify-center items-center bg-${element}-soft cursor-pointer`}>
-            {!editing && (
-              <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                <span className="text-white text-sm font-medium bg-black/40 px-3 py-1 rounded-full">הצג פוסט</span>
-              </div>
-            )}
+          <div className={`group relative w-full max-h-[40rem] overflow-hidden flex justify-center items-center bg-${element}-soft`}>
             {isVideo ? (
               <video
                 src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
@@ -367,48 +403,6 @@ const Post = ({
           ) : (
             <p className="text-center text-gray-500">אין תגובות עדיין.</p>
           )}
-        </div>
-      )}
-
-      {showPostModal && (
-        <div className="fixed inset-0 z-[200]">
-          {/* FULLSCREEN BLUR */}
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
-
-          {/* MODAL CONTENT */}
-          <div className="flex items-center justify-center w-full h-full p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.25 }}
-              className="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-xl flex flex-col"
-            >
-              <button
-                onClick={() => setShowPostModal(false)}
-                className={`absolute top-4 left-4 z-50 text-${element} bg-white hover:bg-${element}-soft border border-${element}-accent p-2 rounded-full shadow-md transition-all`}
-                aria-label="סגור פוסט"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <div className="overflow-y-auto px-6 pt-10 pb-6 flex-1">
-                <PostModalContent
-                  post={post}
-                  element={element}
-                  currentUser={currentUser}
-                  comments={comments}
-                  onAddComment={onAddComment}
-                  onEditComment={onEditComment}
-                  onDeleteComment={onDeleteComment}
-                  onLike={onLike}
-                  onDelete={onDelete}
-                  onUpdate={onUpdate}
-                  isOwner={isOwner}
-                  getAuthorProfile={getAuthorProfile}
-                />
-              </div>
-            </motion.div>
-          </div>
         </div>
       )}
     </div>
