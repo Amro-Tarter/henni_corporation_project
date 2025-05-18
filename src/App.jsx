@@ -23,6 +23,7 @@ import PublicSettings from './pages/PublicSettings';
 import CommunityPage from './pages/CommunityPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Team from './pages/Team';
+import NewsletterPage from './pages/NewsletterPage';
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/projects" element={<ElementalProjects />} />
               <Route path="/team" element={<Team />} />
+              <Route path="/newsletter" element={<NewsletterPage />} />
 
 
               {/* Protected Pages */}

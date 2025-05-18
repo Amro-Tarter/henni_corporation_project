@@ -8,6 +8,7 @@ import { HandHeart, Users, Heart, TreePine, X, Award, ExternalLink, Edit2 } from
 import CTAButton from '@/components/CTAButton';
 import { useAuth } from '../../context/AuthContext';
 
+
 // Animation variants
 const fadeSlideUp = {
   hidden: { opacity: 0, y: 30 },
@@ -301,7 +302,7 @@ const AboutSection = () => {
           <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
             כמו שתיל שמקבל את כל מה שצריך כדי לצמוח לעץ מלא פירות – כך אנו רואים את תהליך ההתפתחות של בני הנוער.
           </p>
-          <a href="/community">
+          <a href="/newsletter">
             <Button className="bg-orange-500 hover:bg-orange-600 text-white text-base md:text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300 hover:shadow-orange-300/50 hover:shadow-xl hover:-translate-y-1">
               צפו בניוזלטר שלנו! 
             </Button>
