@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, MessageSquare, Settings, Search, Bell, User, LogOut } from 'lucide-react';
-import { collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -13,6 +13,7 @@ const navTabs = [
 
 const Navbar = ({ element }) => {
   const navigate = useNavigate();
+
   const getInitialTab = () => {
     const path = window.location.pathname;
     if (path.startsWith('/Home')) return 'home';
@@ -31,9 +32,9 @@ const Navbar = ({ element }) => {
   const [showSearchPopUp, setShowSearchPopUp] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+
   const searchRef = useRef(null);
   const profileDropdownRef = useRef(null);
-
   const user = auth.currentUser;
 
   useEffect(() => {
@@ -58,16 +59,14 @@ const Navbar = ({ element }) => {
       if (!searchInput) return setSearchResults([]);
 
       try {
-        const querySnapshot = await getDocs(
-          query(
-            collection(db, 'profiles'),
-            where('username', '>=', searchInput),
-            where('username', '<=', searchInput + '\uf8ff')
-          )
-        );
+        const querySnapshot = await getDocs(collection(db, 'profiles'));
+        const inputLower = searchInput.toLowerCase();
 
-        const results = querySnapshot.docs.map((doc) => doc.data());
-        setSearchResults(results);
+        const filteredResults = querySnapshot.docs
+          .map((doc) => doc.data())
+          .filter((profile) => profile.username.toLowerCase().includes(inputLower));
+
+        setSearchResults(filteredResults);
       } catch (err) {
         console.error('Error fetching profiles:', err);
       }
@@ -85,15 +84,13 @@ const Navbar = ({ element }) => {
   const handleSearch = async (e) => {
     e.preventDefault();
     try {
-      const querySnapshot = await getDocs(
-        query(
-          collection(db, 'profiles'),
-          where('username', '>=', searchInput),
-          where('username', '<=', searchInput + '\uf8ff')
-        )
-      );
+      const querySnapshot = await getDocs(collection(db, 'profiles'));
+      const inputLower = searchInput.toLowerCase();
 
-      const results = querySnapshot.docs.map((doc) => doc.data());
+      const results = querySnapshot.docs
+        .map((doc) => doc.data())
+        .filter((profile) => profile.username.toLowerCase().includes(inputLower));
+
       setSearchResults(results);
     } catch (err) {
       console.error('Error fetching profiles:', err);
@@ -125,7 +122,7 @@ const Navbar = ({ element }) => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      window.location.href = '/login'; // Redirect to login page after logout
+      window.location.href = '/login';
     } catch (error) {
       console.error('Error signing out: ', error);
     }
@@ -144,14 +141,6 @@ const Navbar = ({ element }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const toggleSearchPopUp = () => {
-    setShowSearchPopUp((prev) => !prev);
-  };
-
-  const toggleProfileDropdown = () => {
-    setShowProfileDropdown((prev) => !prev);
-  };
 
   return (
     <header dir="rtl" className={`fixed top-0 left-0 w-full bg-${element} border-b border-${element}-accent z-50`}>
@@ -176,8 +165,11 @@ const Navbar = ({ element }) => {
               type="text"
               placeholder="חפש פרופילים..."
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onFocus={toggleSearchPopUp}
+              onChange={(e) => {
+                setSearchInput(e.target.value);
+                setShowSearchPopUp(true); // show immediately when typing
+              }}
+              onFocus={() => setShowSearchPopUp(true)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') triggerSearch();
               }}
@@ -259,7 +251,7 @@ const Navbar = ({ element }) => {
 
           <div className="relative" ref={profileDropdownRef}>
             <button
-              onClick={toggleProfileDropdown}
+              onClick={() => setShowProfileDropdown((prev) => !prev)}
               className={`p-2 rounded-full transition ${
                 activeTab === 'profile' ? `bg-${element}-accent` : `hover:bg-${element}-soft`
               }`}
@@ -267,7 +259,7 @@ const Navbar = ({ element }) => {
             >
               <User size={20} className="text-white" />
             </button>
-            
+
             {showProfileDropdown && (
               <div className="absolute left-0 top-12 w-60 bg-white rounded-md shadow-lg border border-gray-200 z-50">
                 {user && (

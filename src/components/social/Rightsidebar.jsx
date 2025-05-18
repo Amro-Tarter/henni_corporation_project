@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Search, Bell, Home, MessageSquare, Settings, User, LogOut,
 } from 'lucide-react';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,8 +21,10 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const searchRef = useRef(null);
   const navigate = useNavigate();
+  const user = auth.currentUser;
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -77,6 +79,29 @@ const Rightsidebar = ({ element, onExpandChange }) => {
       onExpandChange(isExpanded);
     }
   }, [isExpanded, onExpandChange]);
+
+  // Add notification listener
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(
+      collection(db, "conversations"),
+      where("participants", "array-contains", user.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let totalUnread = 0;
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.unread && data.unread[user.uid]) {
+          totalUnread += data.unread[user.uid];
+        }
+      });
+      setUnreadCount(totalUnread);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -196,9 +221,21 @@ const Rightsidebar = ({ element, onExpandChange }) => {
           >
             <span className="min-w-[24px] flex justify-center items-center transition-transform duration-500 group-hover:scale-110">
               {tab.icon}
+              {tab.id === 'messenger' && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </span>
             <span className={`font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0'}`}>{tab.label}</span>
+              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0'}`}>
+              {tab.label}
+              {tab.id === 'messenger' && unreadCount > 0 && (
+                <span className="ml-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </span>
           </button>
         ))}
       </nav>
@@ -214,9 +251,11 @@ const Rightsidebar = ({ element, onExpandChange }) => {
           {isExpanded && (
             <span className="flex flex-1 justify-between font-medium overflow-hidden whitespace-nowrap transition-all duration-300">
               <span>התראות</span>
-              <span className={`rounded-full bg-${element}-accent text-white px-2 py-1 text-xs`}>
-                3
-              </span>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-red-500 text-white px-2 py-1 text-xs">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </span>
           )}
         </button>
