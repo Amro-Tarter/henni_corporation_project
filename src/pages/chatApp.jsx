@@ -723,7 +723,7 @@ export default function ChatApp() {
         >
           מחק את כל הצ'אטים (אדמין)
         </button>
-        */}
+        */} 
       <ThemeProvider element={userElement}>
         <Navbar element={userElement}/>
       </ThemeProvider>

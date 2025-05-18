@@ -16,7 +16,7 @@ import './auth.css';
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react"; // optional if using Lucide
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { toaster } from "../components/ui/sonner";
+import { toast } from "../components/ui/sonner";
 
 function Signup() {
   const { toast } = useToast();
@@ -85,7 +85,7 @@ function Signup() {
 
   if (!phoneRegex.test(phone)) {
    
-    toaster.err({
+  toast.error({
       variant: "destructive",
       title: "שגיאה",
       description: "מספר הטלפון חייב להכיל מספרים בלבד" ,
