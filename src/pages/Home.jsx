@@ -35,6 +35,8 @@ const Home = () => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
+  const [followingPosts, setFollowingPosts] = useState([]);
+  const [activeTab, setActiveTab] = useState('all');
   const [postComments, setPostComments] = useState({});
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
@@ -72,6 +74,7 @@ const Home = () => {
 
       setUser(fullUser);
       fetchPosts(authUser.uid);
+      fetchFollowingPosts(authUser.uid);
     });
 
     return () => unsubscribe();
@@ -93,6 +96,43 @@ const Home = () => {
       setPosts(loaded);
     } catch (err) {
       console.error('Error fetching posts:', err);
+    }
+  };
+
+  const fetchFollowingPosts = async (userId) => {
+    try {
+      const userProfileRef = doc(db, 'profiles', userId);
+      const userProfileSnap = await getDoc(userProfileRef);
+      
+      if (!userProfileSnap.exists()) return;
+      
+      const following = userProfileSnap.data().following || [];
+      
+      if (following.length === 0) {
+        setFollowingPosts([]);
+        return;
+      }
+
+      const snap = await getDocs(
+        query(
+          collection(db, 'posts'),
+          where('authorId', 'in', following),
+          orderBy('createdAt', 'desc')
+        )
+      );
+
+      const loaded = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          liked: Array.isArray(data.likedBy) && data.likedBy.includes(userId)
+        };
+      });
+      
+      setFollowingPosts(loaded);
+    } catch (err) {
+      console.error('Error fetching following posts:', err);
     }
   };
 
@@ -438,14 +478,11 @@ const Home = () => {
           />
         </div>
 
-        <div
-          className={`flex-1 transition-all duration-300 ${
-            isLeftSidebarOpen ? 'ml-64' : 'ml-0'
-          } ${
-            isRightSidebarExpanded ? 'mr-64' : 'mr-16'
-          }`}
-        >
-          {/* Navbar with bottom shadow */}
+        <div className={`flex-1 transition-all duration-300 ${
+          isLeftSidebarOpen ? 'ml-64' : 'ml-0'
+        } ${
+          isRightSidebarExpanded ? 'mr-64' : 'mr-16'
+        }`}>
           <Navbar
             element={profile.element}
             isLeftSidebarOpen={isLeftSidebarOpen}
@@ -458,36 +495,173 @@ const Home = () => {
           } ${
             isRightSidebarExpanded ? 'pr-50' : 'pr-0'
           }`}>
-            <div className="w-full max-w-4xl space-y-6">
-              {/* CreatePost with shadow */}
+            <div className="w-full max-w-4xl space-y-6 mx-auto px-4 sm:px-6 lg:px-8">
+              {/* CreatePost */}
               <CreatePost
                 addPost={addPost}
                 profilePic={profile.photoURL || '/default-avatar.png'}
                 element={profile.element}
-                className="shadow-md bg-element-post rounded-xl p-4"
+                className="shadow-md bg-element-post rounded-xl p-4 w-full"
               />
+
+              {/* Creative Tab Navigation */}
+              <div className="flex flex-col items-center mb-8 w-full">
+                <div className="bg-element-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden">
+                  {/* Sliding Underline */}
+                  <div 
+                    className="absolute bottom-[10px] h-[2px] bg-blue-500 transition-all duration-300 ease-in-out"
+                    style={{
+                      left: '0',
+                      width: '47%',
+                      transform: activeTab === 'all' ? 'translateX(113%)' : 'translateX(3%)'
+                    }}
+                  />
+                  
+                  {/* All Posts Button */}
+                  <div className="flex-1">
+                    <button
+                      onClick={() => setActiveTab('all')}
+                      className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
+                        ${activeTab === 'all'
+                          ? 'text-blue-500 font-bold'
+                          : 'text-element-text'
+                        }
+                        hover:bg-element-hover/10
+                        focus:outline-none
+                        group
+                        `}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          className={`w-5 h-5 transition-colors duration-300 ${
+                            activeTab === 'all' 
+                              ? 'text-blue-500' 
+                              : 'opacity-70 group-hover:opacity-100 group-hover:text-blue-500'
+                          }`}
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2}
+                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" 
+                          />
+                        </svg>
+                        <span className={`text-sm sm:text-base transition-colors duration-300 ${
+                          activeTab === 'all' 
+                            ? 'text-blue-500' 
+                            : 'group-hover:text-blue-500'
+                        }`}>כל הפוסטים</span>
+                      </div>
+                    </button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="h-8 w-px bg-element-border/30 self-center"></div>
+
+                  {/* Following Posts Button */}
+                  <div className="flex-1">
+                    <button
+                      onClick={() => setActiveTab('following')}
+                      className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
+                        ${activeTab === 'following'
+                          ? 'text-blue-500 font-bold'
+                          : 'text-element-text'
+                        }
+                        hover:bg-element-hover/10
+                        focus:outline-none
+                        group
+                        `}
+                    >
+                      <div className="flex items-center justify-center gap-2">
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          className={`w-5 h-5 transition-colors duration-300 ${
+                            activeTab === 'following' 
+                              ? 'text-blue-500' 
+                              : 'opacity-70 group-hover:opacity-100 group-hover:text-blue-500'
+                          }`}
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2}
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" 
+                          />
+                        </svg>
+                        <span className={`text-sm sm:text-base transition-colors duration-300 ${
+                          activeTab === 'following' 
+                            ? 'text-blue-500' 
+                            : 'group-hover:text-blue-500'
+                        }`}>עוקב אחרי</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Posts Count Indicator */}
+                <div className="mt-4 flex gap-4 sm:gap-8 text-sm text-element-text opacity-75 flex-wrap justify-center">
+                  <span className={`flex items-center gap-1 transition-all duration-300 ${
+                    activeTab === 'all' ? 'text-element-accent font-semibold' : ''
+                  }`}>
+                    <span className="font-medium">{posts.length}</span> פוסטים כלליים
+                  </span>
+                  <span className={`flex items-center gap-1 transition-all duration-300 ${
+                    activeTab === 'following' ? 'text-element-accent font-semibold' : ''
+                  }`}>
+                    <span className="font-medium">{followingPosts.length}</span> פוסטים מעוקבים
+                  </span>
+                </div>
+              </div>
               
-              {/* PostList with shadow-based spacing */}
-              <PostList
-                posts={posts}
-                onLike={handleLike}
-                onDelete={handleDeletePost}
-                onUpdate={handleUpdatePost}
-                comments={postComments}
-                currentUser={user}
-                onAddComment={handleAddComment}
-                onEditComment={handleEditComment}
-                onDeleteComment={handleDeleteComment}
-                element={profile.element}
-                postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
-                getAuthorProfile={getAuthorProfile}
-              />
+              {/* Posts Container with consistent margins */}
+              <div className="w-full space-y-4">
+                {activeTab === 'all' ? (
+                  <PostList
+                    posts={posts}
+                    onLike={handleLike}
+                    onDelete={handleDeletePost}
+                    onUpdate={handleUpdatePost}
+                    comments={postComments}
+                    currentUser={user}
+                    onAddComment={handleAddComment}
+                    onEditComment={handleEditComment}
+                    onDeleteComment={handleDeleteComment}
+                    element={profile.element}
+                    postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
+                    getAuthorProfile={getAuthorProfile}
+                  />
+                ) : (
+                  <PostList
+                    posts={followingPosts}
+                    onLike={handleLike}
+                    onDelete={handleDeletePost}
+                    onUpdate={handleUpdatePost}
+                    comments={postComments}
+                    currentUser={user}
+                    onAddComment={handleAddComment}
+                    onEditComment={handleEditComment}
+                    onDeleteComment={handleDeleteComment}
+                    element={profile.element}
+                    postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
+                    getAuthorProfile={getAuthorProfile}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right Sidebar with shadow */}
-        <div className="fixed right-0 h-full shadow-2xl">
+        {/* Right Sidebar with adjusted margin */}
+        <div className={`fixed right-0 h-full shadow-2xl transition-all duration-300 ${
+          isRightSidebarExpanded ? 'w-64' : 'w-16'
+        }`}>
           <RightSidebar 
             element={profile.element} 
             className="h-full" 
@@ -495,6 +669,21 @@ const Home = () => {
           />
         </div>
       </div>
+
+      {/* Add keyframe animation for the background pulse */}
+      <style jsx>{`
+        @keyframes pulse {
+          0% {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+          50% {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+          }
+          100% {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+        }
+      `}</style>
     </ThemeProvider>
   );
 };
