@@ -40,7 +40,7 @@ import CreatePost   from '../components/social/createpost';
 import ProfilePost  from '../components/social/ProfilePost.jsx';
 
 const ProfilePage = () => {
-  const { username } = useParams(); // This is actually the associated_id
+  const { username } = useParams();
   const [uid, setUid] = useState(null);
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -53,47 +53,46 @@ const ProfilePage = () => {
   const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
-    async function loadProfile() {
-      setLoading(true);
-      try {
-        // Directly use the associated_id from URL to get the profile
-        const profileRef = doc(db, 'profiles', username);
-        const profileSnap = await getDoc(profileRef);
-        
-        if (profileSnap.exists()) {
-          setUid(username); // Set the uid to the associated_id
-          setProfile(profileSnap.data());
-        } else {
-          console.warn('Profile not found for associated_id:', username);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to fetch profile:', err);
+  async function loadUIDByUsername() {
+    setLoading(true);
+    try {
+      const q = query(collection(db, 'profiles'), where('username', '==', username));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        setUid(snapshot.docs[0].id); // The UID is the document ID
+      } else {
+        console.warn('Username not found:', username);
         setLoading(false);
       }
+    } catch (err) {
+      console.error('Failed to fetch UID:', err);
+      setLoading(false);
     }
+  }
 
-    if (username) loadProfile();
-  }, [username]);
+  if (username) loadUIDByUsername();
+}, [username]);
 
-  useEffect(() => {
-    const fetchViewerProfile = async () => {
-      const auth = getAuth();
-      const viewerUid = auth.currentUser?.uid;
-      if (!viewerUid) return;
+useEffect(() => {
+  const fetchViewerProfile = async () => {
+    const auth = getAuth();
+    const viewerUid = auth.currentUser?.uid;
+    if (!viewerUid) return;
 
-      try {
-        const snap = await getDoc(doc(db, 'profiles', viewerUid));
-        if (snap.exists()) {
-          setViewerProfile({ uid: viewerUid, ...snap.data() });
-        }
-      } catch (error) {
-        console.error('Error fetching viewer profile:', error);
+    try {
+      const snap = await getDoc(doc(db, 'profiles', viewerUid));
+      if (snap.exists()) {
+        setViewerProfile({ uid: viewerUid, ...snap.data() });
       }
-    };
+    } catch (error) {
+      console.error('Error fetching viewer profile:', error);
+    }
+  };
 
-    fetchViewerProfile();
-  }, []);
+  fetchViewerProfile();
+}, []);
+
+
 
   // Fetch profile and posts
   useEffect(() => {
