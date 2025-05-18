@@ -15,6 +15,8 @@ import { Phone } from "lucide-react";
 import './auth.css';
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react"; // optional if using Lucide
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { toaster } from "../components/ui/sonner";
 
 function Signup() {
   const { toast } = useToast();
@@ -83,7 +85,7 @@ function Signup() {
 
   if (!phoneRegex.test(phone)) {
    
-    toast({
+    toaster.err({
       variant: "destructive",
       title: "שגיאה",
       description: "מספר הטלפון חייב להכיל מספרים בלבד" ,
@@ -119,6 +121,19 @@ if (!strongPasswordRegex.test(password)) {
   });
 
 
+  return;
+}
+
+// Check if username is already taken
+const q = query(collection(db, "users"), where("username", "==", username));
+const querySnapshot = await getDocs(q);
+
+if (!querySnapshot.empty) {
+  toast({
+    variant: "destructive",
+    title: "שגיאה",
+    description: "שם המשתמש כבר קיים. נסה לבחור שם אחר.",
+  });
   return;
 }
 
@@ -161,7 +176,7 @@ if (!strongPasswordRegex.test(password)) {
       
     toast({
       variant: "destructive",
-      title: "שגיאה",
+      title: "הצלחה",
       description: "נרשמת בהצלחה!"  ,
     });
 
@@ -261,13 +276,13 @@ if (!strongPasswordRegex.test(password)) {
 
   {/* Full Name */}
   <div className="flex flex-col">
-    <label className="mb-1 text-sm font-medium text-gray-700">שם מלא</label>
+    <label className="mb-1 text-sm font-medium text-gray-700">שם משתמש</label>
     <input
       type="text"
       required
-      value={displayName}
-      onChange={(e) => setDisplayName(e.target.value)}
-      placeholder="שם מלא *"
+      value={username}
+      onChange={(e) => setUsername(e.target.value)}
+      placeholder="שם משתמש *"
       className={inputStyle}
     />
   </div>
