@@ -86,15 +86,15 @@ export default function ChatApp() {
     }
     try {
       setIsSearching(true);
-      const q = query(
-        collection(db, "users"),
-        where("username", ">=", searchTerm),
-        where("username", "<=", searchTerm + "\uf8ff"),
-        limit(5)
-      );
-      const snapshot = await getDocs(q);
+      // Get all users and filter client-side for better search
+      const usersRef = collection(db, "users");
+      const snapshot = await getDocs(usersRef);
       const results = snapshot.docs
-        .filter(doc => doc.id !== currentUser.uid)
+        .filter(doc => {
+          const username = doc.data().username || '';
+          return doc.id !== currentUser.uid && 
+                 username.toLowerCase().includes(searchTerm.toLowerCase());
+        })
         .map(doc => ({
           id: doc.id,
           username: doc.data().username,
@@ -883,15 +883,16 @@ export default function ChatApp() {
                     return;
                   }
                   setIsSearching(true);
-                  const q = query(
-                    collection(db, "users"),
-                    where("username", ">=", e.target.value.toLowerCase()),
-                    where("username", "<=", e.target.value.toLowerCase() + "\uf8ff"),
-                    limit(5)
-                  );
-                  const snapshot = await getDocs(q);
+                  // Get all users and filter client-side for better search
+                  const usersRef = collection(db, "users");
+                  const snapshot = await getDocs(usersRef);
                   const results = snapshot.docs
-                    .filter(doc => doc.id !== currentUser.uid && !selectedGroupUsers.some(u => u.id === doc.id))
+                    .filter(doc => {
+                      const username = doc.data().username || '';
+                      return doc.id !== currentUser.uid && 
+                             !selectedGroupUsers.some(u => u.id === doc.id) &&
+                             username.toLowerCase().includes(e.target.value.toLowerCase());
+                    })
                     .map(doc => ({
                       id: doc.id,
                       username: doc.data().username,
