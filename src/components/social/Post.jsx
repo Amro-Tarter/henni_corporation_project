@@ -244,7 +244,7 @@ const Post = ({
             </div>
           </div>
         ) : (
-          <p className="px-5 pb-2 text-base leading-relaxed">{content}</p>
+          <p className="px-5 pb-2 text-base leading-relaxed whitespace-pre-wrap break-words overflow-hidden">{content}</p>
         )}
       </div>
 
