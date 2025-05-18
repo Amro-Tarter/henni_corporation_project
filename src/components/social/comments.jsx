@@ -124,7 +124,7 @@ export const Comment = ({
         {replyingToId === comment.id && (
           <div className="mt-2">
             <CommentInput
-              placeholder={`הגב ל${authorProfile?.username || 'משתמש'}`}
+              placeholder={`הגב ל ${authorProfile?.username || 'משתמש'}`}
               element={element}
               initialValue={''}
               autoFocus

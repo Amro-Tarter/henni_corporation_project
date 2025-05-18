@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion'
 
 const LeftSidebar = ({ element, users = [], viewerProfile, onFollowToggle }) => {
   const navigate = useNavigate();
@@ -7,42 +8,61 @@ const LeftSidebar = ({ element, users = [], viewerProfile, onFollowToggle }) => 
   return (
     <div className="w-64 h-[calc(100vh-56.8px)] bg-white shadow-lg overflow-y-auto">
       <div className="p-6">
-        <h2 className={`text-${element} text-xl font-bold mb-6 text-right`}>
-          משתמשים מאותו היסוד
-        </h2>
+        <div className="mb-4 text-right">
+          <h2 className={`text-${element} text-xl font-bold mb-1`}>
+            משתמשים מאותו היסוד
+          </h2>
+          <div className={`w-12 h-0.5 bg-${element} rounded-full ml-auto`} />
+        </div>
         
         {users && users.length > 0 ? (
           <div className="space-y-4">
             {users.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg">
-                <div 
-                  className="flex items-center gap-3 cursor-pointer"
+              <motion.div
+                key={user.id}
+                whileHover={{ scale: 1.015 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center justify-between p-2 bg-white hover:bg-gray-50 rounded-lg shadow-sm"
+              >
+                <div
+                  className="flex items-center gap-3 cursor-pointer flex-grow overflow-hidden"
                   onClick={() => navigate(`/profile/${user.username}`)}
                 >
                   <img
                     src={user.photoURL || '/default-avatar.png'}
                     alt={user.username}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
                   />
-                  <div className="text-right">
-                    <h3 className="font-medium text-gray-900">{user.username}</h3>
-                    <p className="text-sm text-gray-500">{user.bio?.slice(0, 30)}</p>
+                  <div className="text-right overflow-hidden flex flex-col">
+                    <h3
+                      className="font-semibold text-gray-800 text-sm truncate max-w-[140px]"
+                      title={user.username}
+                      dir="rtl"
+                    >
+                      {user.username}
+                    </h3>
+                    <p className="text-xs text-gray-500 truncate max-w-[140px]">{user.bio?.slice(0, 40)}</p>
                   </div>
                 </div>
-                
+
                 {viewerProfile && viewerProfile.uid !== user.id && (
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
                     onClick={() => onFollowToggle(user.id)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors
-                      ${(viewerProfile.following || []).includes(user.id)
+                    className={`ml-auto mr-1 shrink-0 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 ${
+                      (viewerProfile.following || []).includes(user.id)
                         ? `bg-${element} text-white hover:bg-${element}-dark`
                         : `border border-${element} text-${element} hover:bg-${element}-soft`
-                      }`}
+                    }`}
                   >
                     {(viewerProfile.following || []).includes(user.id) ? 'עוקב' : 'עקוב'}
-                  </button>
+                  </motion.button>
                 )}
-              </div>
+              </motion.div>
+
             ))}
           </div>
         ) : (

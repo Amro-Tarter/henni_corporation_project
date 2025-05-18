@@ -56,11 +56,7 @@ const ProfileCard = ({
             e.target.src = `https://ui-avatars.com/api/?name=${displayName}&background=random`
           }}
         />
-        <div className="absolute bottom-4 right-4">
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(role)}`}>
-            {getRoleDisplay(role)}
-          </span>
-        </div>
+
       </div>
 
       <div className="p-6">

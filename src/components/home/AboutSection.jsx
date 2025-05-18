@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { HandHeart, Users, Heart, TreePine, X, Award, ExternalLink } from 'lucide-react';
+import { HandHeart, Users, Heart, TreePine, X, Award, ExternalLink, Edit2 } from 'lucide-react';
 import CTAButton from '@/components/CTAButton';
+import { useAuth } from '../../context/AuthContext';
 
 // Animation variants
 const fadeSlideUp = {
@@ -36,25 +37,65 @@ const AboutSection = () => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedMember, setEditedMember] = useState(null);
+  const { currentUser } = useAuth();
+
+  // Check if current user is admin or staff
+  const canEdit = currentUser?.role === 'admin' || currentUser?.role === 'staff';
 
   useEffect(() => {
     const fetchTeamMembers = async () => {
       setLoading(true);
       try {
-        // Query users collection for team members (role != 'user')
-        const teamQuery = query(collection(db, 'users'), where('role', '!=', 'user'));
+        // Query users collection for team members (ceo, admin, staff, mentor)
+        const teamQuery = query(
+          collection(db, 'users'),
+          where('role', 'in', ['ceo', 'admin', 'staff', 'mentor'])
+        );
+        console.log('Fetching team members...');
         const querySnapshot = await getDocs(teamQuery);
         
         const members = [];
-        querySnapshot.forEach((doc) => {
-          members.push({ id: doc.id, ...doc.data() });
-        });
         
-        // Sort by role priority to ensure CEO appears first
+        // Process each team member and fetch their profile
+        for (const userDoc of querySnapshot.docs) {
+          const userData = userDoc.data();
+          console.log('Team member document:', userDoc.id, userData);
+          
+          // Get the associated_id from userData
+          const associatedId = userData.associated_id || userDoc.id;
+          
+          // Fetch the user's profile using associated_id
+          const profileDoc = await getDoc(doc(db, 'profiles', associatedId));
+          const profileData = profileDoc.exists() ? profileDoc.data() : {};
+          
+          // Create a member object with data from both collections
+          const member = {
+            id: userDoc.id,
+            associated_id: associatedId,
+            displayName: profileData.displayName || userData.displayName || 'Team Member',
+            role: userData.role,
+            title: userData.title || getDefaultTitle(userData.role),
+            photoURL: profileData.photoURL || '/team.png',
+            bio: profileData.bio || userData.bio || getDefaultBio(userData.role),
+            is_active: userData.is_active
+          };
+          
+          members.push(member);
+        }
+        
+        console.log('Processed team members:', members);
+        
+        // Sort by role priority (ceo first, then admin, then staff, then mentor)
         members.sort((a, b) => {
-          if (a.role === 'ceo') return -1;
-          if (b.role === 'ceo') return 1;
-          return 0;
+          const rolePriority = {
+            'ceo': 0,
+            'admin': 1,
+            'staff': 2,
+            'mentor': 3
+          };
+          return rolePriority[a.role] - rolePriority[b.role];
         });
         
         setTeamMembers(members);
@@ -67,6 +108,28 @@ const AboutSection = () => {
     
     fetchTeamMembers();
   }, []);
+
+  // Helper function to get default title based on role
+  const getDefaultTitle = (role) => {
+    const titles = {
+      'ceo': 'מנכ"ל ומייסד',
+      'admin': 'מנהל מערכת',
+      'staff': 'חבר צוות',
+      'mentor': 'מנטור'
+    };
+    return titles[role] ;
+  };
+
+  // Helper function to get default bio based on role
+  const getDefaultBio = (role) => {
+    const bios = {
+      'ceo': 'מוביל את חזון העמותה ומחויב ליצירת שינוי משמעותי בחיי בני הנוער.',
+      'admin': 'מנהל את פעילות העמותה ומוביל את הצוות למצוינות.',
+      'staff': 'חבר צוות מסור המחויב לחזון העמותה ופועל לקידום הערכים והמטרות שלנו.',
+      'mentor': 'מנטור מנוסה המלווה את המשתתפים בדרכם האישית.'
+    };
+    return bios[role] || 'חבר צוות מסור המחויב לחזון העמותה.';
+  };
 
   const features = [
     {
@@ -97,21 +160,56 @@ const AboutSection = () => {
     setSelectedMember(null);
   };
 
+  const handleEdit = (member) => {
+    setEditedMember(member);
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      // Update user document
+      await updateDoc(doc(db, 'users', editedMember.id), {
+        displayName: editedMember.displayName,
+        title: editedMember.title,
+        bio: editedMember.bio,
+        updatedAt: new Date()
+      });
+
+      // Update profile document
+      await updateDoc(doc(db, 'profiles', editedMember.id), {
+        photoURL: editedMember.photoURL,
+        updatedAt: new Date()
+      });
+
+      // Update local state
+      setTeamMembers(prevMembers => 
+        prevMembers.map(member => 
+          member.id === editedMember.id ? editedMember : member
+        )
+      );
+
+      setIsEditing(false);
+      setEditedMember(null);
+    } catch (error) {
+      console.error('Error updating member:', error);
+    }
+  };
+
   // Function to render role badge with appropriate styling
   const renderRoleBadge = (role) => {
     const roleStyles = {
       ceo: "bg-orange-100 text-orange-800 border-orange-300",
-      manager: "bg-blue-100 text-blue-800 border-blue-300",
-      mentor: "bg-green-100 text-green-800 border-green-300",
-      volunteer: "bg-purple-100 text-purple-800 border-purple-300",
+      admin: "bg-blue-100 text-blue-800 border-blue-300",
+      staff: "bg-green-100 text-green-800 border-green-300",
+      mentor: "bg-purple-100 text-purple-800 border-purple-300",
       default: "bg-gray-100 text-gray-800 border-gray-300"
     };
 
     const roleLabels = {
       ceo: "מייסד ומנכ\"ל",
-      manager: "מנהל",
+      admin: "מנהל",
+      staff: "צוות",
       mentor: "מנטור",
-      volunteer: "מתנדב",
     };
 
     const style = roleStyles[role] || roleStyles.default;
@@ -127,9 +225,8 @@ const AboutSection = () => {
   return (
     <section
       id="about-section"
-      className="relative py-20 md:py-28 bg-gradient-to-br from-green-400 via-green-200 to-lime-100 overflow-hidden"
-      dir="rtl"
-    >
+      className="relative py-20 md:py-28 bg-gradient-to-br from-orange-100 via-orange-200 to-yellow-100 overflow-hidden"
+      >
       {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-64 h-64 rounded-full bg-pink-200/30 -translate-x-1/2 -translate-y-1/2 blur-3xl"></div>
       <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-orange-300/20 translate-x-1/3 translate-y-1/3 blur-3xl"></div>
@@ -232,7 +329,7 @@ const AboutSection = () => {
           viewport={{ once: true }}
           variants={fadeSlideUp}
         >
-          <h3 className="text-3xl md:text-4xl font-semibold text-gray-800 mb-2">צוות העמותה</h3>
+          <h3 className="text-3xl md:text-4xl font-semibold text-orange-800 mb-2">צוות העמותה</h3>
           <p className="text-gray-600 mb-8">הכירו את האנשים שמובילים את החזון שלנו</p>
 
           {/* Container for relative positioning */}
@@ -251,14 +348,14 @@ const AboutSection = () => {
                       key={member.id} 
                       onClick={() => handleMemberClick(idx)}
                       className={`bg-white/90 rounded-2xl p-4 md:p-6 shadow-lg cursor-pointer transform transition-all duration-300 ${
-                        member.role === 'ceo' ? 'border-2 border-orange-400 relative' : ''
+                        member.role === 'staff' ? 'border-2 border-orange-400 relative' : ''
                       } ${
                         selectedMember === idx ? 'scale-[1.03]' : 'hover:shadow-xl hover:-translate-y-1'
                       }`}
                       whileHover={{ scale: 1.03 }}
                     >
-                      {/* CEO Badge if applicable */}
-                      {member.role === 'ceo' && (
+                      {/* Staff Badge if applicable */}
+                      {member.role === 'staff' && (
                         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-orange-500 text-white px-4 py-1 rounded-full text-sm font-medium shadow-lg z-10">
                           מייסד
                         </div>
@@ -266,16 +363,14 @@ const AboutSection = () => {
                       
                       <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full mx-auto mb-4 overflow-hidden bg-orange-100">
                         <img 
-                          src={member.photoURL || '/team.png'} 
+                          src={member.photoURL} 
                           alt={member.displayName} 
                           className="w-full h-full object-cover transition-transform duration-500 hover:scale-110" 
                         />
                       </div>
                       <h4 className="text-lg md:text-xl font-bold text-gray-900 mb-1 md:mb-2">{member.displayName}</h4>
-                      <div className="mb-2 flex justify-center">
-                        {renderRoleBadge(member.role)}
-                      </div>
-                      <p className="text-gray-600 text-sm md:text-base line-clamp-2 mb-2">{member.title || 'חבר צוות'}</p>
+                  
+                      <p className="text-gray-600 text-sm md:text-base line-clamp-2 mb-2">{member.title}</p>
                       <p className="text-orange-500 text-xs md:text-sm mt-2">לחץ לפרטים נוספים</p>
                     </motion.div>
                   ))}
@@ -324,10 +419,7 @@ const AboutSection = () => {
                             
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
-                                <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{teamMembers[selectedMember].displayName}</h3>
-                                <div>
-                                  {renderRoleBadge(teamMembers[selectedMember].role)}
-                                </div>
+                                <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{teamMembers[selectedMember].displayName}</h3>             
                               </div>
                               <p className="text-lg text-orange-500 font-medium mb-4">{teamMembers[selectedMember].title || 'חבר צוות העמותה'}</p>
                               
@@ -360,6 +452,99 @@ const AboutSection = () => {
             )}
           </div>
         </motion.div>
+
+        {/* Edit Modal */}
+        <AnimatePresence>
+          {isEditing && editedMember && (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={scaleIn}
+              className="fixed inset-0 flex items-center justify-center z-50 p-4"
+            >
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsEditing(false)}></div>
+              <div className="relative bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                <button 
+                  onClick={() => setIsEditing(false)}
+                  className="absolute top-4 left-4 bg-white/80 rounded-full p-1 hover:bg-gray-200 transition-colors"
+                >
+                  <X className="h-6 w-6 text-gray-600" />
+                </button>
+
+                <div className="p-6 md:p-8">
+                  <h3 className="text-2xl font-bold mb-6">עריכת פרטי משתמש</h3>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">שם מלא</label>
+                      <input
+                        type="text"
+                        value={editedMember.displayName}
+                        onChange={(e) => setEditedMember({...editedMember, displayName: e.target.value})}
+                        className="w-full p-2 border rounded-lg"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">תפקיד</label>
+                      <input
+                        type="text"
+                        value={editedMember.title}
+                        onChange={(e) => setEditedMember({...editedMember, title: e.target.value})}
+                        className="w-full p-2 border rounded-lg"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">תמונה</label>
+                      <input
+                        type="text"
+                        value={editedMember.photoURL}
+                        onChange={(e) => setEditedMember({...editedMember, photoURL: e.target.value})}
+                        className="w-full p-2 border rounded-lg"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">ביוגרפיה</label>
+                      <textarea
+                        value={editedMember.bio}
+                        onChange={(e) => setEditedMember({...editedMember, bio: e.target.value})}
+                        className="w-full p-2 border rounded-lg h-32"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex justify-end gap-4">
+                    <Button
+                      onClick={() => setIsEditing(false)}
+                      variant="outline"
+                    >
+                      ביטול
+                    </Button>
+                    <Button
+                      onClick={handleSaveEdit}
+                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                    >
+                      שמירה
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Add edit button to member cards */}
+        {canEdit && selectedMember !== null && (
+          <button
+            onClick={() => handleEdit(teamMembers[selectedMember])}
+            className="absolute top-4 right-4 bg-white/80 rounded-full p-2 hover:bg-gray-200 transition-colors"
+          >
+            <Edit2 className="h-5 w-5 text-gray-600" />
+          </button>
+        )}
       </div>
     </section>
   );
