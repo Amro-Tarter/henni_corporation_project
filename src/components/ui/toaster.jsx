@@ -6,7 +6,7 @@ export function Toaster() {
       position="top-right"
       toastOptions={{
         style: {
-          background: 'white',
+          background: 'green',
           color: 'black',
           border: '1px solid #e5e7eb',
         },

@@ -31,6 +31,7 @@ import {
   getDownloadURL
 } from 'firebase/storage';
 import { db } from '../config/firbaseConfig.ts';
+import { useNavigate } from 'react-router-dom';
 
 import Navbar       from '../components/social/Navbar.jsx';
 import LeftSidebar  from '../components/social/LeftSideBar';
@@ -51,27 +52,38 @@ const ProfilePage = () => {
   const [sameElementUsers, setSameElementUsers] = useState([]);
   const [authorProfilesCache, setAuthorProfilesCache] = useState({});
   const [isFollowing, setIsFollowing] = useState(false);
+  const navigate = useNavigate();
 
+
+  // In your useEffect that fetches the profile by username
   useEffect(() => {
-  async function loadUIDByUsername() {
-    setLoading(true);
-    try {
-      const q = query(collection(db, 'profiles'), where('username', '==', username));
-      const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        setUid(snapshot.docs[0].id); // The UID is the document ID
-      } else {
-        console.warn('Username not found:', username);
+    let retryTimeout;
+
+    async function loadUIDByUsername(retryCount = 0) {
+      setLoading(true);
+      try {
+        const q = query(collection(db, 'profiles'), where('username', '==', username));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          setUid(snapshot.docs[0].id);
+        } else if (retryCount < 3) {
+          // Retry up to 3 times after a short delay
+          retryTimeout = setTimeout(() => loadUIDByUsername(retryCount + 1), 400);
+        } else {
+          console.warn('Username not found:', username);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to fetch UID:', err);
         setLoading(false);
       }
-    } catch (err) {
-      console.error('Failed to fetch UID:', err);
-      setLoading(false);
     }
-  }
 
-  if (username) loadUIDByUsername();
-}, [username]);
+    if (username) loadUIDByUsername();
+
+    return () => clearTimeout(retryTimeout);
+  }, [username]);
+
 
 useEffect(() => {
   const fetchViewerProfile = async () => {
@@ -293,6 +305,7 @@ useEffect(() => {
   const updateField = async (field, value) => {
     const profileRef = doc(db, 'profiles', uid);
     const userRef    = doc(db, 'users', uid);
+
     if (field === 'username') {
     // Check if username exists
     const q = query(collection(db, 'profiles'), where('username', '==', value));
@@ -306,18 +319,10 @@ useEffect(() => {
     const batch = writeBatch(db);
     batch.update(profileRef, { username: value, updatedAt: serverTimestamp() });
     batch.update(userRef,    { username: value });
-
-    const commentsQuery = query(
-      collectionGroup(db, 'comments'),
-      where('authorId', '==', uid)
-    );
-    const commentsSnap = await getDocs(commentsQuery);
-    commentsSnap.forEach(comment => {
-      batch.update(comment.ref, { username: value });
-    });
-
     await batch.commit();
     setProfile(prev => ({ ...prev, [field]: value }));
+    navigate(`/profile/${value}`, { replace: true });
+    return;
   }
 
     if (field === 'element') {
