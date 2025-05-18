@@ -319,7 +319,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                       {uid !== currentUser.uid && (
                         <>
                           <a
-                            href={`/profile/${uid}`}
+                            href={`/profile/${usernames[uid]}`}
                             className="p-1 rounded-full hover:bg-gray-200 transition"
                             title="מעבר לפרופיל"
                           >
@@ -650,7 +650,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                             className="p-1 rounded-full hover:bg-gray-200 transition"
                             title="מעבר לפרופיל"
                             aria-label="מעבר לפרופיל"
-                            onClick={() => window.open(`/profile/${uid}`, '_blank')}
+                            onClick={() => window.open(`/profile/${usernames[uid]}`, '_blank')}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
