@@ -11,15 +11,12 @@ import {
   faWater,
   faFire
 } from '@fortawesome/free-solid-svg-icons';
-import { Phone } from "lucide-react";
 import './auth.css';
-import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff } from "lucide-react"; // optional if using Lucide
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { toaster } from "../components/ui/sonner";
+import { toast } from 'sonner'
 
 function Signup() {
-  const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -68,41 +65,28 @@ function Signup() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
 
      // Basic custom validations
   const cityRegex = /^[A-Za-zא-ת\s]+$/;
   const phoneRegex = /^0\d{9}$/;
 
   if (!cityRegex.test(location)) {
-    toast({
-      variant: "destructive",
-      title: "שגיאה",
-      description: "שם העיר חייב להכיל אותיות בלבד" ,
-    });
+    toast.success("שם העיר חייב להכיל אותיות בלבד")
 
     return;
   }
 
   if (!phoneRegex.test(phone)) {
    
-    toaster.err({
-      variant: "destructive",
-      title: "שגיאה",
-      description: "מספר הטלפון חייב להכיל מספרים בלבד" ,
-    });
+     toast.error("מספר הטלפון אינו מתאים")
+      return
 
-
-    return;
   }
 
   if (password !== confirmPassword) {
   
-
-    toast({
-      variant: "destructive",
-      title: "שגיאה",
-      description: "הסיסמאות אינן תואמות"  ,
-    });
+    toast.error("הסיסמאות אינן תואמות")
 
     return;
   }
@@ -113,15 +97,11 @@ function Signup() {
 
 if (!strongPasswordRegex.test(password)) {
   
+  
+    toast.error(".הסיסמה חייבת לכלול לפחות אות אחת קטנה, אות אחת גדולה, מספר אחד ותו מיוחד לפחות 8 תווים" )
 
-  toast({
-    variant: "destructive",
-    title: "שגיאה",
-    description: "הסיסמה חייבת לכלול לפחות אות אחת קטנה, אות אחת גדולה, מספר אחד ותו מיוחד לפחות 8 תווים."  ,
-  });
-
-
-  return;
+    return;
+  
 }
 
 // Check if username is already taken
@@ -129,12 +109,12 @@ const q = query(collection(db, "users"), where("username", "==", username));
 const querySnapshot = await getDocs(q);
 
 if (!querySnapshot.empty) {
-  toast({
-    variant: "destructive",
-    title: "שגיאה",
-    description: "שם המשתמש כבר קיים. נסה לבחור שם אחר.",
-  });
-  return;
+  
+    toast.error(".שם המשתמש כבר קיים, נסה לבחור שם אחר" )
+
+    return;
+  
+
 }
 
       const res = await createUserWithEmailAndPassword(auth, email, password);
@@ -172,45 +152,32 @@ if (!querySnapshot.empty) {
       });
 
 
-
-      
-    toast({
-      variant: "destructive",
-      title: "הצלחה",
-      description: "נרשמת בהצלחה!"  ,
-    });
-
+    toast.success("הבקשה שלך בטיפול אנחנו ניצור איתך קשר בקרוב :)")
 
       setTimeout(() => {
         navigate("/");
-      }, 1000);
+      }, 2000);
     } catch (err) {
       console.error(err);
       if (err.code === "auth/email-already-in-use") {
-
-        
-    toast({
-      variant: "destructive",
-      title: "שגיאה",
-      description: "האימייל הזה כבר בשימוש. נסה להתחבר או השתמש באימייל אחר."  ,
-    });
-
+    
+    toast.error("המייל הזה כבר בשימוש. נסה להתחבר או השתמש באימייל אחר.")
 
       } else {
 
-        
-    toast({
-      variant: "destructive",
-      title: "שגיאה",
-      description: "אירעה שגיאה ביצירת החשבון" ,
-    });
+       
+    
+    toast.error( "אירעה שגיאה ביצירת החשבון ,נסה שנית מאוחר יותר בבקשה")
+
 
       }
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-100 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
+    <div   
+ className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-100 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl"
+  >
        {/* Floating Element Icons */}
             {/* Floating Element Icons */}
 <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
