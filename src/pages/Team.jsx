@@ -73,32 +73,40 @@ export default function Team() {
 
   const confirmDelete = async () => {
     if (!currentUser || !canEdit) {
-      toast.error('אין לך הרשאות למחוק משתמשים.')
-      setIsDeleting(false)
-      return
+      toast.error('אין לך הרשאות למחוק משתמשים.');
+      setIsDeleting(false);
+      return;
     }
+    
     try {
-      const deleteUserFunction = httpsCallable(functions, 'deleteUser')
-      await deleteUserFunction({ uid: memberToDelete.id })
-      await refreshData()
-      toast.success(`המשתמש ${memberToDelete.displayName} נמחק`)
-      setIsDeleting(false)
-      setMemberToDelete(null)
+      const deleteUserFunction = httpsCallable(functions, 'deleteUser');
+      const deletePromise = deleteUserFunction({ uid: memberToDelete.id });
+      
+      toast.promise(deletePromise, {
+        loading: 'מוחק משתמש...',
+        success: async () => {
+          await refreshData();
+          return `${memberToDelete.displayName} נמחק בהצלחה`;
+        },
+        error: (error) => error?.message || 'שגיאה במחיקת המשתמש'
+      });
+
+      await deletePromise;
+      setIsDeleting(false);
+      setMemberToDelete(null);
     } catch (error) {
-      console.error('Error deleting user:', error)
-      toast.error(error?.message || 'שגיאה במחיקת המשתמש')
+      setIsDeleting(false);
+      setMemberToDelete(null);
     }
-  }
+  };
 
   const handleSaveEdit = async () => {
-    try {
-      const updateUserRoleFunction = httpsCallable(functions, 'updateUserRole')
-      setIsUpdatingRole(true)
-      // Update role if changed
-      if (
-        editedMember.role &&
-        editedMember.role !== editedMember.originalRole
-      ) {
+  try {
+    const updateUserRoleFunction = httpsCallable(functions, 'updateUserRole');
+    setIsUpdatingRole(true);
+    
+    const updatePromise = (async () => {
+      if (editedMember.role !== editedMember.originalRole) {
         await updateUserRoleFunction({
           uid: editedMember.id,
           newRole: editedMember.role,
@@ -108,30 +116,40 @@ export default function Team() {
             bio: editedMember.bio,
             photoURL: editedMember.photoURL
           }
-        })
+        });
       }
-      // Always update Firestore doc and profile
+      
       await updateDoc(doc(db, 'users', editedMember.id), {
         displayName: editedMember.displayName,
         title: editedMember.title,
         bio: editedMember.bio,
         updatedAt: new Date()
-      })
+      });
+      
       await updateDoc(doc(db, 'profiles', editedMember.id), {
         photoURL: editedMember.photoURL,
         updatedAt: new Date()
-      })
-      await refreshData()
-      toast.success('הפרטים עודכנו בהצלחה')
-      setIsEditing(false)
-      setEditedMember(null)
-    } catch (error) {
-      console.error('Error updating user:', error)
-      toast.error(error?.message || 'שגיאה בעדכון הפרטים')
-    } finally {
-      setIsUpdatingRole(false)
-    }
+      });
+      
+      await refreshData();
+    })();
+
+    toast.promise(updatePromise, {
+      loading: 'מעדכן פרטים...',
+      success: 'השינויים נשמרו בהצלחה',
+      error: (error) => error?.message || 'שגיאה בעדכון הפרטים'
+    });
+
+    await updatePromise;
+    setIsEditing(false);
+    setEditedMember(null);
+  } catch (error) {
+    setIsEditing(false);
+    setEditedMember(null);
+  } finally {
+    setIsUpdatingRole(false);
   }
+};
 
   // --- UI Animation Variants ---
   const pageVariants = { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0, transition: { duration: 0.3 } }, exit: { opacity: 0, y: -20 } }
