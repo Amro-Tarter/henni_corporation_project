@@ -6,7 +6,6 @@ import ChatInput from './components/ChatInput';
 import MessageLoadingState from './components/MessageLoadingState';
 import { useChatScroll } from './hooks/useChatScroll';
 import { useEmojiPicker } from './hooks/useEmojiPicker';
-import BubbleAnimation from './animations/BubbleAnimation';
 import ChatInfoSidebar from './ChatIntoSidebar';
 import { doc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
@@ -42,7 +41,6 @@ export default function ChatArea({
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
   const [isSendingImage, setIsSendingImage] = useState(false);
-  const [showBubble, setShowBubble] = useState(false);
   const sendButtonRef = useRef(null);
   const [showInfoSidebar, setShowInfoSidebar] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -111,31 +109,6 @@ export default function ChatArea({
     }
   }, [messagesContainerRef, messagesEndRef]);
 
-  // Handle sending message (show bubble animation before sending)
-  const handleSendMessage = async () => {
-    let sendingImage = false;
-    if (file && file.type && file.type.startsWith('image/')) {
-      setIsSendingImage(true);
-      sendingImage = true;
-    }
-    // If a voice recording is ready, send it
-    if (audioBlob && !isRecording) {
-      setShowBubble(true);
-      await sendMessage({ fileOverride: new File([audioBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' }), mediaTypeOverride: 'audio', durationOverride: recordingTime });
-      resetRecording();
-      setShowBubble(false);
-      return;
-    }
-    setShowBubble(true);
-  };
-
-  const handleBubbleEnd = async () => {
-    await sendMessage();
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    setShowBubble(false);
-    setIsSendingImage(false);
-  };
-
   // Helper to get avatar for direct chat
   const getDirectAvatar = () => {
     if (selectedConversation.type === 'direct') {
@@ -146,9 +119,6 @@ export default function ChatArea({
 
   return (
     <div className='flex-1 flex flex-col relative' dir="rtl">
-      {showBubble && (
-        <BubbleAnimation onAnimationEnd={handleBubbleEnd} elementColors={elementColors} sendButtonRef={sendButtonRef} icon={elementColors.icon} />
-      )}
       {selectedConversation ? (
         <>
           <ChatHeader
@@ -180,7 +150,7 @@ export default function ChatArea({
             elementColors={elementColors}
             setSelectedConversation={setSelectedConversation}
           />
-          <div className="flex-1 overflow-y-auto p-4 bg-white"  style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
+          <div className="flex-1 overflow-y-auto p-4 bg-white" style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
             {isLoadingMessages ? (
               <div className="space-y-4">
                 <MessageLoadingState type="text" isOwnMessage={false} elementColors={elementColors} />
@@ -238,7 +208,48 @@ export default function ChatArea({
           <ChatInput
             newMessage={newMessage}
             setNewMessage={setNewMessage}
-            handleSendMessage={handleSendMessage}
+            handleSendMessage={async () => {
+              // Handle voice message
+              if (audioBlob && !isRecording) {
+                try {
+                  const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
+                    type: 'audio/webm',
+                    lastModified: Date.now()
+                  });
+                  
+                  await sendMessage({ 
+                    fileOverride: voiceFile,
+                    mediaTypeOverride: 'audio',
+                    durationOverride: Math.round(recordingTime)
+                  });
+                  
+                  resetRecording();
+                  if (messagesEndRef.current) {
+                    messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+                  }
+                  return;
+                } catch (error) {
+                  console.error("Error sending voice message:", error);
+                  alert("Failed to send voice message. Please try again.");
+                  return;
+                }
+              }
+
+              // Handle regular messages and images
+              try {
+                if (file && file.type && file.type.startsWith('image/')) {
+                  setIsSendingImage(true);
+                }
+                await sendMessage();
+                setIsSendingImage(false);
+                if (messagesEndRef.current) {
+                  messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+                }
+              } catch (error) {
+                console.error("Error sending message:", error);
+                setIsSendingImage(false);
+              }
+            }}
             file={file}
             preview={preview}
             isUploading={isUploading}
@@ -251,7 +262,6 @@ export default function ChatArea({
             onEmojiClick={onEmojiClick}
             emojiPickerRef={emojiPickerRef}
             sendButtonRef={sendButtonRef}
-            // Voice recording props
             isRecording={isRecording}
             recordingTime={recordingTime}
             startRecording={startRecording}
@@ -262,41 +272,10 @@ export default function ChatArea({
           />
         </>
       ) : (
-        activeTab === "direct" ? (
-          <div className="flex-1 flex items-center justify-center bg-white text-right">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">בחר צ'אט או צור חדש כדי להתחיל</p>
-              <button
-                onClick={() => setShowNewChatDialog(true)}
-                className="mt-4 text-white px-4 py-2 rounded-lg"
-                style={{ backgroundColor: elementColors.primary }}
-              >
-                צ'אט חדש
-              </button>
-            </div>
-          </div>
-        ) : activeTab === "group" ? (
-          <div className="flex-1 flex items-center justify-center bg-white text-right">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">בחר קבוצה או צור חדשה</p>
-              <button
-                onClick={() => setShowNewGroupDialog(true)}
-                className="mt-4 text-white px-4 py-2 rounded-lg"
-                style={{ backgroundColor: elementColors.primary }}
-              >
-                קבוצה חדשה
-              </button>
-            </div>
-          </div>
-        ) : activeTab === "community" ? (
-          <div className="flex-1 flex items-center justify-center bg-white text-right">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">בחר קהילה או צור חדשה</p>
-            </div>
-          </div>
-        ) : <div className="flex-1 flex items-center justify-center bg-white text-right">
-          <div className="text-center text-gray-500">
-            <p className="text-lg">בחר  </p>
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צ'אט או התחל שיחה חדשה</h3>
+            <p className="text-gray-500">לחץ על הכפתור + כדי להתחיל צ'אט חדש</p>
           </div>
         </div>
       )}

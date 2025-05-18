@@ -66,6 +66,8 @@ export default function ChatApp() {
   const [pendingSelectedConversationId, setPendingSelectedConversationId] = useState(null);
   const [groupAvatarFile, setGroupAvatarFile] = useState(null);
   const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
+  const [isSendingImage, setIsSendingImage] = useState(false);
+  const messagesEndRef = useRef(null);
 
   // File upload state/logic (moved to hook)
   const {
@@ -302,110 +304,125 @@ export default function ChatApp() {
     // Support: opts.fileOverride, opts.mediaTypeOverride
     const fileToSend = opts.fileOverride || file;
     const mediaTypeOverride = opts.mediaTypeOverride;
-    if ((!newMessage.trim() && !fileToSend) || !selectedConversation || isSending || isUploading) {
+    
+    // Modified condition to allow voice messages
+    if ((!newMessage.trim() && !fileToSend && !opts.fileOverride) || !selectedConversation || isSending) {
       return;
     }
+
     // Clear input and file immediately for fast UX
+    const messageToSend = newMessage;
     setNewMessage("");
     removeFile();
     setUploadProgress(0);
-    setIsSending(true);
+
     // Bad words filter (only for text messages)
-    if (!fileToSend && newMessage.trim()) {
-      const lowerMsg = newMessage.toLowerCase();
-      // Efficient: check if any bad word is a substring (can be improved to whole word if needed)
-      const hasBadWord = badWords.some(word => word && lowerMsg.includes(word.toLowerCase()));
-      if (hasBadWord) {
+    if (!fileToSend && messageToSend.trim()) {
+      const lowerMsg = messageToSend.toLowerCase();
+      if (badWords.some(word => word && lowerMsg.includes(word.toLowerCase()))) {
         alert('ההודעה שלך מכילה מילים אסורות. אנא נסח מחדש.');
-        setNewMessage("");
         return;
       }
     }
-    const messageToSend = newMessage;
+
+    // Create optimistic message immediately
+    const optimisticId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      id: optimisticId,
+      sender: currentUser.uid,
+      senderName: currentUser.username,
+      text: !fileToSend ? messageToSend : '',
+      createdAt: new Date(),
+      ...(opts.durationOverride && { duration: opts.durationOverride })
+    };
+
+    // Add optimistic message to UI immediately
+    setMessages(prev => [...prev, optimisticMessage]);
+
     try {
+      setIsSending(true);
       let messageData = {
         sender: currentUser.uid,
         senderName: currentUser.username,
         createdAt: serverTimestamp(),
+        ...(opts.durationOverride && { duration: opts.durationOverride })
       };
-      // Add duration if provided (for audio messages)
-      if (opts.durationOverride) {
-        messageData.duration = opts.durationOverride;
-      }
+
+      // Handle file upload if present
       if (fileToSend) {
         setIsUploading(true);
         const storageRef = ref(
           storage,
           `messages/${selectedConversation.id}/${Date.now()}_${fileToSend.name}`
         );
-        const uploadTask = uploadBytesResumable(storageRef, fileToSend, {
-          contentType: fileToSend.type,
-          customMetadata: { uploadedBy: currentUser.uid }
-        });
+        
+        const uploadTask = uploadBytesResumable(storageRef, fileToSend);
+        
         uploadTask.on('state_changed',
           (snapshot) => {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             setUploadProgress(progress);
           },
-          (error) => {
-            console.error("Upload error:", error);
-            setUploadProgress(0);
-            throw error;
+          null,
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            messageData = {
+              ...messageData,
+              mediaURL: downloadURL,
+              mediaType: mediaTypeOverride || (fileToSend.type.startsWith('image/') ? 'image' : fileToSend.type.startsWith('audio/') ? 'audio' : 'unknown'),
+              fileName: fileToSend.name,
+              fileSize: fileToSend.size
+            };
+            
+            await finalizeMessageSend(messageData, optimisticId);
+            setIsUploading(false);
           }
         );
-        await uploadTask;
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        messageData = {
-          ...messageData,
-          mediaURL: downloadURL,
-          mediaType: mediaTypeOverride || (fileToSend.type.startsWith('image/') ? 'image' : fileToSend.type.startsWith('audio/') ? 'audio' : 'unknown'),
-          fileName: fileToSend.name,
-          fileSize: fileToSend.size
-        };
       } else {
         messageData.text = messageToSend;
+        await finalizeMessageSend(messageData, optimisticId);
       }
-      // Optimistic update (optional)
-      const tempMessageId = `temp-${Date.now()}`;
-      const optimisticMessage = {
-        id: tempMessageId,
-        ...messageData,
-        createdAt: new Date()
-      };
-      setMessages(prev => [...prev, optimisticMessage]);
-      // Batched writes
-      const batch = writeBatch(db);
-      const messagesRef = collection(db, "conversations", selectedConversation.id, "messages");
-      const newMessageRef = doc(messagesRef);
-      batch.set(newMessageRef, messageData);
-      const conversationRef = doc(db, "conversations", selectedConversation.id);
-      batch.update(conversationRef, {
-        lastMessage: fileToSend ? (mediaTypeOverride === 'audio' || fileToSend.type.startsWith('audio/') ? 'Sent a voice message' : fileToSend.type.startsWith('image/') ? 'Sent an image' : 'Sent a file') : messageToSend,
-        lastUpdated: serverTimestamp(),
-      });
-      // --- Only increment unread for users who do not have the chat open (all chat types) ---
-      const unreadUpdate = {};
-      selectedConversation.participants.forEach(uid => {
-        if (uid !== currentUser.uid) {
-          // If lastRead exists and is recent, do not increment unread
-          const lastRead = selectedConversation.lastRead?.[uid];
-          // If lastRead is missing or not a Date, increment unread
-          if (!lastRead || (lastRead.toDate ? lastRead.toDate() : lastRead) < new Date()) {
-            unreadUpdate[`unread.${uid}`] = increment(1);
-          }
-        }
-      });
-      batch.update(conversationRef, unreadUpdate);
-      await batch.commit();
-      setMessages(prev => prev.filter(msg => msg.id !== tempMessageId));
     } catch (error) {
       console.error("Error sending message:", error);
-      setNewMessage(messageToSend);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
       alert(`Message failed: ${error.message}`);
-    } finally {
-      setIsSending(false);
-      setIsUploading(false);
     }
+  };
+
+  // Helper function to finalize message sending
+  const finalizeMessageSend = async (messageData, optimisticId) => {
+    const conversationRef = doc(db, "conversations", selectedConversation.id);
+    const messagesRef = collection(conversationRef, "messages");
+
+    // Send the message first
+    const messageRef = await addDoc(messagesRef, messageData);
+
+    // Update conversation metadata separately
+    const lastMessageText = messageData.mediaType ? 
+      (messageData.mediaType === 'audio' ? 'Sent a voice message' : 
+       messageData.mediaType === 'image' ? 'Sent an image' : 'Sent a file') : 
+      messageData.text;
+
+    const unreadUpdate = {};
+    selectedConversation.participants.forEach(uid => {
+      if (uid !== currentUser.uid) {
+        unreadUpdate[`unread.${uid}`] = increment(1);
+      }
+    });
+
+    await updateDoc(conversationRef, {
+      lastMessage: lastMessageText,
+      lastUpdated: serverTimestamp(),
+      ...unreadUpdate
+    });
+
+    // Remove optimistic message and set final message
+    setMessages(prev => prev.map(msg => 
+      msg.id === optimisticId ? { ...messageData, id: messageRef.id } : msg
+    ));
+    
+    setIsSending(false);
   };
 
   // --- Create New Conversation ---
@@ -644,6 +661,50 @@ export default function ChatApp() {
     });
     return () => unsubscribe();
   }, [currentUser.uid, selectedConversation, conversations]);
+
+  // Handle sending message
+  const handleSendMessage = async () => {
+    // Handle voice message
+    if (audioBlob && !isRecording) {
+      try {
+        const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
+          type: 'audio/webm',
+          lastModified: Date.now()
+        });
+        
+        await sendMessage({ 
+          fileOverride: voiceFile,
+          mediaTypeOverride: 'audio',
+          durationOverride: Math.round(recordingTime) // Ensure it's a rounded number
+        });
+        
+        resetRecording();
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+        return;
+      } catch (error) {
+        console.error("Error sending voice message:", error);
+        alert("Failed to send voice message. Please try again.");
+        return;
+      }
+    }
+
+    // Handle regular messages and images
+    try {
+      if (file && file.type && file.type.startsWith('image/')) {
+        setIsSendingImage(true);
+      }
+      await sendMessage();
+      setIsSendingImage(false);
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setIsSendingImage(false);
+    }
+  };
 
   if (!authInitialized) {
     return <ElementalLoader />;
