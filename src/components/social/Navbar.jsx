@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, MessageSquare, Settings, Search, Bell, User, LogOut } from 'lucide-react';
-import { collection, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +32,7 @@ const Navbar = ({ element }) => {
   const [showSearchPopUp, setShowSearchPopUp] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const searchRef = useRef(null);
   const profileDropdownRef = useRef(null);
@@ -142,6 +143,28 @@ const Navbar = ({ element }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(
+      collection(db, "conversations"),
+      where("participants", "array-contains", user.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let totalUnread = 0;
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.unread && data.unread[user.uid]) {
+          totalUnread += data.unread[user.uid];
+        }
+      });
+      setUnreadCount(totalUnread);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   return (
     <header dir="rtl" className={`fixed top-0 left-0 w-full bg-${element} border-b border-${element}-accent z-50`}>
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
@@ -235,18 +258,20 @@ const Navbar = ({ element }) => {
 
         <div className="flex flex-row-reverse items-center space-x-4 space-x-reverse">
           <button
-            onClick={() => handleTabClick('notifications', '/notifications')}
+            onClick={() => navigate('/notifications')}
             className={`relative p-2 rounded-full transition ${
               activeTab === 'notifications' ? `bg-${element}-accent` : `hover:bg-${element}-soft`
             }`}
             aria-label="התראות"
           >
-            <Bell size={20} className={`text-white`} />
-            <span
-              className={`absolute -top-1 -left-1 bg-${element}-accent text-white rounded-full w-5 h-5 text-xs flex items-center justify-center`}
-            >
-              3
-            </span>
+            <Bell size={20} className="text-white" />
+            {unreadCount > 0 && (
+              <span
+                className={`absolute -top-1 -left-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center`}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
           </button>
 
           <div className="relative" ref={profileDropdownRef}>
