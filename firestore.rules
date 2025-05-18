@@ -2,44 +2,101 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ✅ Specific access for your collection
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ── Users collection ───────────────────────────
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || request.auth.uid == userId;
+      allow delete: if isAdmin();
+    }
+
+    // ── Participants collection ───────────────────
+    match /participants/{userId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'participant';
+      allow update: if isAdmin() || request.auth.uid == userId;
+      allow delete: if isAdmin();
+    }
+
+    // ── Family collection ─────────────────────────
+    match /family/{userId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'family';
+      allow update: if isAdmin() || request.auth.uid == userId;
+      allow delete: if isAdmin();
+    }
+
+    // ── Staff collection ─────────────────────────
+    match /staff/{userId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'staff';
+      allow update: if isAdmin() || request.auth.uid == userId;
+      allow delete: if isAdmin();
+    }
+
+    // ── Mentors collection ───────────────────────
+    match /mentors/{userId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(userId)).data.role == 'mentor';
+      allow update: if isAdmin() || request.auth.uid == userId;
+      allow delete: if isAdmin();
+    }
+
+    // ── Profiles collection ───────────────────────
+    match /profiles/{userId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ── Posts collection ───────────────────────────
+    match /posts/{postId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+      match /comments/{commentId} {
+        allow read: if true;
+        allow write: if isAuthenticated();
+      }
+    }
+
+    // ── Conversations & messages ───────────────────
+    match /conversations/{convoId} {
+      allow read, write: if isAuthenticated();
+      match /messages/{msgId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // ── Other public collections ─────────────
     match /elemental_projects/{document=**} {
-      allow read, write: if true; // DEV ONLY
+      allow read: if true;
+      allow write: if isAdmin();
     }
     match /events/{document=**} {
-      allow read, write: if true; // DEV ONLY
+      allow read: if true;
+      allow write: if isAdmin();
     }
-    // 🚫 Optional: Default deny fallback
+    match /team/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 🚫 Default deny fallback
     match /{document=**} {
       allow read, write: if false;
     }
-     // ── Conversations & messages ───────────────────
-    match /conversations/{convoId} {
-      allow read, write: if true;              // TEMPORARY
-      match /messages/{msgId} {
-        allow read, write: if true;            // TEMPORARY
-      }
-    }
-    // ── Users collection ───────────────────────────
-    match /users/{userId} {
-      allow read:  if true;                    // TEMPORARY: public read
-      //allow write: if request.auth.uid == userId;
-      allow write: if true;
-    }
-    // ── Profiles (public-facing) ───────────────────
-    match /profiles/{uid} {
-      allow read:  if true;                   // public read
-      //allow write: if request.auth.uid == uid;
-       allow write: if true;               // TEMPORARY (remove later)
-    }
-
-    // ── Posts sub-collection under each profile ────
-    match /profiles/{uid}/posts/{postId} {
-      allow read:  if true;                   // public read
-      //allow write: if request.auth.uid == uid;
-      allow write: if true;               // TEMPORARY (remove later)
-    }
   }
 }
-
-// AFTER UPDATING RUN THIS: firebase deploy --only firestore:rules

@@ -1,58 +1,77 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion'
 
-const elementOptions = {
-  fire: { icon: '🔥' },
-  water: { icon: '💧' },
-  air:   { icon: '🌪️' },
-  earth: { icon: '🌍' },
-  metal: { icon: '⚙️' },
-};
+const LeftSidebar = ({ element, users = [], viewerProfile, onFollowToggle }) => {
+  const navigate = useNavigate();
 
-const LeftSidebar = ({ element, users = [] }) => {
   return (
-    <aside
-      className={`
-        fixed top-[56.8px] bottom-0 left-0 w-64 z-30
-        bg-white shadow-md p-6 overflow-y-auto
-      `}
-    >
-      <section className="mb-6">
-        <h2 className="text-lg font-semibold mb-2">משתמשים עם אותו אלמנט</h2>
-        <div className={`h-0.5 w-12 bg-${element} rounded mb-4`} />
-
-        {users.length === 0 ? (
-          <p className="text-sm text-gray-500">לא נמצאו משתמשים</p>
-        ) : (
+    <div className="w-64 h-[calc(100vh-56.8px)] bg-white shadow-lg overflow-y-auto">
+      <div className="p-6">
+        <div className="mb-4 text-right">
+          <h2 className={`text-${element} text-xl font-bold mb-1`}>
+            משתמשים מאותו היסוד
+          </h2>
+          <div className={`w-12 h-0.5 bg-${element} rounded-full ml-auto`} />
+        </div>
+        
+        {users && users.length > 0 ? (
           <div className="space-y-4">
-            {users.map((user, idx) => (
-              <div key={idx} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
+            {users.map((user) => (
+              <motion.div
+                key={user.id}
+                whileHover={{ scale: 1.015 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center justify-between p-2 bg-white hover:bg-gray-50 rounded-lg shadow-sm"
+              >
+                <div
+                  className="flex items-center gap-3 cursor-pointer flex-grow overflow-hidden"
+                  onClick={() => navigate(`/profile/${user.username}`)}
+                >
                   <img
-                    src={user.photoURL || '/default_user_pic.jpg'}
+                    src={user.photoURL || '/default-avatar.png'}
                     alt={user.username}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
                   />
-                  <p className="flex items-center gap-1 font-medium text-sm">
-                    {user.username}
-                    <span>{elementOptions[user.element]?.icon}</span>
-                  </p>
+                  <div className="text-right overflow-hidden flex flex-col">
+                    <h3
+                      className="font-semibold text-gray-800 text-sm truncate max-w-[140px]"
+                      title={user.username}
+                      dir="rtl"
+                    >
+                      {user.username}
+                    </h3>
+                    <p className="text-xs text-gray-500 truncate max-w-[140px]">{user.bio?.slice(0, 40)}</p>
+                  </div>
                 </div>
 
-                <button
-                  className={`
-                    px-3 py-1 text-xs font-semibold text-white
-                    bg-${element} rounded-full
-                    hover:bg-${element}-accent transition
-                  `}
-                >
-                  לעקוב
-                </button>
-              </div>
+                {viewerProfile && viewerProfile.uid !== user.id && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={() => onFollowToggle(user.id)}
+                    className={`ml-auto mr-1 shrink-0 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 ${
+                      (viewerProfile.following || []).includes(user.id)
+                        ? `bg-${element} text-white hover:bg-${element}-dark`
+                        : `border border-${element} text-${element} hover:bg-${element}-soft`
+                    }`}
+                  >
+                    {(viewerProfile.following || []).includes(user.id) ? 'עוקב' : 'עקוב'}
+                  </motion.button>
+                )}
+              </motion.div>
+
             ))}
           </div>
+        ) : (
+          <p className="text-center text-gray-500 mt-4">
+            לא נמצאו משתמשים מאותו היסוד
+          </p>
         )}
-      </section>
-    </aside>
+      </div>
+    </div>
   );
 };
 

@@ -15,7 +15,8 @@ import {
   getDoc,
   arrayUnion,
   limit,
-  deleteDoc
+  deleteDoc,
+  increment
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { ref, uploadBytesResumable, getDownloadURL, getStorage, ref as storageRef } from "firebase/storage";
@@ -30,6 +31,8 @@ import { useFileUpload } from "../components/chat/hooks/useFileUpload";
 import { ELEMENT_COLORS } from '../components/chat/utils/ELEMENT_COLORS';
 import { useParams, useNavigate } from "react-router-dom";
 import { badWords } from "../components/chat/utils/badWords";
+import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
+import notificationSound from '../assets/notification.mp3';
 
 export default function ChatApp() {
   const { chatId } = useParams();
@@ -63,6 +66,8 @@ export default function ChatApp() {
   const [pendingSelectedConversationId, setPendingSelectedConversationId] = useState(null);
   const [groupAvatarFile, setGroupAvatarFile] = useState(null);
   const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
+  const [isSendingImage, setIsSendingImage] = useState(false);
+  const messagesEndRef = useRef(null);
 
   // File upload state/logic (moved to hook)
   const {
@@ -83,8 +88,8 @@ export default function ChatApp() {
       setIsSearching(true);
       const q = query(
         collection(db, "users"),
-        where("username", ">=", searchTerm.toLowerCase()),
-        where("username", "<=", searchTerm.toLowerCase() + "\uf8ff"),
+        where("username", ">=", searchTerm),
+        where("username", "<=", searchTerm + "\uf8ff"),
         limit(5)
       );
       const snapshot = await getDocs(q);
@@ -294,94 +299,130 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, [selectedConversation?.id, currentUser.uid]);
 
-  // --- Send Message (handles text and file/image) ---
-  const sendMessage = async () => {
-    if ((!newMessage.trim() && !file) || !selectedConversation || isSending || isUploading) {
+  // --- Send Message (handles text and file/image/voice) ---
+  const sendMessage = async (opts = {}) => {
+    // Support: opts.fileOverride, opts.mediaTypeOverride
+    const fileToSend = opts.fileOverride || file;
+    const mediaTypeOverride = opts.mediaTypeOverride;
+    
+    // Modified condition to allow voice messages
+    if ((!newMessage.trim() && !fileToSend && !opts.fileOverride) || !selectedConversation || isSending) {
       return;
     }
-    // Bad words filter (only for text messages)
-    if (!file && newMessage.trim()) {
-      const lowerMsg = newMessage.toLowerCase();
-      // Efficient: check if any bad word is a substring (can be improved to whole word if needed)
-      const hasBadWord = badWords.some(word => word && lowerMsg.includes(word.toLowerCase()));
-      if (hasBadWord) {
-        alert('ההודעה שלך מכילה מילים אסורות. אנא נסח מחדש.');
-        setNewMessage("");
-        return;
-      }
-    }
+
+    // Clear input and file immediately for fast UX
     const messageToSend = newMessage;
     setNewMessage("");
     removeFile();
     setUploadProgress(0);
-    setIsSending(true);
+
+    // Bad words filter (only for text messages)
+    if (!fileToSend && messageToSend.trim()) {
+      const lowerMsg = messageToSend.toLowerCase();
+      if (badWords.some(word => word && lowerMsg.includes(word.toLowerCase()))) {
+        alert('ההודעה שלך מכילה מילים אסורות. אנא נסח מחדש.');
+        return;
+      }
+    }
+
+    // Create optimistic message immediately
+    const optimisticId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      id: optimisticId,
+      sender: currentUser.uid,
+      senderName: currentUser.username,
+      text: !fileToSend ? messageToSend : '',
+      createdAt: new Date(),
+      ...(opts.durationOverride && { duration: opts.durationOverride })
+    };
+
+    // Add optimistic message to UI immediately
+    setMessages(prev => [...prev, optimisticMessage]);
+
     try {
+      setIsSending(true);
       let messageData = {
         sender: currentUser.uid,
         senderName: currentUser.username,
         createdAt: serverTimestamp(),
+        ...(opts.durationOverride && { duration: opts.durationOverride })
       };
-      if (file) {
+
+      // Handle file upload if present
+      if (fileToSend) {
         setIsUploading(true);
         const storageRef = ref(
           storage,
-          `messages/${selectedConversation.id}/${Date.now()}_${file.name}`
+          `messages/${selectedConversation.id}/${Date.now()}_${fileToSend.name}`
         );
-        const uploadTask = uploadBytesResumable(storageRef, file, {
-          contentType: file.type,
-          customMetadata: { uploadedBy: currentUser.uid }
-        });
+        
+        const uploadTask = uploadBytesResumable(storageRef, fileToSend);
+        
         uploadTask.on('state_changed',
           (snapshot) => {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             setUploadProgress(progress);
           },
-          (error) => {
-            console.error("Upload error:", error);
-            setUploadProgress(0);
-            throw error;
+          null,
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            messageData = {
+              ...messageData,
+              mediaURL: downloadURL,
+              mediaType: mediaTypeOverride || (fileToSend.type.startsWith('image/') ? 'image' : fileToSend.type.startsWith('audio/') ? 'audio' : 'unknown'),
+              fileName: fileToSend.name,
+              fileSize: fileToSend.size
+            };
+            
+            await finalizeMessageSend(messageData, optimisticId);
+            setIsUploading(false);
           }
         );
-        await uploadTask;
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        messageData = {
-          ...messageData,
-          mediaURL: downloadURL,
-          mediaType: file.type.startsWith('image/') ? 'image' : 'unknown',
-          fileName: file.name,
-          fileSize: file.size
-        };
       } else {
         messageData.text = messageToSend;
+        await finalizeMessageSend(messageData, optimisticId);
       }
-      // Optimistic update (optional)
-      const tempMessageId = `temp-${Date.now()}`;
-      const optimisticMessage = {
-        id: tempMessageId,
-        ...messageData,
-        createdAt: new Date()
-      };
-      setMessages(prev => [...prev, optimisticMessage]);
-      // Batched writes
-      const batch = writeBatch(db);
-      const messagesRef = collection(db, "conversations", selectedConversation.id, "messages");
-      const newMessageRef = doc(messagesRef);
-      batch.set(newMessageRef, messageData);
-      const conversationRef = doc(db, "conversations", selectedConversation.id);
-      batch.update(conversationRef, {
-        lastMessage: file ? (file.type.startsWith('image/') ? 'Sent an image' : 'Sent a voice message') : messageToSend,
-        lastUpdated: serverTimestamp(),
-      });
-      await batch.commit();
-      setMessages(prev => prev.filter(msg => msg.id !== tempMessageId));
     } catch (error) {
       console.error("Error sending message:", error);
-      setNewMessage(messageToSend);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
       alert(`Message failed: ${error.message}`);
-    } finally {
-      setIsSending(false);
-      setIsUploading(false);
     }
+  };
+
+  // Helper function to finalize message sending
+  const finalizeMessageSend = async (messageData, optimisticId) => {
+    const conversationRef = doc(db, "conversations", selectedConversation.id);
+    const messagesRef = collection(conversationRef, "messages");
+
+    // Send the message first
+    const messageRef = await addDoc(messagesRef, messageData);
+
+    // Update conversation metadata separately
+    const lastMessageText = messageData.mediaType ? 
+      (messageData.mediaType === 'audio' ? 'Sent a voice message' : 
+       messageData.mediaType === 'image' ? 'Sent an image' : 'Sent a file') : 
+      messageData.text;
+
+    const unreadUpdate = {};
+    selectedConversation.participants.forEach(uid => {
+      if (uid !== currentUser.uid) {
+        unreadUpdate[`unread.${uid}`] = increment(1);
+      }
+    });
+
+    await updateDoc(conversationRef, {
+      lastMessage: lastMessageText,
+      lastUpdated: serverTimestamp(),
+      ...unreadUpdate
+    });
+
+    // Remove optimistic message and set final message
+    setMessages(prev => prev.map(msg => 
+      msg.id === optimisticId ? { ...messageData, id: messageRef.id } : msg
+    ));
+    
+    setIsSending(false);
   };
 
   // --- Create New Conversation ---
@@ -406,6 +447,10 @@ export default function ChatApp() {
         return;
       }
       const participants = [currentUser.uid, partnerUid].sort();
+      const unread = {};
+      participants.forEach(uid => {
+        unread[uid] = 0;
+      });
       const existingConversationsQuery = query(
         collection(db, "conversations"),
         where("participants", "array-contains", currentUser.uid),
@@ -431,6 +476,7 @@ export default function ChatApp() {
         lastMessage: "",
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
+        unread,
       };
       batch.set(convoRef, convoData);
       await batch.commit();
@@ -540,6 +586,12 @@ export default function ChatApp() {
     if (fullConv) {
       setSelectedConversation(fullConv);
       navigate(`/chat/${fullConv.id}`);
+      // --- Reset unread count for current user and update lastRead timestamp ---
+      const conversationRef = doc(db, "conversations", fullConv.id);
+      updateDoc(conversationRef, {
+        [`unread.${currentUser.uid}`]: 0,
+        [`lastRead.${currentUser.uid}`]: serverTimestamp()
+      });
     } else {
       // fallback: set as is
       setSelectedConversation(conv);
@@ -583,6 +635,77 @@ export default function ChatApp() {
     alert("כל הצ'אטים נמחקו בהצלחה!");
   }
 
+  // --- Notification Sound on New Message ---
+  useEffect(() => {
+    if (!currentUser.uid) return;
+    const q = query(
+      collection(db, "conversations"),
+      where("participants", "array-contains", currentUser.uid)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach(change => {
+        const data = change.doc.data();
+        if (change.type === "modified" && data.lastMessage && data.lastUpdated) {
+          // If this conversation is not currently open, and unread for this user increased
+          if (!selectedConversation || change.doc.id !== selectedConversation.id) {
+            const prevUnread = conversations.find(c => c.id === change.doc.id)?.unread?.[currentUser.uid] || 0;
+            const newUnread = data.unread?.[currentUser.uid] || 0;
+            if (newUnread > prevUnread) {
+              // Play notification sound
+              const audio = new window.Audio(notificationSound);
+              audio.play();
+            }
+          }
+        }
+      });
+    });
+    return () => unsubscribe();
+  }, [currentUser.uid, selectedConversation, conversations]);
+
+  // Handle sending message
+  const handleSendMessage = async () => {
+    // Handle voice message
+    if (audioBlob && !isRecording) {
+      try {
+        const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
+          type: 'audio/webm',
+          lastModified: Date.now()
+        });
+        
+        await sendMessage({ 
+          fileOverride: voiceFile,
+          mediaTypeOverride: 'audio',
+          durationOverride: Math.round(recordingTime) // Ensure it's a rounded number
+        });
+        
+        resetRecording();
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+        return;
+      } catch (error) {
+        console.error("Error sending voice message:", error);
+        alert("Failed to send voice message. Please try again.");
+        return;
+      }
+    }
+
+    // Handle regular messages and images
+    try {
+      if (file && file.type && file.type.startsWith('image/')) {
+        setIsSendingImage(true);
+      }
+      await sendMessage();
+      setIsSendingImage(false);
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setIsSendingImage(false);
+    }
+  };
+
   if (!authInitialized) {
     return <ElementalLoader />;
   }
@@ -601,8 +724,9 @@ export default function ChatApp() {
           מחק את כל הצ'אטים (אדמין)
         </button>
         */}
-
-      <Navbar element={userElement}/>
+      <ThemeProvider element={userElement}>
+        <Navbar element={userElement}/>
+      </ThemeProvider>
       <Sidebar 
         elementColors={elementColors}
         userElement={userElement}

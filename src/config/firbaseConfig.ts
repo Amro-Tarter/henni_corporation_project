@@ -3,6 +3,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 // TODO: Add SDKs for Firebase products that you want to use
 
 // Your web app's Firebase configuration
@@ -29,4 +30,12 @@ const auth = getAuth(app);
 // Initialize Firebase Storage
 const storage = getStorage(app);
 
-export { app, db, auth, storage };
+// Initialize Firebase Functions with region
+const functions = getFunctions(app, 'us-central1');
+
+// Connect to emulator in development
+if (process.env.NODE_ENV === 'development') {
+  connectFunctionsEmulator(functions, 'localhost', 5001);
+}
+
+export { app, db, auth, storage, functions };

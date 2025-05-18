@@ -13,6 +13,10 @@ import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from
 import Cookies from "js-cookie";
 import { useNavigate, useLocation } from 'react-router-dom';
 import CommunityPage from '../../pages/CommunityPage';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/config/firbaseConfig';
+
+
 
 const sections = [
   { id: 'about-section', label: 'אודות העמותה', icon: faLeaf },
@@ -29,9 +33,26 @@ const Navigation = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [showAuthDropdown, setShowAuthDropdown] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [username, setUsername] = useState('');
   const authDropdownRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const fetchUsername = async () => {
+      if (currentUser) {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUsername(userDoc.data().username);
+        } else {
+          setUsername('');
+        }
+      } else {
+        setUsername('');
+      }
+    };
+    fetchUsername();
+  }, [currentUser]);
 
   // Scroll & active section tracking + progress bar
   useEffect(() => {
@@ -219,9 +240,25 @@ const Navigation = () => {
                       <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200 truncate">
                         {currentUser.email}
                       </div>
-                      <a href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <button
+                        onClick={async () => {
+                          try {
+                            const user = auth.currentUser;
+                            if (!user) return;
+                            const docSnap = await getDoc(doc(db, 'profiles', user.uid));
+                            if (docSnap.exists()) {
+                              const username = docSnap.data().username;
+                              navigate(`/profile/${username}`);
+                            }
+                          } catch (err) {
+                            console.error('Failed to fetch username for profile redirection:', err);
+                          }
+                        }}
+                        className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
                         הפרופיל שלי
-                      </a>
+                      </button>
+
                       <a href="/publicSettings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         הגדרות
                       </a>
@@ -329,9 +366,25 @@ const Navigation = () => {
                     </div>
                     <span>{currentUser.displayName || currentUser.email}</span>
                   </div>
-                  <a href="/profile" className="block py-2 pr-10 hover:bg-white/10 rounded-lg">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const user = auth.currentUser;
+                        if (!user) return;
+                        const docSnap = await getDoc(doc(db, 'profiles', user.uid));
+                        if (docSnap.exists()) {
+                          const username = docSnap.data().username;
+                          navigate(`/profile/${username}`);
+                        }
+                      } catch (err) {
+                        console.error('Failed to fetch username for profile redirection:', err);
+                      }
+                    }}
+                    className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
                     הפרופיל שלי
-                  </a>
+                  </button>
+
                   <a href="/publicSettings" className="block py-2 pr-10 hover:bg-white/10 rounded-lg">
                     הגדרות
                   </a>

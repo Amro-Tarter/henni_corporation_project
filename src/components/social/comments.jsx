@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Trash2, Check, Edit2, X, Send, Reply } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../config/firbaseConfig.ts'; 
 
-/**
- * Renders a single comment (and its nested replies).
- */
+
+
 export const Comment = ({
   comment,
   element,
@@ -15,20 +16,35 @@ export const Comment = ({
   onSubmitReply,
   onCancelReply,
   isReply = false,
-  postId
+  postId,
+  postAuthorId,
+  getAuthorProfile
 }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(comment.text);
-  const isAuthor = currentUser.uid === comment.authorId;
-  const formattedTime = comment.timestamp
+  const [editText, setEditText] = useState(comment.content || comment.text || '');
+  const [authorProfile, setAuthorProfile] = useState(null);
+  const isCommentAuthor = currentUser.uid === comment.authorId;
+  const isPostOwner = currentUser.uid === postAuthorId;
+  const canEditOrDelete = isCommentAuthor || isPostOwner;
+  
+  const commentTime = comment.createdAt || comment.timestamp;
+  const formattedTime = commentTime
     ? new Intl.DateTimeFormat('he-IL', {
         year: 'numeric', month: 'short', day: 'numeric',
         hour: '2-digit', minute: '2-digit'
-      }).format(comment.timestamp)
+      }).format(typeof commentTime === 'object' ? commentTime : commentTime.toDate())
     : '';
 
+  useEffect(() => {
+    const fetch = async () => {
+      const profile = await getAuthorProfile(comment.authorId);
+      setAuthorProfile(profile);
+    };
+    fetch();
+  }, [comment.authorId, getAuthorProfile]);
+
   const handleSave = () => {
-    if (editText.trim() !== comment.text) {
+    if (editText.trim() !== (comment.content || comment.text)) {
       onEdit(postId, comment.id, editText);
     }
     setIsEditing(false);
@@ -37,15 +53,15 @@ export const Comment = ({
   return (
     <div className={`flex gap-3 ${isReply ? 'mr-12 mt-3' : 'mt-4'}`}>  
       <img
-        src={comment.authorPhotoURL}
-        alt={comment.username}
+        src={authorProfile?.photoURL || '/default_user_pic.jpg'}
+        alt={authorProfile?.username || '...'}
         className="w-8 h-8 rounded-full object-cover mt-1"
       />
       <div className="flex-1">
         <div className={`p-3 rounded-lg bg-${element}-soft relative`}>  
           <div className="flex justify-between">
-            <h4 className="font-semibold text-sm">{comment.username}</h4>
-            {isAuthor && !isEditing && (
+            <h4 className="font-semibold text-sm">{authorProfile?.username}</h4>
+            {canEditOrDelete && !isEditing && (
               <div className="flex gap-2">
                 <button
                   onClick={() => setIsEditing(true)}
@@ -74,7 +90,7 @@ export const Comment = ({
               />
               <div className="flex justify-end gap-2 mt-2">
                 <button
-                  onClick={() => { setEditText(comment.text); setIsEditing(false); }}
+                  onClick={() => { setEditText(comment.content || comment.text); setIsEditing(false); }}
                   className="px-3 py-1 text-xs bg-gray-100 rounded-md flex items-center gap-1 hover:bg-gray-200 transition-colors"
                 >
                   <X size={12} /> ביטול
@@ -88,7 +104,7 @@ export const Comment = ({
               </div>
             </>
           ) : (
-            <p className="text-sm mt-1 whitespace-pre-wrap">{comment.text}</p>
+            <p className="text-sm mt-1 whitespace-pre-wrap">{comment.content || comment.text}</p>
           )}
         </div>
 
@@ -108,7 +124,7 @@ export const Comment = ({
         {replyingToId === comment.id && (
           <div className="mt-2">
             <CommentInput
-              placeholder={`הגב ל${comment.username}`}
+              placeholder={`הגב ל ${authorProfile?.username || 'משתמש'}`}
               element={element}
               initialValue={''}
               autoFocus
@@ -135,6 +151,8 @@ export const Comment = ({
                 onCancelReply={onCancelReply}
                 isReply
                 postId={postId}
+                postAuthorId={postAuthorId}
+                getAuthorProfile={getAuthorProfile}
               />
             ))}
           </div>

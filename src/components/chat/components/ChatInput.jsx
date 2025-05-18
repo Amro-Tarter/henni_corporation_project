@@ -1,11 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import getDirection from '../utils/identifyLang';
 import '../animations/ChatInput.css';
 /**
  * ChatInput handles message input, emoji picker, and file upload.
  */
-const ChatInput = ({
+const ChatInput = memo(({
   newMessage,
   setNewMessage,
   handleSendMessage,
@@ -20,21 +20,60 @@ const ChatInput = ({
   setShowEmojiPicker,
   onEmojiClick,
   emojiPickerRef,
-  sendButtonRef
+  sendButtonRef,
+  // Voice recording props:
+  isRecording,
+  recordingTime,
+  startRecording,
+  stopRecording,
+  audioURL,
+  audioBlob,
+  resetRecording,
+  onSendVoiceMessage,
+  isUploadingVoice
 }) => {
   const [showFileButton, setShowFileButton] = useState(true);
   const fileButtonRef = useRef(null);
+  const inputRef = useRef(null);
 
   // Add a placeholder for when input is disabled
   const disabledPlaceholder = "לא ניתן להקליד הודעה בזמן שליחת תמונה";
 
+  // Memoize expensive calculations
+  const formatTime = React.useCallback((s) => 
+    `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.round(s%60)).padStart(2,'0')}`, 
+    []
+  );
+
+  // Optimize file button visibility
   useEffect(() => {
-    if (!newMessage || newMessage.trim() === "") {
-      setShowFileButton(true);
-    } else {
-      setShowFileButton(false);
+    const hasMessage = newMessage.trim() !== "";
+    if (!hasMessage !== showFileButton) {
+      setShowFileButton(!hasMessage);
     }
   }, [newMessage]);
+
+  // Optimize send handler with debounce
+  const handleSend = React.useCallback((e) => {
+    if (e) e.preventDefault();
+    
+    // Don't send if recording or uploading voice
+    if (isRecording || isUploadingVoice) {
+      return;
+    }
+
+    handleSendMessage();
+  }, [isRecording, isUploadingVoice, handleSendMessage]);
+
+  // Optimize input handler
+  const handleInputChange = React.useCallback((e) => {
+    setNewMessage(e.target.value);
+  }, [setNewMessage]);
+
+  // Optimize emoji handler
+  const handleEmojiSelect = React.useCallback((emojiObject) => {
+    setNewMessage(prev => prev + emojiObject.emoji);
+  }, [setNewMessage]);
 
   return (
     <div className="p-4 border-t border-gray-200 bg-white">
@@ -52,8 +91,34 @@ const ChatInput = ({
         </div>
       )}
 
+      {/* Voice Recording Preview & Controls */}
+      {audioURL && !isRecording && (
+        <div className="relative mb-3 border rounded p-2 flex flex-col items-end"
+         style={{ backgroundColor: elementColors.darkHover }}
+         >
+          <div className="flex gap-2">
+            <button
+              className="px-2.5 -z-1 py-1 -mb-3 -ml-1 bg-gray-300 text-gray-800 rounded-full shadow-lg hover:bg-gray-200 hover:z-10"
+              onClick={resetRecording}
+              aria-label="Close voice recording"
+            >
+              ✕
+            </button>
+          </div>
+          <audio
+            src={audioURL}
+            controls
+            className="w-full mb-1 opacity-95"
+          />
+          {/* Show total duration from recordingTime */}
+          {recordingTime > 0 && (
+            <div className="text-sm ml-2 text-white mt-1">סה"כ משך: {formatTime(recordingTime)}</div>
+          )}
+        </div>
+      )}
+
       {/* Input Row */}
-      <div className="flex items-center gap-2">
+      <form onSubmit={handleSend} className="flex items-center gap-2">
         {/* File Upload */}
         <div
           ref={fileButtonRef}
@@ -69,14 +134,55 @@ const ChatInput = ({
           </label>
         </div>
 
+        {/* Voice Recording Button & Controls */}
+        {!preview && !file && !newMessage.trim() && !audioURL && (
+          <div className="flex items-center">
+            {!isRecording && (
+              <button
+                type="button"
+                className="text-gray-500 hover:text-red-600 transition-colors hover:scale-95 hover:bg-gray-100 p-2 rounded-full border border-gray-300 bg-white mr-1"
+                style={{ color: elementColors.primary }}
+                onClick={startRecording}
+                title="הקלט הודעה קולית"
+                disabled={isUploading || isUploadingVoice}
+              >
+                {/* Microphone Icon */}
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18a4 4 0 004-4V7a4 4 0 10-8 0v7a4 4 0 004 4zm0 0v2m0 0h3m-3 0H9" />
+                </svg>
+              </button>
+            )}
+            {isRecording && (
+              <div className="flex items-center gap-2">
+                <span className="text-red-600 font-bold">●</span>
+                <span className="text-gray-700 font-mono">{formatTime(recordingTime)}</span>
+                <button
+                  type="button"
+                  className="px-2 py-2 text-white rounded-full hover:bg-gray-100"
+                  onClick={stopRecording}
+                  style={{ backgroundColor: elementColors.backgroundColor }}
+                >
+                  🟥
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Send Button */}
         <button
+          type="submit"
           className="text-white px-2 py-2 rounded-full transition duration-200 opacity-85 disabled:opacity-50 hover:opacity-100 hover:scale-90"
           style={{ backgroundColor: elementColors.primary }}
-          onClick={handleSendMessage}
-          onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-          disabled={(!newMessage.trim() && !file) || (newMessage.trim() && file) || isUploading}
           ref={sendButtonRef}
+          onClick={handleSend}
+          disabled={
+            isRecording || 
+            isUploadingVoice || 
+            ((!newMessage.trim() && !file && !audioBlob) || 
+             (newMessage.trim() && (file || audioBlob)) || 
+             isUploading)
+          }
         >
           {isUploading ? (
             <span className="animate-pulse">מעלה... {Math.round(uploadProgress)}%</span>
@@ -91,14 +197,15 @@ const ChatInput = ({
         {!preview && (
           <div className="relative flex-1" ref={emojiPickerRef}>
             <input
+              ref={inputRef}
               type="text"
               className="w-full p-2 pr-10 border border-gray-300 rounded-full focus:outline-none focus:ring bg-wat placeholder:text-right"
               style={{ borderColor: 'rgb(209, 213, 219)' }}
               placeholder={"...הקלד הודעה"}
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              onChange={handleInputChange}
               dir={getDirection(newMessage)}
+              disabled={isRecording || isUploadingVoice}
             />
             <button
               type="button"
@@ -106,6 +213,7 @@ const ChatInput = ({
               className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-blue-500 transition-colors p-1"
               style={{ opacity: 0.5 }}
               title="הוסף אימוג'י (Ctrl/Cmd + E)"
+              disabled={isRecording || isUploadingVoice}
             >
               <span className="text-xl">😊</span>
             </button>
@@ -113,10 +221,7 @@ const ChatInput = ({
               <div className="absolute bottom-full right-0 mb-2 z-50">
                 <div className="shadow-lg rounded-lg bg-white">
                   <EmojiPicker
-                    onEmojiClick={(emojiObject) => {
-                      setNewMessage(prev => prev + emojiObject.emoji);
-                      // Do NOT close the picker here
-                    }}
+                    onEmojiClick={handleEmojiSelect}
                     searchPlaceholder="חפש אימוג'י..."
                     width={300}
                     height={400}
@@ -127,9 +232,11 @@ const ChatInput = ({
             )}
           </div>
         )}
-      </div>
+      </form>
     </div>
   );
-};
+});
+
+ChatInput.displayName = 'ChatInput';
 
 export default ChatInput; 
