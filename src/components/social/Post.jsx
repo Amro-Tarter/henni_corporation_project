@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check } from 'lucide-react';
 import { Comment, CommentInput } from './comments';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Post = ({
   post,
@@ -37,6 +38,7 @@ const Post = ({
   const [liked, setLiked] = useState(false);
   const [authorProfile, setAuthorProfile] = useState(null);
   const [error, setError] = useState(null);
+  const [floatLike, setFloatLike] = useState(false);
 
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
@@ -122,8 +124,10 @@ const Post = ({
     
     try {
       const newState = !liked;
-      await onLike(id, newState);
       setLiked(newState);
+      setFloatLike(true);
+      await onLike(id, newState);
+      setTimeout(() => setFloatLike(false), 600);
     } catch (err) {
       console.error('Error toggling like:', err);
       alert('Failed to update like. Please try again.');
@@ -281,12 +285,29 @@ const Post = ({
       {/* Actions */}
       <div className={`px-5 py-3 flex items-center justify-between border-t border-${element}-soft`}> 
         <div className="flex items-center gap-6">
-          <button onClick={toggleLike} className="flex items-center gap-2 group" aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}>
-            <div className={`p-1.5 rounded-full transition-colors ${liked ? `bg-${element} text-white` : `bg-${element}-soft text-${element} hover:bg-${element}-accent`} `}>
-              <ThumbsUp size={18} className={liked ? 'fill-white' : `group-hover:fill-${element}-accent`} />
-            </div>
-            <span className="text-sm font-medium transition-colors">{likesCount}</span>
-          </button>
+          <div className="relative">
+            <button onClick={toggleLike} className="flex items-center gap-2 group" aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}>
+              <div className={`p-1.5 rounded-full transition-colors ${liked ? `bg-${element} text-white` : `bg-${element}-soft text-${element} hover:bg-${element}-accent`} `}>
+                <ThumbsUp size={18} className={liked ? 'fill-white' : `group-hover:fill-${element}-accent`} />
+              </div>
+              <span className="text-sm font-medium transition-colors">{likesCount}</span>
+            </button>
+
+            {/* Floating Icon Animation */}
+            <AnimatePresence>
+              {floatLike && (
+                <motion.div
+                  initial={{ opacity: 1, y: 0, scale: 1 }}
+                  animate={{ opacity: 0, y: -40, scale: 1.5 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className={`absolute bottom-8 left-1/2 -translate-x-1/2 text-${element} pointer-events-none`}
+                >
+                  <ThumbsUp size={24} className="fill-current" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           <button onClick={toggleCommentsSection} className="flex items-center gap-2 group" aria-label="הצג תגובות">
             <div className={`p-1.5 rounded-full transition-colors bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white`}>
