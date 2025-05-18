@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "predev": "npx kill-port 8080 9099 5001", 
+    "predev": "npx kill-port 8080 9099 5001",
     "dev": "npm-run-all --parallel dev:vite dev:emulators",
     "dev:vite": "vite",
     "dev:emulators": "firebase emulators:start",

@@ -13,8 +13,6 @@ import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from
 import Cookies from "js-cookie";
 import { useNavigate, useLocation } from 'react-router-dom';
 import CommunityPage from '../../pages/CommunityPage';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/config/firbaseConfig';
 
 const sections = [
   { id: 'about-section', label: 'אודות העמותה', icon: faLeaf },
@@ -142,41 +140,6 @@ const Navigation = () => {
     }
   }, [location.state, navigate]);
 
-  const handleProfileClick = async (e) => {
-    e.preventDefault();
-    if (currentUser) {
-      try {
-        // First get the user document to get the associated_id
-        const userRef = doc(db, 'users', currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          // Use the associated_id to get the profile
-          const profileRef = doc(db, 'profiles', userData.associated_id);
-          const profileSnap = await getDoc(profileRef);
-          
-          if (profileSnap.exists()) {
-            // Navigate using the associated_id
-            navigate(`/profile/${userData.associated_id}`);
-          } else {
-            console.error('Profile not found for associated_id:', userData.associated_id);
-            // Fallback to uid if profile doesn't exist
-            navigate(`/profile/${currentUser.uid}`);
-          }
-        } else {
-          console.error('User document not found');
-          // Fallback to uid if user document doesn't exist
-          navigate(`/profile/${currentUser.uid}`);
-        }
-      } catch (error) {
-        console.error('Error fetching user/profile:', error);
-        // Fallback to uid if there's an error
-        navigate(`/profile/${currentUser.uid}`);
-      }
-    }
-  };
-
   const cn = (...classes) => classes.filter(Boolean).join(' ');
 
   return (
@@ -256,7 +219,7 @@ const Navigation = () => {
                       <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200 truncate">
                         {currentUser.email}
                       </div>
-                      <a href="/profile" onClick={handleProfileClick} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <a href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         הפרופיל שלי
                       </a>
                       <a href="/publicSettings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
@@ -366,7 +329,7 @@ const Navigation = () => {
                     </div>
                     <span>{currentUser.displayName || currentUser.email}</span>
                   </div>
-                  <a href="/profile" onClick={handleProfileClick} className="block py-2 pr-10 hover:bg-white/10 rounded-lg">
+                  <a href="/profile" className="block py-2 pr-10 hover:bg-white/10 rounded-lg">
                     הפרופיל שלי
                   </a>
                   <a href="/publicSettings" className="block py-2 pr-10 hover:bg-white/10 rounded-lg">
