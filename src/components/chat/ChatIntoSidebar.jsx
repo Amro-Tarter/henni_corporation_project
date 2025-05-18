@@ -150,8 +150,42 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       // Fetch the new conversation data
       const newDoc = await getDoc(convoRef);
       conversationData = { id: newDoc.id, ...newDoc.data() };
+      
+      // Fetch partner's username and profile pic
+      const userDocRef = doc(db, "users", partnerUid);
+      const partnerDoc = await getDoc(userDocRef);
+      let partnerProfilePic = null;
+      try {
+        const profileDocRef = doc(db, "profiles", partnerUid);
+        const profileDoc = await getDoc(profileDocRef);
+        if (profileDoc.exists()) {
+          partnerProfilePic = profileDoc.data().photoURL || null;
+        }
+      } catch (e) {
+        partnerProfilePic = null;
+      }
+      
+      // Update conversation with participant names
+      await updateDoc(convoRef, {
+        participantNames: [
+          currentUser.username,
+          partnerDoc.exists() ? partnerDoc.data().username : "Unknown"
+        ]
+      });
+      
+      // Update the conversation data with the additional info
+      conversationData = {
+        ...conversationData,
+        participantNames: [
+          currentUser.username,
+          partnerDoc.exists() ? partnerDoc.data().username : "Unknown"
+        ],
+        partnerProfilePic
+      };
     }
-    // Use setSelectedConversation to select the conversation
+    
+    // Close the sidebar and navigate to the conversation
+    onClose();
     setSelectedConversation(conversationData);
   };
 

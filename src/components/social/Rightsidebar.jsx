@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Search, Bell, Home, MessageSquare, Settings, User, LogOut,
 } from 'lucide-react';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -22,12 +22,12 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
-  const searchRef = useRef(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
+  const user = auth.currentUser;
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const user = auth.currentUser;
       if (user) {
         const profileRef = doc(db, 'profiles', user.uid);
         const profileSnap = await getDoc(profileRef);
@@ -42,7 +42,6 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   }, []);
 
   useEffect(() => {
-    // Set active tab based on current route
     const path = window.location.pathname;
     const tab = tabs.find(t => path.startsWith(t.route));
     if (tab) {
@@ -79,6 +78,28 @@ const Rightsidebar = ({ element, onExpandChange }) => {
     }
   }, [isExpanded, onExpandChange]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    const q = query(
+      collection(db, 'conversations'),
+      where('participants', 'array-contains', user.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let totalUnread = 0;
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.unread && data.unread[user.uid]) {
+          totalUnread += data.unread[user.uid];
+        }
+      });
+      setUnreadCount(totalUnread);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   const handleSearch = (e) => {
     e.preventDefault();
     setIsSearching(true);
@@ -102,16 +123,10 @@ const Rightsidebar = ({ element, onExpandChange }) => {
     }
   };
 
-  const handleMouseEnter = () => {
-    setIsExpanded(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsExpanded(false);
-  };
+  const handleMouseEnter = () => setIsExpanded(true);
+  const handleMouseLeave = () => setIsExpanded(false);
 
   const handleProfileClick = () => {
-    const user = auth.currentUser;
     if (user && userProfile?.username) {
       navigate(`/profile/${userProfile.username}`);
     }
@@ -126,7 +141,6 @@ const Rightsidebar = ({ element, onExpandChange }) => {
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-
       <form onSubmit={handleSearch} className={`px-2 pt-4 ${isExpanded ? 'px-4' : ''} transition-all`}>
         <div className="relative">
           <input
@@ -182,8 +196,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         </div>
       )}
 
-
-      <nav className={`flex-1 px-2 py-6 space-y-2 overflow-y-auto ${isExpanded ? 'px-4' : ''}`}>
+      <nav className={`flex-1 py-6 space-y-2 overflow-y-auto ${isExpanded ? 'px-4' : 'px-2'}`}>
         {tabs.map((tab) => (
           <motion.button
             key={tab.id}
@@ -192,29 +205,33 @@ const Rightsidebar = ({ element, onExpandChange }) => {
             transition={{ duration: 0.15 }}
             onClick={() => handleTabClick(tab.id)}
             className={`
-              flex items-center gap-3 rounded-md px-3 py-2
-              text-${element} transition-all duration-200
-              hover:bg-${element}-soft w-full
+              flex items-center gap-3 rounded-md px-3 py-2 w-full
+              text-${element} hover:bg-${element}-soft transition-colors duration-200
               ${activeTab === tab.id ? `bg-${element} text-white` : ''}
             `}
           >
-            <span className="min-w-[24px] flex justify-center items-center">
+            <span className="min-w-[24px] flex justify-center items-center relative">
               {tab.icon}
+              {tab.id === 'messenger' && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </span>
-            <motion.span
-              initial={false}
-              animate={{ opacity: isExpanded ? 1 : 0, width: isExpanded ? 'auto' : 0 }}
-              transition={{ duration: 0.2 }}
-              className="font-medium overflow-hidden whitespace-nowrap"
-            >
+            <span className={`font-medium overflow-hidden whitespace-nowrap transition-all duration-300
+              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0'}`}>
               {tab.label}
-            </motion.span>
+              {tab.id === 'messenger' && unreadCount > 0 && (
+                <span className="ml-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </span>
           </motion.button>
         ))}
-
       </nav>
 
-      <div className={`px-2 pb-6 space-y-2 ${isExpanded ? 'px-4' : ''}`}>
+      <div className={`pb-6 space-y-2 ${isExpanded ? 'px-4' : 'px-2'}`}>
         <motion.button
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.96 }}
@@ -228,17 +245,14 @@ const Rightsidebar = ({ element, onExpandChange }) => {
           {isExpanded && (
             <span className="flex flex-1 justify-between font-medium overflow-hidden whitespace-nowrap transition-all duration-300">
               <span>התראות</span>
-              <motion.span
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ repeat: Infinity, duration: 1.2 }}
-                className={`rounded-full bg-${element}-accent text-white px-2 py-1 text-xs`}
-              >
-                3
-              </motion.span>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-red-500 text-white px-2 py-1 text-xs">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </span>
           )}
         </motion.button>
-
 
         <motion.button
           whileHover={{ scale: 1.04 }}
@@ -259,14 +273,9 @@ const Rightsidebar = ({ element, onExpandChange }) => {
             <User size={20} />
           )}
           {isExpanded && (
-            <motion.span
-              initial={false}
-              animate={{ opacity: isExpanded ? 1 : 0, width: isExpanded ? 'auto' : 0 }}
-              transition={{ duration: 0.2 }}
-              className="font-medium overflow-hidden whitespace-nowrap"
-            >
+            <span className="font-medium overflow-hidden whitespace-nowrap transition-all duration-300">
               פרופיל
-            </motion.span>
+            </span>
           )}
         </motion.button>
 
@@ -279,14 +288,9 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         >
           <LogOut size={20} />
           {isExpanded && (
-            <motion.span
-              initial={false}
-              animate={{ opacity: isExpanded ? 1 : 0, width: isExpanded ? 'auto' : 0 }}
-              transition={{ duration: 0.2 }}
-              className="font-medium overflow-hidden whitespace-nowrap"
-            >
+            <span className="font-medium overflow-hidden whitespace-nowrap transition-all duration-300">
               התנתק
-            </motion.span>
+            </span>
           )}
         </motion.button>
       </div>
