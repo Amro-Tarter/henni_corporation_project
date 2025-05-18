@@ -4,7 +4,7 @@ import React from 'react';
  * ChatHeader displays the name of the chat partner or community.
  */
 const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick }) => (
-  <div className="p-4 z-50 shadow-xl mt-16 border-gray-200 text-right flex items-center gap-3 relative">
+  <div className="p-4 z-30 shadow-xl mt-16 border-gray-200 text-right flex items-center gap-3 relative">
     {type === 'community' ? (
       <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">{icon}</span>
     ) : avatar ? (
