@@ -4,6 +4,7 @@ import { Comment, CommentInput } from './comments';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '/src/hooks/use-toast.jsx';
+import PostModalContent from './PostModalContent';
 
 const ProfilePost = ({
   post,
@@ -37,6 +38,7 @@ const ProfilePost = ({
   const [replyTo, setReplyTo] = useState(null);
   const [liked, setLiked] = useState(false);
   const [authorProfile, setAuthorProfile] = useState(null);
+  const [showPostModal, setShowPostModal] = useState(false);
   const [floatLike, setFloatLike] = useState(false);
 
   const { toast } = useToast();
@@ -227,14 +229,27 @@ const ProfilePost = ({
 
         {/* Media */}
         {mediaUrl && (
-          <div className={`relative w-full overflow-hidden bg-${element}-soft`}>
+          <div
+            className={`relative w-full overflow-hidden bg-${element}-soft ${
+              editing || showPostModal ? '' : 'cursor-pointer group'
+            }`}
+            onClick={() => {
+              if (!editing && !showPostModal) setShowPostModal(true);
+            }}
+          >
             {editing && (
               <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
                 <Camera className="w-10 h-10 text-white" />
                 <p className="text-white mt-2 font-medium">החלף מדיה</p>
               </div>
             )}
-            <div className={`group relative w-full max-h-[40rem] overflow-hidden flex justify-center items-center bg-${element}-soft`}>
+            <div className={`group relative w-full max-h-[40rem] overflow-hidden flex justify-center items-center bg-${element}-soft cursor-pointer`}>
+              {!editing && (
+                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                  <span className="text-white text-sm font-medium bg-black/40 px-3 py-1 rounded-full">הצג פוסט</span>
+                </div>
+              )}
+
               {isVideo ? (
                 <video
                   src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
@@ -345,6 +360,48 @@ const ProfilePost = ({
           </div>
         )}
       </div>
+
+      {showPostModal && (
+  <div className="fixed inset-0 z-[200]">
+    {/* FULLSCREEN BLUR */}
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
+
+    {/* MODAL CONTENT */}
+    <div className="flex items-center justify-center w-full h-full p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.25 }}
+        className="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-xl flex flex-col"
+      >
+        <button
+          onClick={() => setShowPostModal(false)}
+          className={`absolute top-4 left-4 z-50 text-${element} bg-white hover:bg-${element}-soft border border-${element}-accent p-2 rounded-full shadow-md transition-all`}
+          aria-label="סגור פוסט"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        <div className="overflow-y-auto px-6 pt-10 pb-6 flex-1">
+          <PostModalContent
+            post={post}
+            element={element}
+            currentUser={currentUser}
+            comments={comments}
+            onAddComment={onAddComment}
+            onEditComment={onEditComment}
+            onDeleteComment={onDeleteComment}
+            onLike={onLike}
+            onDelete={onDelete}
+            onUpdate={onUpdate}
+            isOwner={isOwner}
+            getAuthorProfile={getAuthorProfile}
+          />
+        </div>
+      </motion.div>
+    </div>
+  </div>
+)}
     </>
   );
 };
