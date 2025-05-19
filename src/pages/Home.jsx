@@ -28,6 +28,7 @@ import CreatePost from '../components/social/CreatePost';
 import PostList from '../components/social/Postlist';
 import RightSidebar from '../components/social/Rightsidebar';
 import LeftSidebar from '../components/social/LeftSideBar';
+import ElementalLoader from '../theme/ElementalLoader';
 
 const auth = getAuth();
 
@@ -460,7 +461,11 @@ const Home = () => {
     setIsRightSidebarExpanded(expanded);
   };
 
-  if (!profile) return <div className="text-element-text p-4">טוען...</div>;
+  if (!profile) return (
+    <ThemeProvider element="earth">
+      <ElementalLoader />
+    </ThemeProvider>
+  );
 
   return (
     <ThemeProvider element={profile.element}>
