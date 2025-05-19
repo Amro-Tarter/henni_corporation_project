@@ -212,17 +212,15 @@ const Rightsidebar = ({ element, onExpandChange }) => {
           >
             <span className="min-w-[24px] flex justify-between items-center relative">
               {tab.icon}
-              {tab.id === 'messenger' && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
-                  {unreadCount > 99 ? '99+' : unreadCount}
-                </span>
+              {!isExpanded && tab.id === 'messenger' && unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 rounded-full bg-red-500 w-2 h-2" />
               )}
             </span>
-            <span className={`flex font-medium overflow-hidden whitespace-nowrap transition-all duration-300
+            <span className={`flex flex-1 justify-between font-medium overflow-hidden whitespace-nowrap transition-all duration-300
               ${isExpanded ? 'opacity-100 max-w-[200px]' : 'opacity-0 max-w-0'}`}>
-              {tab.label}
-              {tab.id === 'messenger' && unreadCount > 0 && (
-                <span className="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">
+              <span>{tab.label}</span>
+              {isExpanded && tab.id === 'messenger' && unreadCount > 0 && (
+                <span className="rounded-full bg-red-500 text-white px-2 py-1 text-xs">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -241,7 +239,12 @@ const Rightsidebar = ({ element, onExpandChange }) => {
             activeTab === 'notifications' ? `bg-${element} text-white` : ''
           }`}
         >
-          <Bell size={20} />
+          <span className="relative">
+            <Bell size={20} />
+            {!isExpanded && unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 rounded-full bg-red-500 w-2 h-2" />
+            )}
+          </span>
           {isExpanded && (
             <span className="flex flex-1 justify-between font-medium overflow-hidden whitespace-nowrap transition-all duration-300">
               <span>התראות</span>

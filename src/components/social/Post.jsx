@@ -385,11 +385,13 @@ const Post = ({
         {/* Comments Section */}
         {showComments && (
           <div ref={commentsRef} className="px-5 py-4 border-t border-gray-200">
-            <div className="flex gap-3 mb-4">
-              <img src={currentUser.photoURL} alt="" className="w-8 h-8 rounded-full" />
-              <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
-            </div>
-            {replyTo && (
+            {currentUser && (
+              <div className="flex gap-3 mb-4">
+                <img src={currentUser.photoURL || '/default_user_pic.jpg'} alt="" className="w-8 h-8 rounded-full" />
+                <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
+              </div>
+            )}
+            {replyTo && currentUser && (
               <div className="ml-12 mb-4">
                 <CommentInput placeholder="הגב..." element={element} onSubmit={submitComment} onCancel={() => setReplyTo(null)} />
               </div>
