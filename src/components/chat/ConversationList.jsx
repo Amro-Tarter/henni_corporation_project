@@ -88,7 +88,6 @@ export default function ConversationList({
               undefined,
               conv.type === 'group' ? conv.groupName : 'undefined'
             );
-            console.log(partnerName);
             return (
               <div
                 key={conv.id}

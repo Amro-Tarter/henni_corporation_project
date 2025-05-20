@@ -22,7 +22,7 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
       {chatTitle === mentorName && (
         <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
       )}
-      {currentUser.role === 'mentor' && currentUser.mentorName === chatTitle && (
+      {currentUser.role === 'mentor' && (
         <button
           onClick={handleVideoCall}
           className="ml-2 p-2 rounded-full hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-300"
