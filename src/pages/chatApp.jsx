@@ -131,6 +131,7 @@ export default function ChatApp() {
             element: userElement,
             role: userRole,
             associated_id,
+            mentorName: userDoc.data().mentorName,
           };
           setCurrentUser(userData);
           // Ensure user is in their community

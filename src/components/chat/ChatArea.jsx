@@ -119,6 +119,7 @@ export default function ChatArea({
     }
     return undefined;
   };
+  console.log(currentUser.mentorName);
 
   // Handler to navigate participant to their mentor chat (create if not exists)
   const handleGoToMentorChat = async () => {
@@ -131,17 +132,41 @@ export default function ChatArea({
     let mentorUsername = null;
     try {
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("username", "==", currentUser.mentorName));
+      // Normalize the mentor name to handle Hebrew characters properly
+      const normalizedMentorName = currentUser.mentorName.trim();
+      
+      // Search for mentor by username or display name
+      const q = query(
+        usersRef,
+        where("role", "==", "metnor"),
+        where("username", "in", [normalizedMentorName, currentUser.mentorName])
+      );
+      
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
         const mentorDoc = snapshot.docs[0];
         mentorUid = mentorDoc.id;
         mentorUsername = mentorDoc.data().username;
       } else {
-        alert("לא נמצא משתמש מנטור עם שם זה. פנה למנהל המערכת.");
-        return;
+        // If not found by username, try searching by display name
+        const displayNameQuery = query(
+          usersRef,
+          where("role", "==", "metnor"),
+          where("displayName", "==", normalizedMentorName)
+        );
+        const displayNameSnapshot = await getDocs(displayNameQuery);
+        
+        if (!displayNameSnapshot.empty) {
+          const mentorDoc = displayNameSnapshot.docs[0];
+          mentorUid = mentorDoc.id;
+          mentorUsername = mentorDoc.data().username;
+        } else {
+          alert("לא נמצא משתמש מנטור עם שם זה. פנה למנהל המערכת.");
+          return;
+        }
       }
     } catch (err) {
+      console.error("Error finding mentor:", err);
       alert("שגיאה בחיפוש מנטור. נסה שוב.");
       return;
     }
@@ -191,7 +216,6 @@ export default function ChatArea({
       setIsCreatingMentorChat(false);
     }
   };
-  console.log(currentUser.role);
 
   return (
     <div className='flex-1 flex flex-col relative' dir="rtl">

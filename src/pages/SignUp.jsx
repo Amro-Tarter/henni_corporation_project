@@ -84,15 +84,10 @@ function Signup() {
   }
 
   if (!phoneRegex.test(phone)) {
-<<<<<<< HEAD
-   
-  toast.error({
-=======
     toast({
->>>>>>> main
       variant: "destructive",
       title: "שגיאה",
-      description: "מספר הטלפון חייב להכיל מספרים בלבד" ,
+      description: "מספר הטלפון חייב להכיל מספרים בלבד",
     });
     return;
   }

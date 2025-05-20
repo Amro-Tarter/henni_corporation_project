@@ -747,9 +747,9 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   }
 
   // Get partner UID and name
-  const partnerUid = conversation.participants.find((p) => p !== currentUser.uid);
   const partnerName = conversation.participantNames.find((name) => name !== currentUser.username) || 'Unknown';
   const partnerProfilePic = conversation.partnerProfilePic;
+  const mentorName = currentUser.mentorName;
 
   // All images sent in the conversation
   const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
@@ -788,20 +788,16 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         />
         <div className="font-semibold text-gray-800 text-lg mb-2" style={{ color: elementColors.primary }}>{partnerName}</div>
         <a
-          href={`/profile/${partnerUid}`}
+          href={`/profile/${partnerName}`}
           className="px-4 py-1 rounded transition"
           style={{ backgroundColor: elementColors.primary, color: elementColors.light }}
         >
           מעבר לפרופיל
         </a>
         <div className="text-gray-500 mt-1 text-sm">סוג האלמנט: {partnerElement || '...'} {ELEMENT_COLORS[partnerElement]?.icon}</div>
-        {/* Delete all messages button */}
-        <button
-          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition font-bold"
-          onClick={handleDeleteAllMessages}
-        >
-          מחק את כל ההודעות בצ׳אט
-        </button>
+        {partnerName === mentorName && (
+          <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
+        )}
       </div>
       {/* Images Gallery */}
       <div className="mb-4">
