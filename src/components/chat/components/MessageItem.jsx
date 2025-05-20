@@ -6,6 +6,102 @@ const DEFAULT_AVATAR = 'https://www.gravatar.com/avatar/?d=mp&f=y';
 
 // Format seconds as mm:ss
 const formatTime = (s) => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(Math.round(s%60)).padStart(2,'0')}`;
+const zoomLinkRegex = /(https?:\/\/(?:[\w-]+\.)?zoom\.us\/(?:j|my)\/[\w-]+(?:\?pwd=[\w-]+)?)/g;
+
+// Function to identify and format links and Zoom links in the message
+const formatMessageText = (text, elementColors, isOwn) => {
+  if (!text) return '';
+
+  // Regex to match all URLs
+  const urlRegex = /(https?:\/\/[\w\-._~:/?#[\]@!$&'()*+,;=%]+)(?=\s|$)/g;
+  // Regex to match Zoom meeting links
+  const zoomLinkRegex = /https?:\/\/(?:[\w-]+\.)?zoom\.us\/(?:j|my)\/[\w-]+(?:\?pwd=[\w-]+)?/;
+
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = urlRegex.exec(text)) !== null) {
+    // Push preceding text
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const url = match[0];
+    if (zoomLinkRegex.test(url)) {
+      // Zoom meeting button
+      parts.push(
+        <a
+          key={url + match.index}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={isOwn ? {
+            backgroundColor: elementColors.light,
+            color: elementColors.primary,
+            borderRadius: '0.75rem',
+            padding: '0.375rem 0.75rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontWeight: 500,
+            margin: '0 0.25rem',
+            transition: 'background 0.2s',
+          } : {
+            backgroundColor: elementColors.primary,
+            color: elementColors.light,
+            borderRadius: '0.75rem',
+            padding: '0.375rem 0.75rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontWeight: 500,
+            margin: '0 0.25rem',
+            transition: 'background 0.2s',
+          }}
+          onMouseOver={e => e.currentTarget.style.backgroundColor = elementColors.hover}
+          onMouseOut={e => e.currentTarget.style.backgroundColor = isOwn ? elementColors.light : elementColors.primary}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isOwn ? elementColors.primary : elementColors.light} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 7l-7 5 7 5V7z"/>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          </svg>
+          הצטרף לפגישה
+        </a>
+      );
+    } else {
+      // Regular link
+      parts.push(
+        <a
+          key={url + match.index}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={isOwn ? {
+            color: elementColors.light,
+            textDecoration: 'underline',
+            margin: '0 0.25rem',
+            transition: 'color 0.2s',
+          } : {
+            color: elementColors.primary,
+            textDecoration: 'underline',
+            margin: '0 0.25rem',
+            transition: 'color 0.2s',
+          }}
+          onMouseOver={e => e.currentTarget.style.color = elementColors.hover}
+          onMouseOut={e => e.currentTarget.style.color = isOwn ? elementColors.light : elementColors.primary}
+        >
+          {url}
+        </a>
+      );
+    }
+    lastIndex = match.index + url.length;
+  }
+  // Push any remaining text
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return parts;
+};
 
 const MessageItem = ({
   message,
@@ -64,10 +160,10 @@ const MessageItem = ({
             className="px-4 py-2 rounded-full bg-gray-100 text-gray-600 italic text-center shadow-sm"
             style={{ fontSize: '1rem', lineHeight: 1.5 }}
           >
-            {message.text}
+            {formatMessageText(message.text, elementColors, isOwn)}
           </div>
           <div className="text-xs mt-1 text-gray-400" style={{ fontSize: '0.75rem' }}>
-            {formatMessageTime(message.createdAt)}
+            {formattedTime}
           </div>
         </div>
       </div>
@@ -204,8 +300,6 @@ const MessageItem = ({
                 className="flex-1 min-w-0"
                 style={{ background: 'transparent', borderRadius: 8, outline: 'none' }}
               />
-              {/* Show total duration if available */}
-              
             </div>
           )}
 
@@ -237,11 +331,12 @@ const MessageItem = ({
               }}
               dir={getDirection(message.text)}
             >
-              <span className={`relative ${isOwn ? 'text-white' : 'text-gray-800'}`}>
-                {message.text}
-              </span>
+              <div className={`relative ${isOwn ? 'text-white' : 'text-gray-800'}`}>
+                {formatMessageText(message.text, elementColors, isOwn)}
+              </div>
             </div>
           )}
+
 
           {/* Timestamp and Duration on the same line, different sides */}
           {message.duration > 0 ? (

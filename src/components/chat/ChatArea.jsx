@@ -119,7 +119,6 @@ export default function ChatArea({
     }
     return undefined;
   };
-  console.log(currentUser.mentorName);
 
   // Handler to navigate participant to their mentor chat (create if not exists)
   const handleGoToMentorChat = async () => {
@@ -138,7 +137,7 @@ export default function ChatArea({
       // Search for mentor by username or display name
       const q = query(
         usersRef,
-        where("role", "==", "metnor"),
+        where("role", "==", "mentor"),
         where("username", "in", [normalizedMentorName, currentUser.mentorName])
       );
       
@@ -151,7 +150,7 @@ export default function ChatArea({
         // If not found by username, try searching by display name
         const displayNameQuery = query(
           usersRef,
-          where("role", "==", "metnor"),
+          where("role", "==", "mentor"),
           where("displayName", "==", normalizedMentorName)
         );
         const displayNameSnapshot = await getDocs(displayNameQuery);
@@ -240,6 +239,9 @@ export default function ChatArea({
                   : undefined
             }
             onInfoClick={() => setShowInfoSidebar(true)}
+            mentorName={currentUser.mentorName}
+            currentUser={currentUser}
+            
           />
           <ChatInfoSidebar
             open={showInfoSidebar}
