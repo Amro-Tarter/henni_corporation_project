@@ -10,6 +10,7 @@ import Footer from '../components/layout/Footer';
 import Gallery from '@/components/home/Gallery';
 import AboutSection from '../components/home/AboutSection';
 import MusicPlayer from '../components/MusicPlayer';
+import ScrollDown from '../components/ui/ScrollDown';
 
 const fadeInUp = {
   initial: { opacity: 0, y: 20 },
@@ -29,6 +30,7 @@ const HomePage = () => {
     <div className="min-h-screen bg-gradient-to-b from-orange-50 via-rose-50 to-yellow-100" dir="rtl">
       <Navigation />
       <Hero />
+      <ScrollDown targetId="about-section" offset={100} hideOnScroll={true} position="bottom-center" className="mb-4" style="pulsing" />
       <AboutSection/>
       <main className="relative overflow-hidden">
         <FloatingElements />

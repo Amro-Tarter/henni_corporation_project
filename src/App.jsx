@@ -23,6 +23,7 @@ import CommunityPage from './pages/CommunityPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Team from './pages/Team';
 import NewsletterPage from './pages/NewsletterPage';
+import ScrollDown from './components/ui/ScrollDown';
 
 const queryClient = new QueryClient();
 
