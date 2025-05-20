@@ -1,9 +1,9 @@
 // src/components/social/Rightsidebar.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  Search, Bell, Home, MessageSquare, Settings, User, LogOut,
+  Search, Bell, Home, MessageSquare, Settings, User, LogOut, X
 } from 'lucide-react';
-import { collection, query, where, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -23,13 +23,16 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef(null);
   const navigate = useNavigate();
   const user = auth.currentUser;
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
-        const profileRef = doc(db, 'profiles', user.uid);
+        const profileRef = firestoreDoc(db, 'profiles', user.uid);
         const profileSnap = await getDoc(profileRef);
         if (profileSnap.exists()) {
           const userData = profileSnap.data();
@@ -81,20 +84,87 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   useEffect(() => {
     if (!user) return;
 
-    const q = query(
+    // Query for conversations with unread messages
+    const conversationsQuery = query(
       collection(db, 'conversations'),
       where('participants', 'array-contains', user.uid)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      let totalUnread = 0;
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.unread && data.unread[user.uid]) {
-          totalUnread += data.unread[user.uid];
+    const unsubscribe = onSnapshot(conversationsQuery, async (snapshot) => {
+      try {
+        const notificationList = [];
+        let totalUnread = 0;
+
+        for (const conversationDoc of snapshot.docs) {
+          const conversation = conversationDoc.data();
+          if (conversation.unread && conversation.unread[user.uid]) {
+            const unreadCount = conversation.unread[user.uid];
+            totalUnread += unreadCount;
+
+            try {
+              // Get the last message
+              const messagesQuery = query(
+                collection(db, 'conversations', conversationDoc.id, 'messages'),
+                orderBy('createdAt', 'desc'),
+                limit(1)
+              );
+              
+              const messagesSnapshot = await getDocs(messagesQuery);
+              if (!messagesSnapshot.empty) {
+                const lastMessage = messagesSnapshot.docs[0].data();
+                
+                // Get the sender's profile
+                const senderId = lastMessage.sender;
+                const senderProfileRef = firestoreDoc(db, 'profiles', senderId);
+                const senderProfile = await getDoc(senderProfileRef);
+                const senderData = senderProfile.exists() ? senderProfile.data() : null;
+
+                // Get conversation name/type
+                let conversationName = '';
+                if (conversation.type === 'direct') {
+                  conversationName = senderData?.username || 'Unknown User';
+                } else if (conversation.type === 'group') {
+                  conversationName = conversation.groupName || 'Group Chat';
+                } else if (conversation.type === 'community') {
+                  conversationName = conversation.element || 'Community';
+                }
+
+                notificationList.push({
+                  id: conversationDoc.id,
+                  type: 'message',
+                  message: `${conversationName}: ${lastMessage.text || 'Sent a message'}`,
+                  timestamp: lastMessage.createdAt,
+                  conversationId: conversationDoc.id,
+                  unreadCount: unreadCount,
+                  conversationType: conversation.type
+                });
+              }
+            } catch (error) {
+              console.error('Error fetching message details:', error);
+              // Continue with other conversations even if one fails
+              continue;
+            }
+          }
         }
-      });
-      setUnreadCount(totalUnread);
+
+        // Sort notifications by timestamp
+        notificationList.sort((a, b) => {
+          const timeA = a.timestamp?.toMillis?.() || 0;
+          const timeB = b.timestamp?.toMillis?.() || 0;
+          return timeB - timeA;
+        });
+        
+        setNotifications(notificationList);
+        setUnreadCount(totalUnread);
+      } catch (error) {
+        console.error('Error processing notifications:', error);
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    }, (error) => {
+      console.error('Error in notifications listener:', error);
+      setNotifications([]);
+      setUnreadCount(0);
     });
 
     return () => unsubscribe();
@@ -129,6 +199,13 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const handleProfileClick = () => {
     if (user && userProfile?.username) {
       navigate(`/profile/${userProfile.username}`);
+    }
+  };
+
+  const handleNotificationClick = (notification) => {
+    if (notification.type === 'message') {
+      setShowNotifications(false);
+      navigate(`/chat/${notification.conversationId}`);
     }
   };
 
@@ -229,14 +306,14 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         ))}
       </nav>
 
-      <div className={`pb-6 space-y-2 ${isExpanded ? 'px-4' : 'px-2'}`}>
+      <div className={`pb-6 space-y-2 ${isExpanded ? 'px-4' : 'px-2'} relative`}>
         <motion.button
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.96 }}
           transition={{ duration: 0.15 }}
-          onClick={() => navigate('/notifications')}
+          onClick={() => setShowNotifications(!showNotifications)}
           className={`flex items-center gap-3 rounded-md px-3 py-2 w-full text-${element} hover:bg-${element}-soft transition-colors duration-200 ${
-            activeTab === 'notifications' ? `bg-${element} text-white` : ''
+            showNotifications ? `bg-${element} text-white` : ''
           }`}
         >
           <span className="relative">
@@ -256,6 +333,53 @@ const Rightsidebar = ({ element, onExpandChange }) => {
             </span>
           )}
         </motion.button>
+
+        {/* Notification Popup */}
+        {showNotifications && (
+          <div
+            ref={notificationRef}
+            className="absolute bottom-full right-0 mb-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-96 overflow-y-auto"
+          >
+            <div className="p-3 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10">
+              <h3 className="font-semibold text-gray-800">התראות</h3>
+              <button
+                onClick={() => setShowNotifications(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="divide-y divide-gray-100">
+              {notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification)}
+                    className="p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-800">{notification.message}</p>
+                        <span className="text-xs text-gray-500 mt-1 block">
+                          {notification.timestamp?.toDate().toLocaleString('he-IL')}
+                        </span>
+                      </div>
+                      {notification.unreadCount > 0 && (
+                        <span className="ml-2 rounded-full bg-red-500 text-white px-2 py-0.5 text-xs">
+                          {notification.unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 text-center text-gray-500">
+                  אין התראות חדשות
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <motion.button
           whileHover={{ scale: 1.04 }}
