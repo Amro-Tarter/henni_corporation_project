@@ -309,19 +309,6 @@ const AboutSection = () => {
           </a>
         </motion.div>
 
-        {/* Regional Impact Note */}
-        <motion.div
-          className="mt-16 md:mt-20 bg-orange-100 border-r-8 border-orange-400 rounded-xl p-4 md:p-6 shadow-lg text-gray-800 text-base md:text-lg leading-relaxed"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeSlideUp}
-        >
-          <p>
-            פעילותינו נפרשת מצפון ועד דרום – מחדרה ועד גדרה – ומקיפה מגזרים שונים. כל משתתף זוכה לליווי אישי של מנטור מקצועי אחת לשלושה שבועות בזום, וכן לתמיכה גם לבני המשפחה המלווים את התהליך היצירתי מקרוב.
-          </p>
-        </motion.div>
-
         {/* Featured Team Members Preview Section */}
         <motion.div
           className="mt-20 text-center"

@@ -224,7 +224,7 @@ const MusicPlayer = () => {
             ) : isPlaying ? (
               <Pause className="w-6 h-6 text-white" />
             ) : (
-              <Play className="w-6 h-6 text-white" />
+              <Music className="w-6 h-6 text-white" />
             )}
           </motion.button>
 

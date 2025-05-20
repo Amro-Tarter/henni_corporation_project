@@ -256,7 +256,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       <div
         className={`fixed left-0 top-16 mt-0.5 bottom-0
           w-80 max-w-full sm:w-96 sm:max-w-md
-          shadow-2xl z-50 flex flex-col p-6 pt-16 border-r overflow-y-auto
+          shadow-2xl z-40 flex flex-col p-6 pt-16 border-r overflow-y-auto
           transition-all duration-300
           ${shouldShow ? 'translate-x-0' : '-translate-x-full'}
           `}
@@ -488,7 +488,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       <div
         className={`fixed left-0 top-16 mt-0.5 bottom-0
           w-80 max-w-full sm:w-96 sm:max-w-md
-          shadow-2xl z-50 flex flex-col p-6 pt-16 border-r overflow-y-auto
+          shadow-2xl z-40 flex flex-col p-6 pt-16 border-r overflow-y-auto
           transition-all duration-300
           ${shouldShow ? 'translate-x-0' : '-translate-x-full'}
           `}
@@ -759,7 +759,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     <div 
       className={`fixed left-0 top-16 mt-0.5 bottom-0
         w-80 max-w-full sm:w-96 sm:max-w-md
-        shadow-2xl z-50 flex flex-col p-6 pt-16 border-r overflow-y-auto
+        shadow-2xl z-40 flex flex-col p-6 pt-16 border-r overflow-y-auto
         transition-all duration-300
         ${shouldShow ? 'translate-x-0' : '-translate-x-full'}
         `}

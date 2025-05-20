@@ -14,7 +14,11 @@ import {
 import './auth.css';
 import { Eye, EyeOff } from "lucide-react"; // optional if using Lucide
 import { collection, query, where, getDocs } from "firebase/firestore";
+<<<<<<< HEAD
 import { toast } from 'sonner'
+=======
+import { toast } from "../components/ui/sonner";
+>>>>>>> eac82b96236badb72ea38ccddc4b66b129b54216
 
 function Signup() {
   const [email, setEmail] = useState("");
@@ -78,10 +82,19 @@ function Signup() {
   }
 
   if (!phoneRegex.test(phone)) {
+<<<<<<< HEAD
    
      toast.error("מספר הטלפון אינו מתאים")
       return
 
+=======
+    toast({
+      variant: "destructive",
+      title: "שגיאה",
+      description: "מספר הטלפון חייב להכיל מספרים בלבד" ,
+    });
+    return;
+>>>>>>> eac82b96236badb72ea38ccddc4b66b129b54216
   }
 
   if (password !== confirmPassword) {
