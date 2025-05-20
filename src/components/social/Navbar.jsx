@@ -193,7 +193,7 @@ const Navbar = ({ element }) => {
   }, [user]);
 
   return (
-    <header dir="rtl" className={`fixed top-0 left-0 w-full bg-${element} backdrop-blur-md shadow-md border-b border-${element}-accent z-50`}>
+    <header dir="rtl" className={`fixed top-0 left-0 w-full bg-red-900 backdrop-blur-md shadow-md border-b border-${element}-accent z-50`}>
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
         <nav className="flex flex-row-reverse items-center gap-6">
           {navTabs.map((tab) => (
@@ -202,8 +202,8 @@ const Navbar = ({ element }) => {
               onClick={() => handleTabClick(tab.id, tab.href)}
               className={`group flex items-center gap-2 px-3 py-2 rounded-md text-white text-base transition-all duration-200 transform ${
                 activeTab === tab.id
-                  ? `bg-${element}-accent font-semibold`
-                  : `hover:bg-${element}-accent`
+                  ? `bg-orange-700 font-semibold`
+                  : `hover:bg-red-500`
               }`}
             >
               <motion.div

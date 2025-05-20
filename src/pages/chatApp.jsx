@@ -123,10 +123,15 @@ export default function ChatApp() {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           const userElement = userDoc.data().element;
+          const userRole = userDoc.data().role;
+          const associated_id = userDoc.data().associated_id;
           const userData = {
             uid: user.uid,
             username: userDoc.data().username,
-            element: userElement
+            element: userElement,
+            role: userRole,
+            associated_id,
+            mentorName: userDoc.data().mentorName,
           };
           setCurrentUser(userData);
           // Ensure user is in their community
@@ -723,7 +728,7 @@ export default function ChatApp() {
         >
           מחק את כל הצ'אטים (אדמין)
         </button>
-        */}
+        */} 
       <ThemeProvider element={userElement}>
         <Navbar element={userElement}/>
       </ThemeProvider>

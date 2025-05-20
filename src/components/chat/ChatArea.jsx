@@ -7,9 +7,10 @@ import MessageLoadingState from './components/MessageLoadingState';
 import { useChatScroll } from './hooks/useChatScroll';
 import { useEmojiPicker } from './hooks/useEmojiPicker';
 import ChatInfoSidebar from './ChatIntoSidebar';
-import { doc } from 'firebase/firestore';
+import { doc, collection, serverTimestamp, writeBatch, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
+import { useNavigate } from "react-router-dom";
 
 /**
  * ChatArea is the main chat window, displaying messages and input.
@@ -54,6 +55,8 @@ export default function ChatArea({
     stopRecording,
     resetRecording,
   } = useVoiceRecorder();
+  const navigate = useNavigate();
+  const [isCreatingMentorChat, setIsCreatingMentorChat] = useState(false);
 
   // Show scroll-to-bottom button if user scrolls up too far
   useEffect(() => {
@@ -115,6 +118,103 @@ export default function ChatArea({
       return selectedConversation.partnerProfilePic || null;
     }
     return undefined;
+  };
+  console.log(currentUser.mentorName);
+
+  // Handler to navigate participant to their mentor chat (create if not exists)
+  const handleGoToMentorChat = async () => {
+    if (!currentUser?.mentorName || !currentUser?.uid) {
+      alert("לא מוגדר שם מנטור בפרופיל שלך. פנה למנהל המערכת.");
+      return;
+    }
+    // Find mentor by username (mentorName)
+    let mentorUid = null;
+    let mentorUsername = null;
+    try {
+      const usersRef = collection(db, "users");
+      // Normalize the mentor name to handle Hebrew characters properly
+      const normalizedMentorName = currentUser.mentorName.trim();
+      
+      // Search for mentor by username or display name
+      const q = query(
+        usersRef,
+        where("role", "==", "metnor"),
+        where("username", "in", [normalizedMentorName, currentUser.mentorName])
+      );
+      
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const mentorDoc = snapshot.docs[0];
+        mentorUid = mentorDoc.id;
+        mentorUsername = mentorDoc.data().username;
+      } else {
+        // If not found by username, try searching by display name
+        const displayNameQuery = query(
+          usersRef,
+          where("role", "==", "metnor"),
+          where("displayName", "==", normalizedMentorName)
+        );
+        const displayNameSnapshot = await getDocs(displayNameQuery);
+        
+        if (!displayNameSnapshot.empty) {
+          const mentorDoc = displayNameSnapshot.docs[0];
+          mentorUid = mentorDoc.id;
+          mentorUsername = mentorDoc.data().username;
+        } else {
+          alert("לא נמצא משתמש מנטור עם שם זה. פנה למנהל המערכת.");
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error finding mentor:", err);
+      alert("שגיאה בחיפוש מנטור. נסה שוב.");
+      return;
+    }
+    // Find direct conversation with mentor
+    const mentorConversation = conversations?.find(
+      (conv) =>
+        conv.type === "direct" &&
+        Array.isArray(conv.participants) &&
+        conv.participants.includes(currentUser.uid) &&
+        conv.participants.includes(mentorUid)
+    );
+    if (mentorConversation) {
+      setSelectedConversation(mentorConversation);
+      navigate(`/chat/${mentorConversation.id}`);
+      return;
+    }
+    // If not found, create it
+    setIsCreatingMentorChat(true);
+    try {
+      const participants = [currentUser.uid, mentorUid].sort();
+      const participantNames = [currentUser.username, mentorUsername];
+      const unread = {};
+      participants.forEach(uid => { unread[uid] = 0; });
+      // Create conversation
+      const convoRef = doc(collection(db, "conversations"));
+      const convoData = {
+        participants,
+        participantNames,
+        type: "direct",
+        lastMessage: "",
+        lastUpdated: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        unread,
+      };
+      await setDoc(convoRef, convoData);
+      // Fetch the new conversation
+      const newConvo = await getDoc(convoRef);
+      if (newConvo.exists()) {
+        setSelectedConversation({ id: newConvo.id, ...newConvo.data() });
+        navigate(`/chat/${newConvo.id}`);
+      } else {
+        alert("שגיאה ביצירת צ'אט עם המנטור. נסה שוב.");
+      }
+    } catch (err) {
+      alert("שגיאה ביצירת צ'אט עם המנטור. נסה שוב.");
+    } finally {
+      setIsCreatingMentorChat(false);
+    }
   };
 
   return (
@@ -275,7 +375,18 @@ export default function ChatArea({
         <div className="flex-1 flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צ'אט או התחל שיחה חדשה</h3>
-            <p className="text-gray-500">לחץ על הכפתור + כדי להתחיל צ'אט חדש</p>
+            <p className="text-gray-500">או לחץ על הכפתור </p>
+            {console.log(currentUser)}
+            {currentUser?.role === "participant" ? (
+              <button
+                className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300"
+                style={{ backgroundColor: elementColors.primary }}
+                onClick={handleGoToMentorChat}
+                disabled={isCreatingMentorChat}
+              >
+                {isCreatingMentorChat ? "פותח צ'אט..." : "ובוא נדבר"}
+              </button>
+            ) : null}
           </div>
         </div>
       )}
