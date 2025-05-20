@@ -51,6 +51,7 @@ export default function ConversationList({
         ) : (
           visibleConversations.map((conv) => {
             const isSelected = selectedConversation?.id === conv.id;
+            const mentorName = currentUser.mentorName;
             let avatar = null;
             if (conv.type === 'community') {
               const icon = elementColorsMap[conv.element]?.icon;
@@ -79,6 +80,15 @@ export default function ConversationList({
               );
             }
             const bgColorStyle = isSelected ? { backgroundColor: elementColorsMap[currentUser?.element]?.light || '#f5f5f5' } : {};
+            let partnerName = getChatPartner(
+              conv.participants,
+              conv.type,
+              conv.element,
+              currentUser,
+              undefined,
+              conv.type === 'group' ? conv.groupName : 'undefined'
+            );
+            console.log(partnerName);
             return (
               <div
                 key={conv.id}
@@ -89,6 +99,7 @@ export default function ConversationList({
                 className={`p-3 rounded-md border-b border-gray-100 cursor-pointer hover:bg-gray-50 text-right mx-auto mb-2 w-full max-w-full flex items-center gap-3`}
                 style={bgColorStyle}
               >
+
                 {avatar}
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-gray-900 truncate flex items-center gap-2">
@@ -100,6 +111,9 @@ export default function ConversationList({
                       undefined,
                       conv.type === 'group' ? conv.groupName : 'undefined'
                     )}
+                    {partnerName === mentorName && (
+          <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
+        )}
                     {/* Unread badge */}
                     {conv.unread?.[currentUser.uid] > 0 && (
                       <span

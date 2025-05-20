@@ -119,7 +119,6 @@ export default function ChatArea({
     }
     return undefined;
   };
-  console.log(currentUser.mentorName);
 
   // Handler to navigate participant to their mentor chat (create if not exists)
   const handleGoToMentorChat = async () => {
@@ -240,6 +239,7 @@ export default function ChatArea({
                   : undefined
             }
             onInfoClick={() => setShowInfoSidebar(true)}
+            mentorName={currentUser.mentorName}
           />
           <ChatInfoSidebar
             open={showInfoSidebar}
