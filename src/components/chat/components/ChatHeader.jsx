@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * ChatHeader displays the name of the chat partner or community.
  */
-const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName }) => {
+const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, currentUser }) => {
   const handleVideoCall = () => {
     // Open Zoom meeting link in a new tab
     window.open('https://zoom.us/start', '_blank');
@@ -19,10 +19,10 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName }) 
         <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-xl text-gray-400">👤</span>
       )}
       <h3 className="font-bold text-lg text-gray-900">{chatTitle}</h3>
-      {mentorName === chatTitle && (
+      {chatTitle === mentorName && (
         <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
       )}
-      {mentorName === chatTitle && (
+      {currentUser.role === 'mentor' && currentUser.mentorName === chatTitle && (
         <button
           onClick={handleVideoCall}
           className="ml-2 p-2 rounded-full hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-300"

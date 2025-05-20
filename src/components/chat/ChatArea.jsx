@@ -240,6 +240,7 @@ export default function ChatArea({
             }
             onInfoClick={() => setShowInfoSidebar(true)}
             mentorName={currentUser.mentorName}
+            currentUser={currentUser}
           />
           <ChatInfoSidebar
             open={showInfoSidebar}
