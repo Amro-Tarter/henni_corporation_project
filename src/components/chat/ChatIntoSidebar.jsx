@@ -415,6 +415,22 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           type: "system",
           createdAt: serverTimestamp(),
         });
+        // System message for the added user
+        await addDoc(collection(db, "conversations", conversation.id, "messages"), {
+          text: `${currentUser.username} הוסיף אותך לקבוצה (${groupName})`,
+          type: "system",
+          createdAt: serverTimestamp(),
+        });
+        // Update unread for all participants except the actor
+        const groupSnap = await getDoc(groupRef);
+        const groupData = groupSnap.data();
+        const unreadUpdate = {};
+        (groupData.participants || []).forEach(uid => {
+          if (uid !== currentUser.uid) {
+            unreadUpdate[`unread.${uid}`] = (groupData.unread?.[uid] || 0) + 1;
+          }
+        });
+        await updateDoc(groupRef, unreadUpdate);
         setAddUserSearch("");
         setAddUserResults([]);
         window.toast && window.toast.success && window.toast.success(`המשתמש ${user.username} נוסף בהצלחה!`);
@@ -433,6 +449,17 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         const groupRef = doc(db, "conversations", conversation.id);
         const userDoc = await getDoc(doc(db, "users", uid));
         const latestUsername = userDoc.exists() ? userDoc.data().username : username;
+        // System message for the kicked user (before removal)
+        await addDoc(collection(db, "conversations", conversation.id, "messages"), {
+          text: `${currentUser.username} הסיר אותך מהקבוצה (${groupName})`,
+          type: "system",
+          createdAt: serverTimestamp(),
+        });
+        // Set unread for the kicked user for their personal message (before removal)
+        const kickedUserUnread = {};
+        kickedUserUnread[`unread.${uid}`] = 1;
+        await updateDoc(groupRef, kickedUserUnread);
+        // Now remove the user from participants and participantNames
         await updateDoc(groupRef, {
           participants: arrayRemove(uid),
           participantNames: arrayRemove(latestUsername)
@@ -448,6 +475,16 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           type: "system",
           createdAt: serverTimestamp(),
         });
+        // Update unread for all remaining participants except the actor
+        const groupSnap = await getDoc(groupRef);
+        const groupData = groupSnap.data();
+        const unreadUpdate = {};
+        (groupData.participants || []).forEach(uid2 => {
+          if (uid2 !== currentUser.uid) {
+            unreadUpdate[`unread.${uid2}`] = (groupData.unread?.[uid2] || 0) + 1;
+          }
+        });
+        await updateDoc(groupRef, unreadUpdate);
         window.toast && window.toast.success && window.toast.success(`המשתמש ${latestUsername} הוסר בהצלחה!`);
       } catch (e) {
         alert("שגיאה בהרחקת משתמש: " + e.message);
@@ -475,6 +512,16 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           type: "system",
           createdAt: serverTimestamp(),
         });
+        // Update unread for all remaining participants except the actor
+        const groupSnap = await getDoc(groupRef);
+        const groupData = groupSnap.data();
+        const unreadUpdate = {};
+        (groupData.participants || []).forEach(uid => {
+          if (uid !== currentUser.uid) {
+            unreadUpdate[`unread.${uid}`] = (groupData.unread?.[uid] || 0) + 1;
+          }
+        });
+        await updateDoc(groupRef, unreadUpdate);
         window.toast && window.toast.success && window.toast.success('עזבת את הקבוצה בהצלחה!');
         // Optionally close sidebar or redirect
         onClose && onClose();

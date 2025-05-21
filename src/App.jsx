@@ -40,11 +40,7 @@ const App = () => (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-<<<<<<< HEAD
-          <Toaster />
-=======
           <Sonner />
->>>>>>> eac82b96236badb72ea38ccddc4b66b129b54216
           <BrowserRouter>
             <Routes>
               {/* Public Pages */}

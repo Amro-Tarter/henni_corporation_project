@@ -66,10 +66,13 @@ const NotificationsComponent = () => {
                     id: doc.id,
                     ...doc.data()
                   }))
-                  .filter(msg => msg.sender !== user.uid)
+                  .filter(msg => 
+                    (msg.type === 'message' && msg.sender !== user.uid) ||
+                    (msg.type === 'system')
+                  )
                   .slice(0, unreadCount);
 
-                const senderIds = [...new Set(messages.map(msg => msg.sender))];
+                const senderIds = [...new Set(messages.filter(msg => msg.type === 'message').map(msg => msg.sender))];
                 const senderDocs = await Promise.all(
                   senderIds.map(id => getDoc(firestoreDoc(db, 'users', id)))
                 );
@@ -81,19 +84,28 @@ const NotificationsComponent = () => {
                 );
 
                 for (const message of messages) {
-                  let displayName = senderNames[message.sender];
-                  
-                  if (conversation.type === 'group' || conversation.type === 'community') {
-                    displayName = `${displayName} (${conversationName})`;
+                  let displayName;
+                  let senderId;
+                  let notificationType = message.type;
+
+                  if (message.type === 'system') {
+                    displayName = 'מערכת'; // System in Hebrew
+                    senderId = 'system';
+                  } else {
+                    displayName = senderNames[message.sender];
+                    senderId = message.sender;
+                    if (conversation.type === 'group' || conversation.type === 'community') {
+                      displayName = `${displayName} (${conversationName})`;
+                    }
                   }
 
                   notificationList.push({
                     id: `${conversationDoc.id}_${message.id}`,
-                    type: 'message',
-                    message: message.text || 'Sent a message',
+                    type: notificationType,
+                    message: message.text || (message.type === 'system' ? 'System event' : 'Sent a message'),
                     timestamp: message.createdAt,
                     conversationId: conversationDoc.id,
-                    senderId: message.sender,
+                    senderId: senderId,
                     senderName: displayName,
                     conversationName: conversationName,
                     unreadCount: 1,
@@ -315,15 +327,21 @@ const NotificationsComponent = () => {
                     className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors flex items-start gap-4 ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className="flex-shrink-0">
-                      <img
-                        src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
-                        alt="Profile"
-                        className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = 'https://ui-avatars.com/api/?name=User&background=random';
-                        }}
-                      />
+                      {notification.type === 'system' ? (
+                        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 border-2 border-gray-200 text-gray-600 text-2xl font-bold">
+                          ⚙️
+                        </div>
+                      ) : (
+                        <img
+                          src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
+                          alt="Profile"
+                          className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = 'https://ui-avatars.com/api/?name=User&background=random';
+                          }}
+                        />
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
