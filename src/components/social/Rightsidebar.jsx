@@ -7,7 +7,7 @@ import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnaps
 import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import NotificationButton from './NotificationButton';
+import NotificationsComponent from './NotificationsComponent';
 
 const tabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', route: '/home' },
@@ -23,15 +23,14 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const notificationRef = useRef(null);
   const navigate = useNavigate();
   const user = auth.currentUser;
 
   // Add state for profile pictures
   const [profilePictures, setProfilePictures] = useState({});
+  
+  // Use NotificationsComponent directly
+  const { showNotifications, setShowNotifications, unreadCount, NotificationsModal } = NotificationsComponent();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -85,206 +84,6 @@ const Rightsidebar = ({ element, onExpandChange }) => {
     }
   }, [isExpanded, onExpandChange]);
 
-  useEffect(() => {
-    if (!user) return;
-
-    const conversationsQuery = query(
-      collection(db, 'conversations'),
-      where('participants', 'array-contains', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(conversationsQuery, async (snapshot) => {
-      try {
-        const notificationList = [];
-        let totalUnread = 0;
-
-        for (const conversationDoc of snapshot.docs) {
-          const conversation = conversationDoc.data();
-          
-          // Handle group addition notification
-          if (conversation.type === 'group') {
-            const groupRef = firestoreDoc(db, 'conversations', conversationDoc.id);
-            const groupDoc = await getDoc(groupRef);
-            const groupData = groupDoc.data();
-            
-            // Check if user was recently added to the group
-            if (groupData && groupData.participants?.includes(user.uid) && 
-                groupData.lastUpdated && 
-                groupData.lastUpdated.toDate() > new Date(Date.now() - 24 * 60 * 60 * 1000)) { // Within last 24 hours
-              const adminDoc = await getDoc(firestoreDoc(db, 'users', groupData.admin));
-              const adminName = adminDoc.exists() ? adminDoc.data().username : 'Unknown';
-              
-              notificationList.push({
-                id: `${conversationDoc.id}_added`,
-                type: 'group_added',
-                message: `הוספת אותך לקבוצה ${groupData.groupName || 'קבוצה חדשה'}`,
-                timestamp: groupData.lastUpdated || groupData.createdAt,
-                conversationId: conversationDoc.id,
-                senderId: groupData.admin,
-                senderName: adminName,
-                conversationName: groupData.groupName,
-                unreadCount: 1,
-                conversationType: 'group'
-              });
-              totalUnread++;
-            }
-          }
-
-          // Handle unread messages
-          if (conversation.unread && conversation.unread[user.uid] > 0) {
-            const unreadCount = conversation.unread[user.uid];
-            totalUnread += unreadCount;
-
-            try {
-              const messagesQuery = query(
-                collection(db, 'conversations', conversationDoc.id, 'messages'),
-                orderBy('createdAt', 'desc')
-              );
-              
-              const messagesSnapshot = await getDocs(messagesQuery);
-              if (!messagesSnapshot.empty) {
-                let conversationName = '';
-                
-                if (conversation.type === 'direct') {
-                  const partnerUid = conversation.participants.find(p => p !== user.uid);
-                  const partnerDoc = await getDoc(firestoreDoc(db, 'users', partnerUid));
-                  conversationName = partnerDoc.exists() ? partnerDoc.data().username : 'Unknown';
-                } else if (conversation.type === 'group') {
-                  conversationName = conversation.groupName || 'קבוצה';
-                } else if (conversation.type === 'community') {
-                  conversationName = conversation.element || 'קהילה';
-                }
-
-                const messages = messagesSnapshot.docs
-                  .map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                  }))
-                  .filter(msg => msg.sender !== user.uid)
-                  .slice(0, unreadCount);
-
-                const senderIds = [...new Set(messages.map(msg => msg.sender))];
-                const senderDocs = await Promise.all(
-                  senderIds.map(id => getDoc(firestoreDoc(db, 'users', id)))
-                );
-                const senderNames = Object.fromEntries(
-                  senderIds.map((id, index) => [
-                    id,
-                    senderDocs[index].exists() ? senderDocs[index].data().username : 'Unknown'
-                  ])
-                );
-
-                for (const message of messages) {
-                  let displayName = senderNames[message.sender];
-                  
-                  if (conversation.type === 'group' || conversation.type === 'community') {
-                    displayName = `${displayName} (${conversationName})`;
-                  }
-
-                  notificationList.push({
-                    id: `${conversationDoc.id}_${message.id}`,
-                    type: 'message',
-                    message: message.text || 'Sent a message',
-                    timestamp: message.createdAt,
-                    conversationId: conversationDoc.id,
-                    senderId: message.sender,
-                    senderName: displayName,
-                    conversationName: conversationName,
-                    unreadCount: 1,
-                    conversationType: conversation.type
-                  });
-                }
-              }
-            } catch (error) {
-              console.error('Error fetching message details:', error);
-              continue;
-            }
-          }
-        }
-
-        notificationList.sort((a, b) => {
-          const timeA = a.timestamp?.toMillis?.() || 0;
-          const timeB = b.timestamp?.toMillis?.() || 0;
-          return timeB - timeA;
-        });
-        
-        setNotifications(notificationList);
-        setUnreadCount(totalUnread);
-      } catch (error) {
-        console.error('Error processing notifications:', error);
-        setNotifications([]);
-        setUnreadCount(0);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // Add effect to fetch profile pictures
-  useEffect(() => {
-    const fetchProfilePictures = async () => {
-      const pictures = {};
-      for (const notification of notifications) {
-        if (notification.type === 'message') {
-          try {
-            const senderProfileRef = firestoreDoc(db, 'profiles', notification.senderId);
-            const senderProfile = await getDoc(senderProfileRef);
-            if (senderProfile.exists()) {
-              pictures[notification.senderId] = senderProfile.data().photoURL;
-            }
-          } catch (error) {
-            console.error('Error fetching profile picture:', error);
-          }
-        }
-      }
-      setProfilePictures(pictures);
-    };
-
-    if (notifications.length > 0) {
-      fetchProfilePictures();
-    }
-  }, [notifications]);
-
-  // Add effect to handle body scroll lock
-  useEffect(() => {
-    if (showNotifications) {
-      // Save current scroll position
-      const scrollY = window.scrollY;
-      // Add styles to body
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      
-      // Cleanup function
-      return () => {
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [showNotifications]);
-
-  // Handle click outside
-  const handleBackdropClick = (e) => {
-    // Only close if clicking the backdrop itself, not its children
-    if (e.target === e.currentTarget) {
-      setShowNotifications(false);
-    }
-  };
-
-  // Handle escape key
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && showNotifications) {
-        setShowNotifications(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [showNotifications]);
-
   const handleSearch = (e) => {
     e.preventDefault();
     setIsSearching(true);
@@ -308,7 +107,6 @@ const Rightsidebar = ({ element, onExpandChange }) => {
     }
   };
 
-  // Prevent sidebar expansion when notifications are open
   const handleMouseEnter = () => {
     if (!showNotifications) {
       setIsExpanded(true);
@@ -324,42 +122,6 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const handleProfileClick = () => {
     if (user && userProfile?.username) {
       navigate(`/profile/${userProfile.username}`);
-    }
-  };
-
-  const handleNotificationClick = async (notification) => {
-    if (notification.type === 'message' || notification.type === 'group_added') {
-      try {
-        const conversationRef = firestoreDoc(db, 'conversations', notification.conversationId);
-        
-        if (notification.type === 'group_added') {
-          // Mark group notification as seen
-          await updateDoc(conversationRef, {
-            [`seenNotifications.${user.uid}`]: true
-          });
-        } else {
-          // Mark messages as read
-          await updateDoc(conversationRef, {
-            [`unread.${user.uid}`]: 0
-          });
-        }
-
-        // Remove the notification from local state
-        setNotifications(prevNotifications => 
-          prevNotifications.filter(n => n.id !== notification.id)
-        );
-
-        // Update unread count
-        setUnreadCount(prev => Math.max(0, prev - 1));
-
-        // Close notification panel
-        setShowNotifications(false);
-
-        // Navigate to chat
-        navigate(`/chat/${notification.conversationId}`);
-      } catch (error) {
-        console.error('Error handling notification click:', error);
-      }
     }
   };
 
@@ -419,9 +181,13 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                   }}
                 >
                   <img
-                    src={profile.photoURL || '/default-avatar.png'}
+                    src={profile.photoURL || '/images/default-avatar.png'}
                     alt={profile.username}
                     className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200 shadow-sm"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/images/default-avatar.png';
+                    }}
                   />
                   <span className="text-sm text-gray-800 font-medium truncate">{profile.username}</span>
                 </li>
@@ -464,13 +230,31 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         </nav>
 
         <div className={`pb-6 space-y-2 ${isExpanded ? 'px-4' : 'px-2'} relative`}>
-          <NotificationButton
-            element={element}
-            unreadCount={unreadCount}
-            notifications={notifications}
-            onNotificationClick={handleNotificationClick}
-            className={isExpanded ? '' : 'w-10'}
-          />
+          {/* Use Bell component directly instead of NotificationButton */}
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            transition={{ duration: 0.15 }}
+            onClick={() => setShowNotifications(!showNotifications)}
+            className={`flex items-center gap-3 rounded-md px-3 py-2 w-full text-${element} hover:bg-${element}-soft transition-colors duration-200 ${
+              showNotifications ? `bg-${element} text-white` : ''
+            } ${isExpanded ? '' : 'w-10'}`}
+          >
+            <span className="relative">
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 rounded-full bg-red-500 w-2 h-2" />
+              )}
+            </span>
+            <span className="flex flex-1 justify-between font-medium overflow-hidden whitespace-nowrap transition-all duration-300">
+              <span>התראות</span>
+              {unreadCount > 0 && (
+                <span className="rounded-full bg-red-500 text-white px-2 py-1 text-xs">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </span>
+          </motion.button>
 
           <motion.button
             whileHover={{ scale: 1.04 }}
@@ -486,6 +270,10 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                 src={userPhotoURL}
                 alt="Profile"
                 className="w-6 h-6 rounded-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/images/default-avatar.png';
+                }}
               />
             ) : (
               <User size={20} />
@@ -514,103 +302,8 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         </div>
       </motion.aside>
 
-      {/* Notification Modal */}
-      {showNotifications && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
-          onClick={handleBackdropClick}
-          role="presentation"
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            ref={notificationRef}
-            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col relative"
-            onClick={(e) => e.stopPropagation()} // Prevent clicks inside modal from closing it
-          >
-            {/* Header */}
-            <div className="p-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-10 rounded-t-xl">
-              <h3 className="text-xl font-semibold text-gray-800">התראות</h3>
-              <button
-                onClick={() => setShowNotifications(false)}
-                className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
-                aria-label="סגור התראות"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Notifications List */}
-            <div className="flex-1 overflow-y-auto" dir="rtl">
-              {notifications.length > 0 ? (
-                <div className="divide-y divide-gray-100">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      onClick={() => handleNotificationClick(notification)}
-                      className="p-4 hover:bg-gray-50 cursor-pointer transition-colors flex items-start gap-4"
-                    >
-                      {/* Profile Picture */}
-                      <div className="flex-shrink-0">
-                        <img
-                          src={profilePictures[notification.senderId] || '/default-avatar.png'}
-                          alt="Profile"
-                          className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
-                        />
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <p className="text-base text-gray-800 font-medium mb-1">
-                              {notification.senderName}
-                            </p>
-                            <p className="text-sm text-gray-700 mb-1">
-                              {notification.message}
-                            </p>
-                            <span className="text-sm text-gray-500">
-                              {notification.timestamp?.toDate().toLocaleString('he-IL', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
-                          </div>
-                          {notification.unreadCount > 0 && (
-                            <span className="flex-shrink-0 rounded-full bg-red-500 text-white px-3 py-1 text-sm font-medium">
-                              {notification.unreadCount}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-8 text-center text-gray-500">
-                  <div className="text-4xl mb-4">🔔</div>
-                  <p className="text-lg">אין התראות חדשות</p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-              <button
-                onClick={() => setShowNotifications(false)}
-                className="w-full py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
-              >
-                סגור
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      {/* Render the notifications modal from the component */}
+      <NotificationsModal />
     </>
   );
 };

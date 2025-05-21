@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnapshot, orderBy, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,8 @@ const NotificationsComponent = () => {
   const [profilePictures, setProfilePictures] = useState({});
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [clickedNotifications, setClickedNotifications] = useState({});
   const notificationRef = useRef(null);
   const navigate = useNavigate();
   const user = auth.currentUser;
@@ -31,35 +33,10 @@ const NotificationsComponent = () => {
         for (const conversationDoc of snapshot.docs) {
           const conversation = conversationDoc.data();
           
-          // Handle group addition notification
-          if (conversation.type === 'group') {
-            const groupRef = firestoreDoc(db, 'conversations', conversationDoc.id);
-            const groupDoc = await getDoc(groupRef);
-            const groupData = groupDoc.data();
-            
-            if (groupData && groupData.participants?.includes(user.uid) && 
-                groupData.lastUpdated && 
-                groupData.lastUpdated.toDate() > new Date(Date.now() - 24 * 60 * 60 * 1000)) {
-              const adminDoc = await getDoc(firestoreDoc(db, 'users', groupData.admin));
-              const adminName = adminDoc.exists() ? adminDoc.data().username : 'Unknown';
-              
-              notificationList.push({
-                id: `${conversationDoc.id}_added`,
-                type: 'group_added',
-                message: `הוספת אותך לקבוצה ${groupData.groupName || 'קבוצה חדשה'}`,
-                timestamp: groupData.lastUpdated || groupData.createdAt,
-                conversationId: conversationDoc.id,
-                senderId: groupData.admin,
-                senderName: adminName,
-                conversationName: groupData.groupName,
-                unreadCount: 1,
-                conversationType: 'group'
-              });
-              totalUnread++;
-            }
-          }
-
-          // Handle unread messages
+          // We're removing the group addition notification code completely
+          // Don't track or display "added to group" notifications
+          
+          // Keep handling unread messages from all conversation types (direct, group, community)
           if (conversation.unread && conversation.unread[user.uid] > 0) {
             const unreadCount = conversation.unread[user.uid];
             totalUnread += unreadCount;
@@ -77,7 +54,7 @@ const NotificationsComponent = () => {
                 if (conversation.type === 'direct') {
                   const partnerUid = conversation.participants.find(p => p !== user.uid);
                   const partnerDoc = await getDoc(firestoreDoc(db, 'users', partnerUid));
-                  conversationName = partnerDoc.exists() ? partnerDoc.data().username : 'Unknown';
+                  conversationName = partnerDoc.exists() ? partnerDoc.data().username : "Unknown";
                 } else if (conversation.type === 'group') {
                   conversationName = conversation.groupName || 'קבוצה';
                 } else if (conversation.type === 'community') {
@@ -99,7 +76,7 @@ const NotificationsComponent = () => {
                 const senderNames = Object.fromEntries(
                   senderIds.map((id, index) => [
                     id,
-                    senderDocs[index].exists() ? senderDocs[index].data().username : 'Unknown'
+                    senderDocs[index].exists() ? senderDocs[index].data().username : "Unknown"
                   ])
                 );
 
@@ -125,7 +102,7 @@ const NotificationsComponent = () => {
                 }
               }
             } catch (error) {
-              console.error('Error fetching message details:', error);
+              console.error("Error fetching message details:", error);
               continue;
             }
           }
@@ -140,7 +117,7 @@ const NotificationsComponent = () => {
         setNotifications(notificationList);
         setUnreadCount(totalUnread);
       } catch (error) {
-        console.error('Error processing notifications:', error);
+        console.error("Error processing notifications:", error);
         setNotifications([]);
         setUnreadCount(0);
       }
@@ -161,7 +138,7 @@ const NotificationsComponent = () => {
               pictures[notification.senderId] = senderProfile.data().photoURL;
             }
           } catch (error) {
-            console.error('Error fetching profile picture:', error);
+            console.error("Error fetching profile picture:", error);
           }
         }
       }
@@ -175,15 +152,23 @@ const NotificationsComponent = () => {
 
   useEffect(() => {
     if (showNotifications) {
+      // Save the current scroll position
       const scrollY = window.scrollY;
+      
+      // Apply modal styles
+      document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.top = `-${scrollY}px`;
       document.body.style.width = '100%';
       
       return () => {
+        // Restore original body styles
+        document.body.style.overflow = '';
         document.body.style.position = '';
         document.body.style.top = '';
         document.body.style.width = '';
+        
+        // Restore scroll position
         window.scrollTo(0, scrollY);
       };
     }
@@ -201,50 +186,82 @@ const NotificationsComponent = () => {
   }, [showNotifications]);
 
   const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
+    if (e.target === e.currentTarget && !isProcessing) {
+      e.stopPropagation();
       setShowNotifications(false);
     }
   };
 
   const handleNotificationClick = async (notification) => {
-    if (notification.type === 'message' || notification.type === 'group_added') {
-      try {
-        const conversationRef = firestoreDoc(db, 'conversations', notification.conversationId);
+    // Prevent handling already-clicked notifications
+    const notificationKey = notification.id;
+    if (isProcessing || clickedNotifications[notificationKey]) return;
+    
+    setIsProcessing(true);
+    setClickedNotifications(prev => ({...prev, [notificationKey]: true}));
+    
+    // Now we only handle message notifications - group_added type is removed
+    try {
+      const conversationRef = firestoreDoc(db, 'conversations', notification.conversationId);
+      
+      // Update unread count
+      await updateDoc(conversationRef, {
+        [`unread.${user.uid}`]: 0
+      });
+
+      setNotifications(prevNotifications => 
+        prevNotifications.filter(n => n.id !== notification.id)
+      );
+
+      setUnreadCount(prev => Math.max(0, prev - 1));
+
+      // Store the target conversation ID
+      const targetConversationId = notification.conversationId;
+      
+      // Close the notification panel
+      setShowNotifications(false);
+      
+      // Add a small delay to ensure the panel closes and state updates complete
+      setTimeout(() => {
+        // Navigate after a short delay to ensure state updates are processed
+        navigate(`/chat/${targetConversationId}`);
         
-        if (notification.type === 'group_added') {
-          // Mark group notification as seen and remove it from notifications
-          await updateDoc(conversationRef, {
-            [`seenNotifications.${user.uid}`]: true,
-            [`groupNotifications.${user.uid}`]: false
-          });
-          
-          // Remove the notification from local state
-          setNotifications(prevNotifications => 
-            prevNotifications.filter(n => n.id !== notification.id)
-          );
-          
-          // Update unread count
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        } else {
-          // Handle message notifications as before
-          await updateDoc(conversationRef, {
-            [`unread.${user.uid}`]: 0
-          });
-
-          setNotifications(prevNotifications => 
-            prevNotifications.filter(n => n.id !== notification.id)
-          );
-
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        }
-
-        // Close notification panel and navigate to chat
-        setShowNotifications(false);
-        navigate(`/chat/${notification.conversationId}`);
-      } catch (error) {
-        console.error('Error handling notification click:', error);
-      }
+        // Reset processing state after navigation
+        setTimeout(() => {
+          setIsProcessing(false);
+          // Clear clicked notifications after a while to allow re-clicking in the future if needed
+          setTimeout(() => {
+            setClickedNotifications(prev => {
+              const newState = {...prev};
+              delete newState[notificationKey];
+              return newState;
+            });
+          }, 5000); // Reset after 5 seconds
+        }, 500); // Increased delay to ensure navigation completes
+      }, 300);
+      
+    } catch (error) {
+      console.error("Error handling notification click:", error);
+      setIsProcessing(false);
+      setClickedNotifications(prev => {
+        const newState = {...prev};
+        delete newState[notificationKey];
+        return newState;
+      });
     }
+  };
+
+  const handleClearAllNotifications = () => {
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
+    
+    // Only clear notifications from UI without marking as read in Firebase
+    setNotifications([]);
+    
+    setTimeout(() => {
+      setIsProcessing(false);
+    }, 300);
   };
 
   const NotificationsModal = () => {
@@ -267,13 +284,25 @@ const NotificationsComponent = () => {
         >
           <div className="p-4 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white z-[10000] rounded-t-xl">
             <h3 className="text-xl font-semibold text-gray-800">התראות</h3>
-            <button
-              onClick={() => setShowNotifications(false)}
-              className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors"
-              aria-label="סגור התראות"
-            >
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleClearAllNotifications}
+                className="text-white bg-red-500 hover:bg-red-600 px-3 py-2 rounded-md flex items-center gap-2 transition-colors"
+                disabled={isProcessing}
+                title="נקה הכל"
+              >
+                <Trash2 size={18} />
+                <span>נקה הכל</span>
+              </button>
+              <button
+                onClick={() => !isProcessing && setShowNotifications(false)}
+                className={`text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100 transition-colors ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                aria-label="סגור התראות"
+                disabled={isProcessing}
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto" dir="rtl">
@@ -282,14 +311,18 @@ const NotificationsComponent = () => {
                 {notifications.map((notification) => (
                   <div
                     key={notification.id}
-                    onClick={() => handleNotificationClick(notification)}
-                    className="p-4 hover:bg-gray-50 cursor-pointer transition-colors flex items-start gap-4"
+                    onClick={() => !isProcessing && handleNotificationClick(notification)}
+                    className={`p-4 hover:bg-gray-50 cursor-pointer transition-colors flex items-start gap-4 ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <div className="flex-shrink-0">
                       <img
-                        src={profilePictures[notification.senderId] || '/default-avatar.png'}
+                        src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
                         alt="Profile"
                         className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = 'https://ui-avatars.com/api/?name=User&background=random';
+                        }}
                       />
                     </div>
 
@@ -331,12 +364,22 @@ const NotificationsComponent = () => {
           </div>
 
           <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-            <button
-              onClick={() => setShowNotifications(false)}
-              className="w-full py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
-            >
-              סגור
-            </button>
+            <div className="flex gap-2 w-full">
+              <button
+                onClick={handleClearAllNotifications}
+                className="flex-1 py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
+                disabled={isProcessing}
+              >
+                נקה הכל
+              </button>
+              <button
+                onClick={() => !isProcessing && setShowNotifications(false)}
+                className={`flex-1 py-2 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={isProcessing}
+              >
+                סגור
+              </button>
+            </div>
           </div>
         </motion.div>
       </div>,
