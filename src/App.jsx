@@ -5,6 +5,14 @@ import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider } from './context/AuthContext';
 
+import DashboardHome from "./pages/admin/DashboardHome";
+import Analytics from './pages/admin/Analytics';
+import Users from './pages/admin/Users';
+import Posts from './pages/admin/Posts';
+import Reports from './pages/admin/Reports';
+import Settings from './pages/admin/Settings';
+
+
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import AccessibilityStatement from './pages/AccessibilityStatement';
@@ -32,11 +40,26 @@ const App = () => (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
+<<<<<<< HEAD
+          <Toaster />
+=======
           <Sonner />
+>>>>>>> eac82b96236badb72ea38ccddc4b66b129b54216
           <BrowserRouter>
             <Routes>
               {/* Public Pages */}
               <Route path="/" element={<Index />} />
+
+              /**th admin pages "to move to private" */
+              <Route path="/admin" element={<DashboardHome />} />
+              <Route path="/admin/Users" element={<Users />} />
+              <Route path="/admin/Posts" element={<Posts />} />
+              <Route path="/admin/Reports" element={<Reports />} />
+              <Route path="/admin/Analytics" element={<Analytics />} />
+              <Route path="/admin/Settings" element={<Settings />} />
+
+
+
               <Route path="/accessibility" element={<AccessibilityStatement />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfUse />} />

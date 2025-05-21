@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword, updateProfile, signOut } from "firebase/auth";
-import { auth, db } from "../config/firbaseConfig";
-import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, getDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { auth ,db } from "../config/firbaseConfig";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLeaf,
@@ -11,30 +11,24 @@ import {
   faWater,
   faFire
 } from '@fortawesome/free-solid-svg-icons';
-import { Phone } from "lucide-react";
 import './auth.css';
-import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff } from "lucide-react";
-import Cookies from "js-cookie";
-import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react"; // optional if using Lucide
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { toast } from 'sonner'
 
 function Signup() {
-  const { toast } = useToast();
-  const { signup } = useAuth();
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-    username: "",
-    location: "",
-    element: "",
-    phone: ""
-  });
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
+  const [location, setLocation] = useState("");
+  const [element, setElement] = useState("");
+  const [phone, setPhone] = useState("");
+  const inputStyle = "appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right";
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
 
   const elementGradients = {
     fire: 'bg-gradient-to-r from-rose-700 via-amber-550 to-yellow-500',
@@ -43,6 +37,10 @@ function Signup() {
     air: 'bg-gradient-to-r from-white via-sky-200 to-indigo-100',
     metal: 'bg-gradient-to-r from-zinc-300 via-slate-00 to-neutral-700',
   };
+
+
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const styleSheet = document.createElement("style");
@@ -65,225 +63,121 @@ function Signup() {
     };
   }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const validateForm = () => {
-    const { email, password, confirmPassword, username, location, phone, element } = formData;
-
-    if (!email || !password || !confirmPassword || !username || !location || !phone || !element) {
-      toast({
-        variant: "destructive",
-        title: "שגיאה",
-        description: "אנא מלא את כל השדות החובה"
-      });
-      return false;
-    }
-
-    if (username.length < 3) {
-      toast({
-        variant: "destructive",
-        title: "שגיאה",
-        description: "שם המשתמש חייב להכיל לפחות 3 תווים"
-      });
-      return false;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast({
-        variant: "destructive",
-        title: "שגיאה",
-        description: "כתובת האימייל אינה תקינה"
-      });
-      return false;
-    }
-
-    const cityRegex = /^[A-Za-zא-ת\s]+$/;
-    if (!cityRegex.test(location)) {
-      toast({
-        variant: "destructive",
-        title: "שגיאה",
-        description: "שם העיר חייב להכיל אותיות בלבד"
-      });
-      return false;
-    }
-
-    const phoneRegex = /^0\d{9}$/;
-    if (!phoneRegex.test(phone)) {
-      toast({
-        variant: "destructive",
-        title: "שגיאה",
-        description: "מספר הטלפון חייב להתחיל ב-0 ולהכיל 10 ספרות"
-      });
-      return false;
-    }
-
-    if (password !== confirmPassword) {
-      toast({
-        variant: "destructive",
-        title: "שגיאה",
-        description: "הסיסמאות אינן תואמות"
-      });
-      return false;
-    }
-
-    const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-    if (!strongPasswordRegex.test(password)) {
-      toast({
-        variant: "destructive",
-        title: "שגיאה",
-        description: "הסיסמה חייבת לכלול לפחות אות אחת קטנה, אות אחת גדולה, מספר אחד ותו מיוחד לפחות 8 תווים"
-      });
-      return false;
-    }
-
-    return true;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    
 
-    setIsLoading(true);
+     // Basic custom validations
+  const cityRegex = /^[A-Za-zא-ת\s]+$/;
+  const phoneRegex = /^0\d{9}$/;
+
+  if (!cityRegex.test(location)) {
+    toast.success("שם העיר חייב להכיל אותיות בלבד")
+
+    return;
+  }
+
+  if (!phoneRegex.test(phone)) {
+   
+     toast.error("מספר הטלפון אינו מתאים")
+      return
+
+  }
+
+  if (password !== confirmPassword) {
+  
+    toast.error("הסיסמאות אינן תואמות")
+
+    return;
+  }
 
     try {
-      // Check if username is already taken
-      const usernameQuery = query(collection(db, "users"), where("username", "==", formData.username));
-      const usernameSnapshot = await getDocs(usernameQuery);
 
-      if (!usernameSnapshot.empty) {
-        toast({
-          variant: "destructive",
-          title: "שגיאה",
-          description: "שם המשתמש כבר קיים. נסה לבחור שם אחר"
-        });
-        setIsLoading(false);
-        return;
-      }
+      const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
 
-      // Create user account
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
+if (!strongPasswordRegex.test(password)) {
+  
+  
+    toast.error(".הסיסמה חייבת לכלול לפחות אות אחת קטנה, אות אחת גדולה, מספר אחד ותו מיוחד לפחות 8 תווים" )
 
-      // Get the authentication token
-      const token = await user.getIdToken();
+    return;
+  
+}
 
-      // Store the token in cookies (expires in 7 days)
-      Cookies.set("authToken", token, { expires: 7 });
+// Check if username is already taken
+const q = query(collection(db, "users"), where("username", "==", username));
+const querySnapshot = await getDocs(q);
 
-      // Store user element for theming
-      localStorage.setItem("userElement", formData.element);
+if (!querySnapshot.empty) {
+  
+    toast.error(".שם המשתמש כבר קיים, נסה לבחור שם אחר" )
 
-      // Create user document
-      const userData = {
-        associated_id: user.uid,
-        role: "user",
-        email: formData.email,
-        username: formData.username,
-        element: formData.element,
+    return;
+  
+
+}
+
+      const res = await createUserWithEmailAndPassword(auth, email, password);
+
+      await updateProfile(res.user, { displayName });
+
+
+      await setDoc(doc(db, "users", res.user.uid), {
+        associated_id: res.user.uid,
+        role : null,
+        email,
+        username,
+        element,
         updatedAt: serverTimestamp(),
-        createdAt: serverTimestamp(),
-        is_active: false,
-        last_login: serverTimestamp(),
-        phone: formData.phone,
-        location: formData.location
-      };
+        createdAt:serverTimestamp(),
+        is_active:false,
+        last_login:serverTimestamp(),
+        phone,
+        location,
+        
+      });
 
-      // Create user document and verify it was created
-      await setDoc(doc(db, "users", user.uid), userData);
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      
-      if (!userDoc.exists()) {
-        throw new Error("Failed to create user document");
-      }
-
-      // Create profile document
-      const profileData = {
-        associated_id: user.uid,
-        displayName: formData.username,
-        username: formData.username,
-        element: formData.element,
-        bio: "",
-        location: formData.location,
+      await setDoc(doc(db, "profiles", res.user.uid), {
+        associated_id: res.user.uid,
+        displayName,
+        username,
+        element,
+        bio:"",
+        location,
         followersCount: 0,
         followingCount: 0,
         postsCount: 0,
         createdAt: serverTimestamp(),
-        photoURL: "https://firebasestorage.googleapis.com/v0/b/henini-prj.firebasestorage.app/o/profiles%2F123laith%2Fprofile.jpg?alt=media&token=3a72889a-42f8-490d-8968-bb2a3da06f98"
-      };
-
-      // Create profile document and verify it was created
-      await setDoc(doc(db, "profiles", user.uid), profileData);
-      const profileDoc = await getDoc(doc(db, "profiles", user.uid));
-      
-      if (!profileDoc.exists()) {
-        throw new Error("Failed to create profile document");
-      }
-
-      // Update user profile
-      await updateProfile(user, { displayName: formData.username });
-
-      // Show success message
-      toast({
-        title: "הבקשה נשלחה בהצלחה",
-        description: "החשבון שלך ממתין לאישור מנהל המערכת. תקבל הודעה כשהוא יאושר."
+        photoURL:"https://firebasestorage.googleapis.com/v0/b/henini-prj.firebasestorage.app/o/profiles%2F123laith%2Fprofile.jpg?alt=media&token=3a72889a-42f8-490d-8968-bb2a3da06f98",
       });
 
-      // Sign out the user since account is not active yet
-      await signOut(auth);
-      Cookies.remove("authToken");
 
-      // Navigate to home page
-      navigate("/");
+    toast.success("הבקשה שלך בטיפול אנחנו ניצור איתך קשר בקרוב :)")
 
-    } catch (error) {
-      console.error("Signup error:", error);
-      
-      let errorMessage = "אירעה שגיאה ביצירת החשבון";
-      
-      switch (error.code) {
-        case "auth/email-already-in-use":
-          errorMessage = "כתובת האימייל כבר קיימת במערכת. נסה להתחבר או השתמש באימייל אחר";
-          break;
-        case "auth/invalid-email":
-          errorMessage = "כתובת האימייל אינה תקינה";
-          break;
-        case "auth/operation-not-allowed":
-          errorMessage = "הרשמה באמצעות אימייל וסיסמה אינה זמינה כרגע";
-          break;
-        case "auth/weak-password":
-          errorMessage = "הסיסמה חלשה מדי. אנא בחר סיסמה חזקה יותר";
-          break;
-        case "auth/network-request-failed":
-          errorMessage = "בעיה בחיבור לרשת. אנא בדוק את החיבור שלך ונסה שוב";
-          break;
-        case "permission-denied":
-          errorMessage = "אין לך הרשאה לבצע פעולה זו";
-          break;
-        default:
-          if (error.message.includes("Failed to create")) {
-            errorMessage = "שגיאה ביצירת הפרופיל. אנא נסה שוב";
-          }
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
+    } catch (err) {
+      console.error(err);
+      if (err.code === "auth/email-already-in-use") {
+    
+    toast.error("המייל הזה כבר בשימוש. נסה להתחבר או השתמש באימייל אחר.")
+
+      } else {
+
+       
+    
+    toast.error( "אירעה שגיאה ביצירת החשבון ,נסה שנית מאוחר יותר בבקשה")
+
+
       }
-
-      toast({
-        variant: "destructive",
-        title: "שגיאה",
-        description: errorMessage
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-100 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
+    <div   
+ className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-100 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl"
+  >
        {/* Floating Element Icons */}
             {/* Floating Element Icons */}
 <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -340,219 +234,210 @@ function Signup() {
     </div>
 
     {/* Signup Form */}
-    <form
-      className="grid grid-cols-1 md:grid-cols-2 gap-4"
-      onSubmit={handleSubmit}
-    >
-      <input type="hidden" name="remember" defaultValue="true" />
+    {/* Signup Form */}
+<form
+  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+  onSubmit={handleSubmit}
+>
+  <input type="hidden" name="remember" defaultValue="true" />
 
-      {/* Full Name */}
-      <div className="flex flex-col">
-        <label className="mb-1 text-sm font-medium text-gray-700">שם משתמש</label>
-        <input
-          type="text"
-          required
-          name="username"
-          value={formData.username}
-          onChange={handleChange}
-          placeholder="שם משתמש *"
-          className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-        />
-      </div>
+  {/* Full Name */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">שם משתמש</label>
+    <input
+      type="text"
+      required
+      value={username}
+      onChange={(e) => setUsername(e.target.value)}
+      placeholder="שם משתמש *"
+      className={inputStyle}
+    />
+  </div>
 
-      {/* Email */}
-      <div className="flex flex-col">
-        <label className="mb-1 text-sm font-medium text-gray-700">כתובת אימייל</label>
-        <input
-          type="email"
-          required
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          placeholder="כתובת אימייל *"
-          className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-        />
-      </div>
 
-      {/* Container with 2 columns */}
-      <div className="grid grid-cols-1 gap-4 w-full">
-        {/* Password (structured identically) */}
-        <div className="flex flex-col">
-          <label className="mb-1 text-sm font-medium text-gray-700 flex items-center gap-1">
-            סיסמה
-            <div className="group relative cursor-pointer text-blue-600">
-              ⓘ
-              <div className="absolute w-64 right-0 top-full mt-1 bg-white border border-gray-300 rounded shadow-md p-2 text-xs text-gray-800 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none text-right rtl">
-                הסיסמה חייבת לכלול:
-                <ul className="list-disc list-inside mt-1">
-                  <li>אות קטנה</li>
-                  <li>אות גדולה</li>
-                  <li>מספר</li>
-                  <li>תו מיוחד (כמו @, #, !, ?)</li>
-                  <li>לפחות 8 תווים</li>
-                </ul>
-              </div>
-            </div>
-          </label>
+  {/* Email */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">כתובת אימייל</label>
+    <input
+      type="email"
+      required
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+      placeholder="כתובת אימייל *"
+      className={inputStyle}
+    />
+  </div>
 
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              required
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="סיסמה *"
-              className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 left-2 flex items-center text-gray-600"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
+
+{/* Container with 2 columns */}
+<div className="grid grid-cols-1 gap-4 w-full">
+
+  {/* Password (structured identically) */}
+  <div className="flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700 flex items-center gap-1">
+        סיסמה
+        <div className="group relative cursor-pointer text-blue-600">
+          ⓘ
+          <div className="absolute w-64 right-0 top-full mt-1 bg-white border border-gray-300 rounded shadow-md p-2 text-xs text-gray-800 opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none text-right rtl">
+            הסיסמה חייבת לכלול:
+            <ul className="list-disc list-inside mt-1">
+              <li>אות קטנה</li>
+              <li>אות גדולה</li>
+              <li>מספר</li>
+              <li>תו מיוחד (כמו @, #, !, ?)</li>
+              <li>לפחות 8 תווים</li>
+            </ul>
           </div>
         </div>
-      </div>
+      </label>
 
-      {/* Confirm Password */}
-      <div className="flex flex-col">
-        <label className="mb-1 text-sm font-medium text-gray-700">אימות סיסמה</label>
-
-        <div className="relative">
-          <input
-            type={showConfirmPassword ? "text" : "password"}
-            required
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            placeholder="אימות סיסמה *"
-            className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-          />
-          <button
-            type="button"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            className="absolute inset-y-0 left-2 flex items-center text-gray-600"
-          >
-            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Phone */}
-      <div className="flex flex-col">
-        <label className="mb-1 text-sm font-medium text-gray-700">מספר טלפון</label>
+      <div className="relative">
         <input
-          type="tel"
+          type={showPassword ? "text" : "password"}
           required
-          name="phone"
-          value={formData.phone}
-          onChange={handleChange}
-          placeholder="* מספר טלפון"
-          className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="סיסמה *"
+          className={`${inputStyle} pr-10`} // make room for icon
         />
-      </div>
-
-      {/* Location */}
-      <div className="flex flex-col">
-        <label className="mb-1 text-sm font-medium text-gray-700">מיקום</label>
-        <input
-          type="text"
-          required
-          name="location"
-          value={formData.location}
-          onChange={handleChange}
-          placeholder="מיקום *"
-          className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-        />
-      </div>
-
-      {/* Element */}
-      <div className=" shine-button col-span md:col-span-2 mt-2 flex flex-col items-center ">
-        <label className="mb-2 text-center ">אלמנט</label>
-        <select
-          required
-          name="element"
-          value={formData.element}
-          onChange={handleChange}
-          style={{ outline: 'none', boxShadow: 'none' }}
-          className={` 
-            mb-2 text-center focus:ring-0 focus:border-gray-300		 border border-gray-300 appearance-none rounded-md w-full px-3 py-3 pr-10 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right ${elementGradients[formData.element] || "bg-white"}`}
-        >
-          <option
-            value=""
-            className="mb-2 text-center 	"
-          >
-            בחר אלמנט
-          </option>
-          <option
-            value="fire"
-            className="mb-2 text-center  "
-          >
-            אש
-          </option>
-          <option
-            value="water"
-            className="mb-2 text-center"
-          >
-            מים
-          </option>
-          <option
-            value="earth"
-            className="mb-2 text-center"
-          >
-            אדמה
-          </option>
-          <option
-            value="air"
-            className="mb-2 text-center"
-          >
-            אוויר
-          </option>
-          <option
-            value="metal"
-            className="mb-2 text-center"
-          >
-            מתכת
-          </option>
-        </select>
-        <span className="shine"></span>
-      </div>
-
-      {/* Submit Button */}
-      <div className="col-span-1 md:col-span-2">
         <button
-          type="submit"
-          disabled={isLoading}
-          className={`relative overflow-hidden z-10 w-full py-3 px-4 rounded-md font-medium text-black text-lg
-            transition hover:opacity-95 
-            ${elementGradients[formData.element] || "bg-gray-300"} 
-            ${isLoading ? "opacity-50 cursor-not-allowed" : "shine-button"}`}
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute inset-y-0 left-2 flex items-center text-gray-600"
         >
-          {isLoading ? (
-            <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              מתחבר...
-            </span>
-          ) : (
-            "הרשם"
-          )}
-          <span className="shine"></span>
+          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </div>
+    </div>
+</div>
 
-      {/* Login Link */}
-      <div className="col-span-1 md:col-span-2 text-center text-sm">
-        כבר יש לך חשבון?{" "}
-        <Link to="/login" className="text-indigo-600 hover:text-indigo-500 font-medium">
-          התחבר כאן
-        </Link>
+  {/* Confirm Password */}
+  <div className="flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">אימות סיסמה</label>
+
+      <div className="relative">
+        <input
+          type={showConfirmPassword ? "text" : "password"}
+          required
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          placeholder="אימות סיסמה *"
+          className={`${inputStyle} pr-10`} // space for icon
+        />
+        <button
+          type="button"
+          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          className="absolute inset-y-0 left-2 flex items-center text-gray-600"
+        >
+          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
       </div>
-    </form>
+    </div>
+
+
+  {/* Phone */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">מספר טלפון</label>
+    <input
+      type="tel"
+      required
+      value={phone}
+      onChange={(e) => setPhone(e.target.value)}
+      placeholder="* מספר טלפון"
+      className={inputStyle}
+    />
+  </div>
+
+
+  {/* Location */}
+  <div className="flex flex-col">
+    <label className="mb-1 text-sm font-medium text-gray-700">מיקום</label>
+    <input
+      type="text"
+      required
+      value={location}
+      onChange={(e) => setLocation(e.target.value)}
+      placeholder="מיקום *"
+      className={inputStyle}
+    />
+  </div>
+
+  {/* Element */}
+  <div className=" shine-button col-span md:col-span-2 mt-2 flex flex-col items-center ">
+  <label className="mb-2 text-center ">אלמנט</label>
+  <select
+  required
+  value={element}
+  onChange={(e) => setElement(e.target.value)}
+  style={{ outline: 'none', boxShadow: 'none' }}
+
+  className={` 
+     mb-2 text-center focus:ring-0 focus:border-gray-300		 border border-gray-300 ${inputStyle} ${elementGradients[element] || "bg-white"}`}
+ 
+ >
+  <option
+    value=""
+    className="mb-2 text-center 	"
+  >
+     
+
+    בחר אלמנט
+  </option>
+  <option
+    value="fire"
+    className="mb-2 text-center  "
+  >
+    אש
+  </option>
+  <option
+    value="water"
+    className="mb-2 text-center"
+  >
+    מים
+  </option>
+  <option
+    value="earth"
+    className="mb-2 text-center"
+  >
+    אדמה
+  </option>
+  <option
+    value="air"
+    className="mb-2 text-center"
+  >
+    אוויר
+  </option>
+  <option
+    value="metal"
+    className="mb-2 text-center"
+  >
+    מתכת
+  </option>
+</select>
+<span className="shine"></span>
+
+</div>
+  {/* Submit Button */}
+  <div className="col-span-1 md:col-span-2 ">
+  <button
+    type="submit"
+    className={`relative overflow-hidden z-10 w-full py-3 px-4 rounded-md font-medium text-black text-lg
+      transition hover:opacity-95 
+      ${elementGradients[element] || "bg-gray-300"} shine-button`}
+  >
+    הרשם
+    <span className="shine" />
+  </button>
+</div>
+
+  {/* Login Link */}
+  <div className="col-span-1 md:col-span-2 text-center text-sm">
+    כבר יש לך חשבון?{" "}
+    <Link to="/login" className="text-indigo-600 hover:text-indigo-500 font-medium">
+      התחבר כאן
+    </Link>
+  </div>
+</form>
   </div>
 
     </div>
