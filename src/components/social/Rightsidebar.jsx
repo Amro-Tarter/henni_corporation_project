@@ -210,7 +210,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
               ${activeTab === tab.id ? `bg-${element} text-white` : ''}
             `}
           >
-            <span className="min-w-[24px] flex justify-center items-center relative">
+            <span className="min-w-[24px] flex justify-between items-center relative">
               {tab.icon}
               {tab.id === 'messenger' && unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
@@ -218,11 +218,11 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                 </span>
               )}
             </span>
-            <span className={`font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-              ${isExpanded ? 'opacity-100 max-w-[200px] ml-2' : 'opacity-0 max-w-0'}`}>
+            <span className={`flex font-medium overflow-hidden whitespace-nowrap transition-all duration-300
+              ${isExpanded ? 'opacity-100 max-w-[200px]' : 'opacity-0 max-w-0'}`}>
               {tab.label}
               {tab.id === 'messenger' && unreadCount > 0 && (
-                <span className="ml-2 bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">
+                <span className="bg-red-500 text-white rounded-full px-2 py-0.5 text-xs">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
