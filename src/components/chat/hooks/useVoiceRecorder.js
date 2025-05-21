@@ -6,6 +6,7 @@ export function useVoiceRecorder() {
   const [audioBlob, setAudioBlob] = useState(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
   const timerRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -16,6 +17,7 @@ export function useVoiceRecorder() {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       const mediaRecorder = new window.MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
@@ -47,6 +49,11 @@ export function useVoiceRecorder() {
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
+      // Stop all tracks in the stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
       setIsRecording(false);
       clearInterval(timerRef.current);
     }

@@ -10,10 +10,10 @@ export default function Sidebar({ elementColors, onTabChange, userElement, activ
 
   // Define sidebar items
   const sidebarItems = [
-    { icon: HiMiniHome, label: "All", type: "all" },
-    { icon: HiOutlineChatBubbleBottomCenterText, label: "private", type: "direct" },
-    { icon: HiMiniUsers, label: "Groups", type: "group" },
-    { icon: HiUserGroup, label: `${userElement} Community`, type: "community" }
+    { icon: HiMiniHome, label: "הכל", type: "all" },
+    { icon: HiOutlineChatBubbleBottomCenterText, label: "פרטי", type: "direct" },
+    { icon: HiMiniUsers, label: "קבוצות", type: "group" },
+    { icon: HiUserGroup, label: `${userElement} קהילה`, type: "community" }
   ];
 
   // Handle tab click

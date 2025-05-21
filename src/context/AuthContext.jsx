@@ -1,15 +1,36 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth, db } from '@/config/firbaseConfig';
-import { onAuthStateChanged } from 'firebase/auth';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { 
+  onAuthStateChanged, 
+  signOut, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  sendPasswordResetEmail 
+} from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '@/config/firbaseConfig'; 
 
 const AuthContext = createContext();
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
+export const useAuth = () => useContext(AuthContext);
 
-export function AuthProvider({ children }) {
+// Authentication functions
+const login = (email, password) => {
+  return signInWithEmailAndPassword(auth, email, password);
+};
+
+const signup = (email, password) => {
+  return createUserWithEmailAndPassword(auth, email, password);
+};
+
+const logout = () => {
+  return signOut(auth);
+};
+
+const resetPassword = (email) => {
+  return sendPasswordResetEmail(auth, email);
+};
+
+export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,18 +45,25 @@ export function AuthProvider({ children }) {
             email: user.email,
             ...userDoc.data()
           });
+        } else {
+          // If no Firestore data exists, just use the auth user data
+          setCurrentUser(user);
         }
       } else {
         setCurrentUser(null);
       }
       setLoading(false);
     });
-
+    
     return unsubscribe;
   }, []);
 
   const value = {
     currentUser,
+    login,
+    signup,
+    logout,
+    resetPassword,
     loading
   };
 
@@ -44,4 +72,4 @@ export function AuthProvider({ children }) {
       {!loading && children}
     </AuthContext.Provider>
   );
-} 
+};
