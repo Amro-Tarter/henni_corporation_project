@@ -859,6 +859,59 @@ export default function ChatApp() {
     }
   };
 
+  // Auto-close chat if user is removed from a group they are viewing
+  useEffect(() => {
+    if (
+      selectedConversation &&
+      selectedConversation.type === 'group' &&
+      Array.isArray(selectedConversation.participants) &&
+      !selectedConversation.participants.includes(currentUser.uid)
+    ) {
+      // Check for a personal removal message
+      const lastPersonalRemovalMsg = messages
+        .slice()
+        .reverse()
+        .find(
+          msg =>
+            msg.type === 'system' &&
+            msg.systemSubtype === 'personal' &&
+            msg.targetUid === currentUser.uid &&
+            msg.text &&
+            msg.text.includes('הסיר אותך מהקבוצה')
+        );
+      if (lastPersonalRemovalMsg) {
+        // Wait 2.5 seconds before closing the chat
+        const timeout = setTimeout(() => {
+          setSelectedConversation(null);
+          navigate('/chat');
+        }, 2500);
+        return () => clearTimeout(timeout);
+      } else {
+        // No personal message, close immediately
+        setSelectedConversation(null);
+        navigate('/chat');
+      }
+    }
+  }, [selectedConversation, currentUser.uid, navigate, messages]);
+
+  // Real-time listener for selected conversation to detect removal from group
+  useEffect(() => {
+    if (!selectedConversation?.id) return;
+    const conversationRef = doc(db, "conversations", selectedConversation.id);
+    const unsubscribe = onSnapshot(conversationRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setSelectedConversation(prev => ({
+          ...prev,
+          ...data,
+          lastUpdated: data.lastUpdated?.toDate?.() || prev.lastUpdated,
+          createdAt: data.createdAt?.toDate?.() || prev.createdAt,
+        }));
+      }
+    });
+    return () => unsubscribe();
+  }, [selectedConversation?.id]);
+
   if (!authInitialized) {
     return <ElementalLoader />;
   }
@@ -1132,6 +1185,20 @@ export default function ChatApp() {
                     setSelectedGroupUsers([]);
                     setGroupAvatarFile(null);
                     setGroupAvatarPreview(null);
+                    // Send personal system message to each added user (except admin) about group creation
+                    for (const user of selectedGroupUsers) {
+                      await addDoc(collection(db, "conversations", groupRef.id, "messages"), {
+                        text: `${currentUser.username} יצר את הקבוצה (${groupName.trim()}) והוסיפך אליה`,
+                        type: "system",
+                        systemSubtype: "personal",
+                        createdAt: serverTimestamp(),
+                        targetUid: user.id
+                      });
+                      // Increment unread count for the added user
+                      await updateDoc(groupRef, {
+                        [`unread.${user.id}`]: 1
+                      });
+                    }
                   } catch (error) {
                     alert("שגיאה ביצירת קבוצה: " + error.message);
                   }

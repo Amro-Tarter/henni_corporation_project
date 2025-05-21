@@ -413,12 +413,14 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         await addDoc(collection(db, "conversations", conversation.id, "messages"), {
           text: `${currentUser.username} הוסיף את ${user.username} לקבוצה`,
           type: "system",
+          systemSubtype: "group",
           createdAt: serverTimestamp(),
         });
         // System message for the added user (personalized)
         await addDoc(collection(db, "conversations", conversation.id, "messages"), {
           text: `${currentUser.username} הוסיף אותך לקבוצה (${groupName})`,
           type: "system",
+          systemSubtype: "personal",
           createdAt: serverTimestamp(),
           targetUid: user.id
         });
@@ -454,6 +456,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         await addDoc(collection(db, "conversations", conversation.id, "messages"), {
           text: `${currentUser.username} הסיר אותך מהקבוצה (${groupName})`,
           type: "system",
+          systemSubtype: "personal",
           createdAt: serverTimestamp(),
           targetUid: uid
         });
@@ -472,9 +475,11 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           delete copy[uid];
           return copy;
         });
+        // Group-wide system message for the rest
         await addDoc(collection(db, "conversations", conversation.id, "messages"), {
           text: `${currentUser.username} הסיר את ${latestUsername} מהקבוצה`,
           type: "system",
+          systemSubtype: "group",
           createdAt: serverTimestamp(),
         });
         // Update unread for all remaining participants except the actor
@@ -512,6 +517,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         await addDoc(collection(db, "conversations", conversation.id, "messages"), {
           text: `${currentUser.username} עזב/ה את הקבוצה`,
           type: "system",
+          systemSubtype: "group",
           createdAt: serverTimestamp(),
         });
         // Update unread for all remaining participants except the actor

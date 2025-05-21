@@ -216,6 +216,29 @@ export default function ChatArea({
     }
   };
 
+  // Filter out personal system messages not meant for this user
+  const filteredMessages = messages.filter(msg => {
+    if (msg.type === 'system') {
+      if (msg.systemSubtype === 'personal') {
+        return msg.targetUid === currentUser.uid;
+      }
+      if (msg.systemSubtype === 'group') {
+        // Don't show group system messages about the current user to the current user
+        if (
+          msg.text &&
+          (
+            msg.text.includes(`הוסיף את ${currentUser.username}`) ||
+            msg.text.includes(`הסיר את ${currentUser.username}`) ||
+            msg.text.includes(`${currentUser.username} עזב/ה את הקבוצה`)
+          )
+        ) {
+          return false;
+        }
+      }
+    }
+    return true;
+  });
+
   return (
     <div className='flex-1 flex flex-col relative' dir="rtl">
       {selectedConversation ? (
@@ -261,7 +284,7 @@ export default function ChatArea({
               </div>
             ) : isSendingImage ? (
               <>
-                {messages.map((msg) => (
+                {filteredMessages.map((msg) => (
                   <MessageItem
                     key={msg.id}
                     message={msg}
@@ -275,11 +298,11 @@ export default function ChatArea({
                 ))}
                 <MessageLoadingState type="image" isOwnMessage={true} elementColors={elementColors} />
               </>
-            ) : messages.length === 0 ? (
+            ) : filteredMessages.length === 0 ? (
               <div className="text-center text-gray-500 py-8">אין הודעות עדיין. התחל את השיחה!</div>
             ) : (
               <>
-                {messages.map((msg) => (
+                {filteredMessages.map((msg) => (
                   <MessageItem
                     key={msg.id}
                     message={msg}
