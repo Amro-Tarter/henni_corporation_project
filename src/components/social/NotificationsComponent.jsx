@@ -68,7 +68,9 @@ const NotificationsComponent = () => {
                   }))
                   .filter(msg => 
                     (msg.type === 'message' && msg.sender !== user.uid) ||
-                    (msg.type === 'system')
+                    (msg.type === 'system' && (
+                      (msg.targetUid ? msg.targetUid === user.uid : (!msg.text?.includes('הוסיף אותך') && !msg.text?.includes('הסיר אותך')))
+                    ))
                   )
                   .slice(0, unreadCount);
 

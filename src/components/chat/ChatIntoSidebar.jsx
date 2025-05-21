@@ -415,11 +415,12 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           type: "system",
           createdAt: serverTimestamp(),
         });
-        // System message for the added user
+        // System message for the added user (personalized)
         await addDoc(collection(db, "conversations", conversation.id, "messages"), {
           text: `${currentUser.username} הוסיף אותך לקבוצה (${groupName})`,
           type: "system",
           createdAt: serverTimestamp(),
+          targetUid: user.id
         });
         // Update unread for all participants except the actor
         const groupSnap = await getDoc(groupRef);
@@ -449,11 +450,12 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         const groupRef = doc(db, "conversations", conversation.id);
         const userDoc = await getDoc(doc(db, "users", uid));
         const latestUsername = userDoc.exists() ? userDoc.data().username : username;
-        // System message for the kicked user (before removal)
+        // System message for the kicked user (before removal, personalized)
         await addDoc(collection(db, "conversations", conversation.id, "messages"), {
           text: `${currentUser.username} הסיר אותך מהקבוצה (${groupName})`,
           type: "system",
           createdAt: serverTimestamp(),
+          targetUid: uid
         });
         // Set unread for the kicked user for their personal message (before removal)
         const kickedUserUnread = {};
