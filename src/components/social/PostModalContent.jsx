@@ -1,4 +1,4 @@
-// src/components/social/PostModalContent.jsx
+//PostModalContent.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import { ThumbsUp, MessageCircle, Camera } from 'lucide-react';
 import { Comment, CommentInput } from './comments';
@@ -22,6 +22,7 @@ const PostModalContent = ({
     createdAt,
     content,
     mediaUrl,
+    mediaType,
     likesCount,
     commentsCount,
     likedBy = [],
@@ -32,8 +33,7 @@ const PostModalContent = ({
   const [liked, setLiked] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const commentsRef = useRef(null);
-
-  const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -46,6 +46,15 @@ const PostModalContent = ({
   useEffect(() => {
     setLiked(Array.isArray(likedBy) && likedBy.includes(currentUser.uid));
   }, [likedBy, currentUser.uid]);
+
+  useEffect(() => {
+    return () => {
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.currentTime = 0;
+      }
+    };
+  }, []);
 
   const createdDate = createdAt?.toDate?.();
   const timeString = createdDate
@@ -91,8 +100,9 @@ const PostModalContent = ({
       {/* Media */}
       {mediaUrl && (
         <div className={`relative w-full bg-${element}-soft rounded-lg overflow-hidden`}>
-          {isVideo ? (
+          {mediaType === 'video' ? (
             <video
+              ref={videoRef}
               src={mediaUrl}
               controls
               className="w-full max-h-[40rem] object-contain rounded-lg"

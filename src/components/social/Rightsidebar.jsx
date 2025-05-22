@@ -208,16 +208,19 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                 flex items-center gap-3 rounded-md px-3 py-2 w-full
                 text-${element} hover:bg-${element}-soft transition-colors duration-200
                 ${activeTab === tab.id ? `bg-${element} text-white` : ''}
+                ${isExpanded ? "justify-start" : "justify-center"}
               `}
             >
-              <span className="min-w-[24px] flex justify-between items-center relative">
+              <span className="min-w-[24px] flex justify-center items-center relative">
                 {tab.icon}
                 {!isExpanded && tab.id === 'messenger' && unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 rounded-full bg-red-500 w-2 h-2" />
                 )}
               </span>
-              <span className={`flex flex-1 justify-between font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-                ${isExpanded ? 'opacity-100 max-w-[200px]' : 'opacity-0 max-w-0'}`}>
+              <span className={`
+                font-medium overflow-hidden whitespace-nowrap transition-all duration-300
+                ${isExpanded ? 'block opacity-100 max-w-[200px]' : 'hidden opacity-0 max-w-0'}
+              `}>
                 <span>{tab.label}</span>
                 {isExpanded && tab.id === 'messenger' && unreadCount > 0 && (
                   <span className="rounded-full bg-red-500 text-white px-2 py-1 text-xs">
