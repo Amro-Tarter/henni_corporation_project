@@ -6,7 +6,11 @@ import {
   doc,
   getDoc,
   updateDoc,
-  serverTimestamp
+  serverTimestamp,
+  collection, 
+  query, 
+  where, 
+  getDocs
 } from "firebase/firestore";
 import { auth, db } from "../config/firbaseConfig";
 import { User, Lock, Loader } from "lucide-react";
@@ -18,19 +22,11 @@ import {
   faWater,
   faFire
 } from '@fortawesome/free-solid-svg-icons';
-import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff } from "lucide-react"; // or use emojis if you prefer
-
-class CustomAuthError extends Error {
-  constructor(code, message) {
-    super(message);
-    this.code = code;
-  }
-}
+import { Eye, EyeOff } from "lucide-react";
+import { toast } from 'sonner';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -82,95 +78,128 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
-    try {
-      // Handle remember me
-      if (rememberMe) {
-        localStorage.setItem("rememberedEmail", form.email);
-      } else {
-        localStorage.removeItem("rememberedEmail");
-      }
+    // Handle remember me
+    if (rememberMe) {
+      localStorage.setItem("rememberedEmail", form.email);
+    } else {
+      localStorage.removeItem("rememberedEmail");
+    }
 
-      // 1. Sign in with Firebase Authentication
-      const userCredential = await signInWithEmailAndPassword(
+    // 1. Sign in with Firebase Authentication
+    let userCredential;
+    try {
+      userCredential = await signInWithEmailAndPassword(
         auth,
         form.email,
         form.password
       );
-      const user = userCredential.user;
+    } catch (error) {
+      let description = "שגיאה בהתחברות. נסה שנית.";
+      
+      if (error.code === "auth/user-not-found") {
+        description = "לא נמצא משתמש עם המייל הזה";
+      } else if (error.code === "auth/wrong-password") {
+        description = "סיסמה שגויה, נסה שנית";
+      } else if (error.code === "auth/too-many-requests") {
+        description = "יותר מדי נסיונות התחברות. נסה שוב מאוחר יותר";
+      } else if (error.code === "auth/invalid-email") {
+        description = "כתובת האימייל אינה תקינה";
+      }
+      
+      toast.error("שגיאה", {
+        description: description
+      });
+      
+      setLoading(false);
+      return;
+    }
+    
+    const user = userCredential.user;
+    const email = form.email;
 
-      // 2. Check if user exists in Firestore and is active
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
+    // 2. Check if user exists in Firestore
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("email", "==", email));
 
-      if (!userSnap.exists()) {
-        await signOut(auth);
-        throw { code: "user-not-found" };
-          }
+    let querySnapshot;
+    try {
+      querySnapshot = await getDocs(q);
+    } catch (error) {
+      toast.error("שגיאה", {
+        description: "שגיאה בבדיקת הנתונים. נסה שנית."
+      });
+      
+      await signOut(auth);
+      setLoading(false);
+      return;
+    }
 
-      const userData = userSnap.data();
+    if (querySnapshot.empty) {
+      toast.error("שגיאה", {
+        description: "לא נמצא משתמש עם המייל הזה"
+      });
+      
+      await signOut(auth);
+      setLoading(false);
+      return;
+    }
 
-      if (!userData.is_active) {
-        await signOut(auth);
-        throw { code: "user-inactive" };
-            }
+    const userDoc = querySnapshot.docs[0];
+    const userData = userDoc.data();
 
-      // 3. Update last_login timestamp
-      await updateDoc(userRef, {
+    // 3. Check if user is active
+    if (!userData.is_active) {
+      toast.error("שגיאה", {
+        description: "המשתמש שלך אינו פעיל. פנה למנהל המערכת."
+      });
+      
+      await signOut(auth);
+      setLoading(false);
+      return;
+    }
+
+    // 4. Update last_login timestamp
+    try {
+      await updateDoc(userDoc.ref, {
         last_login: serverTimestamp(),
       });
+    } catch (error) {
+      toast.error("שגיאה", {
+        description: "שגיאה בעדכון זמן כניסה. נסה שנית."
+      });
+      
+      await signOut(auth);
+      setLoading(false);
+      return;
+    }
 
-      // 4. Store authentication token in cookies (expires in 7 days)
+    // 5. Store authentication token in cookies
+    try {
       const token = await user.getIdToken();
-      Cookies.set("authToken", token, { expires: 7 }); 
+      Cookies.set("authToken", token, { expires: 7 });
       
       // Store user element for theming
       localStorage.setItem("userElement", userData.element || "fire");
-
-      // 5. Show success notification and redirect using toast
-      toast({
-        variant: "default",
-        title: "התחברת בהצלחה",
-        description: "מעביר אותך לדף הבית...",
-      });
-      
-      setTimeout(() => {
-        navigate("/home");
-      }, 1500);
-      
     } catch (error) {
-      console.error("Login error:", error);
-      let title = "שגיאה";
-      let description = "שגיאה בהתחברות. נסה שנית.";
-
-      const code = error.code;
-      switch (error.code) {
-        case "user-not-found":
-        case "auth/user-not-found":
-          description = "לא נמצא משתמש עם המייל הזה";
-          break;
-        case "auth/wrong-password":
-          description = "סיסמה שגויה, נסה שנית";
-          break;
-        case "auth/too-many-requests":
-          description = "יותר מדי נסיונות התחברות. נסה שוב מאוחר יותר";
-          break;
-        case "auth/invalid-email":
-          description = "כתובת האימייל אינה תקינה";
-          break;
-        case "user-inactive":
-          description = "המשתמש שלך אינו פעיל. פנה למנהל המערכת.";
-          break;
-        default:
-          description = "שגיאה בהתחברות. נסה שנית.";
-      }
-      toast({
-        variant: "destructive",
-        title: title,
-        description: description,
+      toast.error("שגיאה", {
+        description: "שגיאה ביצירת טוקן התחברות. נסה שנית."
       });
-    } finally {
+      
+      await signOut(auth);
       setLoading(false);
+      return;
     }
+
+    // 6. Show success notification and redirect
+    toast.success("התחברת בהצלחה", {
+      description: "מעביר אותך לדף הבית..."
+    });
+    
+    setLoading(false);
+    
+    setTimeout(() => {
+      navigate("/home");
+    }, 1000);
   };
 
   return (
@@ -256,40 +285,33 @@ const Login = () => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                 סיסמה
               </label>
-            <div className="relative">
-     
-      
-      
+              <div className="relative">
+                <div className="flex flex-col">
+                  <div className="relative">
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      required
+                      value={form.password}
+                      onChange={handleChange}
+                      className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                      placeholder="הכנס את הסיסמה שלך"
+                      dir="rtl"
+                    />
 
-      {/* Password Input */}
-      <div className="flex flex-col">
-          <div className="relative">
-            <input
-              id="password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              required
-              value={form.password}
-              onChange={handleChange}
-              className="appearance-none rounded-md relative block w-full px-3 py-3 pr-10 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm pr-10"
-              placeholder="הכנס את הסיסמה שלך"
-              dir="rtl"
-            />
-
-             {/* Eye Icon Toggle */}
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 left-2 flex items-center text-gray-600 z-10"
-            >
-              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-            </button>
-          </div>
-        </div>
-      
-    </div>
-
+                    {/* Eye Icon Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 left-2 flex items-center text-gray-600 z-10"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

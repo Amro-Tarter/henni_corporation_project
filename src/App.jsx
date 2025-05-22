@@ -1,10 +1,17 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, useNavigate} from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/toaster';
 import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider } from './context/AuthContext';
+
+import DashboardHome from "./pages/admin/DashboardHome";
+import Analytics from './pages/admin/Analytics';
+import Users from './pages/admin/Users';
+import Posts from './pages/admin/Posts';
+import Reports from './pages/admin/Reports';
+import Settings from './pages/admin/Settings';
+
 
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
@@ -23,6 +30,8 @@ import PublicSettings from './pages/PublicSettings';
 import CommunityPage from './pages/CommunityPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Team from './pages/Team';
+import NewsletterPage from './pages/NewsletterPage';
+import ScrollDown from './components/ui/ScrollDown';
 
 const queryClient = new QueryClient();
 
@@ -31,12 +40,22 @@ const App = () => (
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Toaster />
           <Sonner />
           <BrowserRouter>
             <Routes>
               {/* Public Pages */}
               <Route path="/" element={<Index />} />
+
+              /**th admin pages "to move to private" */
+              <Route path="/admin" element={<DashboardHome />} />
+              <Route path="/admin/Users" element={<Users />} />
+              <Route path="/admin/Posts" element={<Posts />} />
+              <Route path="/admin/Reports" element={<Reports />} />
+              <Route path="/admin/Analytics" element={<Analytics />} />
+              <Route path="/admin/Settings" element={<Settings />} />
+
+
+
               <Route path="/accessibility" element={<AccessibilityStatement />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfUse />} />
@@ -47,6 +66,7 @@ const App = () => (
               <Route path="/community" element={<CommunityPage />} />
               <Route path="/projects" element={<ElementalProjects />} />
               <Route path="/team" element={<Team />} />
+              <Route path="/newsletter" element={<NewsletterPage />} />
 
 
               {/* Protected Pages */}

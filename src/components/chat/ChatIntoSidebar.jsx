@@ -256,7 +256,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       <div
         className={`fixed left-0 top-16 mt-0.5 bottom-0
           w-80 max-w-full sm:w-96 sm:max-w-md
-          shadow-2xl z-50 flex flex-col p-6 pt-16 border-r overflow-y-auto
+          shadow-2xl z-40 flex flex-col p-6 pt-16 border-r overflow-y-auto
           transition-all duration-300
           ${shouldShow ? 'translate-x-0' : '-translate-x-full'}
           `}
@@ -319,7 +319,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                       {uid !== currentUser.uid && (
                         <>
                           <a
-                            href={`/profile/${uid}`}
+                            href={`/profile/${usernames[uid]}`}
                             className="p-1 rounded-full hover:bg-gray-200 transition"
                             title="מעבר לפרופיל"
                           >
@@ -413,8 +413,27 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         await addDoc(collection(db, "conversations", conversation.id, "messages"), {
           text: `${currentUser.username} הוסיף את ${user.username} לקבוצה`,
           type: "system",
+          systemSubtype: "group",
           createdAt: serverTimestamp(),
         });
+        // System message for the added user (personalized)
+        await addDoc(collection(db, "conversations", conversation.id, "messages"), {
+          text: `${currentUser.username} הוסיף אותך לקבוצה (${groupName})`,
+          type: "system",
+          systemSubtype: "personal",
+          createdAt: serverTimestamp(),
+          targetUid: user.id
+        });
+        // Update unread for all participants except the actor
+        const groupSnap = await getDoc(groupRef);
+        const groupData = groupSnap.data();
+        const unreadUpdate = {};
+        (groupData.participants || []).forEach(uid => {
+          if (uid !== currentUser.uid) {
+            unreadUpdate[`unread.${uid}`] = (groupData.unread?.[uid] || 0) + 1;
+          }
+        });
+        await updateDoc(groupRef, unreadUpdate);
         setAddUserSearch("");
         setAddUserResults([]);
         window.toast && window.toast.success && window.toast.success(`המשתמש ${user.username} נוסף בהצלחה!`);
@@ -433,6 +452,19 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         const groupRef = doc(db, "conversations", conversation.id);
         const userDoc = await getDoc(doc(db, "users", uid));
         const latestUsername = userDoc.exists() ? userDoc.data().username : username;
+        // System message for the kicked user (before removal, personalized)
+        await addDoc(collection(db, "conversations", conversation.id, "messages"), {
+          text: `${currentUser.username} הסיר אותך מהקבוצה (${groupName})`,
+          type: "system",
+          systemSubtype: "personal",
+          createdAt: serverTimestamp(),
+          targetUid: uid
+        });
+        // Set unread for the kicked user for their personal message (before removal)
+        const kickedUserUnread = {};
+        kickedUserUnread[`unread.${uid}`] = 1;
+        await updateDoc(groupRef, kickedUserUnread);
+        // Now remove the user from participants and participantNames
         await updateDoc(groupRef, {
           participants: arrayRemove(uid),
           participantNames: arrayRemove(latestUsername)
@@ -443,11 +475,23 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           delete copy[uid];
           return copy;
         });
+        // Group-wide system message for the rest
         await addDoc(collection(db, "conversations", conversation.id, "messages"), {
           text: `${currentUser.username} הסיר את ${latestUsername} מהקבוצה`,
           type: "system",
+          systemSubtype: "group",
           createdAt: serverTimestamp(),
         });
+        // Update unread for all remaining participants except the actor
+        const groupSnap = await getDoc(groupRef);
+        const groupData = groupSnap.data();
+        const unreadUpdate = {};
+        (groupData.participants || []).forEach(uid2 => {
+          if (uid2 !== currentUser.uid) {
+            unreadUpdate[`unread.${uid2}`] = (groupData.unread?.[uid2] || 0) + 1;
+          }
+        });
+        await updateDoc(groupRef, unreadUpdate);
         window.toast && window.toast.success && window.toast.success(`המשתמש ${latestUsername} הוסר בהצלחה!`);
       } catch (e) {
         alert("שגיאה בהרחקת משתמש: " + e.message);
@@ -473,8 +517,19 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         await addDoc(collection(db, "conversations", conversation.id, "messages"), {
           text: `${currentUser.username} עזב/ה את הקבוצה`,
           type: "system",
+          systemSubtype: "group",
           createdAt: serverTimestamp(),
         });
+        // Update unread for all remaining participants except the actor
+        const groupSnap = await getDoc(groupRef);
+        const groupData = groupSnap.data();
+        const unreadUpdate = {};
+        (groupData.participants || []).forEach(uid => {
+          if (uid !== currentUser.uid) {
+            unreadUpdate[`unread.${uid}`] = (groupData.unread?.[uid] || 0) + 1;
+          }
+        });
+        await updateDoc(groupRef, unreadUpdate);
         window.toast && window.toast.success && window.toast.success('עזבת את הקבוצה בהצלחה!');
         // Optionally close sidebar or redirect
         onClose && onClose();
@@ -488,7 +543,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       <div
         className={`fixed left-0 top-16 mt-0.5 bottom-0
           w-80 max-w-full sm:w-96 sm:max-w-md
-          shadow-2xl z-50 flex flex-col p-6 pt-16 border-r overflow-y-auto
+          shadow-2xl z-40 flex flex-col p-6 pt-16 border-r overflow-y-auto
           transition-all duration-300
           ${shouldShow ? 'translate-x-0' : '-translate-x-full'}
           `}
@@ -650,7 +705,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                             className="p-1 rounded-full hover:bg-gray-200 transition"
                             title="מעבר לפרופיל"
                             aria-label="מעבר לפרופיל"
-                            onClick={() => window.open(`/profile/${uid}`, '_blank')}
+                            onClick={() => window.open(`/profile/${usernames[uid]}`, '_blank')}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
@@ -747,9 +802,9 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   }
 
   // Get partner UID and name
-  const partnerUid = conversation.participants.find((p) => p !== currentUser.uid);
   const partnerName = conversation.participantNames.find((name) => name !== currentUser.username) || 'Unknown';
   const partnerProfilePic = conversation.partnerProfilePic;
+  const mentorName = currentUser.mentorName;
 
   // All images sent in the conversation
   const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
@@ -759,7 +814,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     <div 
       className={`fixed left-0 top-16 mt-0.5 bottom-0
         w-80 max-w-full sm:w-96 sm:max-w-md
-        shadow-2xl z-50 flex flex-col p-6 pt-16 border-r overflow-y-auto
+        shadow-2xl z-40 flex flex-col p-6 pt-16 border-r overflow-y-auto
         transition-all duration-300
         ${shouldShow ? 'translate-x-0' : '-translate-x-full'}
         `}
@@ -788,20 +843,16 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         />
         <div className="font-semibold text-gray-800 text-lg mb-2" style={{ color: elementColors.primary }}>{partnerName}</div>
         <a
-          href={`/profile/${partnerUid}`}
+          href={`/profile/${partnerName}`}
           className="px-4 py-1 rounded transition"
           style={{ backgroundColor: elementColors.primary, color: elementColors.light }}
         >
           מעבר לפרופיל
         </a>
         <div className="text-gray-500 mt-1 text-sm">סוג האלמנט: {partnerElement || '...'} {ELEMENT_COLORS[partnerElement]?.icon}</div>
-        {/* Delete all messages button */}
-        <button
-          className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg shadow hover:bg-red-700 transition font-bold"
-          onClick={handleDeleteAllMessages}
-        >
-          מחק את כל ההודעות בצ׳אט
-        </button>
+        {partnerName === mentorName && (
+          <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
+        )}
       </div>
       {/* Images Gallery */}
       <div className="mb-4">

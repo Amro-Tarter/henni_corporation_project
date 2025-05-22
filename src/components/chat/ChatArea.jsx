@@ -6,11 +6,11 @@ import ChatInput from './components/ChatInput';
 import MessageLoadingState from './components/MessageLoadingState';
 import { useChatScroll } from './hooks/useChatScroll';
 import { useEmojiPicker } from './hooks/useEmojiPicker';
-import BubbleAnimation from './animations/BubbleAnimation';
 import ChatInfoSidebar from './ChatIntoSidebar';
-import { doc } from 'firebase/firestore';
+import { doc, collection, serverTimestamp, writeBatch, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
+import { useNavigate } from "react-router-dom";
 
 /**
  * ChatArea is the main chat window, displaying messages and input.
@@ -42,7 +42,6 @@ export default function ChatArea({
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
   const [isSendingImage, setIsSendingImage] = useState(false);
-  const [showBubble, setShowBubble] = useState(false);
   const sendButtonRef = useRef(null);
   const [showInfoSidebar, setShowInfoSidebar] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
@@ -56,6 +55,8 @@ export default function ChatArea({
     stopRecording,
     resetRecording,
   } = useVoiceRecorder();
+  const navigate = useNavigate();
+  const [isCreatingMentorChat, setIsCreatingMentorChat] = useState(false);
 
   // Show scroll-to-bottom button if user scrolls up too far
   useEffect(() => {
@@ -111,31 +112,6 @@ export default function ChatArea({
     }
   }, [messagesContainerRef, messagesEndRef]);
 
-  // Handle sending message (show bubble animation before sending)
-  const handleSendMessage = async () => {
-    let sendingImage = false;
-    if (file && file.type && file.type.startsWith('image/')) {
-      setIsSendingImage(true);
-      sendingImage = true;
-    }
-    // If a voice recording is ready, send it
-    if (audioBlob && !isRecording) {
-      setShowBubble(true);
-      await sendMessage({ fileOverride: new File([audioBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' }), mediaTypeOverride: 'audio', durationOverride: recordingTime });
-      resetRecording();
-      setShowBubble(false);
-      return;
-    }
-    setShowBubble(true);
-  };
-
-  const handleBubbleEnd = async () => {
-    await sendMessage();
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
-    setShowBubble(false);
-    setIsSendingImage(false);
-  };
-
   // Helper to get avatar for direct chat
   const getDirectAvatar = () => {
     if (selectedConversation.type === 'direct') {
@@ -144,11 +120,127 @@ export default function ChatArea({
     return undefined;
   };
 
+  // Handler to navigate participant to their mentor chat (create if not exists)
+  const handleGoToMentorChat = async () => {
+    if (!currentUser?.mentorName || !currentUser?.uid) {
+      alert("לא מוגדר שם מנטור בפרופיל שלך. פנה למנהל המערכת.");
+      return;
+    }
+    // Find mentor by username (mentorName)
+    let mentorUid = null;
+    let mentorUsername = null;
+    try {
+      const usersRef = collection(db, "users");
+      // Normalize the mentor name to handle Hebrew characters properly
+      const normalizedMentorName = currentUser.mentorName.trim();
+      
+      // Search for mentor by username or display name
+      const q = query(
+        usersRef,
+        where("role", "==", "mentor"),
+        where("username", "in", [normalizedMentorName, currentUser.mentorName])
+      );
+      
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const mentorDoc = snapshot.docs[0];
+        mentorUid = mentorDoc.id;
+        mentorUsername = mentorDoc.data().username;
+      } else {
+        // If not found by username, try searching by display name
+        const displayNameQuery = query(
+          usersRef,
+          where("role", "==", "mentor"),
+          where("displayName", "==", normalizedMentorName)
+        );
+        const displayNameSnapshot = await getDocs(displayNameQuery);
+        
+        if (!displayNameSnapshot.empty) {
+          const mentorDoc = displayNameSnapshot.docs[0];
+          mentorUid = mentorDoc.id;
+          mentorUsername = mentorDoc.data().username;
+        } else {
+          alert("לא נמצא משתמש מנטור עם שם זה. פנה למנהל המערכת.");
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error finding mentor:", err);
+      alert("שגיאה בחיפוש מנטור. נסה שוב.");
+      return;
+    }
+    // Find direct conversation with mentor
+    const mentorConversation = conversations?.find(
+      (conv) =>
+        conv.type === "direct" &&
+        Array.isArray(conv.participants) &&
+        conv.participants.includes(currentUser.uid) &&
+        conv.participants.includes(mentorUid)
+    );
+    if (mentorConversation) {
+      setSelectedConversation(mentorConversation);
+      navigate(`/chat/${mentorConversation.id}`);
+      return;
+    }
+    // If not found, create it
+    setIsCreatingMentorChat(true);
+    try {
+      const participants = [currentUser.uid, mentorUid].sort();
+      const participantNames = [currentUser.username, mentorUsername];
+      const unread = {};
+      participants.forEach(uid => { unread[uid] = 0; });
+      // Create conversation
+      const convoRef = doc(collection(db, "conversations"));
+      const convoData = {
+        participants,
+        participantNames,
+        type: "direct",
+        lastMessage: "",
+        lastUpdated: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        unread,
+      };
+      await setDoc(convoRef, convoData);
+      // Fetch the new conversation
+      const newConvo = await getDoc(convoRef);
+      if (newConvo.exists()) {
+        setSelectedConversation({ id: newConvo.id, ...newConvo.data() });
+        navigate(`/chat/${newConvo.id}`);
+      } else {
+        alert("שגיאה ביצירת צ'אט עם המנטור. נסה שוב.");
+      }
+    } catch (err) {
+      alert("שגיאה ביצירת צ'אט עם המנטור. נסה שוב.");
+    } finally {
+      setIsCreatingMentorChat(false);
+    }
+  };
+
+  // Filter out personal system messages not meant for this user
+  const filteredMessages = messages.filter(msg => {
+    if (msg.type === 'system') {
+      if (msg.systemSubtype === 'personal') {
+        return msg.targetUid === currentUser.uid;
+      }
+      if (msg.systemSubtype === 'group') {
+        // Don't show group system messages about the current user to the current user
+        if (
+          msg.text &&
+          (
+            msg.text.includes(`הוסיף את ${currentUser.username}`) ||
+            msg.text.includes(`הסיר את ${currentUser.username}`) ||
+            msg.text.includes(`${currentUser.username} עזב/ה את הקבוצה`)
+          )
+        ) {
+          return false;
+        }
+      }
+    }
+    return true;
+  });
+
   return (
     <div className='flex-1 flex flex-col relative' dir="rtl">
-      {showBubble && (
-        <BubbleAnimation onAnimationEnd={handleBubbleEnd} elementColors={elementColors} sendButtonRef={sendButtonRef} icon={elementColors.icon} />
-      )}
       {selectedConversation ? (
         <>
           <ChatHeader
@@ -170,6 +262,9 @@ export default function ChatArea({
                   : undefined
             }
             onInfoClick={() => setShowInfoSidebar(true)}
+            mentorName={currentUser.mentorName}
+            currentUser={currentUser}
+            
           />
           <ChatInfoSidebar
             open={showInfoSidebar}
@@ -180,7 +275,7 @@ export default function ChatArea({
             elementColors={elementColors}
             setSelectedConversation={setSelectedConversation}
           />
-          <div className="flex-1 overflow-y-auto p-4 bg-white"  style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
+          <div className="flex-1 overflow-y-auto p-4 bg-white" style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
             {isLoadingMessages ? (
               <div className="space-y-4">
                 <MessageLoadingState type="text" isOwnMessage={false} elementColors={elementColors} />
@@ -189,7 +284,7 @@ export default function ChatArea({
               </div>
             ) : isSendingImage ? (
               <>
-                {messages.map((msg) => (
+                {filteredMessages.map((msg) => (
                   <MessageItem
                     key={msg.id}
                     message={msg}
@@ -203,11 +298,11 @@ export default function ChatArea({
                 ))}
                 <MessageLoadingState type="image" isOwnMessage={true} elementColors={elementColors} />
               </>
-            ) : messages.length === 0 ? (
+            ) : filteredMessages.length === 0 ? (
               <div className="text-center text-gray-500 py-8">אין הודעות עדיין. התחל את השיחה!</div>
             ) : (
               <>
-                {messages.map((msg) => (
+                {filteredMessages.map((msg) => (
                   <MessageItem
                     key={msg.id}
                     message={msg}
@@ -238,7 +333,48 @@ export default function ChatArea({
           <ChatInput
             newMessage={newMessage}
             setNewMessage={setNewMessage}
-            handleSendMessage={handleSendMessage}
+            handleSendMessage={async () => {
+              // Handle voice message
+              if (audioBlob && !isRecording) {
+                try {
+                  const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
+                    type: 'audio/webm',
+                    lastModified: Date.now()
+                  });
+                  
+                  await sendMessage({ 
+                    fileOverride: voiceFile,
+                    mediaTypeOverride: 'audio',
+                    durationOverride: Math.round(recordingTime)
+                  });
+                  
+                  resetRecording();
+                  if (messagesEndRef.current) {
+                    messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+                  }
+                  return;
+                } catch (error) {
+                  console.error("Error sending voice message:", error);
+                  alert("Failed to send voice message. Please try again.");
+                  return;
+                }
+              }
+
+              // Handle regular messages and images
+              try {
+                if (file && file.type && file.type.startsWith('image/')) {
+                  setIsSendingImage(true);
+                }
+                await sendMessage();
+                setIsSendingImage(false);
+                if (messagesEndRef.current) {
+                  messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+                }
+              } catch (error) {
+                console.error("Error sending message:", error);
+                setIsSendingImage(false);
+              }
+            }}
             file={file}
             preview={preview}
             isUploading={isUploading}
@@ -251,7 +387,6 @@ export default function ChatArea({
             onEmojiClick={onEmojiClick}
             emojiPickerRef={emojiPickerRef}
             sendButtonRef={sendButtonRef}
-            // Voice recording props
             isRecording={isRecording}
             recordingTime={recordingTime}
             startRecording={startRecording}
@@ -262,41 +397,21 @@ export default function ChatArea({
           />
         </>
       ) : (
-        activeTab === "direct" ? (
-          <div className="flex-1 flex items-center justify-center bg-white text-right">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">בחר צ'אט או צור חדש כדי להתחיל</p>
+        <div className="flex-1 flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צ'אט או התחל שיחה חדשה</h3>
+            <p className="text-gray-500">או לחץ על הכפתור </p>
+            {console.log(currentUser)}
+            {currentUser?.role === "participant" ? (
               <button
-                onClick={() => setShowNewChatDialog(true)}
-                className="mt-4 text-white px-4 py-2 rounded-lg"
+                className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300"
                 style={{ backgroundColor: elementColors.primary }}
+                onClick={handleGoToMentorChat}
+                disabled={isCreatingMentorChat}
               >
-                צ'אט חדש
+                {isCreatingMentorChat ? "פותח צ'אט..." : "ובוא נדבר"}
               </button>
-            </div>
-          </div>
-        ) : activeTab === "group" ? (
-          <div className="flex-1 flex items-center justify-center bg-white text-right">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">בחר קבוצה או צור חדשה</p>
-              <button
-                onClick={() => setShowNewGroupDialog(true)}
-                className="mt-4 text-white px-4 py-2 rounded-lg"
-                style={{ backgroundColor: elementColors.primary }}
-              >
-                קבוצה חדשה
-              </button>
-            </div>
-          </div>
-        ) : activeTab === "community" ? (
-          <div className="flex-1 flex items-center justify-center bg-white text-right">
-            <div className="text-center text-gray-500">
-              <p className="text-lg">בחר קהילה או צור חדשה</p>
-            </div>
-          </div>
-        ) : <div className="flex-1 flex items-center justify-center bg-white text-right">
-          <div className="text-center text-gray-500">
-            <p className="text-lg">בחר  </p>
+            ) : null}
           </div>
         </div>
       )}

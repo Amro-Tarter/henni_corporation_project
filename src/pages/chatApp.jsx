@@ -55,6 +55,7 @@ export default function ChatApp() {
   const [activeTab, setActiveTab] = useState("all");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [lastReadUpdated, setLastReadUpdated] = useState({});
   const searchTimeoutRef = useRef(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userAvatars, setUserAvatars] = useState({});
@@ -66,6 +67,8 @@ export default function ChatApp() {
   const [pendingSelectedConversationId, setPendingSelectedConversationId] = useState(null);
   const [groupAvatarFile, setGroupAvatarFile] = useState(null);
   const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
+  const [isSendingImage, setIsSendingImage] = useState(false);
+  const messagesEndRef = useRef(null);
 
   // File upload state/logic (moved to hook)
   const {
@@ -84,15 +87,15 @@ export default function ChatApp() {
     }
     try {
       setIsSearching(true);
-      const q = query(
-        collection(db, "users"),
-        where("username", ">=", searchTerm),
-        where("username", "<=", searchTerm + "\uf8ff"),
-        limit(5)
-      );
-      const snapshot = await getDocs(q);
+      // Get all users and filter client-side for better search
+      const usersRef = collection(db, "users");
+      const snapshot = await getDocs(usersRef);
       const results = snapshot.docs
-        .filter(doc => doc.id !== currentUser.uid)
+        .filter(doc => {
+          const username = doc.data().username || '';
+          return doc.id !== currentUser.uid && 
+                 username.toLowerCase().includes(searchTerm.toLowerCase());
+        })
         .map(doc => ({
           id: doc.id,
           username: doc.data().username,
@@ -121,10 +124,15 @@ export default function ChatApp() {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           const userElement = userDoc.data().element;
+          const userRole = userDoc.data().role;
+          const associated_id = userDoc.data().associated_id;
           const userData = {
             uid: user.uid,
             username: userDoc.data().username,
-            element: userElement
+            element: userElement,
+            role: userRole,
+            associated_id,
+            mentorName: userDoc.data().mentorName,
           };
           setCurrentUser(userData);
           // Ensure user is in their community
@@ -266,34 +274,54 @@ export default function ChatApp() {
   useEffect(() => {
     if (!selectedConversation) return;
     setIsLoadingMessages(true);
+    
+    // Create a query to get messages for the selected conversation
     const q = query(
       collection(db, "conversations", selectedConversation.id, "messages"),
       orderBy("createdAt")
     );
+    
     const unsubscribe = onSnapshot(q, async (snapshot) => {
+      // Map the message documents to message objects with formatted dates
       const msgs = snapshot.docs.map((doc) => ({ 
         id: doc.id, 
         ...doc.data(),
         duration: doc.data().duration || 0,
         createdAt: doc.data().createdAt?.toDate() 
       }));
+      
       setMessages(msgs);
       setIsLoadingMessages(false);
 
-      // Build a set of unique sender UIDs (including currentUser)
-      const senderUids = new Set(msgs.map(m => m.sender));
+      // Build a set of unique sender UIDs
+      const senderUids = new Set(msgs.map(m => m.sender).filter(Boolean));
+      
+      // Add current user's UID to the set
       senderUids.add(currentUser.uid);
+      
       // For direct chats, add partner UID
       if (selectedConversation.type === 'direct') {
         const partnerUid = selectedConversation.participants.find(p => p !== currentUser.uid);
         if (partnerUid) senderUids.add(partnerUid);
       }
+      // For community chats, add all participants if available
+      else if (selectedConversation.type === 'community' && Array.isArray(selectedConversation.participants)) {
+        selectedConversation.participants.forEach(uid => {
+          if (uid) senderUids.add(uid);
+        });
+      }
+      
       // Fetch avatars for all senders
       const avatarEntries = await Promise.all(
-        Array.from(senderUids).map(async uid => [uid, await fetchUserAvatar(uid)])
+        Array.from(senderUids).map(async uid => {
+          if (!uid) return [null, null]; // Skip null/undefined UIDs
+          return [uid, await fetchUserAvatar(uid)];
+        }).filter(entry => entry[0]) // Filter out entries with null/undefined UIDs
       );
+      
       setUserAvatars(Object.fromEntries(avatarEntries));
     });
+    
     return () => unsubscribe();
   }, [selectedConversation?.id, currentUser.uid]);
 
@@ -302,110 +330,125 @@ export default function ChatApp() {
     // Support: opts.fileOverride, opts.mediaTypeOverride
     const fileToSend = opts.fileOverride || file;
     const mediaTypeOverride = opts.mediaTypeOverride;
-    if ((!newMessage.trim() && !fileToSend) || !selectedConversation || isSending || isUploading) {
+    
+    // Modified condition to allow voice messages
+    if ((!newMessage.trim() && !fileToSend && !opts.fileOverride) || !selectedConversation || isSending) {
       return;
     }
+
     // Clear input and file immediately for fast UX
+    const messageToSend = newMessage;
     setNewMessage("");
     removeFile();
     setUploadProgress(0);
-    setIsSending(true);
+
     // Bad words filter (only for text messages)
-    if (!fileToSend && newMessage.trim()) {
-      const lowerMsg = newMessage.toLowerCase();
-      // Efficient: check if any bad word is a substring (can be improved to whole word if needed)
-      const hasBadWord = badWords.some(word => word && lowerMsg.includes(word.toLowerCase()));
-      if (hasBadWord) {
+    if (!fileToSend && messageToSend.trim()) {
+      const lowerMsg = messageToSend.toLowerCase();
+      if (badWords.some(word => word && lowerMsg.includes(word.toLowerCase()))) {
         alert('ההודעה שלך מכילה מילים אסורות. אנא נסח מחדש.');
-        setNewMessage("");
         return;
       }
     }
-    const messageToSend = newMessage;
+
+    // Create optimistic message immediately
+    const optimisticId = `temp-${Date.now()}`;
+    const optimisticMessage = {
+      id: optimisticId,
+      sender: currentUser.uid,
+      senderName: currentUser.username,
+      text: !fileToSend ? messageToSend : '',
+      createdAt: new Date(),
+      ...(opts.durationOverride && { duration: opts.durationOverride })
+    };
+
+    // Add optimistic message to UI immediately
+    setMessages(prev => [...prev, optimisticMessage]);
+
     try {
+      setIsSending(true);
       let messageData = {
         sender: currentUser.uid,
         senderName: currentUser.username,
         createdAt: serverTimestamp(),
+        ...(opts.durationOverride && { duration: opts.durationOverride })
       };
-      // Add duration if provided (for audio messages)
-      if (opts.durationOverride) {
-        messageData.duration = opts.durationOverride;
-      }
+
+      // Handle file upload if present
       if (fileToSend) {
         setIsUploading(true);
         const storageRef = ref(
           storage,
           `messages/${selectedConversation.id}/${Date.now()}_${fileToSend.name}`
         );
-        const uploadTask = uploadBytesResumable(storageRef, fileToSend, {
-          contentType: fileToSend.type,
-          customMetadata: { uploadedBy: currentUser.uid }
-        });
+        
+        const uploadTask = uploadBytesResumable(storageRef, fileToSend);
+        
         uploadTask.on('state_changed',
           (snapshot) => {
             const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
             setUploadProgress(progress);
           },
-          (error) => {
-            console.error("Upload error:", error);
-            setUploadProgress(0);
-            throw error;
+          null,
+          async () => {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            messageData = {
+              ...messageData,
+              mediaURL: downloadURL,
+              mediaType: mediaTypeOverride || (fileToSend.type.startsWith('image/') ? 'image' : fileToSend.type.startsWith('audio/') ? 'audio' : 'unknown'),
+              fileName: fileToSend.name,
+              fileSize: fileToSend.size
+            };
+            
+            await finalizeMessageSend(messageData, optimisticId);
+            setIsUploading(false);
           }
         );
-        await uploadTask;
-        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-        messageData = {
-          ...messageData,
-          mediaURL: downloadURL,
-          mediaType: mediaTypeOverride || (fileToSend.type.startsWith('image/') ? 'image' : fileToSend.type.startsWith('audio/') ? 'audio' : 'unknown'),
-          fileName: fileToSend.name,
-          fileSize: fileToSend.size
-        };
       } else {
         messageData.text = messageToSend;
+        await finalizeMessageSend(messageData, optimisticId);
       }
-      // Optimistic update (optional)
-      const tempMessageId = `temp-${Date.now()}`;
-      const optimisticMessage = {
-        id: tempMessageId,
-        ...messageData,
-        createdAt: new Date()
-      };
-      setMessages(prev => [...prev, optimisticMessage]);
-      // Batched writes
-      const batch = writeBatch(db);
-      const messagesRef = collection(db, "conversations", selectedConversation.id, "messages");
-      const newMessageRef = doc(messagesRef);
-      batch.set(newMessageRef, messageData);
-      const conversationRef = doc(db, "conversations", selectedConversation.id);
-      batch.update(conversationRef, {
-        lastMessage: fileToSend ? (mediaTypeOverride === 'audio' || fileToSend.type.startsWith('audio/') ? 'Sent a voice message' : fileToSend.type.startsWith('image/') ? 'Sent an image' : 'Sent a file') : messageToSend,
-        lastUpdated: serverTimestamp(),
-      });
-      // --- Only increment unread for users who do not have the chat open (all chat types) ---
-      const unreadUpdate = {};
-      selectedConversation.participants.forEach(uid => {
-        if (uid !== currentUser.uid) {
-          // If lastRead exists and is recent, do not increment unread
-          const lastRead = selectedConversation.lastRead?.[uid];
-          // If lastRead is missing or not a Date, increment unread
-          if (!lastRead || (lastRead.toDate ? lastRead.toDate() : lastRead) < new Date()) {
-            unreadUpdate[`unread.${uid}`] = increment(1);
-          }
-        }
-      });
-      batch.update(conversationRef, unreadUpdate);
-      await batch.commit();
-      setMessages(prev => prev.filter(msg => msg.id !== tempMessageId));
     } catch (error) {
       console.error("Error sending message:", error);
-      setNewMessage(messageToSend);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
       alert(`Message failed: ${error.message}`);
-    } finally {
-      setIsSending(false);
-      setIsUploading(false);
     }
+  };
+
+  // Helper function to finalize message sending
+  const finalizeMessageSend = async (messageData, optimisticId) => {
+    const conversationRef = doc(db, "conversations", selectedConversation.id);
+    const messagesRef = collection(conversationRef, "messages");
+
+    // Send the message first
+    const messageRef = await addDoc(messagesRef, messageData);
+
+    // Update conversation metadata separately
+    const lastMessageText = messageData.mediaType ? 
+      (messageData.mediaType === 'audio' ? 'Sent a voice message' : 
+       messageData.mediaType === 'image' ? 'Sent an image' : 'Sent a file') : 
+      messageData.text;
+
+    const unreadUpdate = {};
+    selectedConversation.participants.forEach(uid => {
+      if (uid !== currentUser.uid) {
+        unreadUpdate[`unread.${uid}`] = increment(1);
+      }
+    });
+
+    await updateDoc(conversationRef, {
+      lastMessage: lastMessageText,
+      lastUpdated: serverTimestamp(),
+      ...unreadUpdate
+    });
+
+    // Remove optimistic message and set final message
+    setMessages(prev => prev.map(msg => 
+      msg.id === optimisticId ? { ...messageData, id: messageRef.id } : msg
+    ));
+    
+    setIsSending(false);
   };
 
   // --- Create New Conversation ---
@@ -556,6 +599,121 @@ export default function ChatApp() {
     }
   };
 
+  // Add useEffect to handle initial conversation selection based on chatId URL parameter
+  useEffect(() => {
+    if (!currentUser.uid) return; // Skip if user not logged in
+    
+    if (chatId) {
+      const conversation = conversations.find(c => c.id === chatId);
+      
+      // Check if we've already updated this conversation's lastRead timestamp
+      const lastReadKey = `${chatId}_${currentUser.uid}`;
+      const alreadyUpdated = lastReadUpdated[lastReadKey];
+      
+      if (conversation) {
+        // Found conversation in current state
+        setSelectedConversation(conversation);
+        
+        // Only update lastRead if we haven't already done so
+        if (!alreadyUpdated) {
+          const conversationRef = doc(db, "conversations", conversation.id);
+          updateDoc(conversationRef, {
+            [`unread.${currentUser.uid}`]: 0,
+            [`lastRead.${currentUser.uid}`]: serverTimestamp()
+          });
+          
+          // Mark this conversation as updated
+          setLastReadUpdated(prev => ({
+            ...prev,
+            [lastReadKey]: true
+          }));
+        }
+      } else {
+        // If conversation not found in current state, fetch it directly
+        const fetchConversation = async () => {
+          try {
+            const conversationRef = doc(db, "conversations", chatId);
+            const conversationDoc = await getDoc(conversationRef);
+            
+            if (conversationDoc.exists()) {
+              const data = conversationDoc.data();
+              // Check if user is a participant in this conversation
+              if (data.participants && data.participants.includes(currentUser.uid)) {
+                // Create conversation object with necessary data
+                const conversationData = {
+                  id: chatId,
+                  ...data,
+                  lastUpdated: data.lastUpdated?.toDate(),
+                  createdAt: data.createdAt?.toDate()
+                };
+                
+                // For direct chats, get partner info
+                if (data.type === "direct") {
+                  const partnerUid = data.participants.find(p => p !== currentUser.uid);
+                  if (partnerUid) {
+                    const userDocRef = doc(db, "users", partnerUid);
+                    const partnerDoc = await getDoc(userDocRef);
+                    let partnerProfilePic = null;
+                    try {
+                      const profileDocRef = doc(db, "profiles", partnerUid);
+                      const profileDoc = await getDoc(profileDocRef);
+                      if (profileDoc.exists()) {
+                        partnerProfilePic = profileDoc.data().photoURL || null;
+                      }
+                    } catch (e) {
+                      partnerProfilePic = null;
+                    }
+                    
+                    conversationData.participantNames = [
+                      currentUser.username,
+                      partnerDoc.exists() ? partnerDoc.data().username : "Unknown"
+                    ];
+                    conversationData.partnerProfilePic = partnerProfilePic;
+                  }
+                }
+                // For group chats, get additional info
+                else if (data.type === "group") {
+                  conversationData.groupName = data.name || data.groupName;
+                  conversationData.avatarURL = data.avatarURL;
+                  conversationData.participantNames = data.participantNames || [];
+                  conversationData.admin = data.admin;
+                }
+                
+                setSelectedConversation(conversationData);
+                
+                // Only update lastRead if we haven't already done so
+                if (!alreadyUpdated) {
+                  // Reset unread count and update lastRead timestamp
+                  updateDoc(conversationRef, {
+                    [`unread.${currentUser.uid}`]: 0,
+                    [`lastRead.${currentUser.uid}`]: serverTimestamp()
+                  });
+                  
+                  // Mark this conversation as updated
+                  setLastReadUpdated(prev => ({
+                    ...prev,
+                    [lastReadKey]: true
+                  }));
+                }
+              } else {
+                // User is not a participant, redirect to main chat page
+                navigate('/chat');
+              }
+            } else {
+              // Conversation doesn't exist, redirect to main chat page
+              navigate('/chat');
+            }
+          } catch (error) {
+            console.error("Error fetching conversation:", error);
+            navigate('/chat');
+          }
+        };
+        
+        fetchConversation();
+      }
+    }
+  }, [chatId, conversations, currentUser.uid, navigate, currentUser.username]);
+
   // When a conversation is selected, always use the full object from conversations array
   const handleSelectConversation = (conv) => {
     if (!conv) {
@@ -563,18 +721,30 @@ export default function ChatApp() {
       navigate(`/chat`);
       return;
     }
+    
     // If conv is an ID, or partial, find the full object
     const convId = conv.id || conv;
     const fullConv = conversations.find(c => c.id === convId);
+    
     if (fullConv) {
+      // Create a lastRead key to track updates
+      const lastReadKey = `${fullConv.id}_${currentUser.uid}`;
+      
       setSelectedConversation(fullConv);
       navigate(`/chat/${fullConv.id}`);
+      
       // --- Reset unread count for current user and update lastRead timestamp ---
       const conversationRef = doc(db, "conversations", fullConv.id);
       updateDoc(conversationRef, {
         [`unread.${currentUser.uid}`]: 0,
         [`lastRead.${currentUser.uid}`]: serverTimestamp()
       });
+      
+      // Mark this conversation as updated
+      setLastReadUpdated(prev => ({
+        ...prev,
+        [lastReadKey]: true
+      }));
     } else {
       // fallback: set as is
       setSelectedConversation(conv);
@@ -645,6 +815,103 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, [currentUser.uid, selectedConversation, conversations]);
 
+  // Handle sending message
+  const handleSendMessage = async () => {
+    // Handle voice message
+    if (audioBlob && !isRecording) {
+      try {
+        const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
+          type: 'audio/webm',
+          lastModified: Date.now()
+        });
+        
+        await sendMessage({ 
+          fileOverride: voiceFile,
+          mediaTypeOverride: 'audio',
+          durationOverride: Math.round(recordingTime) // Ensure it's a rounded number
+        });
+        
+        resetRecording();
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+        return;
+      } catch (error) {
+        console.error("Error sending voice message:", error);
+        alert("Failed to send voice message. Please try again.");
+        return;
+      }
+    }
+
+    // Handle regular messages and images
+    try {
+      if (file && file.type && file.type.startsWith('image/')) {
+        setIsSendingImage(true);
+      }
+      await sendMessage();
+      setIsSendingImage(false);
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      setIsSendingImage(false);
+    }
+  };
+
+  // Auto-close chat if user is removed from a group they are viewing
+  useEffect(() => {
+    if (
+      selectedConversation &&
+      selectedConversation.type === 'group' &&
+      Array.isArray(selectedConversation.participants) &&
+      !selectedConversation.participants.includes(currentUser.uid)
+    ) {
+      // Check for a personal removal message
+      const lastPersonalRemovalMsg = messages
+        .slice()
+        .reverse()
+        .find(
+          msg =>
+            msg.type === 'system' &&
+            msg.systemSubtype === 'personal' &&
+            msg.targetUid === currentUser.uid &&
+            msg.text &&
+            msg.text.includes('הסיר אותך מהקבוצה')
+        );
+      if (lastPersonalRemovalMsg) {
+        // Wait 2.5 seconds before closing the chat
+        const timeout = setTimeout(() => {
+          setSelectedConversation(null);
+          navigate('/chat');
+        }, 2500);
+        return () => clearTimeout(timeout);
+      } else {
+        // No personal message, close immediately
+        setSelectedConversation(null);
+        navigate('/chat');
+      }
+    }
+  }, [selectedConversation, currentUser.uid, navigate, messages]);
+
+  // Real-time listener for selected conversation to detect removal from group
+  useEffect(() => {
+    if (!selectedConversation?.id) return;
+    const conversationRef = doc(db, "conversations", selectedConversation.id);
+    const unsubscribe = onSnapshot(conversationRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setSelectedConversation(prev => ({
+          ...prev,
+          ...data,
+          lastUpdated: data.lastUpdated?.toDate?.() || prev.lastUpdated,
+          createdAt: data.createdAt?.toDate?.() || prev.createdAt,
+        }));
+      }
+    });
+    return () => unsubscribe();
+  }, [selectedConversation?.id]);
+
   if (!authInitialized) {
     return <ElementalLoader />;
   }
@@ -662,7 +929,7 @@ export default function ChatApp() {
         >
           מחק את כל הצ'אטים (אדמין)
         </button>
-        */}
+        */} 
       <ThemeProvider element={userElement}>
         <Navbar element={userElement}/>
       </ThemeProvider>
@@ -822,15 +1089,16 @@ export default function ChatApp() {
                     return;
                   }
                   setIsSearching(true);
-                  const q = query(
-                    collection(db, "users"),
-                    where("username", ">=", e.target.value.toLowerCase()),
-                    where("username", "<=", e.target.value.toLowerCase() + "\uf8ff"),
-                    limit(5)
-                  );
-                  const snapshot = await getDocs(q);
+                  // Get all users and filter client-side for better search
+                  const usersRef = collection(db, "users");
+                  const snapshot = await getDocs(usersRef);
                   const results = snapshot.docs
-                    .filter(doc => doc.id !== currentUser.uid && !selectedGroupUsers.some(u => u.id === doc.id))
+                    .filter(doc => {
+                      const username = doc.data().username || '';
+                      return doc.id !== currentUser.uid && 
+                             !selectedGroupUsers.some(u => u.id === doc.id) &&
+                             username.toLowerCase().includes(e.target.value.toLowerCase());
+                    })
                     .map(doc => ({
                       id: doc.id,
                       username: doc.data().username,
@@ -917,6 +1185,20 @@ export default function ChatApp() {
                     setSelectedGroupUsers([]);
                     setGroupAvatarFile(null);
                     setGroupAvatarPreview(null);
+                    // Send personal system message to each added user (except admin) about group creation
+                    for (const user of selectedGroupUsers) {
+                      await addDoc(collection(db, "conversations", groupRef.id, "messages"), {
+                        text: `${currentUser.username} יצר את הקבוצה (${groupName.trim()}) והוסיפך אליה`,
+                        type: "system",
+                        systemSubtype: "personal",
+                        createdAt: serverTimestamp(),
+                        targetUid: user.id
+                      });
+                      // Increment unread count for the added user
+                      await updateDoc(groupRef, {
+                        [`unread.${user.id}`]: 1
+                      });
+                    }
                   } catch (error) {
                     alert("שגיאה ביצירת קבוצה: " + error.message);
                   }
