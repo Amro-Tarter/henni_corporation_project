@@ -7,12 +7,12 @@ import { AuthProvider } from './context/AuthContext';
 
 // Import your page components
 import DashboardHome from "./pages/admin/DashboardHome";
-import Analytics from './pages/admin/Analytics';
 import Users from './pages/admin/Users';
-import Posts from './pages/admin/Posts';
 import Reports from './pages/admin/Reports';
 import Settings from './pages/admin/Settings';
 import MentorReportForm from './pages/Report';
+import PartnerForm from'./pages/admin/Partners'
+import DonationForm from'./pages/admin/Donations'
 
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
@@ -100,10 +100,10 @@ const App = () => {
                 {/* Admin Pages */}
                 <Route path="/admin" element={<DashboardHome />} />
                 <Route path="/admin/Users" element={<Users />} />
-                <Route path="/admin/Posts" element={<Posts />} />
+                <Route path="/admin/Partners" element={<PartnerForm />} />
                 <Route path="/admin/Reports" element={<Reports />} />
-                <Route path="/admin/Analytics" element={<Analytics />} />
                 <Route path="/admin/Settings" element={<Settings />} />
+                <Route path="/admin/donations" element={<DonationForm/>} />
 
                 {/* 404 Page */}
                 <Route path="*" element={<NotFound />} />
