@@ -229,7 +229,7 @@ if (!querySnapshot.empty) {
 
     {/* Heading */}
     <div className="text-center mb-6">
-      <h2 className="text-3xl font-extrabold text-gray-900"> לגלות את האור הניני</h2>
+      <h2 className="text-3xl font-extrabold text-gray-900"> עמותת לגלות את האור הנני</h2>
       <p className="mt-2 text-sm text-gray-700">צור חשבון חדש</p>
     </div>
 

@@ -252,7 +252,7 @@ const Login = () => {
         
         {/* Logo */}
         <div className="text-center relative">
-          <h2 className="mt-2 text-3xl font-extrabold text-gray-900">לגלות את האור הניני</h2>
+          <h2 className="mt-2 text-3xl font-extrabold text-gray-900">עמותת לגלות את האור הנני</h2>
           <p className="mt-2 text-sm text-gray-600">התחברות לחשבון שלך</p>
         </div>
 

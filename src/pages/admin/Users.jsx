@@ -220,7 +220,7 @@ function Users() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {displayedUsers.map((user) => (
               <Link 
-                to={`/profile/${user.id}`} 
+                to={`/profile/${user.username}`} 
                 key={user.id}
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
               >
