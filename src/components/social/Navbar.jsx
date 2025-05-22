@@ -5,24 +5,25 @@ import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import NotificationsComponent from './NotificationsComponent';
 
 const navTabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', href: '/Home' },
-  { id: 'messenger', icon: <MessageSquare size={20} />, label: 'הודעות', href: '/chat' },
+  { id: 'chat', icon: <MessageSquare size={20} />, label: 'הודעות', href: '/chat' },
   { id: 'settings', icon: <Settings size={20} />, label: 'הגדרות', href: '/settings' },
 ];
 
 const Navbar = ({ element }) => {
   const navigate = useNavigate();
+  const { showNotifications, setShowNotifications, unreadCount, NotificationsModal } = NotificationsComponent();
 
   const getInitialTab = () => {
     const path = window.location.pathname;
     if (path.startsWith('/Home')) return 'home';
-    if (path.startsWith('/messenger')) return 'messenger';
+    if (path.startsWith('/chat')) return 'chat';
     if (path.startsWith('/settings')) return 'settings';
     if (path.startsWith('/notifications')) return 'notifications';
     if (path.startsWith('/profile')) return 'profile';
-    if (path.startsWith('/chat')) return 'chat';
     return 'home';
   };
 
@@ -33,7 +34,6 @@ const Navbar = ({ element }) => {
   const [showSearchPopUp, setShowSearchPopUp] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
 
   const searchRef = useRef(null);
   const profileDropdownRef = useRef(null);
@@ -170,28 +170,6 @@ const Navbar = ({ element }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (!user) return;
-
-    const q = query(
-      collection(db, 'conversations'),
-      where('participants', 'array-contains', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      let totalUnread = 0;
-      snapshot.docs.forEach((doc) => {
-        const data = doc.data();
-        if (data.unread && data.unread[user.uid]) {
-          totalUnread += data.unread[user.uid];
-        }
-      });
-      setUnreadCount(totalUnread);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
   return (
     <header dir="rtl" className={`fixed top-0 left-0 w-full bg-red-900 backdrop-blur-md shadow-md border-b border-${element}-accent z-50`}>
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
@@ -200,19 +178,20 @@ const Navbar = ({ element }) => {
             <button
               key={tab.id}
               onClick={() => handleTabClick(tab.id, tab.href)}
-              className={`group flex items-center gap-2 px-3 py-2 rounded-md text-white text-base transition-all duration-200 transform ${
+              className={`group flex items-center gap-2 px-3 py-2 rounded-md text-white text-base transition-all duration-300 ease-in-out transform hover:scale-105 ${
                 activeTab === tab.id
-                  ? `bg-orange-700 font-semibold`
-                  : `hover:bg-red-500`
+                  ? `bg-gradient-to-br from-red-950 via-red-900 to-red-800 font-bold shadow-xl border-2 border-red-800/50 ring-2 ring-red-800/30`
+                  : `hover:bg-red-700/80 hover:shadow-md`
               }`}
             >
               <motion.div
                 whileHover={{ scale: 1.1 }}
                 transition={{ type: 'spring', stiffness: 300 }}
+                className={`transition-transform duration-200 ${activeTab === tab.id ? 'text-red-50' : ''}`}
               >
                 {tab.icon}
               </motion.div>
-              <span>{tab.label}</span>
+              <span className={`transition-colors duration-200 ${activeTab === tab.id ? 'text-red-50' : ''}`}>{tab.label}</span>
             </button>
           ))}
         </nav>
@@ -315,15 +294,21 @@ const Navbar = ({ element }) => {
           </div>
         </form>
 
-        <div className="flex flex-row-reverse items-center space-x-4 space-x-reverse">
+        <div className="flex items-center gap-4">
           <button
-            onClick={() => handleTabClick('notifications', '/notifications')}
-            className={`relative p-2 rounded-full transition group ${
-              activeTab === 'notifications' ? `bg-${element}-accent` : `hover:bg-${element}-accent`
+            onClick={() => setShowNotifications(true)}
+            className={`relative p-2 rounded-full transition-all duration-300 ease-in-out transform hover:scale-105 group ${
+              activeTab === 'notifications' 
+                ? `bg-gradient-to-br from-red-950 via-red-900 to-red-800 shadow-xl border-2 border-red-800/50 ring-2 ring-red-800/30` 
+                : `hover:bg-red-700/80 hover:shadow-md`
             }`}
             aria-label="התראות"
           >
-            <motion.div whileHover={{ scale: 1.1 }} transition={{ type: 'spring', stiffness: 300 }}>
+            <motion.div 
+              whileHover={{ scale: 1.1 }} 
+              transition={{ type: 'spring', stiffness: 300 }}
+              className={`transition-transform duration-200 ${activeTab === 'notifications' ? 'text-red-50' : ''}`}
+            >
               <Bell size={20} className="text-white" />
             </motion.div>
             {unreadCount > 0 && (
@@ -340,12 +325,14 @@ const Navbar = ({ element }) => {
           <div className="relative" ref={profileDropdownRef}>
             <button
               onClick={() => setShowProfileDropdown((prev) => !prev)}
-              className={`p-2 rounded-full transition ${
-                activeTab === 'profile' ? `bg-${element}-accent` : `hover:bg-${element}-soft`
+              className={`p-2 rounded-full transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                activeTab === 'profile' 
+                  ? `bg-gradient-to-br from-red-950 via-red-900 to-red-800 shadow-xl border-2 border-red-800/50 ring-2 ring-red-800/30` 
+                  : `hover:bg-red-700/80 hover:shadow-md`
               }`}
               aria-label="פרופיל"
             >
-              <User size={20} className="text-white" />
+              <User size={20} className={`text-white transition-transform duration-200 group-hover:scale-110 ${activeTab === 'profile' ? 'text-red-50' : ''}`} />
             </button>
 
             <AnimatePresence>
@@ -401,6 +388,8 @@ const Navbar = ({ element }) => {
           </div>
         </div>
       </div>
+
+      <NotificationsModal />
     </header>
   );
 };
