@@ -1,3 +1,4 @@
+//createPost.jsx
 import React, { useState, useRef } from 'react';
 import { FaVideo, FaPhotoVideo, FaRegNewspaper } from 'react-icons/fa';
 

@@ -1,4 +1,4 @@
-// Enhanced ProfileInfo.jsx with improved tooltips and fixed visibility issues
+//ProfileInfo.jsx
 import React, { useState } from 'react';
 import { MapPin, Pencil, Camera, MessageSquare, Users, Image } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -7,8 +7,8 @@ import { useToast } from '/src/hooks/use-toast.jsx'
 const elementOptions = [
   { value: 'fire', label: 'אש', icon: '🔥' },
   { value: 'water', label: 'מים', icon: '💧' },
-  { value: 'air', label: 'אוויר', icon: '🌪️' },
-  { value: 'earth', label: 'אדמה', icon: '🌍' },
+  { value: 'air', label: 'אוויר', icon: '💨' },
+  { value: 'earth', label: 'אדמה', icon: '🌱' },
   { value: 'metal', label: 'מתכת', icon: '⚙️' },
 ];
 
@@ -47,6 +47,7 @@ const ProfileInfo = ({
   onUpdateBackgroundPic,
   isOwner,
   isFollowing,
+  uid,
   onFollowToggle
 }) => {
   const [editing, setEditing] = useState(null);
@@ -318,7 +319,7 @@ const ProfileInfo = ({
         {!isOwner && (
           <div className="flex justify-center mt-6">
             <button
-              onClick={onFollowToggle}
+              onClick={() => onFollowToggle(uid)}
               className={`
                 px-20 py-3 rounded-full text-sm font-medium shadow-md transition-transform hover:scale-105
                 ${isFollowing
