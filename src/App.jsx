@@ -36,16 +36,9 @@ import ScrollDown from './components/ui/ScrollDown';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <AuthProvider>
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <BrowserRouter>
-            <Routes>
-              {/* Public Pages */}
-              <Route path="/" element={<Index />} />
+// Define your custom hook for page tracking
+const usePageTracking = () => {
+  const location = useLocation(); // Get the current location object from react-router-dom
 
   useEffect(() => {
     // Check if gtag is available globally (from the script in index.html)
