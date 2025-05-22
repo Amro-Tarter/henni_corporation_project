@@ -766,10 +766,12 @@ export default function ChatApp() {
 
   // Reset to /chat if no conversation is selected (e.g., after reload)
   useEffect(() => {
-    if (selectedConversation === null) {
+    // Only auto-redirect to main chat if no chatId in URL and nothing is selected
+    if (!chatId && selectedConversation === null) {
       navigate('/chat');
     }
-  }, [selectedConversation, navigate]);
+    // Don't auto-redirect away if chatId exists, allow time to fetch & select conversation
+  }, [chatId, selectedConversation, navigate]);
 
   // TEMP: Admin-only delete all conversations button
   async function handleDeleteAllConversations() {

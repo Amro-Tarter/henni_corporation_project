@@ -1,3 +1,4 @@
+// profilePost.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check, X } from 'lucide-react';
 import { Comment, CommentInput } from './comments';
@@ -5,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '/src/hooks/use-toast.jsx';
 import PostModalContent from './PostModalContent';
+import ConfirmationModal from './ConfirmationModal';
 
 const ProfilePost = ({
   post,
@@ -25,6 +27,7 @@ const ProfilePost = ({
     createdAt,
     content,
     mediaUrl,
+    mediaType,
     likesCount,
     commentsCount,
     likedBy = []
@@ -40,12 +43,15 @@ const ProfilePost = ({
   const [authorProfile, setAuthorProfile] = useState(null);
   const [showPostModal, setShowPostModal] = useState(false);
   const [floatLike, setFloatLike] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(null);
 
   const { toast } = useToast();
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const commentsRef = useRef(null);
   const navigate = useNavigate();
+  
 
   useEffect(() => {
     const fetch = async () => {
@@ -70,12 +76,6 @@ const ProfilePost = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (showComments && commentsRef.current) {
-      commentsRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [showComments]);
-
   const createdDate = createdAt?.toDate?.();
   const timeString = createdDate
     ? createdDate.toLocaleDateString('he-IL', {
@@ -84,14 +84,17 @@ const ProfilePost = ({
       })
     : '';
 
-  const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
+  //const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
 
-  const handleDelete = () => {
-    if (window.confirm('האם אתה בטוח שברצונך למחוק את הפוסט הזה?')) {
-      onDelete(id);
-      setMenuOpen(false);
-    }
+  const handleDelete = () => setShowConfirmDelete(true);
+
+  const confirmDelete = () => {
+    onDelete(id);
+    setShowConfirmDelete(false);
+    setMenuOpen(false);
   };
+
+  const cancelDelete = () => setShowConfirmDelete(false);
 
   const handleSaveEdit = () => {
     onUpdate(id, { content: newContent, mediaFile: newMediaFile });
@@ -143,7 +146,7 @@ const ProfilePost = ({
           ref={fileInputRef}
           type="file"
           className="hidden"
-          accept={isVideo ? 'video/*' : 'image/*'}
+          accept="image/*,video/*"
           onChange={onMediaChange}
         />
 
@@ -228,10 +231,10 @@ const ProfilePost = ({
         </div>
 
         {/* Media */}
-        {mediaUrl && (
+        {mediaUrl && !showPostModal &&(
           <div
             className={`relative w-full overflow-hidden bg-${element}-soft ${
-              editing || showPostModal ? '' : 'cursor-pointer group'
+              editing ? '' : 'cursor-pointer group'
             }`}
             onClick={() => {
               if (!editing && !showPostModal) setShowPostModal(true);
@@ -250,7 +253,7 @@ const ProfilePost = ({
                 </div>
               )}
 
-              {isVideo ? (
+              {mediaType === 'video' ? (
                 <video
                   src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
                   controls
@@ -326,82 +329,134 @@ const ProfilePost = ({
         </div>
 
         {/* Comments Section */}
-        {showComments && (
-          <div ref={commentsRef} className="px-5 py-4 border-t border-gray-200">
-            <div className="flex gap-3 mb-4">
-              <img src={currentUser.photoURL} alt="" className="w-8 h-8 rounded-full" />
-              <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
-            </div>
-            
-            {comments.length > 0 ? (
-              comments.map(c => (
-                <Comment
-                  key={c.id}
-                  comment={c}
-                  element={element}
-                  currentUser={currentUser}
-                  onReply={setReplyTo}
-                  onEdit={onEditComment}
-                  onDelete={onDeleteComment}
-                  replyingToId={replyTo}
-                  onSubmitReply={(text, parentId) => {
-                    onAddComment(id, text, parentId);
-                    setReplyTo(null);
-                  }}
-                  onCancelReply={() => setReplyTo(null)}
-                  postId={id}
-                  postAuthorId={post.authorId}
-                  getAuthorProfile={getAuthorProfile}
-                />
-              ))
-            ) : (
-              <p className="text-center text-gray-500">אין תגובות עדיין.</p>
-            )}
-          </div>
-        )}
+        <AnimatePresence initial={false}>
+          {showComments && (
+            <motion.div
+              ref={commentsRef}
+              className="px-5 py-4 border-t border-gray-200"
+              key="comments-section"
+              initial={{ y: -24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -24, opacity: 0 }}
+              transition={{ duration: 0.40 }}
+            >
+              <div>
+                <div className="flex gap-3 mb-4">
+                  <img src={currentUser.photoURL} alt="" className="w-8 h-8 rounded-full" />
+                  <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
+                </div>
+                {comments.length > 0 ? (
+                  comments.map(c => (
+                    <Comment
+                      key={c.id}
+                      comment={c}
+                      element={element}
+                      currentUser={currentUser}
+                      onReply={setReplyTo}
+                      onEdit={onEditComment}
+                      onDelete={() =>
+                        setCommentToDelete({
+                          postId: id,
+                          commentId: c.id,
+                          isReply: c.parentCommentId ? true : false,
+                          parentCommentId: c.parentCommentId || null,
+                        })
+                      }
+                      replyingToId={replyTo}
+                      onSubmitReply={(text, parentId) => {
+                        onAddComment(id, text, parentId);
+                        setReplyTo(null);
+                      }}
+                      onCancelReply={() => setReplyTo(null)}
+                      postId={id}
+                      postAuthorId={post.authorId}
+                      getAuthorProfile={getAuthorProfile}
+                    />
+                  ))
+                ) : (
+                  <p className="text-center text-gray-500">אין תגובות עדיין.</p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {showPostModal && (
-  <div className="fixed inset-0 z-[200]">
-    {/* FULLSCREEN BLUR */}
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
-
-    {/* MODAL CONTENT */}
-    <div className="flex items-center justify-center w-full h-full p-4">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.25 }}
-        className="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-xl flex flex-col"
-      >
-        <button
-          onClick={() => setShowPostModal(false)}
-          className={`absolute top-4 left-4 z-50 text-${element} bg-white hover:bg-${element}-soft border border-${element}-accent p-2 rounded-full shadow-md transition-all`}
-          aria-label="סגור פוסט"
-        >
-          <X className="w-5 h-5" />
-        </button>
-        <div className="overflow-y-auto px-6 pt-10 pb-6 flex-1">
-          <PostModalContent
-            post={post}
-            element={element}
-            currentUser={currentUser}
-            comments={comments}
-            onAddComment={onAddComment}
-            onEditComment={onEditComment}
-            onDeleteComment={onDeleteComment}
-            onLike={onLike}
-            onDelete={onDelete}
-            onUpdate={onUpdate}
-            isOwner={isOwner}
-            getAuthorProfile={getAuthorProfile}
+        <div className="fixed inset-0 z-[200]">
+          {/* FULLSCREEN BLUR */}
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm" 
+            onClick={() => setShowPostModal(false)}
           />
+
+          {/* MODAL CONTENT */}
+          <div className="flex items-center justify-center w-full h-full p-4 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.25 }}
+              className="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-xl flex flex-col pointer-events-auto"
+              onClick={e => e.stopPropagation()}
+            >
+            <button
+              onClick={() => setShowPostModal(false)}
+              className={`absolute top-4 left-4 z-50 text-${element} bg-white hover:bg-${element}-soft border border-${element}-accent p-2 rounded-full shadow-md transition-all`}
+              aria-label="סגור פוסט"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="overflow-y-auto px-6 pt-10 pb-6 flex-1">
+              <PostModalContent
+                post={post}
+                element={element}
+                currentUser={currentUser}
+                comments={comments}
+                onAddComment={onAddComment}
+                onEditComment={onEditComment}
+                onDeleteComment={onDeleteComment}
+                onLike={onLike}
+                onDelete={onDelete}
+                onUpdate={onUpdate}
+                isOwner={isOwner}
+                getAuthorProfile={getAuthorProfile}
+              />
+            </div>
+          </motion.div>
         </div>
-      </motion.div>
-    </div>
-  </div>
+      </div>
 )}
+      <ConfirmationModal
+        open={showConfirmDelete}
+        title="מחיקת פוסט"
+        message="האם אתה בטוח שברצונך למחוק את הפוסט הזה?"
+        confirmText="מחק"
+        cancelText="ביטול"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        element={element}
+      />
+      <ConfirmationModal
+        open={!!commentToDelete}
+        title="מחיקת תגובה"
+        message="האם אתה בטוח שברצונך למחוק את התגובה הזו?"
+        confirmText="מחק"
+        cancelText="ביטול"
+        onConfirm={() => {
+          if (commentToDelete) {
+            onDeleteComment(
+              commentToDelete.postId,
+              commentToDelete.commentId,
+              commentToDelete.isReply,
+              commentToDelete.parentCommentId
+            );
+            setCommentToDelete(null);
+          }
+        }}
+        onCancel={() => setCommentToDelete(null)}
+        element={element}
+      />
     </>
   );
 };

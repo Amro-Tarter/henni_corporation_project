@@ -1,3 +1,4 @@
+//profilepage.jsx
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import ElementalLoader from '../theme/ElementalLoader';
@@ -307,22 +308,27 @@ useEffect(() => {
     const userRef    = doc(db, 'users', uid);
 
     if (field === 'username') {
-    // Check if username exists
-    const q = query(collection(db, 'profiles'), where('username', '==', value));
-    const snap = await getDocs(q);
-    const taken = snap.docs.some(doc => doc.id !== uid);
-    if (taken) {
-      alert('שם המשתמש הזה כבר תפוס. אנא בחר שם אחר.');
-      return;
-    }
+      // Prevent empty or whitespace-only username
+      if (!value.trim()) {
+        alert('שם המשתמש לא יכול להיות ריק או להכיל רק רווחים.');
+        return;
+      }
+      // Check if username exists
+      const q = query(collection(db, 'profiles'), where('username', '==', value));
+      const snap = await getDocs(q);
+      const taken = snap.docs.some(doc => doc.id !== uid);
+      if (taken) {
+        alert('שם המשתמש הזה כבר תפוס. אנא בחר שם אחר.');
+        return;
+      }
 
-    const batch = writeBatch(db);
-    batch.update(profileRef, { username: value, updatedAt: serverTimestamp() });
-    batch.update(userRef,    { username: value });
-    await batch.commit();
-    setProfile(prev => ({ ...prev, [field]: value }));
-    navigate(`/profile/${value}`, { replace: true });
-    return;
+      const batch = writeBatch(db);
+      batch.update(profileRef, { username: value, updatedAt: serverTimestamp() });
+      batch.update(userRef,    { username: value });
+      await batch.commit();
+      setProfile(prev => ({ ...prev, [field]: value }));
+      navigate(`/profile/${value}`, { replace: true });
+      return;
   }
 
     if (field === 'element') {
@@ -330,10 +336,15 @@ useEffect(() => {
       batch.update(profileRef, { element: value, updatedAt: serverTimestamp() });
       batch.update(userRef,    { element: value });
       await batch.commit();
-    } else {
-      await updateDoc(profileRef, { [field]: value, updatedAt: serverTimestamp() });
-    }
-    setProfile(prev => ({ ...prev, [field]: value }));
+    } else if (field === 'location') {
+        const batch = writeBatch(db);
+        batch.update(profileRef, { location: value, updatedAt: serverTimestamp() });
+        batch.update(userRef,    { location: value });
+        await batch.commit();
+      } else {
+          await updateDoc(profileRef, { [field]: value, updatedAt: serverTimestamp() });
+      }
+      setProfile(prev => ({ ...prev, [field]: value }));
   };
 
   // Upload profile picture
@@ -355,7 +366,7 @@ useEffect(() => {
   };
 
   // Create a new post
-  const createPost = async ({ text, mediaFile }) => {
+  const createPost = async ({ text, mediaType, mediaFile }) => {
     let mediaUrl = '';
     if (mediaFile) {
       const ext     = mediaFile.name.split('.').pop();
@@ -371,6 +382,7 @@ useEffect(() => {
       authorPhotoURL: profile.photoURL,
       content:        text || '',
       mediaUrl,
+      mediaType,
       likedBy:        [],
       likesCount:     0,
       commentsCount:  0,
@@ -488,12 +500,7 @@ useEffect(() => {
 
   // Delete a comment
   const deleteComment = async (postId, commentId, isReply = false, parentCommentId = null) => {
-    try {
-      // Confirm deletion
-      if (!window.confirm('האם אתה בטוח שברצונך למחוק את התגובה?')) {
-        return;
-      }
-      
+    try {      
       // Delete the comment document
       await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
       
@@ -572,6 +579,7 @@ useEffect(() => {
           <ProfileInfo
             isOwner={uid === getAuth().currentUser?.uid}
             isFollowing={isFollowing}
+            uid={uid}
             profilePic={profile.photoURL}
             backgroundPic={profile.backgroundURL}
             username={profile.username}
