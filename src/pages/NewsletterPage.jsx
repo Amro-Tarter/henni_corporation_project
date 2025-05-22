@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, updateDoc, limit, startAfter, getDocs } from 'firebase/firestore';
-import { db } from '@/config/firbaseConfig';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { db, storage } from '@/config/firbaseConfig';
 import { useUser } from '@/hooks/useUser';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Newspaper, PlusCircle, Calendar, User, MapPin, FileText, Image, X, Edit2, Trash2, ChevronDown, ChevronUp, Tag } from 'lucide-react';
+import { Newspaper, PlusCircle, Calendar, User, MapPin, FileText, Image, X, Edit2, Trash2, ChevronDown, ChevronUp, Tag, Upload, Link, Camera } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,7 @@ export default function NewsletterPage() {
     body: '', 
     summary: '',
     image: '',
+    imageFile: null,
     tags: []
   });
   const [submitting, setSubmitting] = useState(false);
@@ -54,9 +56,13 @@ export default function NewsletterPage() {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentTag, setCurrentTag] = useState('all');
+  const [imageMethod, setImageMethod] = useState('upload'); // 'upload' or 'url'
+  const [uploading, setUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+  const fileInputRef = useRef(null);
 
   // Only active admins can post
-  const isAdmin = user && user.role === "admin" && user.is_active;
+  const isAdmin = user?.role === 'admin';
 
   // Add sample news if no articles exist
   const addSampleNews = async () => {
@@ -136,6 +142,67 @@ export default function NewsletterPage() {
     setForm(f => ({ ...f, [name]: value }));
   };
 
+  // Handle file selection
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("הקובץ גדול מדי. גודל מקסימלי: 5MB");
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("נא לבחור קובץ תמונה בלבד");
+      return;
+    }
+
+    setForm(f => ({ ...f, imageFile: file }));
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Upload image to Firebase Storage
+  const uploadImage = async (file, articleId) => {
+    if (!file) return null;
+
+    try {
+      const filename = `newsletters/${articleId}/${Date.now()}_${file.name}`;
+      const storageRef = ref(storage, filename);
+      
+      setUploading(true);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      return downloadURL;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("שגיאה בהעלאת התמונה");
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Delete image from Firebase Storage
+  const deleteImage = async (imageUrl) => {
+    if (!imageUrl || !imageUrl.includes('firebase')) return;
+    
+    try {
+      const imageRef = ref(storage, imageUrl);
+      await deleteObject(imageRef);
+    } catch (error) {
+      console.error("Error deleting image:", error);
+    }
+  };
+
   // Handle tag input
   const handleTagInput = (e) => {
     if (e.key === 'Enter' && e.target.value.trim()) {
@@ -153,6 +220,15 @@ export default function NewsletterPage() {
     setForm(f => ({ ...f, tags: f.tags.filter(tag => tag !== tagToRemove) }));
   };
 
+  // Clear image
+  const clearImage = () => {
+    setForm(f => ({ ...f, image: '', imageFile: null }));
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   // Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -163,13 +239,26 @@ export default function NewsletterPage() {
 
     setSubmitting(true);
     try {
+      let imageUrl = form.image;
+
+      // Handle image upload if file is selected
+      if (form.imageFile) {
+        const tempId = editMode ? selectedNews.id : Date.now().toString();
+        imageUrl = await uploadImage(form.imageFile, tempId);
+        
+        if (!imageUrl) {
+          setSubmitting(false);
+          return;
+        }
+      }
+
       const newsData = {
         title: form.title,
         body: form.body,
         summary: form.summary || form.body.substring(0, 150) + '...',
-        image: form.image,
+        image: imageUrl,
         tags: form.tags,
-        createdAt: serverTimestamp(),
+        createdAt: editMode ? selectedNews.createdAt : serverTimestamp(),
         updatedAt: serverTimestamp(),
         author: user.username || user.displayName || user.email || "מערכת",
         authorId: user.associated_id,
@@ -178,6 +267,11 @@ export default function NewsletterPage() {
       };
 
       if (editMode && selectedNews) {
+        // Delete old image if it's being replaced
+        if (selectedNews.image && selectedNews.image !== imageUrl && selectedNews.image.includes('firebase')) {
+          await deleteImage(selectedNews.image);
+        }
+        
         await updateDoc(doc(db, 'newsletters', selectedNews.id), newsData);
         toast.success("הכתבה עודכנה בהצלחה!");
       } else {
@@ -185,7 +279,8 @@ export default function NewsletterPage() {
         toast.success("הכתבה פורסמה בהצלחה!");
       }
 
-      setForm({ title: '', body: '', summary: '', image: '', tags: [] });
+      setForm({ title: '', body: '', summary: '', image: '', imageFile: null, tags: [] });
+      setImagePreview(null);
       setOpen(false);
       setEditMode(false);
       setSelectedNews(null);
@@ -203,8 +298,11 @@ export default function NewsletterPage() {
       body: news.body,
       summary: news.summary || '',
       image: news.image || '',
+      imageFile: null,
       tags: news.tags || []
     });
+    setImagePreview(news.image || null);
+    setImageMethod(news.image && !news.image.includes('firebase') ? 'url' : 'upload');
     setEditMode(true);
     setOpen(true);
   };
@@ -214,11 +312,31 @@ export default function NewsletterPage() {
     if (!window.confirm("האם אתה בטוח שברצונך למחוק כתבה זו?")) return;
     
     try {
+      const newsToDelete = newsletters.find(n => n.id === newsId);
+      if (newsToDelete?.image && newsToDelete.image.includes('firebase')) {
+        await deleteImage(newsToDelete.image);
+      }
+      
       await deleteDoc(doc(db, 'newsletters', newsId));
       toast.success("הכתבה נמחקה בהצלחה");
     } catch (err) {
       toast.error("שגיאה במחיקת הכתבה");
     }
+  };
+
+  // Reset form when dialog closes
+  const handleDialogClose = (open) => {
+    if (!open) {
+      setForm({ title: '', body: '', summary: '', image: '', imageFile: null, tags: [] });
+      setImagePreview(null);
+      setEditMode(false);
+      setSelectedNews(null);
+      setImageMethod('upload');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+    setOpen(open);
   };
 
   // Get all unique tags
@@ -249,7 +367,9 @@ export default function NewsletterPage() {
               onClick={() => {
                 setEditMode(false);
                 setSelectedNews(null);
-                setForm({ title: '', body: '', summary: '', image: '', tags: [] });
+                setForm({ title: '', body: '', summary: '', image: '', imageFile: null, tags: [] });
+                setImagePreview(null);
+                setImageMethod('upload');
                 setOpen(true);
               }}
               className="rounded-full shadow-md hover:shadow-lg transition-all"
@@ -341,8 +461,8 @@ export default function NewsletterPage() {
       </div>
 
       {/* Create/Edit Article Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={open} onOpenChange={handleDialogClose}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">
               {editMode ? 'עריכת כתבה' : 'הוספת כתבה חדשה'}
@@ -393,23 +513,70 @@ export default function NewsletterPage() {
               />
             </div>
             
-            <div className="space-y-2">
-              <label htmlFor="image" className="text-sm font-medium flex items-center gap-2">
-                <Image className="h-4 w-4" /> קישור לתמונה (אופציונלי)
+            {/* Image Upload Section */}
+            <div className="space-y-4">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Image className="h-4 w-4" /> תמונה (אופציונלי)
               </label>
-              <Input
-                id="image"
-                name="image"
-                value={form.image}
-                onChange={handleChange}
-                placeholder="הכנס URL של תמונה..."
-                disabled={submitting}
-                className="rounded-md"
-              />
-              {form.image && (
+              
+              {/* Image Method Selection */}
+              <Tabs value={imageMethod} onValueChange={setImageMethod} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="upload" className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    העלאת קובץ
+                  </TabsTrigger>
+                  <TabsTrigger value="url" className="flex items-center gap-2">
+                    <Link className="h-4 w-4" />
+                    קישור URL
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="upload" className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelect}
+                      disabled={submitting || uploading}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={submitting || uploading}
+                    >
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    גודל מקסימלי: 5MB. פורמטים נתמכים: JPG, PNG, GIF, WebP
+                  </p>
+                </TabsContent>
+                
+                <TabsContent value="url" className="space-y-3">
+                  <Input
+                    name="image"
+                    value={form.image}
+                    onChange={handleChange}
+                    placeholder="הכנס URL של תמונה..."
+                    disabled={submitting}
+                    className="rounded-md"
+                  />
+                  <p className="text-xs text-gray-500">
+                    הכנס קישור ישיר לתמונה מהאינטרנט
+                  </p>
+                </TabsContent>
+              </Tabs>
+
+              {/* Image Preview */}
+              {(imagePreview || (imageMethod === 'url' && form.image)) && (
                 <div className="relative mt-2 border rounded-md overflow-hidden">
                   <img 
-                    src={form.image} 
+                    src={imagePreview || form.image} 
                     alt="תצוגה מקדימה" 
                     className="w-full h-40 object-cover"
                     onError={(e) => {
@@ -421,11 +588,20 @@ export default function NewsletterPage() {
                     variant="destructive"
                     size="icon"
                     className="absolute top-2 right-2 h-8 w-8 rounded-full"
-                    onClick={() => setForm(f => ({ ...f, image: '' }))}
+                    onClick={clearImage}
                     type="button"
+                    disabled={submitting}
                   >
                     <X className="h-4 w-4" />
                   </Button>
+                  {uploading && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <div className="text-white text-sm flex items-center gap-2">
+                        <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        מעלה תמונה...
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -449,19 +625,29 @@ export default function NewsletterPage() {
                   placeholder="הוסף תגית והקש Enter..."
                   onKeyDown={handleTagInput}
                   className="flex-1 min-w-[200px] border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  disabled={submitting}
                 />
               </div>
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setOpen(false)} disabled={submitting} type="button">
+              <Button 
+                variant="outline" 
+                onClick={() => handleDialogClose(false)} 
+                disabled={submitting || uploading} 
+                type="button"
+              >
                 ביטול
               </Button>
-              <Button type="submit" disabled={submitting} className="gap-2">
-                {submitting ? (
+              <Button 
+                type="submit" 
+                disabled={submitting || uploading} 
+                className="gap-2"
+              >
+                {submitting || uploading ? (
                   <>
                     <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    {editMode ? 'מעדכן...' : 'מפרסם...'}
+                    {uploading ? 'מעלה תמונה...' : editMode ? 'מעדכן...' : 'מפרסם...'}
                   </>
                 ) : (
                   <>{editMode ? 'עדכן כתבה' : 'פרסם כתבה'}</>
