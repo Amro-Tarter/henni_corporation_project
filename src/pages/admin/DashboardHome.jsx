@@ -11,7 +11,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faUsers, faChartLine, faClipboardList, faHandHoldingUsd, faFire, faUserTie, faStar, faClock, faHandshake, 
-  faChartPie, faThumbsUp, faCommentDots, faDollarSign, faPercent 
+  faChartPie, faThumbsUp, faCommentDots, faDollarSign, faPercent , faHandPointUp, faChartSimple, faListUl
 } from '@fortawesome/free-solid-svg-icons'; 
 import { useNavigate } from 'react-router-dom';
 
@@ -31,6 +31,7 @@ const DashboardHome = () => {
 
   const [totalPartners, setTotalPartners] = useState(0);
   const [activePartnersCount, setActivePartnersCount] = useState(0);
+  const [allPartnersList, setAllPartnersList] = useState([]); // New state for all partners
 
   const [userRoleDistribution, setUserRoleDistribution] = useState([]);
   const [topPosts, setTopPosts] = useState([]);
@@ -40,6 +41,7 @@ const DashboardHome = () => {
   const [partnershipStatusDistribution, setPartnershipStatusDistribution] = useState([]);
   const [averageInvolvementRating, setAverageInvolvementRating] = useState(0);
   const [averageOverallProgressRating, setAverageOverallProgressRating] = useState(0);
+  const [totalReports, setTotalReports] = useState(0); // New state for total reports
 
   // State to store all users data for lookup
   const [allUsersData, setAllUsersData] = useState([]);
@@ -84,6 +86,7 @@ const DashboardHome = () => {
           ...doc.data(), 
           createdAt: doc.data().createdAt?.toDate() 
         }));
+        setTotalReports(reportsData.length); // Set total reports count
 
         const donationsSnapshot = await getDocs(query(collection(db, "donations")));
         const donationsData = donationsSnapshot.docs.map(doc => ({ 
@@ -94,7 +97,7 @@ const DashboardHome = () => {
         
         const partnersSnapshot = await getDocs(query(collection(db, "partners")));
         const partnersData = partnersSnapshot.docs.map(doc => ({ ...doc.data() }));
-
+        setAllPartnersList(partnersData); // Store all partners data in state
 
         // --- Process Data for Graphs and Lists ---
 
@@ -151,7 +154,7 @@ const DashboardHome = () => {
             username: fetchedUsersData.find(u => u.id === userId)?.username || profilesMap[userId].displayName 
           }))
           .sort((a, b) => b.followers - a.followers)
-          .slice(0, 5);
+          .slice(0, 6);
         setMostFollowedUsers(followedUsersList);
 
         // 5. Most Active Mentors (based on reports submitted)
@@ -380,15 +383,6 @@ const DashboardHome = () => {
                     <p className="text-center text-gray-600">אין נתוני פעילות יומית להצגה.</p>
                   )}
                 </div>
-
-                {/* Total Posts Count */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md"> 
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faClipboardList} className="text-blue-500" />
-                    סה"כ פוסטים במערכת
-                  </h3>
-                  <p className="text-5xl font-extrabold text-center text-blue-600">{totalPosts}</p>
-                </div>
               </div>
 
               {/* SECTION: User-Centric Analytics */}
@@ -466,7 +460,7 @@ const DashboardHome = () => {
                         <li 
                           key={mentor.id} 
                           className="flex justify-between items-center bg-white p-3 rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
-                          onClick={() => navigate(`/profile/${mentor.username || mentor.displayName}`)} 
+                          onClick={() => navigate(`/admin/reports`)} /*${mentor.username || mentor.displayName}*/
                         >
                           <span className="text-gray-700 font-medium">{mentor.displayName}</span>
                           <span className="text-purple-600 font-bold">{mentor.reportsCount} דוחות</span>
@@ -488,6 +482,11 @@ const DashboardHome = () => {
                 </h2>
                 {/* Top Posts by Engagement - Now Clickable */}
                 <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+                   <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <FontAwesomeIcon icon={faClipboardList} className="text-blue-500" />
+                    סה"כ פוסטים במערכת
+                  </h3>
+                  <p className="text-3xl font-extrabold text-center text-blue-600">{totalPosts}</p>
                   <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <FontAwesomeIcon icon={faThumbsUp} className="text-pink-500" />
                     פוסטים מובילים לפי מעורבות
@@ -520,14 +519,24 @@ const DashboardHome = () => {
                     <FontAwesomeIcon icon={faChartLine} className="text-cyan-500" />
                     ממוצע דירוגי דוחות
                   </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    ממוצע דירוגי המעורבות וההתקדמות הכללית מתוך דוחות המנטורים.
+                    {totalReports > 0 && <span className="block mt-1"> ( סכ"ה דוחות במערכת: {totalReports} )</span>}
+                  </p>
                   <div className="space-y-2">
-                    <p className="text-lg text-gray-700">
+                    <p className="text-lg text-gray-700 flex items-center gap-2">
+                      <FontAwesomeIcon icon={faHandPointUp} className="text-cyan-500" />
                       <span className="font-medium">מעורבות ומוטיבציה:</span>{' '}
-                      <span className="font-bold text-cyan-600">{averageInvolvementRating} / 4</span>
+                      <span className="font-bold text-cyan-600">
+                        {averageInvolvementRating > 0 ? `${averageInvolvementRating} / 4` : 'אין נתונים'}
+                      </span>
                     </p>
-                    <p className="text-lg text-gray-700">
+                    <p className="text-lg text-gray-700 flex items-center gap-2">
+                      <FontAwesomeIcon icon={faChartSimple} className="text-cyan-500" />
                       <span className="font-medium">התקדמות כללית:</span>{' '}
-                      <span className="font-bold text-cyan-600">{averageOverallProgressRating} / 4</span>
+                      <span className="font-bold text-cyan-600">
+                        {averageOverallProgressRating > 0 ? `${averageOverallProgressRating} / 4` : 'אין נתונים'}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -664,7 +673,7 @@ const DashboardHome = () => {
                     <FontAwesomeIcon icon={faHandshake} className="text-orange-500" />
                     סקירת שותפים
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-2 mb-4">
                     <p className="text-lg text-gray-700">
                       <span className="font-medium">סה"כ שותפים:</span>{' '}
                       <span className="font-bold text-orange-600">{totalPartners}</span>
@@ -674,7 +683,29 @@ const DashboardHome = () => {
                       <span className="font-bold text-orange-600">{activePartnersCount}</span>
                     </p>
                   </div>
+                  <h4 className="text-base font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <FontAwesomeIcon icon={faListUl} className="text-gray-500" />
+                    כל השותפים:
+                  </h4>
+                  {allPartnersList.length > 0 ? (
+                    <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2 bg-white">
+                      <ul className="space-y-1">
+                        {allPartnersList.map(partner => (
+                          <li 
+                            key={partner.id} 
+                            className="text-gray-700 text-sm py-1 px-2 rounded-md hover:bg-gray-100 cursor-pointer transition-colors duration-150"
+                            onClick={() => navigate('/admin/Partners')}
+                          >
+                            {partner.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-center text-gray-600 text-sm">אין שותפים להצגה.</p>
+                  )}
                 </div>
+
 
                 {/* Partnership Status Distribution */}
                 <div className="bg-gray-50 p-6 rounded-lg shadow-md">
