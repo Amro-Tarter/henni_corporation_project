@@ -173,6 +173,13 @@ const Navbar = ({ element }) => {
   return (
     <header dir="rtl" className={`fixed top-0 left-0 w-full bg-red-900 backdrop-blur-md shadow-md border-b border-${element}-accent z-50`}>
       <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
+        {/* ORG NAME - RIGHT SIDE */}
+         <a href="/" className="flex flex-col items-end min-w-[200px] no-underline hover:opacity-80 transition">
+          <span className="text-white font-bold text-xl md:text-2xl">לגלות את האור – הנני</span>
+          <span className="text-white/80 text-xs md:text-sm">מנהיגות. יצירה. שייכות.</span>
+        </a>
+       
+       
         <nav className="flex flex-row-reverse items-center gap-6">
           {navTabs.map((tab) => (
             <button
