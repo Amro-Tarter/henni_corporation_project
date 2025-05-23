@@ -131,7 +131,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         initial={{ width: 64 }}
         animate={{ width: isExpanded ? 256 : 64 }}
         transition={{ duration: 0.4 }}
-        className={`fixed top-[56.8px] bottom-0 right-0 bg-white shadow-lg z-40 flex flex-col overflow-hidden ${
+        className={`fixed top-20 bottom-0 right-0 bg-white shadow-lg z-40 flex flex-col overflow-hidden ${
           showNotifications ? 'pointer-events-none opacity-50' : ''
         }`}
         onMouseEnter={handleMouseEnter}

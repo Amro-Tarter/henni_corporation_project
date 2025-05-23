@@ -479,11 +479,19 @@ const Home = () => {
     </ThemeProvider>
   );
 
+  if (isLoading) {
+    return (
+      <ThemeProvider element={profile.element}>
+        <ElementalLoader />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider element={profile.element}>
       <div className="flex min-h-screen bg-element-base">
         {/* Left Sidebar with shadow */}
-        <div className={`fixed left-0 h-full z-10 shadow-2xl transition-transform duration-300 top-[56.8px] ${
+        <div className={`fixed left-0 h-full z-10 shadow-2xl transition-transform duration-300 top-20 ${
           isLeftSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}>
           <LeftSidebar 

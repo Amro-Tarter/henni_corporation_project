@@ -261,7 +261,11 @@ const Navbar = ({ element }) => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -5 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute top-full left-0 right-0 bg-white mt-1 border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto z-50"
+                  className="absolute top-full left-0 right-0 bg-white mt-1 border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-scroll scrollbar-hide z-50"
+                  style={{
+                    scrollbarWidth: 'none', /* Firefox */
+                    msOverflowStyle: 'none', /* IE and Edge */
+                  }}
                 >
                   {showHistory && searchHistory.length > 0 && (
                     <div className="p-3">
@@ -286,7 +290,13 @@ const Navbar = ({ element }) => {
                   )}
 
                   {searchInput && searchResults.length > 0 && (
-                    <div className="divide-y divide-gray-100 max-h-60 overflow-y-auto overflow-x-hidden">
+                    <div 
+                      className="divide-y divide-gray-100 max-h-60 overflow-y-scroll overflow-x-hidden scrollbar-hide"
+                      style={{
+                        scrollbarWidth: 'none', /* Firefox */
+                        msOverflowStyle: 'none', /* IE and Edge */
+                      }}
+                    >
                       {searchResults.map((profile, index) => (
                         <motion.div
                           key={index}
