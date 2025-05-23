@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '/src/hooks/use-toast.jsx';
 import PostModalContent from './PostModalContent';
 import ConfirmationModal from './ConfirmationModal';
+import { containsBadWord } from './utils/containsBadWord';
 
 const ProfilePost = ({
   post,
@@ -45,6 +46,7 @@ const ProfilePost = ({
   const [floatLike, setFloatLike] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
+  const [warning, setWarning] = useState('');
 
   const { toast } = useToast();
   const fileInputRef = useRef(null);
@@ -97,6 +99,11 @@ const ProfilePost = ({
   const cancelDelete = () => setShowConfirmDelete(false);
 
   const handleSaveEdit = () => {
+    if (containsBadWord(newContent)) {
+      setWarning('הפוסט מכיל מילים לא ראויות!');
+      setTimeout(() => setWarning(''), 3500);
+      return;
+    }
     onUpdate(id, { content: newContent, mediaFile: newMediaFile });
     toast({
       title: 'הצלחה',
@@ -106,6 +113,7 @@ const ProfilePost = ({
     setEditing(false);
     setNewMediaFile(null);
   };
+
 
   const toggleLike = () => {
     const newState = !liked;
@@ -138,6 +146,31 @@ const ProfilePost = ({
 
   return (
     <>
+      {warning && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '28px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9999,
+            minWidth: 300,
+            maxWidth: 400,
+            background: '#fee2e2',
+            color: '#b91c1c',
+            border: '1px solid #ef4444',
+            borderRadius: 8,
+            padding: '14px 22px',
+            fontWeight: 500,
+            textAlign: 'center',
+            boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
+            fontSize: '1rem',
+            pointerEvents: 'none'
+          }}
+        >
+          {warning}
+        </div>
+      )}
       <div
         dir="rtl"
         className={`mb-8 max-w-4xl mx-auto rounded-xl overflow-hidden shadow-sm bg-white border border-${element}-accent hover:shadow-md transition-shadow duration-300 pb-2`}

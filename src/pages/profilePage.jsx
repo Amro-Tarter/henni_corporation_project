@@ -116,7 +116,24 @@ useEffect(() => {
       // Profile
       const profRef  = doc(db, 'profiles', uid);
       const profSnap = await getDoc(profRef);
-      if (profSnap.exists()) setProfile(profSnap.data());
+
+      let profileData = profSnap.exists() ? profSnap.data() : null;
+
+      // Fetch element from 'users'
+      const userRef = doc(db, 'users', uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        // If there's an element in users, override/add it
+        if (userData.element) {
+          profileData = { ...profileData, element: userData.element };
+        }
+        if (userData.role) {
+          profileData = { ...profileData, role: userData.role };
+        }
+      }
+
+      if (profileData) setProfile(profileData);
       else console.warn('No profile for', uid);
 
       // Posts
@@ -137,11 +154,6 @@ useEffect(() => {
       });
       setPosts(loaded);
       setLoading(false);
-
-      if (profSnap.exists()) {
-      const userProfile = profSnap.data();
-      setProfile(userProfile);
-        }
       }
     loadData();
   }, [uid, viewerProfile]);
@@ -329,14 +341,8 @@ useEffect(() => {
       setProfile(prev => ({ ...prev, [field]: value }));
       navigate(`/profile/${value}`, { replace: true });
       return;
-  }
-
-    if (field === 'element') {
-      const batch = writeBatch(db);
-      batch.update(profileRef, { element: value, updatedAt: serverTimestamp() });
-      batch.update(userRef,    { element: value });
-      await batch.commit();
-    } else if (field === 'location') {
+    } 
+      else if (field === 'location') {
         const batch = writeBatch(db);
         batch.update(profileRef, { location: value, updatedAt: serverTimestamp() });
         batch.update(userRef,    { location: value });
@@ -586,6 +592,7 @@ useEffect(() => {
             location={profile.location}
             bio={profile.bio}
             element={profile.element}
+            role={profile.role}
             postsCount={profile.postsCount}
             followersCount={profile.followersCount}
             followingCount={profile.followingCount}

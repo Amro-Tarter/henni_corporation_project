@@ -5,6 +5,8 @@ import { meta } from '@eslint/js';
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig'
+import { MapPin } from 'lucide-react';
+
 
 const ELEMENT_ICONS = {
   fire: '🔥',
@@ -84,7 +86,12 @@ const LeftSidebar = ({ element, users = [], viewerProfile, onFollowToggle }) => 
                     >
                       {user.username}
                     </h3>
-                    <p className="text-xs text-gray-500 truncate max-w-[110px]">{user.bio?.slice(0, 40)}</p>
+                    {user.location && (
+                      <span className="flex items-center gap-1 text-[11px] text-gray-400 font-normal truncate max-w-[110px]" dir="rtl">
+                        <MapPin className="w-3 h-3 text-gray-400" />
+                        {user.location}
+                      </span>
+                    )}
                   </div>
                 </div>
 

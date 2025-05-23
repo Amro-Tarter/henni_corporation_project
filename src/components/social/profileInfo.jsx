@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { MapPin, Pencil, Camera, MessageSquare, Users, Image } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useToast } from '/src/hooks/use-toast.jsx'
+import { useToast } from '/src/hooks/use-toast.jsx';
+import { containsBadWord } from './utils/containsBadWord';
 
 const elementOptions = [
   { value: 'fire', label: 'אש', icon: '🔥' },
@@ -22,7 +23,6 @@ const Stat = ({ icon, count, label, element }) => (
   </div>
 );
 
-// Improved tooltip component for consistent styling
 const Tooltip = ({ text, children }) => (
   <div className="group relative inline-flex">
     {children}
@@ -39,6 +39,7 @@ const ProfileInfo = ({
   location,
   bio,
   element,
+  role,
   postsCount,
   followersCount,
   followingCount,
@@ -52,6 +53,7 @@ const ProfileInfo = ({
 }) => {
   const [editing, setEditing] = useState(null);
   const [tempValue, setTempValue] = useState('');
+  const [warning, setWarning] = useState('');
   const { toast } = useToast();
 
   const startEditing = (field, value) => {
@@ -60,6 +62,11 @@ const ProfileInfo = ({
   };
 
   const saveEditing = () => {
+    if (containsBadWord(tempValue)) {
+      setWarning('השדה מכיל מילים לא ראויות!');
+      setTimeout(() => setWarning(''), 3500);
+      return;
+    }
     onUpdateField(editing, tempValue);
     toast({
       title: 'הצלחה',
@@ -80,6 +87,32 @@ const ProfileInfo = ({
   };
 
   return (
+    <>
+    {warning && (
+      <div
+        style={{
+          position: 'fixed',
+          top: '28px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 9999,
+          minWidth: 300,
+          maxWidth: 400,
+          background: '#fee2e2',
+          color: '#b91c1c',
+          border: '1px solid #ef4444',
+          borderRadius: 8,
+          padding: '14px 22px',
+          fontWeight: 500,
+          textAlign: 'center',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
+          fontSize: '1rem',
+          pointerEvents: 'none'
+        }}
+      >
+        {warning}
+      </div>
+    )}
     <section className="w-full overflow-visible">
       <div className={`relative w-full h-48 sm:h-64 bg-${element}-soft overflow-visible`}>
         {backgroundPic && (
@@ -88,7 +121,7 @@ const ProfileInfo = ({
         {isOwner && (
           <label className={`
             absolute bottom-3 left-3 flex items-center justify-center p-2
-            bg-${element}-accent opacity-80 hover:opacity-40
+            bg-${element}-accent opacity-80 hover:opacity-70
             rounded-full cursor-pointer group
           `}>
             <Image className="text-white w-5 h-5" />
@@ -150,8 +183,18 @@ const ProfileInfo = ({
               </div>
             </div>
           ) : (
-            <div className={`flex items-center gap-2 text-${element}`}>
-              <h1 className="text-3xl sm:text-4xl font-bold">{username}</h1>
+            <div className={`flex items-center gap-3 text-${element}`}>
+              <h1 className="text-3xl sm:text-4xl font-bold mb-3">{username}</h1>
+              {role === 'mentor' && (
+                <span
+                  style={{ alignSelf: 'center' }}
+                  className="ml-2 px-2 py-0.5 border border-blue-400 text-blue-700 text-xs rounded-full bg-blue-50 font-semibold flex items-center gap-1"
+                  title="מנחה"
+                >
+                  <svg className="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 1.5l2.47 5.26 5.81.5c.46.04.64.6.31.93l-4.38 3.94 1.35 5.72c.1.43-.37.77-.76.54L10 15.18l-4.8 2.15c-.39.17-.86-.12-.76-.54l1.35-5.72-4.38-3.94c-.33-.33-.15-.89.31-.93l5.81-.5L10 1.5z"/></svg>
+                  מנחה
+                </span>
+              )}
               {isOwner && (
                 <Tooltip text="ערוך שם משתמש">
                   <Pencil
@@ -163,68 +206,17 @@ const ProfileInfo = ({
             </div>
           )}
 
-          {editing === 'element' ? (
-            // only show editing mode for owner
-            isOwner && (
-              <>
-                <div className={`p-4 rounded-xl bg-${element}-soft shadow-md w-fit`}>
-                  <div className="grid grid-cols-5 gap-2">
-                    {elementOptions.map(opt => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setTempValue(opt.value)}
-                        className={`flex flex-col items-center p-2 rounded-lg transition-transform ${
-                          tempValue === opt.value
-                            ? `bg-${element} text-white scale-105`
-                            : `bg-white text-${element}-accent hover:bg-${element}-soft`
-                        }`}
-                      >
-                        <span className="text-2xl mb-1">{opt.icon}</span>
-                        <span className="text-sm font-medium">{opt.label}</span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex justify-end gap-2 mt-4">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      onClick={saveEditing}
-                      className={`px-3 py-1 bg-${element} text-white rounded-full text-sm`}
-                    >
-                      שמור
-                    </motion.button>
-
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      onClick={cancelEditing}
-                      className={`px-3 py-1 bg-${element}-soft text-${element}-accent rounded-full text-sm`}
-                    >
-                      ביטול
-                    </motion.button>
-                  </div>
-                </div>
-
-              </>
-            )
-          ) : (
-            <Tooltip text={isOwner ? "לחץ לבחירת אלמנט" : "אלמנט של המשתמש"}>
-              <button
-                disabled={!isOwner}
-                onClick={isOwner ? () => startEditing('element', element) : undefined}
-                className={`relative inline-flex items-center gap-3 px-5 py-3 rounded-full bg-${element}-soft text-${element}
-                  ${isOwner ? `hover:bg-${element}-accent hover:text-white hover:scale-105` : 'opacity-70'}
-                  shadow-md transition-all duration-300 ring-1 ring-${element}-accent transform`}
-                >
-
-                <span className="text-2xl">{findOption(element).icon}</span>
-                <span className="text-lg font-medium">{findOption(element).label}</span>
-              </button>
-            </Tooltip>
-          )}
+          {/* Element Display (READ ONLY) */}
+          <Tooltip text={isOwner ? "האלמנט שלך" : "האלמנט של המשתמש הזה"}>
+            <div
+              className={`relative inline-flex items-center gap-3 px-5 py-3 rounded-full bg-${element}-soft text-${element}
+                shadow-md ring-1 ring-${element}-accent`}
+              style={{ pointerEvents: "none", userSelect: "none" }}
+            >
+              <span className="text-2xl">{findOption(element).icon}</span>
+              <span className="text-lg font-medium">{findOption(element).label}</span>
+            </div>
+          </Tooltip>         
         </div>
 
         <div className={`mt-6 flex items-center gap-2 text-base text-${element}`}>
@@ -292,14 +284,13 @@ const ProfileInfo = ({
                 >
                   ביטול
                 </motion.button>
-
               </div>
             </div>
           ) : (
             <>
               {bio ? (
                 <p className={`text-${element}`}>{bio}</p>
-              ) : isOwner ?(
+              ) : isOwner ? (
                 <p className="text-gray-400 italic">הוסף תיאור קצר על עצמך...</p>
               ) : null}
               {isOwner && (
@@ -344,6 +335,7 @@ const ProfileInfo = ({
         </motion.div>
       </div>
     </section>
+    </>
   );
 };
 

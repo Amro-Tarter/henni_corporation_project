@@ -1,6 +1,8 @@
 //createPost.jsx
 import React, { useState, useRef } from 'react';
 import { FaVideo, FaPhotoVideo, FaRegNewspaper } from 'react-icons/fa';
+import { containsBadWord } from './utils/containsBadWord';
+
 
 const CreatePost = ({ addPost, profilePic, element }) => {
   const [text, setText] = useState('');
@@ -8,6 +10,8 @@ const CreatePost = ({ addPost, profilePic, element }) => {
   const [mediaType, setMediaType] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const fileInputRef = useRef();
+  const [warning, setWarning] = useState('');
+
 
   const pickMedia = (type, accept) => {
     setMediaType(type);
@@ -39,13 +43,47 @@ const CreatePost = ({ addPost, profilePic, element }) => {
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (text.trim() || mediaFile) {
-      await addPost({ text: text.trim(), mediaType, mediaFile });
-      cancelPost();
+    if (!text.trim() && !mediaFile) return;
+
+    if (containsBadWord(text)) {
+      setWarning('הפוסט מכיל מילים לא ראויות!');
+      setTimeout(() => setWarning(''), 3500);
+      return;
     }
+
+    await addPost({ text: text.trim(), mediaType, mediaFile });
+    cancelPost();
+    setWarning('');
   };
 
+
   return (
+    <>
+    {warning && (
+      <div
+        style={{
+          position: 'fixed',
+          top: '28px', // adjust if you have a header
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 9999,
+          minWidth: 300,
+          maxWidth: 400,
+          background: '#fee2e2',
+          color: '#b91c1c',
+          border: '1px solid #ef4444',
+          borderRadius: 8,
+          padding: '14px 22px',
+          fontWeight: 500,
+          textAlign: 'center',
+          boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
+          fontSize: '1rem',
+          pointerEvents: 'none'
+        }}
+      >
+        {warning}
+      </div>
+    )}
     <div className="mb-10 flex justify-center px-4 pt-10" dir="rtl">
       <div className={`w-full max-w-4xl bg-white rounded-2xl p-6 space-y-4 border border-${element}-accent`}>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -139,6 +177,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
         </form>
       </div>
     </div>
+    </>
   );
 };
 

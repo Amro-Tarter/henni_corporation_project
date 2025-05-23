@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, MessageSquare, Settings, Search, Bell, User, LogOut } from 'lucide-react';
+import { Home, MessageSquare, Settings, Search, Bell, User, LogOut, LayoutDashboard, BarChart2 } from 'lucide-react';
 import { collection, getDocs, doc, updateDoc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
@@ -24,6 +24,7 @@ const Navbar = ({ element }) => {
     if (path.startsWith('/settings')) return 'settings';
     if (path.startsWith('/notifications')) return 'notifications';
     if (path.startsWith('/profile')) return 'profile';
+    if (path.startsWith('/admin')) return 'dashboard';
     return 'home';
   };
 
@@ -34,6 +35,7 @@ const Navbar = ({ element }) => {
   const [showSearchPopUp, setShowSearchPopUp] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [role, setRole] = useState(null);
 
   const searchRef = useRef(null);
   const profileDropdownRef = useRef(null);
@@ -54,7 +56,12 @@ const Navbar = ({ element }) => {
           const profileDocRef = doc(db, 'profiles', user.uid);
           const profileDoc = await getDoc(profileDocRef);
           if (profileDoc.exists()) {
-            setSearchHistory(profileDoc.data().searchHistory || []);
+            setSearchHistory(profileDoc.data().searchHistory || []); 
+          }
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setRole(userDoc.data().role || null);
           }
         } catch (err) {
           console.error('Error fetching search history:', err);
@@ -194,6 +201,27 @@ const Navbar = ({ element }) => {
               <span className={`transition-colors duration-200 ${activeTab === tab.id ? 'text-red-50' : ''}`}>{tab.label}</span>
             </button>
           ))}
+          {role === 'admin' && (
+            <button
+              onClick={() => handleTabClick('dashboard', '/admin')}
+              className={`group flex items-center gap-2 px-3 py-2 rounded-md text-white text-base transition-all duration-300 ease-in-out transform hover:scale-105 ${
+                activeTab === 'dashboard'
+                  ? `bg-gradient-to-br from-red-950 via-red-900 to-red-800 font-bold shadow-xl border-2 border-red-800/50 ring-2 ring-red-800/30`
+                  : `hover:bg-red-700/80 hover:shadow-md`
+              }`}
+            >
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                transition={{ type: 'spring', stiffness: 300 }}
+                className={`transition-transform duration-200 ${activeTab === 'dashboard' ? 'text-red-50' : ''}`}
+              >
+                <BarChart2 size={20} />
+              </motion.div>
+              <span className={`transition-colors duration-200 ${activeTab === 'dashboard' ? 'text-red-50' : ''}`}>
+                דשבורד
+              </span>
+            </button>
+          )}
         </nav>
 
         <form onSubmit={handleSearch} className="flex-1 mx-6 max-w-md" dir="rtl">
@@ -293,7 +321,7 @@ const Navbar = ({ element }) => {
             </AnimatePresence>
           </div>
         </form>
-
+        
         <div className="flex items-center gap-4">
           <button
             onClick={() => setShowNotifications(true)}
