@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Trash2 } from 'lucide-react';
-import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnapshot, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnapshot, orderBy, updateDoc, limit, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -11,9 +11,15 @@ const NotificationsComponent = () => {
   const [profilePictures, setProfilePictures] = useState({});
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const [postUnreadCount, setPostUnreadCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [clickedNotifications, setClickedNotifications] = useState({});
+  const [seenPosts, setSeenPosts] = useState(new Set());
+  const [seenPostsLoaded, setSeenPostsLoaded] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   const notificationRef = useRef(null);
+  const seenPostsRef = useRef(new Set());
   const navigate = useNavigate();
   const user = auth.currentUser;
 
@@ -29,6 +35,7 @@ const NotificationsComponent = () => {
       try {
         const notificationList = [];
         let totalUnread = 0;
+        let messageUnread = 0; // Track message notifications separately
 
         for (const conversationDoc of snapshot.docs) {
           const conversation = conversationDoc.data();
@@ -40,6 +47,7 @@ const NotificationsComponent = () => {
           if (conversation.unread && conversation.unread[user.uid] > 0) {
             const unreadCount = conversation.unread[user.uid];
             totalUnread += unreadCount;
+            messageUnread += unreadCount; // Add to message-specific count
 
             try {
               const messagesQuery = query(
@@ -126,23 +134,40 @@ const NotificationsComponent = () => {
           return timeB - timeA;
         });
         
-        setNotifications(notificationList);
-        setUnreadCount(totalUnread);
+        // Update notifications, but only replace message notifications, keep post notifications
+        setNotifications(prevNotifications => {
+          const postNotifications = prevNotifications.filter(n => n.type === 'post');
+          const combined = [...notificationList, ...postNotifications];
+          combined.sort((a, b) => {
+            const timeA = a.timestamp?.toMillis?.() || 0;
+            const timeB = b.timestamp?.toMillis?.() || 0;
+            return timeB - timeA;
+          });
+          return combined;
+        });
+        
+        setMessageUnreadCount(messageUnread); // Set message-specific count
+        // Update total unread count (will be combined with post notifications)
+        setUnreadCount(prev => {
+          const currentPostCount = prev - (prev - postUnreadCount);
+          return totalUnread + postUnreadCount;
+        });
       } catch (error) {
         console.error("Error processing notifications:", error);
         setNotifications([]);
         setUnreadCount(0);
+        setMessageUnreadCount(0);
       }
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, postUnreadCount]);
 
   useEffect(() => {
     const fetchProfilePictures = async () => {
       const pictures = {};
       for (const notification of notifications) {
-        if (notification.type === 'message') {
+        if (notification.type === 'message' || notification.type === 'post') {
           try {
             const senderProfileRef = firestoreDoc(db, 'profiles', notification.senderId);
             const senderProfile = await getDoc(senderProfileRef);
@@ -204,6 +229,112 @@ const NotificationsComponent = () => {
     }
   };
 
+  // On mount, fetch seenPostNotifications from Firestore
+  useEffect(() => {
+    if (!user) return;
+    const fetchSeenPosts = async () => {
+      try {
+        const profileDoc = await getDoc(firestoreDoc(db, 'profiles', user.uid));
+        if (profileDoc.exists()) {
+          const data = profileDoc.data();
+          const seenArr = Array.isArray(data.seenPostNotifications) ? data.seenPostNotifications : [];
+          seenPostsRef.current = new Set(seenArr);
+          setSeenPosts(new Set(seenArr));
+        }
+      } catch (err) {
+        console.error('Error loading seen post notifications:', err);
+      } finally {
+        setSeenPostsLoaded(true);
+      }
+    };
+    fetchSeenPosts();
+  }, [user]);
+
+  // Listen for new posts from followed users only (wait for seenPosts to load)
+  useEffect(() => {
+    if (!user || !userProfile?.following || userProfile.following.length === 0 || !seenPostsLoaded) return;
+
+    const postsQuery = query(
+      collection(db, 'posts'),
+      where('authorId', 'in', userProfile.following),
+      orderBy('createdAt', 'desc'),
+      limit(50) // Limit to recent posts for performance
+    );
+
+    const unsubscribe = onSnapshot(postsQuery, async (snapshot) => {
+      try {
+        const postNotifications = [];
+        for (const postDoc of snapshot.docs) {
+          const post = postDoc.data();
+          const postId = postDoc.id;
+
+          // Only show if not seen (use Set loaded from Firestore)
+          if (seenPostsRef.current.has(postId)) continue;
+          if (post.authorId === user.uid) continue;
+          const postTime = post.createdAt?.toMillis() || 0;
+          const now = Date.now();
+          const dayInMs = 24 * 60 * 60 * 1000;
+          if (now - postTime > dayInMs) continue;
+
+          try {
+            const authorProfileDoc = await getDoc(firestoreDoc(db, 'profiles', post.authorId));
+            const authorProfile = authorProfileDoc.exists() ? authorProfileDoc.data() : null;
+            const authorName = authorProfile?.username || post.authorName || 'משתמש';
+            postNotifications.push({
+              id: `post_${postId}`,
+              type: 'post',
+              message: 'פרסם פוסט חדש',
+              timestamp: post.createdAt,
+              senderId: post.authorId,
+              senderName: authorName,
+              postId: postId,
+              postContent: post.content?.substring(0, 100) || 'פוסט חדש',
+              unreadCount: 1,
+              conversationType: 'post'
+            });
+          } catch (error) {
+            console.error("Error processing post notification:", error);
+          }
+        }
+        if (postNotifications.length > 0) {
+          setNotifications(prevNotifications => {
+            const existingIds = new Set(prevNotifications.map(n => n.id));
+            const newNotifications = postNotifications.filter(n => !existingIds.has(n.id));
+            if (newNotifications.length > 0) {
+              const combined = [...newNotifications, ...prevNotifications];
+              combined.sort((a, b) => {
+                const timeA = a.timestamp?.toMillis?.() || 0;
+                const timeB = b.timestamp?.toMillis?.() || 0;
+                return timeB - timeA;
+              });
+              return combined;
+            }
+            return prevNotifications;
+          });
+          setPostUnreadCount(prev => prev + postNotifications.length);
+          setUnreadCount(prev => prev + postNotifications.length);
+        }
+      } catch (error) {
+        console.error("Error processing post notifications:", error);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, userProfile?.following, seenPostsLoaded]);
+
+  // Helper to persist seen postId in Firestore
+  const persistSeenPost = async (postId) => {
+    if (!user || !postId) return;
+    try {
+      await updateDoc(firestoreDoc(db, 'profiles', user.uid), {
+        seenPostNotifications: arrayUnion(postId)
+      });
+    } catch (err) {
+      // Not fatal, just log
+      console.error('Failed to persist seen post notification:', err);
+    }
+  };
+
   const handleNotificationClick = async (notification) => {
     // Prevent handling already-clicked notifications
     const notificationKey = notification.id;
@@ -212,45 +343,87 @@ const NotificationsComponent = () => {
     setIsProcessing(true);
     setClickedNotifications(prev => ({...prev, [notificationKey]: true}));
     
-    // Now we only handle message notifications - group_added type is removed
     try {
-      const conversationRef = firestoreDoc(db, 'conversations', notification.conversationId);
-      
-      // Update unread count
-      await updateDoc(conversationRef, {
-        [`unread.${user.uid}`]: 0
-      });
-
-      setNotifications(prevNotifications => 
-        prevNotifications.filter(n => n.id !== notification.id)
-      );
-
-      setUnreadCount(prev => Math.max(0, prev - 1));
-
-      // Store the target conversation ID
-      const targetConversationId = notification.conversationId;
-      
-      // Close the notification panel
-      setShowNotifications(false);
-      
-      // Add a small delay to ensure the panel closes and state updates complete
-      setTimeout(() => {
-        // Navigate after a short delay to ensure state updates are processed
-        navigate(`/chat/${targetConversationId}`);
+      // Handle post notifications differently from message notifications
+      if (notification.type === 'post') {
+        if (notification.postId) {
+          seenPostsRef.current.add(notification.postId);
+          setSeenPosts(prev => new Set([...prev, notification.postId]));
+          persistSeenPost(notification.postId); // Persist in Firestore
+        }
         
-        // Reset processing state after navigation
+        // Remove the notification from the list
+        setNotifications(prevNotifications => 
+          prevNotifications.filter(n => n.id !== notification.id)
+        );
+
+        // Update counts for post notifications
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        setPostUnreadCount(prev => Math.max(0, prev - 1));
+
+        // Close the notification panel
+        setShowNotifications(false);
+        
+        // Navigate to the user's profile to see the post
         setTimeout(() => {
-          setIsProcessing(false);
-          // Clear clicked notifications after a while to allow re-clicking in the future if needed
+          navigate(`/profile/${notification.senderName}`);
+          
+          // Reset processing state after navigation
           setTimeout(() => {
-            setClickedNotifications(prev => {
-              const newState = {...prev};
-              delete newState[notificationKey];
-              return newState;
-            });
-          }, 5000); // Reset after 5 seconds
-        }, 500); // Increased delay to ensure navigation completes
-      }, 300);
+            setIsProcessing(false);
+            // Clear clicked notifications after a while
+            setTimeout(() => {
+              setClickedNotifications(prev => {
+                const newState = {...prev};
+                delete newState[notificationKey];
+                return newState;
+              });
+            }, 5000);
+          }, 500);
+        }, 300);
+        
+      } else {
+        // Handle message notifications (existing logic)
+        const conversationRef = firestoreDoc(db, 'conversations', notification.conversationId);
+        
+        // Update unread count
+        await updateDoc(conversationRef, {
+          [`unread.${user.uid}`]: 0
+        });
+
+        setNotifications(prevNotifications => 
+          prevNotifications.filter(n => n.id !== notification.id)
+        );
+
+        // Update counts for message notifications
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        setMessageUnreadCount(prev => Math.max(0, prev - 1));
+
+        // Store the target conversation ID
+        const targetConversationId = notification.conversationId;
+        
+        // Close the notification panel
+        setShowNotifications(false);
+        
+        // Add a small delay to ensure the panel closes and state updates complete
+        setTimeout(() => {
+          // Navigate after a short delay to ensure state updates are processed
+          navigate(`/chat/${targetConversationId}`);
+          
+          // Reset processing state after navigation
+          setTimeout(() => {
+            setIsProcessing(false);
+            // Clear clicked notifications after a while to allow re-clicking in the future if needed
+            setTimeout(() => {
+              setClickedNotifications(prev => {
+                const newState = {...prev};
+                delete newState[notificationKey];
+                return newState;
+              });
+            }, 5000); // Reset after 5 seconds
+          }, 500); // Increased delay to ensure navigation completes
+        }, 300);
+      }
       
     } catch (error) {
       console.error("Error handling notification click:", error);
@@ -268,13 +441,43 @@ const NotificationsComponent = () => {
     
     setIsProcessing(true);
     
-    // Only clear notifications from UI without marking as read in Firebase
+    // Mark all post notifications as seen before clearing
+    notifications.forEach(notification => {
+      if (notification.type === 'post' && notification.postId) {
+        seenPostsRef.current.add(notification.postId);
+        setSeenPosts(prev => new Set([...prev, notification.postId]));
+        persistSeenPost(notification.postId); // Persist in Firestore
+      }
+    });
+    
+    // Clear notifications from UI
     setNotifications([]);
+    setUnreadCount(0);
+    setMessageUnreadCount(0);
+    setPostUnreadCount(0);
     
     setTimeout(() => {
       setIsProcessing(false);
     }, 300);
   };
+
+  // Fetch user profile to get following list
+  useEffect(() => {
+    if (!user) return;
+
+    const getUserProfile = async () => {
+      try {
+        const profileDoc = await getDoc(firestoreDoc(db, 'profiles', user.uid));
+        if (profileDoc.exists()) {
+          setUserProfile(profileDoc.data());
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+      }
+    };
+
+    getUserProfile();
+  }, [user]);
 
   const NotificationsModal = () => {
     if (!showNotifications) return null;
@@ -331,6 +534,21 @@ const NotificationsComponent = () => {
                         <div className="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 border-2 border-gray-200 text-gray-600 text-2xl font-bold">
                           ⚙️
                         </div>
+                      ) : notification.type === 'post' ? (
+                        <div className="relative">
+                          <img
+                            src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
+                            alt="Profile"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://ui-avatars.com/api/?name=User&background=random';
+                            }}
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs">📝</span>
+                          </div>
+                        </div>
                       ) : (
                         <img
                           src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
@@ -351,7 +569,18 @@ const NotificationsComponent = () => {
                             {notification.senderName}
                           </p>
                           <p className="text-sm text-gray-700 mb-1">
-                            {notification.message}
+                            {notification.type === 'post' ? (
+                              <>
+                                {notification.message}
+                                {notification.postContent && (
+                                  <span className="block text-xs text-gray-500 mt-1 italic">
+                                    "{notification.postContent}..."
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              notification.message
+                            )}
                           </p>
                           <span className="text-sm text-gray-500">
                             {notification.timestamp?.toDate().toLocaleString('he-IL', {
@@ -364,7 +593,9 @@ const NotificationsComponent = () => {
                           </span>
                         </div>
                         {notification.unreadCount > 0 && (
-                          <span className="flex-shrink-0 rounded-full bg-red-500 text-white px-3 py-1 text-sm font-medium">
+                          <span className={`flex-shrink-0 rounded-full text-white px-3 py-1 text-sm font-medium ${
+                            notification.type === 'post' ? 'bg-blue-500' : 'bg-red-500'
+                          }`}>
                             {notification.unreadCount}
                           </span>
                         )}
@@ -409,6 +640,7 @@ const NotificationsComponent = () => {
     showNotifications,
     setShowNotifications,
     unreadCount,
+    messageUnreadCount,
     NotificationsModal
   };
 };

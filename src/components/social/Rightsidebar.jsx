@@ -30,7 +30,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const [profilePictures, setProfilePictures] = useState({});
   
   // Use NotificationsComponent directly
-  const { showNotifications, setShowNotifications, unreadCount, NotificationsModal } = NotificationsComponent();
+  const { showNotifications, setShowNotifications, unreadCount, messageUnreadCount, NotificationsModal } = NotificationsComponent();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -213,7 +213,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
             >
               <span className="min-w-[24px] flex justify-center items-center relative">
                 {tab.icon}
-                {!isExpanded && tab.id === 'messenger' && unreadCount > 0 && (
+                {!isExpanded && tab.id === 'messenger' && messageUnreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 rounded-full bg-red-500 w-2 h-2" />
                 )}
               </span>
@@ -222,9 +222,9 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                 ${isExpanded ? 'block opacity-100 max-w-[200px]' : 'hidden opacity-0 max-w-0'}
               `}>
                 <span>{tab.label}</span>
-                {isExpanded && tab.id === 'messenger' && unreadCount > 0 && (
+                {isExpanded && tab.id === 'messenger' && messageUnreadCount > 0 && (
                   <span className="rounded-full bg-red-500 text-white px-2 py-1 text-xs">
-                    {unreadCount > 99 ? '99+' : unreadCount}
+                    {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
                   </span>
                 )}
               </span>
