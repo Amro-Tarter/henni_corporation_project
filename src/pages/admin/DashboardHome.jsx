@@ -1,5 +1,3 @@
-// src/pages/admin/DashboardHome.jsx
-
 import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../../config/firbaseConfig'; // Corrected import syntax
@@ -11,9 +9,109 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faUsers, faChartLine, faClipboardList, faHandHoldingUsd, faFire, faUserTie, faStar, faClock, faHandshake, 
-  faChartPie, faThumbsUp, faCommentDots, faDollarSign, faPercent 
+  faChartPie, faThumbsUp, faCommentDots, faDollarSign, faPercent , faHandPointUp, faChartSimple, faListUl
 } from '@fortawesome/free-solid-svg-icons'; 
 import { useNavigate } from 'react-router-dom';
+
+// Custom Loader Component (provided by user)
+const ELEMENTS = [
+  { key: 'earth', emoji: '🌱', color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
+  { key: 'metal', emoji: '⚒️', color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
+  { key: 'air',   emoji: '💨', color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
+  { key: 'water', emoji: '💧', color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
+  { key: 'fire',  emoji: '🔥', color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
+];
+
+function CleanElementalOrbitLoader() {
+  const [activeElement, setActiveElement] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  
+  useEffect(() => {
+    setIsVisible(true);
+  }, []);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveElement(a => (a + 1) % ELEMENTS.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const current = ELEMENTS[activeElement];
+  const orbitDuration = 12; 
+  
+  return (
+    <div 
+      className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4"
+      role="status"
+      aria-label="Loading elements"
+    >
+      <div 
+        className={`relative w-64 h-64 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+      >
+        <div className="absolute inset-0 rounded-full border border-gray-200 opacity-30"></div>
+        
+        <div 
+          className={`absolute inset-0 m-auto w-24 h-24 rounded-full flex items-center justify-center shadow transition-all duration-700 ${current.bgColor}`}
+        >
+          <span className="text-4xl">{current.emoji}</span>
+        </div>
+        
+        {ELEMENTS.map((el, i) => {
+          const isActive = activeElement === i;
+          
+          return (
+            <div
+              key={el.key}
+              className={`absolute top-1/2 left-1/2 w-12 h-12 rounded-full flex items-center justify-center shadow transition-all duration-500 bg-white ${isActive ? 'z-20' : 'z-10'}`}
+              style={{
+                transform: isActive ? 'translate(-50%, -50%) scale(1.1)' : 'translate(-50%, -50%) scale(1)',
+                animation: `orbitAnimation ${orbitDuration}s linear infinite`,
+                animationDelay: `-${(i * orbitDuration) / ELEMENTS.length}s`,
+              }}
+            >
+              <span className="text-lg">{el.emoji}</span>
+            </div>
+          );
+        })}
+
+        <div className="absolute inset-0">
+          {[...Array(20)].map((_, i) => (
+            <div 
+              key={`particle-${i}`} 
+              className="absolute top-1/2 left-1/2 w-1 h-1 rounded-full bg-gray-300 opacity-40"
+              style={{
+                animation: `orbitAnimation ${orbitDuration}s linear infinite`,
+                animationDelay: `-${(i * orbitDuration) / 20}s`,
+              }}
+            ></div>
+          ))}
+        </div>
+
+        <style>{`
+          @keyframes orbitAnimation {
+            0% {
+              transform: translate(-50%, -50%) rotate(0deg) translateX(112px) rotate(0deg);
+            }
+            100% {
+              transform: translate(-50%, -50%) rotate(360deg) translateX(112px) rotate(-360deg);
+            }
+          }
+          
+          @media (max-width: 640px) {
+            .text-4xl {
+              font-size: 1.5rem;
+            }
+            .text-2xl {
+              font-size: 1.25rem;
+            }
+          }
+        `}</style>
+      </div>
+    </div>
+  );
+}
+
 
 const DashboardHome = () => {
   const navigate = useNavigate();
@@ -31,6 +129,7 @@ const DashboardHome = () => {
 
   const [totalPartners, setTotalPartners] = useState(0);
   const [activePartnersCount, setActivePartnersCount] = useState(0);
+  const [allPartnersList, setAllPartnersList] = useState([]); // New state for all partners
 
   const [userRoleDistribution, setUserRoleDistribution] = useState([]);
   const [topPosts, setTopPosts] = useState([]);
@@ -40,6 +139,7 @@ const DashboardHome = () => {
   const [partnershipStatusDistribution, setPartnershipStatusDistribution] = useState([]);
   const [averageInvolvementRating, setAverageInvolvementRating] = useState(0);
   const [averageOverallProgressRating, setAverageOverallProgressRating] = useState(0);
+  const [totalReports, setTotalReports] = useState(0); // New state for total reports
 
   // State to store all users data for lookup
   const [allUsersData, setAllUsersData] = useState([]);
@@ -84,6 +184,7 @@ const DashboardHome = () => {
           ...doc.data(), 
           createdAt: doc.data().createdAt?.toDate() 
         }));
+        setTotalReports(reportsData.length); // Set total reports count
 
         const donationsSnapshot = await getDocs(query(collection(db, "donations")));
         const donationsData = donationsSnapshot.docs.map(doc => ({ 
@@ -94,7 +195,7 @@ const DashboardHome = () => {
         
         const partnersSnapshot = await getDocs(query(collection(db, "partners")));
         const partnersData = partnersSnapshot.docs.map(doc => ({ ...doc.data() }));
-
+        setAllPartnersList(partnersData); // Store all partners data in state
 
         // --- Process Data for Graphs and Lists ---
 
@@ -151,7 +252,7 @@ const DashboardHome = () => {
             username: fetchedUsersData.find(u => u.id === userId)?.username || profilesMap[userId].displayName 
           }))
           .sort((a, b) => b.followers - a.followers)
-          .slice(0, 5);
+          .slice(0, 6);
         setMostFollowedUsers(followedUsersList);
 
         // 5. Most Active Mentors (based on reports submitted)
@@ -324,10 +425,7 @@ const DashboardHome = () => {
           </div>
 
           {loading ? (
-            <div className="flex justify-center items-center h-96">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-indigo-500"></div>
-              <p className="ml-4 text-lg text-gray-700">טוען נתוני אנליטיקה...</p>
-            </div>
+            <CleanElementalOrbitLoader /> // Using the custom loader here
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
               
@@ -380,22 +478,13 @@ const DashboardHome = () => {
                     <p className="text-center text-gray-600">אין נתוני פעילות יומית להצגה.</p>
                   )}
                 </div>
-
-                {/* Total Posts Count */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md"> 
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faClipboardList} className="text-blue-500" />
-                    סה"כ פוסטים במערכת
-                  </h3>
-                  <p className="text-5xl font-extrabold text-center text-blue-600">{totalPosts}</p>
-                </div>
               </div>
 
               {/* SECTION: User-Centric Analytics */}
               <div className="xl:col-span-3 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 col-span-full mb-4 flex items-center gap-2">
                   <FontAwesomeIcon icon={faUsers} className="text-purple-600" />
-                 ניתוח משתמשים
+                  ניתוח משתמשים
                 </h2>
                 {/* User Role Distribution */}
                 <div className="bg-gray-50 p-6 rounded-lg shadow-md">
@@ -466,7 +555,7 @@ const DashboardHome = () => {
                         <li 
                           key={mentor.id} 
                           className="flex justify-between items-center bg-white p-3 rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
-                          onClick={() => navigate(`/profile/${mentor.username || mentor.displayName}`)} 
+                          onClick={() => navigate(`/admin/reports`)} /*${mentor.username || mentor.displayName}*/
                         >
                           <span className="text-gray-700 font-medium">{mentor.displayName}</span>
                           <span className="text-purple-600 font-bold">{mentor.reportsCount} דוחות</span>
@@ -486,12 +575,20 @@ const DashboardHome = () => {
                   <FontAwesomeIcon icon={faThumbsUp} className="text-pink-600" />
                   ניתוח תוכן ומעורבות
                 </h2>
+                {/* Total Posts Count */}
+                <div className="bg-gray-50 p-6 rounded-lg shadow-md"> 
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <FontAwesomeIcon icon={faClipboardList} className="text-blue-500" />
+                    סה"כ פוסטים במערכת
+                  </h3>
+                  <p className="text-3xl font-extrabold text-center text-blue-600">{totalPosts}</p>
+                </div>
                 {/* Top Posts by Engagement - Now Clickable */}
                 <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                   <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <FontAwesomeIcon icon={faThumbsUp} className="text-pink-500" />
                     פוסטים מובילים לפי מעורבות
-                  </h3>
+                   </h3>
                   {topPosts.length > 0 ? (
                     <ul className="space-y-2">
                       {topPosts.map(post => (
@@ -520,14 +617,24 @@ const DashboardHome = () => {
                     <FontAwesomeIcon icon={faChartLine} className="text-cyan-500" />
                     ממוצע דירוגי דוחות
                   </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    ממוצע דירוגי המעורבות וההתקדמות הכללית מתוך דוחות המנטורים.
+                    {totalReports > 0 && <span className="block mt-1"> ( סכ"ה דוחות במערכת: {totalReports} )</span>}
+                  </p>
                   <div className="space-y-2">
-                    <p className="text-lg text-gray-700">
+                    <p className="text-lg text-gray-700 flex items-center gap-2">
+                      <FontAwesomeIcon icon={faHandPointUp} className="text-cyan-500" />
                       <span className="font-medium">מעורבות ומוטיבציה:</span>{' '}
-                      <span className="font-bold text-cyan-600">{averageInvolvementRating} / 4</span>
+                      <span className="font-bold text-cyan-600">
+                        {averageInvolvementRating > 0 ? `${averageInvolvementRating} / 4` : 'אין נתונים'}
+                      </span>
                     </p>
-                    <p className="text-lg text-gray-700">
+                    <p className="text-lg text-gray-700 flex items-center gap-2">
+                      <FontAwesomeIcon icon={faChartSimple} className="text-cyan-500" />
                       <span className="font-medium">התקדמות כללית:</span>{' '}
-                      <span className="font-bold text-cyan-600">{averageOverallProgressRating} / 4</span>
+                      <span className="font-bold text-cyan-600">
+                        {averageOverallProgressRating > 0 ? `${averageOverallProgressRating} / 4` : 'אין נתונים'}
+                      </span>
                     </p>
                   </div>
                 </div>
@@ -538,7 +645,7 @@ const DashboardHome = () => {
               <div className="xl:col-span-3 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-8">
                 <h2 className="text-2xl font-bold text-gray-800 col-span-full mb-4 flex items-center gap-2">
                   <FontAwesomeIcon icon={faDollarSign} className="text-teal-600" />
-                    ניתוח פיננסיה ושוטפים
+                  ניתוח פיננסיה ושוטפים
                 </h2>
                 {/* Donations Overview */}
                 <div className="bg-gray-50 p-6 rounded-lg shadow-md">
@@ -664,7 +771,7 @@ const DashboardHome = () => {
                     <FontAwesomeIcon icon={faHandshake} className="text-orange-500" />
                     סקירת שותפים
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-2 mb-4">
                     <p className="text-lg text-gray-700">
                       <span className="font-medium">סה"כ שותפים:</span>{' '}
                       <span className="font-bold text-orange-600">{totalPartners}</span>
@@ -674,6 +781,27 @@ const DashboardHome = () => {
                       <span className="font-bold text-orange-600">{activePartnersCount}</span>
                     </p>
                   </div>
+                  <h4 className="text-base font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                    <FontAwesomeIcon icon={faListUl} className="text-gray-500" />
+                    כל השותפים:
+                  </h4>
+                  {allPartnersList.length > 0 ? (
+                    <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2 bg-white">
+                      <ul className="space-y-1">
+                        {allPartnersList.map(partner => (
+                          <li 
+                            key={partner.id} 
+                            className="text-gray-700 text-sm py-1 px-2 rounded-md hover:bg-gray-100 cursor-pointer transition-colors duration-150"
+                            onClick={() => navigate('/admin/Partners')}
+                          >
+                            {partner.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    <p className="text-center text-gray-600 text-sm">אין שותפים להצגה.</p>
+                  )}
                 </div>
 
                 {/* Partnership Status Distribution */}
@@ -709,7 +837,7 @@ const DashboardHome = () => {
                 </div>
               </div>
 
-            </div> 
+            </div>
           )}
         </div>
       </div>
@@ -718,6 +846,3 @@ const DashboardHome = () => {
 }
 
 export default DashboardHome;
-
-
-

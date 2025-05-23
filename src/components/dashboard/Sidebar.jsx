@@ -7,10 +7,10 @@ const Sidebar = () => {
       <nav className="space-y-2">
         <Link to="/admin" className="block hover:text-gray-300 ">לוח מחוונים</Link>
         <Link to="/admin/users" className="block hover:text-gray-300">משתמשים</Link>
-        <Link to="/admin/Partners" className="block hover:text-gray-300">שוטפים שלנו</Link>
+        <Link to="/admin/Partners" className="block hover:text-gray-300">שותפים שלנו</Link>
         <Link to="/admin/reports" className="block hover:text-gray-300">דוחות</Link>
-        <Link to="/admin/settings" className="block hover:text-gray-300">הגדרות</Link>
         <Link to="/admin/donations" className="block hover:text-gray-300">תרומות</Link>
+        <Link to="/admin/forms" className="block hover:text-gray-300">טפסים</Link>
       </nav>
     </div>
   );

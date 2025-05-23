@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
-// Assuming db and auth are already initialized and exported from firbaseConfig.js
 import { db, auth } from "../config/firbaseConfig";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth"; // Only need onAuthStateChanged, not getAuth or signInAnonymously here
+import { doc, setDoc, serverTimestamp, collection, getDocs } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 import { toast } from 'sonner';
 import { useNavigate } from "react-router-dom";
-
+import CleanElementalOrbitLoader from "../theme/ElementalLoader";
 function MentorReportForm() {
   const navigate = useNavigate();
 
@@ -19,6 +18,11 @@ function MentorReportForm() {
   const [reportDate, setReportDate] = useState("");
   const [reportingPeriod, setReportingPeriod] = useState("");
   const [programYear, setProgramYear] = useState(1);
+
+  // New state for participants list
+  const [participants, setParticipants] = useState([]);
+  const [loadingParticipants, setLoadingParticipants] = useState(true);
+  const [participantsError, setParticipantsError] = useState(null);
 
   // Q1 states
   const [q1ArtisticDevelopment, setQ1ArtisticDevelopment] = useState("");
@@ -58,28 +62,57 @@ function MentorReportForm() {
 
   // Authentication Listener
   useEffect(() => {
-    // Ensure auth is available from the imported config
     if (auth) {
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         if (user) {
           setCurrentUserId(user.uid);
           setMentorId(user.uid); // Automatically set mentorId to current user's UID
         } else {
-          // Handle cases where user is not logged in, e.g., redirect to login
-          // For now, setting a placeholder or navigating if not authenticated
           console.warn("No user authenticated. MentorReportForm requires authentication.");
-          // You might want to redirect to a login page here:
+          // Optionally, redirect to login
           // navigate("/login");
         }
-        setIsAuthReady(true); // Mark authentication as ready
+        setIsAuthReady(true);
       });
-      return () => unsubscribe(); // Cleanup listener on unmount
+      return () => unsubscribe();
     } else {
       console.error("Firebase Auth instance not available. Check ../config/firbaseConfig.js");
       toast.error("Firebase authentication not configured correctly.");
-      setIsAuthReady(true); // Still mark as ready to avoid infinite loading, but with an error
+      setIsAuthReady(true);
     }
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
+
+  // Fetch Participants
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      setLoadingParticipants(true);
+      setParticipantsError(null);
+      try {
+        const querySnapshot = await getDocs(collection(db, "users")); // Or 'participants' collection
+        const participantsList = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.role === "participant" || data.role === "מנטור") { // Adjust filter as needed
+            participantsList.push({
+              id: doc.id,
+              name: data.displayName || data.name || doc.id,
+            });
+          }
+        });
+        setParticipants(participantsList);
+      } catch (err) {
+        console.error("Error fetching participants:", err);
+        setParticipantsError("אירעה שגיאה בטעינת רשימת המשתתפים.");
+        toast.error("אירעה שגיאה בטעינת רשימת המשתתפים.");
+      } finally {
+        setLoadingParticipants(false);
+      }
+    };
+
+    if (db && isAuthReady) {
+      fetchParticipants();
+    }
+  }, [db, isAuthReady]);
 
   // Handler for previous goals array
   const handlePreviousGoalChange = (index, field, value) => {
@@ -91,15 +124,13 @@ function MentorReportForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Ensure Firestore DB and current user ID are available
     if (!db || !currentUserId) {
       toast.error("Firebase database not available or user not authenticated. Please try again.");
       return;
     }
 
-    // Basic validation
     if (!mentorId || !participantId || !reportDate || !reportingPeriod || !q1ArtisticDevelopment || !q5OverallProgressRating) {
-      toast.error("אנא מלא את כל השדות החובה.");
+      toast.error("אנא מלא את כל שדות החובה.");
       return;
     }
 
@@ -137,11 +168,10 @@ function MentorReportForm() {
         updatedAt: serverTimestamp(),
       };
 
-      // Add a new document with a generated ID in the 'reports' collection
       await setDoc(doc(db, "progress_reports", crypto.randomUUID()), reportData);
       toast.success("הדיווח נשלח בהצלחה!");
 
-      // Reset form fields after successful submission
+      // Reset form fields
       setParticipantId("");
       setReportDate("");
       setReportingPeriod("");
@@ -164,25 +194,24 @@ function MentorReportForm() {
       setQ5OverallProgressRating("");
       setAdditionalNotes("");
 
-
     } catch (err) {
       console.error("Error submitting report:", err);
       toast.error("אירעה שגיאה בשליחת הדיווח. אנא נסה שנית.");
     }
   };
 
-  // Show loading state until authentication is ready
-  if (!isAuthReady) {
+  // Show loading state until authentication and participants are ready
+  if (!isAuthReady || loadingParticipants) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-100 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
-        <div className="text-xl font-semibold text-gray-700">טוען...</div>
+      <div className="min-h-screen flex items-center justify-center  py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
+        <CleanElementalOrbitLoader /> {/* Use the new loader component here */}
       </div>
     );
   }
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center  py-12 px-4 sm:px-6 lg:px-8 relative"
+      className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative"
       dir="rtl"
     >
       <div className="w-full max-w-4xl bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
@@ -192,35 +221,30 @@ function MentorReportForm() {
         </div>
 
         <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
-          {/* Mentor and Participant IDs (for example, these would be dynamic) */}
+          {/* Participant Select Field */}
           <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Mentor ID field is removed from JSX as requested, but still set in state */}
+            {/* The space will be filled by the participant select or other fields */}
             <div className="flex flex-col">
-              <label className="mb-1 text-sm font-medium text-gray-700">מזהה מנטור (אוטומטי)</label>
-              <input
-                type="text"
-                value={mentorId}
-                readOnly // Make it read-only as it's auto-filled
-                className={`${inputStyle} bg-gray-100 cursor-not-allowed`}
-                placeholder="מזהה מנטור"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                *ביישום אמיתי, מזהה המנטור יילקח אוטומטית מהמשתמש המחובר.
-              </p>
-            </div>
-            <div className="flex flex-col">
-              <label className="mb-1 text-sm font-medium text-gray-700">מזהה משתתף</label>
-              <input
-                type="text"
+              <label className="mb-1 text-sm font-medium text-gray-700">בחר משתתף</label>
+              <select
                 required
                 value={participantId}
                 onChange={(e) => setParticipantId(e.target.value)}
-                placeholder="מזהה משתתף *"
                 className={inputStyle}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                *ביישום אמיתי, מזהה המשתתף ייבחר מרשימת משתתפים.
-              </p>
+                disabled={loadingParticipants || participantsError}
+              >
+                <option value="">{loadingParticipants ? "טוען משתתפים..." : participantsError ? "שגיאה בטעינה" : "בחר משתתף *"}</option>
+                {participants.map((participant) => (
+                  <option key={participant.id} value={participant.id}>
+                    {participant.name}
+                  </option>
+                ))}
+              </select>
+              {participantsError && <p className="text-red-500 text-xs mt-1">{participantsError}</p>}
             </div>
+            {/* Empty div for alignment if needed, or remove if other fields fill */}
+            <div></div> 
           </div>
 
           {/* Report Date and Period */}
