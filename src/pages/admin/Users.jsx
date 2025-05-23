@@ -36,9 +36,26 @@ const ELEMENTS = [
 async function cascadeDeleteUser(uid, db) {
   // Delete user
   await deleteDoc(doc(db, "users", uid));
+  console.log(`User ${uid} deleted from users collection.`);
   // Delete profile
   await deleteDoc(doc(db, "profiles", uid));
+  console.log(`User ${uid} deleted.`);
+    
+  // Delete all messages in the conversation
+    const messagesRef = collection(db, "conversations", uid, "messages");
+    const messagesSnap = await getDocs(messagesRef);
+    for (const msgDoc of messagesSnap.docs) {
+      await deleteDoc(doc(db, "conversations", uid, "messages", msgDoc.id));
+      console.log(`Message ${msgDoc.id} deleted.`);
+    }
 
+    // Delete the conversation doc
+    await deleteDoc(doc(db, "conversations", uid));
+    console.log(`Messages for user ${uid} deleted.`);
+
+
+// Delete the conversation doc
+await deleteDoc(doc(db, "conversations", uid));
   // Delete posts and their comments
   const postsQuery = query(collection(db, "posts"), where("authorId", "==", uid));
   const postsSnapshot = await getDocs(postsQuery);
@@ -48,9 +65,11 @@ async function cascadeDeleteUser(uid, db) {
     const commentsSnapshot = await getDocs(commentsRef);
     for (const commentDoc of commentsSnapshot.docs) {
       await deleteDoc(doc(db, "posts", postDoc.id, "comments", commentDoc.id));
+      console.log(`Comment ${commentDoc.id} deleted.`);
     }
     // Delete the post itself
     await deleteDoc(doc(db, "posts", postDoc.id));
+    console.log(`Post ${postDoc.id} and its comments deleted.`);
   }
 
   // Delete comments the user has made on other people's posts
