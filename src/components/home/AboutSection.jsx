@@ -10,6 +10,8 @@ import {
   HandHeart, Users, Heart, TreePine, X, Edit2, Check, ChevronDown, ChevronUp
 } from 'lucide-react';
 import CTAButton from '@/components/CTAButton';
+import { Link } from 'react-router-dom';
+
 
 const DEFAULT_IMAGE = '/default_user_pic.jpg';
 
@@ -358,12 +360,12 @@ const AboutSection = ({ currentUser }) => {
           {loading ? (
             <div className="flex justify-center items-center py-8">
               <div className="w-8 h-8 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin"></div>
-              <span className="mr-3 text-gray-600">טוען מנהלים...</span>
+              <span className="mr-3 text-gray-600">טוען ...</span>
             </div>
           ) : teamMembers.length === 0 ? (
             <div className="text-center py-8 text-gray-600">
               <Users className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-              <p>לא נמצאו מנהלים במערכת</p>
+              <p>לא נמצאו עובדים במערכת</p>
             </div>
           ) : (
             <>
@@ -385,14 +387,14 @@ const AboutSection = ({ currentUser }) => {
                 ))}
               </div>
               {/* View all team button */}
-              <Button
-                onClick={openAllTeam}
-                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg px-6 py-2 shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                {teamMembers.length > 3
-                  ? `הכירו את כל הצוות (${teamMembers.length} חברים)`
-                  : 'הכירו את כל הצוות'}
-              </Button>
+             <Button
+              asChild
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg px-6 py-2 shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <Link to="/team">
+                הכירו את כל הצוות
+              </Link>
+            </Button>
             </>
           )}
         </div>
