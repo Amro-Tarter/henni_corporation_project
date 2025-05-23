@@ -29,8 +29,6 @@ export default function Team() {
 
   // Debug: Log the data being fetched
   useEffect(() => {
-    console.log('All grouped data:', groupedByRole)
-    console.log('All members:', allMembers)
     if (groupedByRole) {
       groupedByRole.forEach(({ role, members }) => {
         console.log(`Role: ${role}, Members count: ${members.length}`)
@@ -45,7 +43,6 @@ export default function Team() {
 
   // Debug: Log filtered results
   useEffect(() => {
-    console.log('Filtered results:', filteredGroupedByRole)
   }, [filteredGroupedByRole])
 
   // Check if we have results after filtering
