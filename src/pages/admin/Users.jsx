@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { collection, query, getDocs, orderBy, updateDoc, doc, deleteDoc, getDoc } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, updateDoc, doc, deleteDoc, getDoc, where } from "firebase/firestore";
+
 import { db } from "../../config/firbaseConfig";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -30,6 +31,56 @@ const ELEMENTS = [
   { key: 'water', emoji: '💧', color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
   { key: 'fire',  emoji: '🔥', color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
 ];
+
+
+async function cascadeDeleteUser(uid, db) {
+  // Delete user
+  await deleteDoc(doc(db, "users", uid));
+  // Delete profile
+  await deleteDoc(doc(db, "profiles", uid));
+
+  // Delete posts and their comments
+  const postsQuery = query(collection(db, "posts"), where("authorId", "==", uid));
+  const postsSnapshot = await getDocs(postsQuery);
+  for (const postDoc of postsSnapshot.docs) {
+    // Delete all comments for this post
+    const commentsRef = collection(db, "posts", postDoc.id, "comments");
+    const commentsSnapshot = await getDocs(commentsRef);
+    for (const commentDoc of commentsSnapshot.docs) {
+      await deleteDoc(doc(db, "posts", postDoc.id, "comments", commentDoc.id));
+    }
+    // Delete the post itself
+    await deleteDoc(doc(db, "posts", postDoc.id));
+  }
+
+  // Delete comments the user has made on other people's posts
+  // Optional, only if you want to delete all their comments everywhere
+  // (slower, but cleaner)
+  const allPostsQuery = query(collection(db, "posts"));
+  const allPostsSnapshot = await getDocs(allPostsQuery);
+  for (const postDoc of allPostsSnapshot.docs) {
+    const commentsRef = collection(db, "posts", postDoc.id, "comments");
+    const commentsSnapshot = await getDocs(commentsRef);
+    for (const commentDoc of commentsSnapshot.docs) {
+      if (commentDoc.data().authorId === uid) {
+        await deleteDoc(doc(db, "posts", postDoc.id, "comments", commentDoc.id));
+      }
+    }
+  }
+
+  // Delete mentorships where user is a mentor or participant
+  const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", uid));
+  const mentorSnapshot = await getDocs(mentorQuery);
+  for (const msDoc of mentorSnapshot.docs) {
+    await deleteDoc(doc(db, "mentorship", msDoc.id));
+  }
+  const participantQuery = query(collection(db, "mentorship"), where("participantId", "==", uid));
+  const participantSnapshot = await getDocs(participantQuery);
+  for (const msDoc of participantSnapshot.docs) {
+    await deleteDoc(doc(db, "mentorship", msDoc.id));
+  }
+}
+
 
 function CleanElementalOrbitLoader() {
   const [activeElement, setActiveElement] = useState(0);
@@ -481,17 +532,16 @@ function Users() {
     }
   };
 
-   const handleDeleteUser = async (userId) => {
+  const handleDeleteUser = async (userId) => {
     setIsDeleting(true);
     try {
-      await deleteDoc(doc(db, "users", userId));
-      await deleteDoc(doc(db, "profiles", userId));
-      toast.success("המשתמש נמחק בהצלחה");
+      await cascadeDeleteUser(userId, db);
+      toast.success("המשתמש וכל המידע המשויך נמחקו בהצלחה");
       setUsers(users.filter(u => u.id !== userId));
       setDeletingUser(null);
     } catch (error) {
-      console.error("Error deleting user:", error);
-      toast.error("אירעה שגיאה במחיקת המשתמש");
+      console.error("Error deleting user and related data:", error);
+      toast.error("אירעה שגיאה במחיקת כל המידע של המשתמש");
     } finally {
       setIsDeleting(false);
     }
