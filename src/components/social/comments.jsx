@@ -1,8 +1,9 @@
+//comments
 import React, { useState, useEffect, useRef } from 'react';
-import { Trash2, Check, Edit2, X, Send, Reply } from 'lucide-react';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../config/firbaseConfig.ts'; 
-
+import { Trash2, Check, Edit2, X, Send, Reply, Smile } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react';
+import { createPortal } from 'react-dom';
+import { containsBadWord } from './utils/containsBadWord';
 
 
 export const Comment = ({
@@ -175,21 +176,104 @@ export const CommentInput = ({
   buttonText = ''
 }) => {
   const [text, setText] = useState(initialValue);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const emojiBtnRef = useRef();
   const ref = useRef();
+  const pickerRef = useRef();
+  const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
+  const [warning, setWarning] = useState('');
 
   useEffect(() => {
     if (autoFocus && ref.current) ref.current.focus();
   }, [autoFocus]);
 
+  // Insert emoji at cursor
+  const insertEmoji = (emojiObject) => {
+    const sym = emojiObject.emoji;
+    const input = ref.current;
+    if (!input) return;
+    const [start, end] = [input.selectionStart, input.selectionEnd];
+    setText(prev => prev.slice(0, start) + sym + prev.slice(end));
+    setTimeout(() => {
+      input.focus();
+      input.setSelectionRange(start + sym.length, start + sym.length);
+    }, 0);
+    // Do NOT close picker here (multi-emoji experience)
+  };
+
   const handleSubmit = e => {
     e.preventDefault();
     if (!text.trim()) return;
+
+    if (containsBadWord(text)) {
+      setWarning('הודעה זו מכילה מילים לא ראויות!');
+      setTimeout(() => setWarning(''), 3500);
+      return;
+    }
+
     onSubmit(text);
     setText('');
+    setShowEmoji(false);
+    setWarning('');
+  };
+
+  // Click-outside handler: closes only if click is not on the picker or button
+  useEffect(() => {
+    if (!showEmoji) return;
+    function handleClick(e) {
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(e.target) &&
+        emojiBtnRef.current &&
+        !emojiBtnRef.current.contains(e.target)
+      ) {
+        setShowEmoji(false);
+      }
+    }
+    window.addEventListener('mousedown', handleClick);
+    return () => window.removeEventListener('mousedown', handleClick);
+  }, [showEmoji]);
+
+  // Open and position picker
+  const openEmojiPicker = () => {
+    if (emojiBtnRef.current) {
+      const rect = emojiBtnRef.current.getBoundingClientRect();
+      setEmojiPos({
+        x: rect.left,
+        y: rect.bottom + 8,
+      });
+    }
+    setShowEmoji(true);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-end gap-2 w-full">
+    <>
+      {warning &&
+        <div
+          style={{
+            position: 'fixed',
+            top: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 10000,
+            minWidth: 300,
+            maxWidth: 400,
+            background: '#fee2e2',
+            color: '#b91c1c',
+            border: '1px solid #ef4444',
+            borderRadius: 8,
+            padding: '14px 22px',
+            fontWeight: 500,
+            textAlign: 'center',
+            boxShadow: '0 2px 16px rgba(0,0,0,0.12)',
+            fontSize: '1rem',
+            pointerEvents: 'none'
+          }}
+        >
+          {warning}
+        </div>
+      }
+    <form onSubmit={handleSubmit} className="flex items-end gap-2 w-full relative">
       <textarea
         ref={ref}
         value={text}
@@ -199,6 +283,44 @@ export const CommentInput = ({
         rows={2}
         dir="rtl"
       />
+      {/* Emoji Picker Button */}
+      <button
+        type="button"
+        ref={emojiBtnRef}
+        onClick={openEmojiPicker}
+        className="px-2 py-2 bg-gray-50 rounded-md hover:bg-gray-200 transition-colors flex items-center emoji-picker-btn"
+        tabIndex={-1}
+        aria-label="הוסף אימוג׳י"
+      >
+        <Smile size={18} />
+      </button>
+
+      {/* Emoji Picker in Portal */}
+      {showEmoji &&
+        createPortal(
+          <div
+            ref={pickerRef}
+            style={{
+              position: 'fixed',
+              left: emojiPos.x,
+              top: emojiPos.y,
+              zIndex: 1000,
+            }}
+            className="emoji-mart-portal"
+          >
+            <EmojiPicker
+              onEmojiClick={insertEmoji}
+              autoFocusSearch={false}
+              theme="light"
+              searchDisabled={false}
+              skinTonesDisabled={false}
+              width={350}
+              height={400}
+            />
+          </div>,
+          document.body
+        )}
+
       {onCancel && (
         <button
           type="button"
@@ -216,5 +338,6 @@ export const CommentInput = ({
         <Send size={16} /> {buttonText || 'שלח'}
       </button>
     </form>
+    </>
   );
 };
