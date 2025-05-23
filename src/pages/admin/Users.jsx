@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { collection, query, getDocs, where, orderBy, updateDoc, doc, deleteDoc } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, updateDoc, doc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "../../config/firbaseConfig";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -147,7 +147,6 @@ const EditUserModal = ({ user, onClose, onSave }) => {
     { value: 'admin', label: 'מנהל' },
     { value: 'mentor', label: 'מנטור' },
     { value: 'participant', label: 'משתתף' },
-    { value: 'family', label: 'משפחה' }
   ];
 
   const handleSubmit = async (e) => {
@@ -171,7 +170,7 @@ const EditUserModal = ({ user, onClose, onSave }) => {
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
       onClick={onClose}
     >
-      <motion.div
+        <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
@@ -419,47 +418,25 @@ function Users() {
   }, []);
 
   const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const q = query(
-        collection(db, "users"),
-        orderBy("createdAt", "desc")
-      );
-      
-      const querySnapshot = await getDocs(q);
-      const usersData = [];
-      
-      // Get all user documents
-      for (const doc of querySnapshot.docs) {
-        const userData = { id: doc.id, ...doc.data() };
-        
-        // Get profile document for each user
-        try {
-          const profileQuery = query(
-            collection(db, "profiles"),
-            where("associated_id", "==", doc.id)
-          );
-          const profileSnapshot = await getDocs(profileQuery);
-          
-          if (!profileSnapshot.empty) {
-            userData.profile = profileSnapshot.docs[0].data();
-            userData.profileId = profileSnapshot.docs[0].id;
-          }
-          
-          usersData.push(userData);
-        } catch (err) {
-          console.error("Error fetching profile:", err);
+    setLoading(true);
+    const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    const usersData = [];
+    for (const userDoc of querySnapshot.docs) {
+      const userData = { id: userDoc.id, ...userDoc.data() };
+      try {
+        const profileSnap = await getDoc(doc(db, "profiles", userDoc.id));
+        if (profileSnap.exists()) {
+          userData.profile = profileSnap.data();
         }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
       }
-      
-      setUsers(usersData);
-      setDisplayedUsers(usersData);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching users:", err);
-      toast.error("אירעה שגיאה בטעינת המשתמשים");
-      setLoading(false);
+      usersData.push(userData);
     }
+    setUsers(usersData);
+    setDisplayedUsers(usersData);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -467,48 +444,36 @@ function Users() {
   }, []);
 
   useEffect(() => {
-    // Filter users based on search term, element filter, and location filter
-    const filtered = users.filter(user => {
-      const matchesSearch = searchTerm === "" || 
+      const filtered = users.filter(user => {
+      const matchesSearch = searchTerm === "" ||
         (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (user.profile?.displayName && user.profile.displayName.toLowerCase().includes(searchTerm.toLowerCase()));
-      
       const matchesElement = elementFilter === "" || user.element === elementFilter;
-      
-      const matchesLocation = locationFilter === "" || 
+      const matchesLocation = locationFilter === "" ||
         (user.location && user.location.toLowerCase().includes(locationFilter.toLowerCase()));
-      
       return matchesSearch && matchesElement && matchesLocation;
     });
-    
     setDisplayedUsers(filtered);
   }, [searchTerm, elementFilter, locationFilter, users]);
 
-  const handleSaveUser = async (userId, formData) => {
+   const handleSaveUser = async (userId, formData) => {
     try {
-      // Update user document
       await updateDoc(doc(db, "users", userId), {
         username: formData.username,
         email: formData.email,
         element: formData.element,
         location: formData.location,
         role: formData.role,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
-
-      // Update profile document if it exists
-      const user = users.find(u => u.id === userId);
-      if (user?.profileId) {
-        await updateDoc(doc(db, "profiles", user.profileId), {
-          displayName: formData.displayName,
-          bio: formData.bio,
-          photoURL: formData.photoURL,
-          updatedAt: new Date()
-        });
-      }
-
+      await updateDoc(doc(db, "profiles", userId), {
+        displayName: formData.displayName,
+        bio: formData.bio,
+        photoURL: formData.photoURL,
+        updatedAt: new Date(),
+      });
       toast.success("המשתמש עודכן בהצלחה");
-      fetchUsers(); // Refresh the users list
+      fetchUsers();
     } catch (error) {
       console.error("Error updating user:", error);
       toast.error("אירעה שגיאה בעדכון המשתמש");
@@ -516,19 +481,11 @@ function Users() {
     }
   };
 
-  const handleDeleteUser = async (userId) => {
+   const handleDeleteUser = async (userId) => {
     setIsDeleting(true);
     try {
-      const user = users.find(u => u.id === userId);
-      
-      // Delete user document
       await deleteDoc(doc(db, "users", userId));
-      
-      // Delete profile document if it exists
-      if (user?.profileId) {
-        await deleteDoc(doc(db, "profiles", user.profileId));
-      }
-
+      await deleteDoc(doc(db, "profiles", userId));
       toast.success("המשתמש נמחק בהצלחה");
       setUsers(users.filter(u => u.id !== userId));
       setDeletingUser(null);
@@ -626,7 +583,7 @@ function Users() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {displayedUsers.map((user) => (
               <motion.div
-                key={user.username}
+                key={user.id}
                 layout
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
