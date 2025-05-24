@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { X, Trash2 } from 'lucide-react';
-import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnapshot, orderBy, updateDoc, limit, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnapshot, orderBy, updateDoc, limit, arrayUnion, collectionGroup } from 'firebase/firestore';
 import { auth, db } from '../../config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -28,15 +28,21 @@ export const NotificationsProvider = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [messageUnreadCount, setMessageUnreadCount] = useState(0);
   const [postUnreadCount, setPostUnreadCount] = useState(0);
+  const [commentUnreadCount, setCommentUnreadCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [clickedNotifications, setClickedNotifications] = useState({});
   const [seenPosts, setSeenPosts] = useState(new Set());
   const [seenPostsLoaded, setSeenPostsLoaded] = useState(false);
+  const [seenComments, setSeenComments] = useState(new Set());
+  const [seenCommentsLoaded, setSeenCommentsLoaded] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [userPosts, setUserPosts] = useState(new Set());
+  const [userCommentedPosts, setUserCommentedPosts] = useState(new Set());
   const notificationRef = useRef(null);
   const seenPostsRef = useRef(new Set());
+  const seenCommentsRef = useRef(new Set());
   const navigate = useNavigate();
 
   // Listen to auth state changes
@@ -91,6 +97,71 @@ export const NotificationsProvider = ({ children }) => {
     };
     
     fetchSeenPosts();
+  }, [user]);
+
+  // Fetch user's posts and posts they've commented on
+  useEffect(() => {
+    console.log('useEffect: getUserPostsAndComments, user:', user);
+    if (!user) return;
+
+    const fetchUserPostsAndComments = async () => {
+      try {
+        // Get user's own posts
+        const postsQuery = query(
+          collection(db, 'posts'),
+          where('authorId', '==', user.uid)
+        );
+        const postsSnapshot = await getDocs(postsQuery);
+        const userPostIds = new Set(postsSnapshot.docs.map(doc => doc.id));
+        setUserPosts(userPostIds);
+
+        // Get posts where user has commented
+        const commentsQuery = query(
+          collectionGroup(db, 'comments'),
+          where('authorId', '==', user.uid)
+        );
+        const commentsSnapshot = await getDocs(commentsQuery);
+        
+        const commentedPostIds = new Set();
+        commentsSnapshot.docs.forEach(doc => {
+          // Extract post ID from the comment's path
+          const pathParts = doc.ref.path.split('/');
+          const postId = pathParts[pathParts.length - 3]; // posts/{postId}/comments/{commentId}
+          commentedPostIds.add(postId);
+        });
+        setUserCommentedPosts(commentedPostIds);
+
+        console.log('User posts:', userPostIds.size, 'User commented posts:', commentedPostIds.size);
+      } catch (error) {
+        console.error('Error fetching user posts and comments:', error);
+      }
+    };
+
+    fetchUserPostsAndComments();
+  }, [user]);
+
+  // Fetch seen comment notifications
+  useEffect(() => {
+    console.log('useEffect: fetchSeenComments, user:', user);
+    if (!user) return;
+    
+    const fetchSeenComments = async () => {
+      try {
+        const profileDoc = await getDoc(firestoreDoc(db, 'profiles', user.uid));
+        if (profileDoc.exists()) {
+          const data = profileDoc.data();
+          const seenArr = Array.isArray(data.seenCommentNotifications) ? data.seenCommentNotifications : [];
+          seenCommentsRef.current = new Set(seenArr);
+          setSeenComments(new Set(seenArr));
+        }
+      } catch (err) {
+        console.error('Error loading seen comment notifications:', err);
+      } finally {
+        setSeenCommentsLoaded(true);
+      }
+    };
+    
+    fetchSeenComments();
   }, [user]);
 
   // Listen for conversations/messages
@@ -250,10 +321,10 @@ export const NotificationsProvider = ({ children }) => {
           return timeB - timeA;
         });
         
-        // Update notifications, but only replace message notifications, keep post notifications
+        // Update notifications, but only replace message notifications, keep post and comment notifications
         setNotifications(prevNotifications => {
-          const postNotifications = prevNotifications.filter(n => n.type === 'post');
-          const combined = [...notificationList, ...postNotifications];
+          const postAndCommentNotifications = prevNotifications.filter(n => n.type === 'post' || n.type === 'comment');
+          const combined = [...notificationList, ...postAndCommentNotifications];
           combined.sort((a, b) => {
             const timeA = a.timestamp?.toMillis?.() || a.timestamp?.getTime?.() || 0;
             const timeB = b.timestamp?.toMillis?.() || b.timestamp?.getTime?.() || 0;
@@ -263,19 +334,19 @@ export const NotificationsProvider = ({ children }) => {
         });
         
         setMessageUnreadCount(messageUnread);
-        setUnreadCount(messageUnread + postUnreadCount);
+        setUnreadCount(messageUnread + postUnreadCount + commentUnreadCount);
         
-        console.log('📊 Set messageUnreadCount:', messageUnread, 'Total unreadCount:', messageUnread + postUnreadCount);
+        console.log('📊 Set messageUnreadCount:', messageUnread, 'Total unreadCount:', messageUnread + postUnreadCount + commentUnreadCount);
       } catch (error) {
         console.error('❌ Error processing notifications:', error);
-        setNotifications(prev => prev.filter(n => n.type === 'post')); // Keep post notifications
+        setNotifications(prev => prev.filter(n => n.type === 'post' || n.type === 'comment')); // Keep post and comment notifications
         setMessageUnreadCount(0);
-        setUnreadCount(postUnreadCount);
+        setUnreadCount(postUnreadCount + commentUnreadCount);
       }
     });
 
     return () => unsubscribe();
-  }, [user, postUnreadCount]);
+  }, [user, postUnreadCount, commentUnreadCount]);
 
   // Listen for new posts from followed users only (wait for seenPosts to load)
   useEffect(() => {
@@ -357,13 +428,123 @@ export const NotificationsProvider = ({ children }) => {
     return () => unsubscribe();
   }, [user, userProfile?.following, seenPostsLoaded]);
 
+  // Listen for new comments on posts user is involved in
+  useEffect(() => {
+    console.log('useEffect: comments listener, user:', user, 'seenCommentsLoaded:', seenCommentsLoaded, 'userPosts:', userPosts.size, 'userCommentedPosts:', userCommentedPosts.size);
+    if (!user || !seenCommentsLoaded || (userPosts.size === 0 && userCommentedPosts.size === 0)) return;
+
+    // Combine user's posts and posts they've commented on
+    const relevantPostIds = new Set([...userPosts, ...userCommentedPosts]);
+    if (relevantPostIds.size === 0) return;
+
+    const unsubscribes = [];
+
+    // Listen to comments on each relevant post
+    relevantPostIds.forEach(postId => {
+      const commentsQuery = query(
+        collection(db, 'posts', postId, 'comments'),
+        orderBy('createdAt', 'desc'),
+        limit(20) // Limit to recent comments
+      );
+
+      const unsubscribe = onSnapshot(commentsQuery, async (snapshot) => {
+        try {
+          console.log(`onSnapshot: comments for post ${postId}, docs:`, snapshot.docs.length);
+          const commentNotifications = [];
+
+          for (const commentDoc of snapshot.docs) {
+            const comment = commentDoc.data();
+            const commentId = commentDoc.id;
+
+            // Skip if it's the user's own comment
+            if (comment.authorId === user.uid) continue;
+
+            // Skip if already seen
+            if (seenCommentsRef.current.has(commentId)) continue;
+
+            const commentTime = comment.createdAt?.toMillis() || 0;
+            const now = Date.now();
+            const dayInMs = 24 * 60 * 60 * 1000;
+            if (now - commentTime > dayInMs) continue; // Only show comments from last 24 hours
+
+            try {
+              // Get post details
+              const postDoc = await getDoc(firestoreDoc(db, 'posts', postId));
+              if (!postDoc.exists()) continue;
+              const postData = postDoc.data();
+
+              // Get commenter profile
+              const commenterProfileDoc = await getDoc(firestoreDoc(db, 'profiles', comment.authorId));
+              const commenterProfile = commenterProfileDoc.exists() ? commenterProfileDoc.data() : null;
+              const commenterName = commenterProfile?.username || comment.authorName || 'משתמש';
+
+              // Determine notification message based on relationship to post
+              let notificationMessage;
+              if (userPosts.has(postId)) {
+                notificationMessage = 'הגיב על הפוסט שלך';
+              } else {
+                notificationMessage = 'הגיב על פוסט שגם אתה הגבת עליו';
+              }
+
+              commentNotifications.push({
+                id: `comment_${commentId}`,
+                type: 'comment',
+                message: notificationMessage,
+                timestamp: comment.createdAt,
+                senderId: comment.authorId,
+                senderName: commenterName,
+                postId: postId,
+                commentId: commentId,
+                commentContent: comment.content?.substring(0, 100) || 'תגובה חדשה',
+                postContent: postData.content?.substring(0, 50) || 'פוסט',
+                unreadCount: 1,
+                conversationType: 'comment'
+              });
+            } catch (error) {
+              console.error("Error processing comment notification:", error);
+            }
+          }
+
+          if (commentNotifications.length > 0) {
+            setNotifications(prevNotifications => {
+              const existingIds = new Set(prevNotifications.map(n => n.id));
+              const newNotifications = commentNotifications.filter(n => !existingIds.has(n.id));
+              
+              if (newNotifications.length > 0) {
+                const combined = [...newNotifications, ...prevNotifications];
+                combined.sort((a, b) => {
+                  const timeA = a.timestamp?.toMillis?.() || 0;
+                  const timeB = b.timestamp?.toMillis?.() || 0;
+                  return timeB - timeA;
+                });
+                return combined;
+              }
+              return prevNotifications;
+            });
+            
+            setCommentUnreadCount(prev => prev + commentNotifications.length);
+            setUnreadCount(prev => prev + commentNotifications.length);
+          }
+        } catch (error) {
+          console.error('Error processing comment notifications:', error);
+        }
+      });
+
+      unsubscribes.push(unsubscribe);
+    });
+
+    return () => {
+      unsubscribes.forEach(unsubscribe => unsubscribe());
+    };
+  }, [user, seenCommentsLoaded, userPosts, userCommentedPosts]);
+
   // Fetch profile pictures
   useEffect(() => {
     console.log('useEffect: fetchProfilePictures, notifications:', notifications.length);
     const fetchProfilePictures = async () => {
       const pictures = {};
       for (const notification of notifications) {
-        if (notification.type === 'message' || notification.type === 'post') {
+        if (notification.type === 'message' || notification.type === 'post' || notification.type === 'comment') {
           try {
             const senderProfileRef = firestoreDoc(db, 'profiles', notification.senderId);
             const senderProfile = await getDoc(senderProfileRef);
@@ -436,6 +617,19 @@ export const NotificationsProvider = ({ children }) => {
     }
   };
 
+  // Helper to persist seen commentId in Firestore
+  const persistSeenComment = async (commentId) => {
+    console.log('persistSeenComment called for commentId:', commentId);
+    if (!user || !commentId) return;
+    try {
+      await updateDoc(firestoreDoc(db, 'profiles', user.uid), {
+        seenCommentNotifications: arrayUnion(commentId)
+      });
+    } catch (err) {
+      console.error('Failed to persist seen comment notification:', err);
+    }
+  };
+
   const handleNotificationClick = async (notification) => {
     console.log('handleNotificationClick:', notification);
     
@@ -463,7 +657,38 @@ export const NotificationsProvider = ({ children }) => {
         setShowNotifications(false);
         
         setTimeout(() => {
-          navigate(`/profile/${notification.senderName}`);
+          navigate(`/post/${notification.postId}`);
+          
+          setTimeout(() => {
+            setIsProcessing(false);
+            setTimeout(() => {
+              setClickedNotifications(prev => {
+                const newState = {...prev};
+                delete newState[notificationKey];
+                return newState;
+              });
+            }, 5000);
+          }, 500);
+        }, 300);
+        
+      } else if (notification.type === 'comment') {
+        // Handle comment notifications
+        if (notification.commentId) {
+          seenCommentsRef.current.add(notification.commentId);
+          setSeenComments(prev => new Set([...prev, notification.commentId]));
+          persistSeenComment(notification.commentId);
+        }
+        
+        setNotifications(prevNotifications => 
+          prevNotifications.filter(n => n.id !== notification.id)
+        );
+
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        setCommentUnreadCount(prev => Math.max(0, prev - 1));
+        setShowNotifications(false);
+        
+        setTimeout(() => {
+          navigate(`/post/${notification.postId}`);
           
           setTimeout(() => {
             setIsProcessing(false);
@@ -534,6 +759,10 @@ export const NotificationsProvider = ({ children }) => {
         seenPostsRef.current.add(notification.postId);
         setSeenPosts(prev => new Set([...prev, notification.postId]));
         persistSeenPost(notification.postId);
+      } else if (notification.type === 'comment' && notification.commentId) {
+        seenCommentsRef.current.add(notification.commentId);
+        setSeenComments(prev => new Set([...prev, notification.commentId]));
+        persistSeenComment(notification.commentId);
       }
     });
     
@@ -541,6 +770,7 @@ export const NotificationsProvider = ({ children }) => {
     setUnreadCount(0);
     setMessageUnreadCount(0);
     setPostUnreadCount(0);
+    setCommentUnreadCount(0);
     
     setTimeout(() => {
       setIsProcessing(false);
@@ -622,6 +852,21 @@ export const NotificationsProvider = ({ children }) => {
                             <span className="text-white text-xs">📝</span>
                           </div>
                         </div>
+                      ) : notification.type === 'comment' ? (
+                        <div className="relative">
+                          <img
+                            src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
+                            alt="Profile"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://ui-avatars.com/api/?name=User&background=random';
+                            }}
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs">💬</span>
+                          </div>
+                        </div>
                       ) : (
                         <img
                           src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
@@ -651,6 +896,20 @@ export const NotificationsProvider = ({ children }) => {
                                   </span>
                                 )}
                               </>
+                            ) : notification.type === 'comment' ? (
+                              <>
+                                {notification.message}
+                                {notification.commentContent && (
+                                  <span className="block text-xs text-gray-500 mt-1 italic">
+                                    "{notification.commentContent}..."
+                                  </span>
+                                )}
+                                {notification.postContent && (
+                                  <span className="block text-xs text-gray-400 mt-1">
+                                    על הפוסט: "{notification.postContent}..."
+                                  </span>
+                                )}
+                              </>
                             ) : (
                               notification.message
                             )}
@@ -667,7 +926,8 @@ export const NotificationsProvider = ({ children }) => {
                         </div>
                         {notification.unreadCount > 0 && (
                           <span className={`flex-shrink-0 rounded-full text-white px-3 py-1 text-sm font-medium ${
-                            notification.type === 'post' ? 'bg-blue-500' : 'bg-red-500'
+                            notification.type === 'post' ? 'bg-blue-500' : 
+                            notification.type === 'comment' ? 'bg-green-500' : 'bg-red-500'
                           }`}>
                             {notification.unreadCount}
                           </span>
@@ -715,6 +975,7 @@ export const NotificationsProvider = ({ children }) => {
     unreadCount,
     messageUnreadCount,
     postUnreadCount,
+    commentUnreadCount,
     NotificationsModal,
     loading,
     notifications,

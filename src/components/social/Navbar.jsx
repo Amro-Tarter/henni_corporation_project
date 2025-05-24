@@ -16,7 +16,7 @@ const navTabs = [
 
 const Navbar = ({ element }) => {
   const navigate = useNavigate();
-  const { showNotifications, setShowNotifications, unreadCount, loading } = useNotifications();
+  const { showNotifications, setShowNotifications, unreadCount, messageUnreadCount, postUnreadCount, commentUnreadCount, loading } = useNotifications();
 
   const getInitialTab = () => {
     const path = window.location.pathname;

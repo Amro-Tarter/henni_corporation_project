@@ -27,6 +27,7 @@ import SignUp from './pages/SignUp';
 import ForgotPassword from './pages/forgotPassword';
 import Home from './pages/Home';
 import ProfilePage from './pages/profilePage';
+import PostPage from './pages/PostPage';
 import Contact from './pages/Contact';
 import ChatApp from './pages/chatApp';
 import ElementalProjects from './pages/ElementalProjects';
@@ -100,6 +101,7 @@ const App = () => {
                   {/* Protected Pages */}
                   <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
                   <Route path="/profile/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                  <Route path="/post/:postId" element={<ProtectedRoute><PostPage /></ProtectedRoute>} />
                   <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
                   <Route path="/chat/:chatId" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
                   <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
