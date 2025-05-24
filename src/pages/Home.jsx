@@ -490,22 +490,16 @@ const Home = () => {
   return (
     <ThemeProvider element={profile.element}>
       <div className="flex min-h-screen bg-element-base">
-        {/* Left Sidebar with shadow */}
-        <div className={`fixed left-0 h-full z-10 shadow-2xl transition-transform duration-300 top-20 ${
-          isLeftSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
+        <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
           <LeftSidebar 
             element={profile.element}
             users={sameElementUsers}
             viewerProfile={user}
             onFollowToggle={handleFollowToggle}
-            className="h-full"
           />
-        </div>
+        </aside>
 
-        <div className={`flex-1 transition-all duration-300 ${
-          isLeftSidebarOpen ? 'ml-64' : 'ml-0'
-        } ${
+        <div className={`flex-1 transition-all duration-300 lg:ml-64 ${
           isRightSidebarExpanded ? 'mr-64' : 'mr-16'
         }`}>
           <Navbar
@@ -706,7 +700,7 @@ const Home = () => {
       </div>
 
       {/* Add keyframe animation for the background pulse */}
-      <style jsx>{`
+      <style jsx='true'>{`
         @keyframes pulse {
           0% {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
