@@ -462,7 +462,7 @@ const Post = ({
 
       {/* Post Modal (outside main card) */}
       {showPostModal && (
-        <div className="fixed inset-0 z-[200]">
+        <div className="fixed inset-0 z-40">
           {/* FULLSCREEN BLUR */}
           <div 
             className="fixed inset-0 bg-black/70 backdrop-blur-sm" 

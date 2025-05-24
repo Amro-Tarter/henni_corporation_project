@@ -133,7 +133,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
           initial={{ width: 64 }}
           animate={{ width: isExpanded ? 256 : 64 }}
           transition={{ duration: 0.4 }}
-          className={`fixed top-6 bottom-0 right-0 bg-white shadow-lg z-30 flex flex-col h-[calc(100vh-1.5rem)] max-h-[calc(100vh-1.5rem)] overflow-hidden ${
+          className={`fixed top-6 bottom-0 right-0 bg-white shadow-lg z-20 flex flex-col h-[calc(100vh-1.5rem)] max-h-[calc(100vh-1.5rem)] overflow-hidden ${
             showNotifications ? 'pointer-events-none opacity-50' : ''
           }`}
           onMouseEnter={handleMouseEnter}
@@ -351,7 +351,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
       </div>
 
       {/* Mobile Bottom Bar */}
-      <nav className="fixed bottom-0 right-0 left-0 z-40 bg-white border-t border-gray-200 flex justify-around items-center py-2 lg:hidden shadow-lg">
+      <nav className="fixed bottom-0 right-0 left-0 z-30 bg-white border-t border-gray-200 flex justify-around items-center py-2 lg:hidden shadow-lg">
         {tabs.map((tab) => (
           <button
             key={tab.id}
