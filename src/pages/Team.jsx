@@ -81,7 +81,7 @@ export default function Team() {
               variants={pageVariants} 
               className="container mx-auto px-4 py-12"
             >
-              <div className="max-w-5xl mx-auto">
+              <div className="max-w-5xl mx-auto pt-16">
                 <motion.div variants={itemVariants} className="text-center mb-12">
                   <h1 className="text-4xl font-extrabold text-element mb-2">צוות הניהול והמנטורים</h1>
                   <p className="text-gray-600 max-w-2xl mx-auto">
