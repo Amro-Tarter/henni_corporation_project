@@ -154,6 +154,7 @@ const Post = ({
       console.error('Error updating post:', err);
       alert('Failed to update post. Please try again.');
     }
+  }
   const insertEmoji = (emojiObject) => {
     const sym = emojiObject.emoji;
     const textarea = document.getElementById(`edit-textarea-${id}`);
@@ -620,5 +621,5 @@ const Post = ({
     </>
   );
 };
-}
+
 export default Post;
