@@ -5,7 +5,7 @@ import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import NotificationsComponent from './NotificationsComponent';
+import useNotificationsComponent from './NotificationsComponent';
 import { cn } from '@/lib/utils';
 
 const navTabs = [
@@ -16,7 +16,7 @@ const navTabs = [
 
 const Navbar = ({ element }) => {
   const navigate = useNavigate();
-  const { showNotifications, setShowNotifications, unreadCount, NotificationsModal } = NotificationsComponent();
+  const { showNotifications, setShowNotifications, unreadCount, NotificationsModal, loading } = useNotificationsComponent();
 
   const getInitialTab = () => {
     const path = window.location.pathname;
@@ -319,7 +319,10 @@ const Navbar = ({ element }) => {
           {/* Notifications & Profile */}
           <div className="flex items-center space-x-3 space-x-reverse border-r border-white/20 pr-4 mr-4">
             <button
-              onClick={() => setShowNotifications(true)}
+              onClick={() => {
+                console.log('Notification bell clicked (Navbar)');
+                setShowNotifications(true);
+              }}
               className="relative text-white hover:text-yellow-300 transition-colors"
               aria-label="התראות"
             >
@@ -554,8 +557,8 @@ const Navbar = ({ element }) => {
           <li className="pt-4 border-t border-white/10">
             <button
               onClick={() => {
+                console.log('Notification bell clicked (Navbar)');
                 setShowNotifications(true);
-                setIsMenuOpen(false);
               }}
               className="flex items-center gap-2 w-full text-right"
             >
@@ -632,7 +635,7 @@ const Navbar = ({ element }) => {
         </ul>
       </div>
 
-      <NotificationsModal />
+      {(() => { console.log('Rendering NotificationsModal (Navbar):', showNotifications); return <NotificationsModal /> })()}
     </header>
   );
 };

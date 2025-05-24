@@ -7,7 +7,7 @@ import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnaps
 import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import NotificationsComponent from './NotificationsComponent';
+import useNotificationsComponent from './NotificationsComponent';
 
 const tabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', route: '/home' },
@@ -30,7 +30,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const [profilePictures, setProfilePictures] = useState({});
   
   // Use NotificationsComponent directly
-  const { showNotifications, setShowNotifications, unreadCount, messageUnreadCount, NotificationsModal } = NotificationsComponent();
+  const { showNotifications, setShowNotifications, unreadCount, messageUnreadCount, NotificationsModal, loading } = useNotificationsComponent();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -248,7 +248,10 @@ const Rightsidebar = ({ element, onExpandChange }) => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               transition={{ duration: 0.15 }}
-              onClick={() => setShowNotifications(!showNotifications)}
+              onClick={() => {
+                console.log('Notification bell clicked');
+                setShowNotifications(!showNotifications);
+              }}
               className={`
                 relative w-full h-12 rounded-lg
                 flex items-center justify-start px-3 gap-3
@@ -390,7 +393,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
       </nav>
 
       {/* Notifications Modal */}
-      <NotificationsModal />
+      {(() => { console.log('Rendering NotificationsModal:', showNotifications); return <NotificationsModal /> })()}
     </>
   );
 };
