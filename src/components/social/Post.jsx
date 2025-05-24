@@ -1,6 +1,6 @@
-// profilePost.jsx
+//Post.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check, X } from 'lucide-react';
+import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check, X, Smile, Edit2 } from 'lucide-react';
 import { Comment, CommentInput } from './comments';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +8,8 @@ import { useToast } from '/src/hooks/use-toast.jsx';
 import PostModalContent from './PostModalContent';
 import ConfirmationModal from './ConfirmationModal';
 import { containsBadWord } from './utils/containsBadWord';
+import EmojiPicker from 'emoji-picker-react';
+
 
 const ProfilePost = ({
   post,
@@ -48,6 +50,10 @@ const ProfilePost = ({
   const [error, setError] = useState('');
   const [mediaType, setMediaType] = useState('');
 
+  const [showEmoji, setShowEmoji] = useState(false);
+  const emojiBtnRef = useRef();
+  const emojiPickerRef = useRef();
+  const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
   const { toast } = useToast();
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
@@ -84,6 +90,35 @@ const ProfilePost = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Click-outside handler: closes only if click is not on the picker or button
+  useEffect(() => {
+    if (!showEmoji) return;
+    function handleClick(e) {
+      if (
+        emojiPickerRef.current &&
+        !emojiPickerRef.current.contains(e.target) &&
+        emojiBtnRef.current &&
+        !emojiBtnRef.current.contains(e.target)
+      ) {
+        setShowEmoji(false);
+      }
+    }
+    window.addEventListener('mousedown', handleClick);
+    return () => window.removeEventListener('mousedown', handleClick);
+  }, [showEmoji]);
+
+  const openEmojiPicker = () => {
+    if (emojiBtnRef.current) {
+      const rect = emojiBtnRef.current.getBoundingClientRect();
+      setEmojiPos({
+        x: rect.left,
+        y: rect.bottom + 8,
+      });
+    }
+    setShowEmoji(true);
+  };
+
+
   const createdDate = createdAt?.toDate?.();
   const timeString = createdDate
     ? createdDate.toLocaleDateString('he-IL', {
@@ -119,6 +154,19 @@ const ProfilePost = ({
       console.error('Error updating post:', err);
       alert('Failed to update post. Please try again.');
     }
+  const insertEmoji = (emojiObject) => {
+    const sym = emojiObject.emoji;
+    const textarea = document.getElementById(`edit-textarea-${id}`);
+    if (!textarea) {
+      setNewContent(prev => prev + sym);
+      return;
+    }
+    const [start, end] = [textarea.selectionStart, textarea.selectionEnd];
+    setNewContent(prev => prev.slice(0, start) + sym + prev.slice(end));
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + sym.length, start + sym.length);
+    }, 0);
   };
 
   const toggleLike = async () => {
@@ -278,14 +326,18 @@ const ProfilePost = ({
                 <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}> 
                   <button
                     onClick={() => { setEditing(prev => !prev); setMenuOpen(false); }}
-                    className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors`}
+                    className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors flex items-center gap-2`}
                   >
-                    {editing ? 'ביטול עריכה' : 'ערוך פוסט'}
+                    <Edit2 size={16} className={`text-${element}`} />
+                    <span className={`text-${element} font-medium`}>
+                      {editing ? 'ביטול עריכה' : 'ערוך פוסט'}
+                    </span>
                   </button>
                   <button
                     onClick={handleDelete}
-                    className={`w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-${element}-soft transition-colors`}
+                    className={`w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-${element}-soft transition-colors flex items-center gap-2`}
                   >
+                    <Trash2 size={16} className="text-red-500" />
                     מחק פוסט
                   </button>
                 </div>
@@ -299,6 +351,7 @@ const ProfilePost = ({
           {editing ? (
             <div className="relative mb-3">
               <textarea
+                id={`edit-textarea-${id}`}
                 value={newContent}
                 onChange={e => setNewContent(e.target.value)}
                 rows={4}
@@ -306,13 +359,35 @@ const ProfilePost = ({
                 className={`w-full border rounded-lg p-3 resize-none focus:ring-2 focus:ring-${element}-accent focus:border-${element}-accent border-${element}-soft transition-all outline-none`}
                 placeholder="מה בליבך?"
               />
-              <div className="flex justify-end gap-2 mt-2">
+              <div className="flex justify-end gap-2 mt-2 items-center">
+                {/* Emoji Button on the left */}
+                <button
+                  type="button"
+                  ref={emojiBtnRef}
+                  onClick={openEmojiPicker}
+                  className={`
+                    px-2 py-2 rounded-md 
+                    bg-${element}-soft 
+                    text-${element} 
+                    hover:bg-${element}-accent 
+                    hover:text-white 
+                    transition-colors
+                    flex items-center
+                  `}
+                  aria-label="הוסף אימוג׳י"
+                  tabIndex={-1}
+                  style={{ zIndex: 10 }}
+                >
+                  <Smile size={18} />
+                </button>
+                {/* Cancel Button */}
                 <button
                   onClick={() => setEditing(false)}
                   className={`px-4 py-2 text-sm rounded-md text-${element}-accent bg-${element}-soft hover:bg-${element}-accent hover:text-white transition-colors`}
                 >
                   ביטול
                 </button>
+                {/* Save Button */}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -324,6 +399,30 @@ const ProfilePost = ({
                   שמור שינויים
                 </motion.button>
               </div>
+              {/* Emoji Picker Portal */}
+              {showEmoji &&
+                createPortal(
+                  <div
+                    ref={emojiPickerRef}
+                    style={{
+                      position: 'fixed',
+                      left: emojiPos.x,
+                      top: emojiPos.y,
+                      zIndex: 1000,
+                    }}
+                  >
+                    <EmojiPicker
+                      onEmojiClick={insertEmoji}
+                      autoFocusSearch={false}
+                      theme="light"
+                      searchDisabled={false}
+                      skinTonesDisabled={false}
+                      width={350}
+                      height={400}
+                    />
+                  </div>,
+                  document.body
+                )}
             </div>
           ) : (
             <p className="px-5 pb-2 text-base leading-relaxed whitespace-pre-wrap break-words overflow-hidden">{content}</p>
@@ -521,5 +620,5 @@ const ProfilePost = ({
     </>
   );
 };
-
-export default ProfilePost;
+}
+export default Post;

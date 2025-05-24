@@ -2,6 +2,9 @@
 import React, { useState, useRef } from 'react';
 import { FaVideo, FaPhotoVideo, FaRegNewspaper } from 'react-icons/fa';
 import { containsBadWord } from './utils/containsBadWord';
+import EmojiPicker from 'emoji-picker-react';
+import { createPortal } from 'react-dom';
+import { Smile } from 'lucide-react';
 
 
 const CreatePost = ({ addPost, profilePic, element }) => {
@@ -11,7 +14,10 @@ const CreatePost = ({ addPost, profilePic, element }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const fileInputRef = useRef();
   const [warning, setWarning] = useState('');
-
+  const [showEmoji, setShowEmoji] = useState(false);
+  const emojiBtnRef = useRef();
+  const pickerRef = useRef();
+  const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
 
   const pickMedia = (type, accept) => {
     setMediaType(type);
@@ -56,6 +62,41 @@ const CreatePost = ({ addPost, profilePic, element }) => {
     setWarning('');
   };
 
+    const insertEmoji = (emojiObject) => {
+    const sym = emojiObject.emoji;
+    const textarea = document.querySelector('#createpost-textarea');
+    if (!textarea) return;
+    const [start, end] = [textarea.selectionStart, textarea.selectionEnd];
+    setText(prev => prev.slice(0, start) + sym + prev.slice(end));
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + sym.length, start + sym.length);
+    }, 0);
+  };
+
+  const openEmojiPicker = () => {
+    if (emojiBtnRef.current) {
+      const rect = emojiBtnRef.current.getBoundingClientRect();
+      setEmojiPos({ x: rect.left, y: rect.bottom + 8 });
+    }
+    setShowEmoji(true);
+  };
+
+  React.useEffect(() => {
+    if (!showEmoji) return;
+    function handleClick(e) {
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(e.target) &&
+        emojiBtnRef.current &&
+        !emojiBtnRef.current.contains(e.target)
+      ) {
+        setShowEmoji(false);
+      }
+    }
+    window.addEventListener('mousedown', handleClick);
+    return () => window.removeEventListener('mousedown', handleClick);
+  }, [showEmoji]);
 
   return (
     <>
@@ -63,7 +104,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
       <div
         style={{
           position: 'fixed',
-          top: '28px', // adjust if you have a header
+          top: '28px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 9999,
@@ -95,14 +136,58 @@ const CreatePost = ({ addPost, profilePic, element }) => {
               className={`w-12 h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
             />
             <textarea
+              id="createpost-textarea"
               className={`flex-1 bg-${element}-soft rounded-xl px-4 py-3 text-sm text-${element}-dark resize-none focus:outline-none focus:ring-2 focus:ring-${element}-accent transition ${mediaType === 'blog' ? 'h-40' : 'h-24'}`}
               value={text}
               onChange={e => setText(e.target.value)}
               placeholder={mediaType === 'blog' ? 'כתוב כאן את הבלוג שלך...' : 'מה שלומך היום?'}
               dir="rtl"
             />
-          </div>
+            <button
+              type="button"
+              ref={emojiBtnRef}
+              onClick={openEmojiPicker}
+              className={`
+                ml-2 px-2 py-2 
+                rounded-md 
+                bg-${element}-soft 
+                text-${element} 
+                hover:bg-${element}-accent 
+                hover:text-white 
+                transition-colors 
+                flex items-center emoji-picker-btn
+              `}
+              aria-label="הוסף אימוג׳י"
+            >
+              <Smile size={18} />
+            </button>
 
+          </div>
+          {showEmoji &&
+            createPortal(
+              <div
+                ref={pickerRef}
+                style={{
+                  position: 'fixed',
+                  left: emojiPos.x,
+                  top: emojiPos.y,
+                  zIndex: 1000,
+                }}
+                className="emoji-mart-portal"
+              >
+                <EmojiPicker
+                  onEmojiClick={insertEmoji}
+                  autoFocusSearch={false}
+                  theme="light"
+                  searchDisabled={false}
+                  skinTonesDisabled={false}
+                  width={350}
+                  height={400}
+                />
+              </div>,
+              document.body
+            )
+          }
           <input
             ref={fileInputRef}
             type="file"
