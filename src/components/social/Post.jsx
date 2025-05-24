@@ -11,7 +11,7 @@ import { containsBadWord } from './utils/containsBadWord';
 import EmojiPicker from 'emoji-picker-react';
 
 
-const ProfilePost = ({
+const Post = ({
   post,
   element,
   onDelete,
