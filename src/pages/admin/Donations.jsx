@@ -312,7 +312,6 @@ function Donations() {
   return (
     <DashboardLayout>
       <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
-        <div className="w-full max-w-7xl mx-auto bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-extrabold text-gray-900">ניהול תרומות</h2>
             <p className="mt-2 text-sm text-gray-700">צפה, ערוך והוסף תרומות למערכת</p>
@@ -707,7 +706,6 @@ function Donations() {
               <p className="text-center text-gray-600 mt-8">אין תרומות להצגה כרגע.</p>
             )}
           </div>
-        </div>
       </div>
     </DashboardLayout>
   );

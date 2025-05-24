@@ -576,7 +576,6 @@ function Users() {
 
   return (
     <DashboardLayout>
-      <div className="w-full max-w-6xl mx-auto bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
         {/* Header with Pending Users Button */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-extrabold text-gray-900">קהילת משתמשי הניני</h2>
@@ -746,7 +745,6 @@ function Users() {
             <p className="text-gray-500">נסה לשנות את פרמטרי החיפוש שלך</p>
           </div>
         )}
-      </div>
 
       {/* Edit User Modal */}
       <AnimatePresence>
