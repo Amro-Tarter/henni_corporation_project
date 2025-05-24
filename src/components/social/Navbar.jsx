@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, MessageSquare, Settings, Search, Bell, User, LogOut, LayoutDashboard, BarChart2 } from 'lucide-react';
+import { Home, MessageSquare, Settings, Search, Bell, User, LogOut, LayoutDashboard, BarChart2, LogIn } from 'lucide-react';
 import { collection, getDocs, doc, updateDoc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import NotificationsComponent from './NotificationsComponent';
+import { cn } from '@/lib/utils';
 
 const navTabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', href: '/Home' },
@@ -35,6 +36,8 @@ const Navbar = ({ element }) => {
   const [showSearchPopUp, setShowSearchPopUp] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [role, setRole] = useState(null);
 
   const searchRef = useRef(null);
@@ -163,6 +166,10 @@ const Navbar = ({ element }) => {
     }
   };
 
+  const toggleProfileDropdown = () => {
+    setShowProfileDropdown(!showProfileDropdown);
+  };
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -178,111 +185,56 @@ const Navbar = ({ element }) => {
   }, []);
 
   return (
-    <header dir="rtl" className={`fixed top-0 left-0 w-full bg-red-900 backdrop-blur-md shadow-md border-b border-${element}-accent z-50`}>
-      <div className="flex items-center justify-between px-4 py-3 max-w-7xl mx-auto">
-        {/* ORG NAME - RIGHT SIDE */}
-         <a href="/" className="flex flex-col items-end min-w-[200px] no-underline hover:opacity-80 transition">
+    <header dir="rtl" className={`fixed top-0 left-0 w-full bg-red-900 backdrop-blur-md shadow-md border-b border-red-800 z-50`}>
+      {isMenuOpen && (
+        <div
+          className="fixed inset-0 z-[9998] bg-black bg-opacity-50"
+          onClick={() => setIsMenuOpen(false)}
+        />
+      )}
+
+      <nav className="relative z-50 container mx-auto flex items-center justify-between px-6 py-2">
+        <a href="/Home" className="flex flex-col items-start">
           <span className="text-white font-bold text-xl md:text-2xl">לגלות את האור – הנני</span>
-          <span className="text-white/80 text-xs md:text-sm">מנהיגות. יצירה. שייכות.</span>
+          <span className="text-white/80 text-sm hidden md:block">מנהיגות. יצירה. שייכות.</span>
         </a>
-       
-       
-        <nav className="flex flex-row-reverse items-center gap-6">
-          {navTabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabClick(tab.id, tab.href)}
-              className={`group flex items-center gap-2 px-3 py-2 rounded-md text-white text-base transition-all duration-300 ease-in-out transform hover:scale-105 ${
-                activeTab === tab.id
-                  ? `bg-gradient-to-br from-red-950 via-red-900 to-red-800 font-bold shadow-xl border-2 border-red-800/50 ring-2 ring-red-800/30`
-                  : `hover:bg-red-700/80 hover:shadow-md`
-              }`}
-            >
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-                className={`transition-transform duration-200 ${activeTab === tab.id ? 'text-red-50' : ''}`}
-              >
-                {tab.icon}
-              </motion.div>
-              <span className={`transition-colors duration-200 ${activeTab === tab.id ? 'text-red-50' : ''}`}>{tab.label}</span>
-            </button>
-          ))}
-          {role === 'admin' && (
-            <button
-              onClick={() => handleTabClick('dashboard', '/admin')}
-              className={`group flex items-center gap-2 px-3 py-2 rounded-md text-white text-base transition-all duration-300 ease-in-out transform hover:scale-105 ${
-                activeTab === 'dashboard'
-                  ? `bg-gradient-to-br from-red-950 via-red-900 to-red-800 font-bold shadow-xl border-2 border-red-800/50 ring-2 ring-red-800/30`
-                  : `hover:bg-red-700/80 hover:shadow-md`
-              }`}
-            >
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-                className={`transition-transform duration-200 ${activeTab === 'dashboard' ? 'text-red-50' : ''}`}
-              >
-                <BarChart2 size={20} />
-              </motion.div>
-              <span className={`transition-colors duration-200 ${activeTab === 'dashboard' ? 'text-red-50' : ''}`}>
-                דשבורד
+
+        {/* Search Bar - Desktop */}
+        <div className="hidden lg:flex flex-1 max-w-md mx-8">
+          <form onSubmit={handleSearch} className="w-full" dir="rtl">
+            <div className="relative">
+              <input
+                ref={searchRef}
+                type="text"
+                placeholder="חפש פרופילים..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onFocus={() => setShowSearchDropdown(true)}
+                onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') triggerSearch();
+                }}
+                className="w-full border border-white/30 rounded-full py-2 pr-4 pl-10 text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm"
+                dir="rtl"
+                lang="he"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70">
+                <Search size={18} />
               </span>
-            </button>
-          )}
-        </nav>
 
-        <form onSubmit={handleSearch} className="flex-1 mx-6 max-w-md" dir="rtl">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="חפש פרופילים..."
-              value={searchInput}
-              onChange={(e) => {
-                setSearchInput(e.target.value);
-                setShowSearchPopUp(true);
-              }}
-              onFocus={() => setShowSearchPopUp(true)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') triggerSearch();
-              }}
-              className={`w-full border border-${element}-soft rounded-full py-2 pr-4 pl-12 text-gray-800 placeholder-gray-600 focus:border-${element}-accent focus:outline-none focus:ring-1 focus:ring-${element}-accent transition`}
-              dir="rtl"
-              lang="he"
-            />
-            <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-${element}-accent`}>
-              <Search size={20} />
-            </span>
-
-            <AnimatePresence>
-              {showSearchPopUp && (
-                <motion.div
-                  ref={searchRef}
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute top-full left-0 right-0 bg-white mt-1 border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-scroll scrollbar-hide z-50"
-                  style={{
-                    scrollbarWidth: 'none', /* Firefox */
-                    msOverflowStyle: 'none', /* IE and Edge */
-                  }}
-                >
-                  {showHistory && searchHistory.length > 0 && (
+              {/* Search Results Dropdown */}
+              {showSearchDropdown && (searchResults.length > 0 || (showHistory && searchHistory.length > 0)) && (
+                <div className="absolute top-full left-0 right-0 bg-white mt-1 border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-scroll z-50">
+                  {showHistory && searchHistory.length > 0 && !searchInput && (
                     <div className="p-3">
-                      <h3 className="font-semibold">חיפושים אחרונים</h3>
+                      <h3 className="font-semibold text-sm">חיפושים אחרונים</h3>
                       <ul className="list-none mt-2">
                         {searchHistory.map((term, index) => (
-                          <li key={index} className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100">
-                            <span className="flex-grow text-right">{term}</span>
-                            <button
-                              onClick={() => {
-                                setSearchInput(term);
-                                triggerSearch();
-                              }}
-                              className="text-blue-600"
-                            >
-                              <Search size={16} />
-                            </button>
+                          <li key={index} className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 cursor-pointer">
+                            <span className="flex-grow text-right text-sm" onClick={() => {
+                              setSearchInput(term);
+                              setShowSearchDropdown(false);
+                            }}>{term}</span>
                           </li>
                         ))}
                       </ul>
@@ -290,30 +242,21 @@ const Navbar = ({ element }) => {
                   )}
 
                   {searchInput && searchResults.length > 0 && (
-                    <div 
-                      className="divide-y divide-gray-100 max-h-60 overflow-y-scroll overflow-x-hidden scrollbar-hide"
-                      style={{
-                        scrollbarWidth: 'none', /* Firefox */
-                        msOverflowStyle: 'none', /* IE and Edge */
-                      }}
-                    >
+                    <div className="divide-y divide-gray-100">
                       {searchResults.map((profile, index) => (
-                        <motion.div
+                        <div
                           key={index}
-                          whileHover={{ scale: 1.015 }}
-                          whileTap={{ scale: 0.98 }}
-                          transition={{ duration: 0.15, ease: 'easeOut' }}
                           className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-100"
                           onClick={() => {
-                            setShowSearchPopUp(false);
                             setSearchInput('');
+                            setShowSearchDropdown(false);
                             navigate(`/profile/${profile.username}`);
                           }}
                         >
                           <img
                             src={profile.photoURL || '/default-avatar.png'}
                             alt={profile.username}
-                            className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
+                            className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
                           />
                           <div className="flex flex-col overflow-hidden">
                             <span className="text-sm font-medium text-gray-800 truncate">
@@ -323,115 +266,370 @@ const Navbar = ({ element }) => {
                               <span className="text-xs text-gray-500 truncate">{profile.name}</span>
                             )}
                           </div>
-                        </motion.div>
+                        </div>
                       ))}
                     </div>
                   )}
 
                   {searchInput && searchResults.length === 0 && (
-                    <div className="p-4 text-center text-gray-500">
+                    <div className="p-4 text-center text-gray-500 text-sm">
                       לא נמצאו תוצאות עבור "{searchInput}"
                     </div>
                   )}
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
-          </div>
-        </form>
-        
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setShowNotifications(true)}
-            className={`relative p-2 rounded-full transition-all duration-300 ease-in-out transform hover:scale-105 group ${
-              activeTab === 'notifications' 
-                ? `bg-gradient-to-br from-red-950 via-red-900 to-red-800 shadow-xl border-2 border-red-800/50 ring-2 ring-red-800/30` 
-                : `hover:bg-red-700/80 hover:shadow-md`
-            }`}
-            aria-label="התראות"
-          >
-            <motion.div 
-              whileHover={{ scale: 1.1 }} 
-              transition={{ type: 'spring', stiffness: 300 }}
-              className={`transition-transform duration-200 ${activeTab === 'notifications' ? 'text-red-50' : ''}`}
-            >
-              <Bell size={20} className="text-white" />
-            </motion.div>
-            {unreadCount > 0 && (
-              <motion.span
-                className={`absolute -top-1 -left-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center`}
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ repeat: Infinity, duration: 1 }}
-              >
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </motion.span>
-            )}
-          </button>
+            </div>
+          </form>
+        </div>
 
-          <div className="relative" ref={profileDropdownRef}>
+        {/* Desktop Navigation & Actions */}
+        <div className="hidden lg:flex items-center space-x-4 space-x-reverse">
+          {/* Navigation Tabs */}
+          <ul className="flex items-center space-x-1 space-x-reverse text-white">
+            {navTabs.map(item => (
+              <li key={item.id}>
+                <button
+                  onClick={() => handleTabClick(item.id, item.href)}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
+                    activeTab === item.id && 'bg-white/20'
+                  )}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              </li>
+            ))}
+            {role === 'admin' && (
+              <li>
+                <button
+                  onClick={() => handleTabClick('dashboard', '/admin')}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
+                    activeTab === 'dashboard' && 'bg-white/20'
+                  )}
+                >
+                  <BarChart2 size={20} />
+                  <span>דשבורד</span>
+                </button>
+              </li>
+            )}
+          </ul>
+
+          {/* Notifications & Profile */}
+          <div className="flex items-center space-x-3 space-x-reverse border-r border-white/20 pr-4 mr-4">
             <button
-              onClick={() => setShowProfileDropdown((prev) => !prev)}
-              className={`p-2 rounded-full transition-all duration-300 ease-in-out transform hover:scale-105 ${
-                activeTab === 'profile' 
-                  ? `bg-gradient-to-br from-red-950 via-red-900 to-red-800 shadow-xl border-2 border-red-800/50 ring-2 ring-red-800/30` 
-                  : `hover:bg-red-700/80 hover:shadow-md`
-              }`}
-              aria-label="פרופיל"
+              onClick={() => setShowNotifications(true)}
+              className="relative text-white hover:text-yellow-300 transition-colors"
+              aria-label="התראות"
             >
-              <User size={20} className={`text-white transition-transform duration-200 group-hover:scale-110 ${activeTab === 'profile' ? 'text-red-50' : ''}`} />
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -left-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </button>
 
-            <AnimatePresence>
+            {/* Auth */}
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                onClick={toggleProfileDropdown}
+                className={cn(
+                  'flex items-center gap-2 text-white px-3 py-2 rounded-lg hover:bg-white/10 transition-all',
+                  showProfileDropdown && 'bg-white/20'
+                )}
+              >
+                <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
+                  <User size={18} className="text-white" />
+                </div>
+                <span className="text-sm font-medium">
+                  {user ? (user.displayName || 'החשבון שלי') : 'החשבון שלי'}
+                </span>
+              </button>
+
+              {/* Auth Dropdown */}
               {showProfileDropdown && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="absolute left-0 top-12 w-60 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
-                >
+                <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                   {user && (
-                    <div className="p-4 border-b border-gray-200">
-                      <p className="text-gray-800 font-medium text-center">{user.email}</p>
+                    <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200 truncate">
+                      {user.email}
                     </div>
                   )}
-                  <div className="py-2">
-                    <button
-                      onClick={async () => {
-                        try {
-                          const docSnap = await getDoc(doc(db, 'profiles', user.uid));
-                          if (docSnap.exists()) {
-                            const username = docSnap.data().username;
-                            navigate(`/profile/${username}`);
-                          }
-                        } catch (err) {
-                          console.error('Failed to fetch username for profile redirection:', err);
+                  <button
+                    onClick={async () => {
+                      try {
+                        const docSnap = await getDoc(doc(db, 'profiles', user.uid));
+                        if (docSnap.exists()) {
+                          const username = docSnap.data().username;
+                          navigate(`/profile/${username}`);
                         }
-                      }}
-                      className="w-full text-right px-4 py-2 hover:bg-gray-100 transition"
-                    >
-                      הפרופיל שלי
-                    </button>
-                    <button
-                      onClick={() => handleTabClick('settings', '/settings')}
-                      className="w-full text-right px-4 py-2 hover:bg-gray-100 transition"
-                    >
-                      הגדרות
-                    </button>
-                    <div className="border-t border-gray-200 mt-2">
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-right px-4 py-2 text-red-600 hover:bg-gray-100 transition flex items-center"
-                      >
-                        <span className="ml-2">התנתקות</span>
-                        <LogOut size={16} className="mr-auto" />
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
+                      } catch (err) {
+                        console.error('Failed to fetch username for profile redirection:', err);
+                      }
+                      setShowProfileDropdown(false);
+                    }}
+                    className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    הפרופיל שלי
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleTabClick('settings', '/settings');
+                      setShowProfileDropdown(false);
+                    }}
+                    className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    הגדרות
+                  </button>
+                  <hr className="my-1 border-gray-200" />
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                  >
+                    <LogOut size={16} className="ml-2" />
+                    <span>התנתקות</span>
+                  </button>
+                </div>
               )}
-            </AnimatePresence>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Toggle */}
+        <div className="lg:hidden">
+          <button
+            onClick={() => setIsMenuOpen(true)}
+            className="text-white focus:outline-none"
+            aria-label="פתח תפריט"
+          >
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" className="w-6 h-6">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile Menu */}
+      <div
+        className={cn(
+          'fixed top-0 right-0 h-full w-72 z-[9999] bg-red-900 shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col',
+          isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        )}
+        style={{ 
+          backgroundColor: '#7f1d1d', // Solid red-900 background
+          opacity: 1, // Ensure full opacity
+          zIndex: 10000 // Ensure highest priority
+        }}
+      >
+        {/* Menu Header */}
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <span className="text-white font-semibold text-lg">תפריט</span>
+          <button
+            onClick={() => setIsMenuOpen(false)}
+            className="text-white text-2xl focus:outline-none"
+            aria-label="סגור תפריט"
+          >
+            &times;
+          </button>
+        </div>
+
+        {/* Mobile Search */}
+        <div className="p-4">
+          <form onSubmit={handleSearch} className="w-full" dir="rtl">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="חפש פרופילים..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onFocus={() => setShowSearchDropdown(true)}
+                onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') triggerSearch();
+                }}
+                className="w-full border border-white/30 rounded-full py-2 pr-4 pl-10 text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm"
+                dir="rtl"
+                lang="he"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70">
+                <Search size={18} />
+              </span>
+            </div>
+          </form>
+
+          {/* Mobile Search Results */}
+          {showSearchDropdown && (searchResults.length > 0 || (showHistory && searchHistory.length > 0 && !searchInput)) && (
+            <div className="mt-2 bg-white rounded-lg shadow-lg max-h-40 overflow-y-auto">
+              {showHistory && searchHistory.length > 0 && !searchInput && (
+                <div className="p-3">
+                  <h3 className="font-semibold text-sm text-gray-800 mb-2">חיפושים אחרונים</h3>
+                  <ul className="space-y-1">
+                    {searchHistory.map((term, index) => (
+                      <li key={index} className="px-2 py-1 hover:bg-gray-100 cursor-pointer rounded text-sm">
+                        <span onClick={() => {
+                          setSearchInput(term);
+                          setShowSearchDropdown(false);
+                        }}>{term}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {searchInput && searchResults.length > 0 && (
+                <div className="divide-y divide-gray-100">
+                  {searchResults.map((profile, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100"
+                      onClick={() => {
+                        setSearchInput('');
+                        setShowSearchDropdown(false);
+                        setIsMenuOpen(false);
+                        navigate(`/profile/${profile.username}`);
+                      }}
+                    >
+                      <img
+                        src={profile.photoURL || '/default-avatar.png'}
+                        alt={profile.username}
+                        className="w-6 h-6 rounded-full object-cover"
+                      />
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="text-sm font-medium text-gray-800 truncate">
+                          {profile.username}
+                        </span>
+                        {profile.name && (
+                          <span className="text-xs text-gray-500 truncate">{profile.name}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {searchInput && searchResults.length === 0 && (
+                <div className="p-3 text-center text-gray-500 text-sm">
+                  לא נמצאו תוצאות עבור "{searchInput}"
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Links */}
+        <ul className="flex-1 flex flex-col p-4 space-y-4 text-white text-lg">
+          {navTabs.map(item => (
+            <li key={item.id}>
+              <button
+                onClick={() => {
+                  handleTabClick(item.id, item.href);
+                  setIsMenuOpen(false);
+                }}
+                className="flex items-center gap-2 w-full text-right"
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </button>
+            </li>
+          ))}
+          {role === 'admin' && (
+            <li>
+              <button
+                onClick={() => {
+                  handleTabClick('dashboard', '/admin');
+                  setIsMenuOpen(false);
+                }}
+                className="flex items-center gap-2 w-full text-right"
+              >
+                <BarChart2 size={20} />
+                <span>דשבורד</span>
+              </button>
+            </li>
+          )}
+
+          {/* Notifications */}
+          <li className="pt-4 border-t border-white/10">
+            <button
+              onClick={() => {
+                setShowNotifications(true);
+                setIsMenuOpen(false);
+              }}
+              className="flex items-center gap-2 w-full text-right"
+            >
+              <Bell size={20} />
+              <span>התראות</span>
+              {unreadCount > 0 && (
+                <span className="bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+          </li>
+
+          {/* Mobile Auth */}
+          <li className="pt-4 border-t border-white/10">
+            {user ? (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                    <User size={18} className="text-white" />
+                  </div>
+                  <span>{user.displayName || user.email}</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const docSnap = await getDoc(doc(db, 'profiles', user.uid));
+                      if (docSnap.exists()) {
+                        const username = docSnap.data().username;
+                        navigate(`/profile/${username}`);
+                      }
+                    } catch (err) {
+                      console.error('Failed to fetch username for profile redirection:', err);
+                    }
+                    setIsMenuOpen(false);
+                  }}
+                  className="block py-2 pr-10 hover:bg-white/10 rounded-lg"
+                >
+                  הפרופיל שלי
+                </button>
+                <button
+                  onClick={() => {
+                    handleTabClick('settings', '/settings');
+                    setIsMenuOpen(false);
+                  }}
+                  className="block py-2 pr-10 hover:bg-white/10 rounded-lg"
+                >
+                  הגדרות
+                </button>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 py-2 text-red-300 hover:bg-white/10 rounded-lg"
+                >
+                  <LogOut size={18} />
+                  <span>התנתקות</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => {
+                  navigate('/login');
+                  setIsMenuOpen(false);
+                }}
+                className="flex items-center gap-2"
+              >
+                <LogIn size={20} />
+                <span>התחברות</span>
+              </button>
+            )}
+          </li>
+        </ul>
       </div>
 
       <NotificationsModal />

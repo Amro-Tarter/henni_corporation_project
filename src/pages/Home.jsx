@@ -499,9 +499,7 @@ const Home = () => {
           />
         </aside>
 
-        <div className={`flex-1 transition-all duration-300 lg:ml-64 ${
-          isRightSidebarExpanded ? 'mr-64' : 'mr-16'
-        }`}>
+        <div className={`flex-1 transition-all duration-300 lg:ml-64 ${isRightSidebarExpanded ? 'lg:mr-64' : 'lg:mr-16'}`}>
           <Navbar
             element={profile.element}
             isLeftSidebarOpen={isLeftSidebarOpen}
@@ -509,12 +507,12 @@ const Home = () => {
             className="shadow-lg bg-element-navbar"
           />
           
-          <div className={`pt-20 px-4 flex justify-center transition-all duration-300 ${
-            isLeftSidebarOpen ? 'pl-50' : 'pl-0'
+          <div className={`mt-12 px-2 sm:px-4 flex justify-center transition-all duration-300 ${
+            isLeftSidebarOpen ? 'lg:pl-50' : 'lg:pl-0'
           } ${
-            isRightSidebarExpanded ? 'pr-50' : 'pr-0'
+            isRightSidebarExpanded ? 'lg:pr-50' : 'lg:pr-0'
           }`}>
-            <div className="w-full max-w-4xl space-y-6 mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="w-full max-w-4xl space-y-4 sm:space-y-6 mx-auto px-2 sm:px-4 lg:px-8 mb-16 lg:mb-0">
               {isLoading ? (
                 <div className="flex items-center justify-center h-64">
                   <ElementalLoader />
@@ -526,11 +524,11 @@ const Home = () => {
                     addPost={addPost}
                     profilePic={profile.photoURL || '/default-avatar.png'}
                     element={profile.element}
-                    className="shadow-md bg-element-post rounded-xl p-4 w-full"
+                    className="shadow-md bg-element-post rounded-xl p-3 sm:p-4 w-full"
                   />
 
                   {/* Creative Tab Navigation */}
-                  <div className="flex flex-col items-center mb-8 w-full">
+                  <div className="flex flex-col items-center mb-6 sm:mb-8 w-full">
                     <div className="bg-element-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden">
                       {/* Sliding Underline */}
                       <div 
@@ -687,14 +685,22 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Right Sidebar with adjusted margin */}
-        <div className={`fixed right-0 h-full shadow-2xl transition-all duration-300 ${
-          isRightSidebarExpanded ? 'w-64' : 'w-16'
-        }`}>
+        {/* Right Sidebar with adjusted margin - only render on desktop */}
+        <div className="hidden lg:block">
+          <div className={`fixed right-0 top-6 h-[calc(100vh-1.5rem)] shadow-2xl transition-all duration-300 ${
+            isRightSidebarExpanded ? 'w-64' : 'w-16'
+          } lg:shadow-lg`}>
+            <RightSidebar 
+              element={profile.element} 
+              className="h-full" 
+              onExpandChange={handleRightSidebarExpandChange}
+            />
+          </div>
+        </div>
+        {/* Always render Rightsidebar for mobile bottom bar, but do not pass onExpandChange */}
+        <div className="lg:hidden">
           <RightSidebar 
             element={profile.element} 
-            className="h-full" 
-            onExpandChange={handleRightSidebarExpandChange}
           />
         </div>
       </div>

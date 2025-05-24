@@ -84,7 +84,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
         {warning}
       </div>
     )}
-    <div className="mb-10 flex justify-center px-4 pt-10" dir="rtl">
+    <div className="mb-10 flex justify-center px-4 pt-12" dir="rtl">
       <div className={`w-full max-w-4xl bg-white rounded-2xl p-6 space-y-4 border border-${element}-accent`}>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Avatar + Textarea */}
