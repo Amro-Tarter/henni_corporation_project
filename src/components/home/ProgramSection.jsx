@@ -2,13 +2,9 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Hammer, Activity, Sparkles, Paintbrush, Music, Move3D, Pen } from "lucide-react";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faMasksTheater } from '@fortawesome/free-solid-svg-icons';
 
-// Theater Icon Component
-const TheaterIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 9.75h.008v.008H9.75V9.75zM14.25 9.75h.008v.008h-.008V9.75zM21 12c0 4.418-4.03 8-9 8s-9-3.582-9-8 4.03-8 9-8 9 3.582 9 8z" />
-  </svg>
-);
 
 // Color utilities
 const colorMap = {
@@ -250,7 +246,9 @@ const years = [
     ],
   },
 ];
-
+const TheaterIcon = (props) => (
+  <FontAwesomeIcon icon={faMasksTheater} {...props} />
+);
 const artSkills = [
   {
     title: "אמנות פלסטית",
@@ -269,7 +267,7 @@ const artSkills = [
   {
     title: "תיאטרון",
     description: "ביטחון עצמי, תקשורת אפקטיבית ומנהיגות רגשית המאפשרת השפעה והשראה",
-    icon: <TheaterIcon />,
+    icon: <TheaterIcon className="w-6 h-6 md:w-7 md:h-7" />,
     color: "bg-purple-100 text-purple-800", 
     gradient: "from-purple-400 to-pink-500",
   },
@@ -320,6 +318,21 @@ const ProgramSection = () => {
           </div>
         </div>
       </div>
+
+      <style jsx>{`
+        .perspective {
+          perspective: 1000px;
+        }
+        .preserve-3d {
+          transform-style: preserve-3d;
+        }
+        .backface-hidden {
+          backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+          transform: rotateY(180deg);
+        }
+      `}</style>
     </section>
   );
 };

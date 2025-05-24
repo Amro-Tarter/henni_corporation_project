@@ -1,3 +1,4 @@
+// profilePost.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check, X } from 'lucide-react';
 import { Comment, CommentInput } from './comments';
@@ -8,18 +9,18 @@ import PostModalContent from './PostModalContent';
 import ConfirmationModal from './ConfirmationModal';
 import { containsBadWord } from './utils/containsBadWord';
 
-const Post = ({
+const ProfilePost = ({
   post,
-  element = 'earth',
+  element,
   onDelete,
   onUpdate,
   onLike,
-  comments = [],
+  comments,
   currentUser,
   onAddComment,
   onEditComment,
   onDeleteComment,
-  isOwner = false,
+  isOwner,
   getAuthorProfile
 }) => {
   const {
@@ -27,7 +28,6 @@ const Post = ({
     createdAt,
     content = '',
     mediaUrl = '',
-    mediaType,
     likesCount = 0,
     commentsCount = 0,
     likedBy = [],
@@ -42,39 +42,27 @@ const Post = ({
   const [replyTo, setReplyTo] = useState(null);
   const [liked, setLiked] = useState(false);
   const [authorProfile, setAuthorProfile] = useState(null);
-  const [error, setError] = useState(null);
-  const [floatLike, setFloatLike] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [commentToDelete, setCommentToDelete] = useState(null);
-  const [warning, setWarning] = useState('');
 
   const { toast } = useToast();
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const commentsRef = useRef(null);
   const navigate = useNavigate();
+  
 
   useEffect(() => {
-    const fetchAuthorProfile = async () => {
-      if (!authorId) return;
-      
-      try {
-        const profile = await getAuthorProfile(authorId);
-        setAuthorProfile(profile);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching author profile:', err);
-        setError('Failed to load author profile');
-      }
+    const fetch = async () => {
+      const profile = await getAuthorProfile(post.authorId);
+      setAuthorProfile(profile);
     };
+    fetch();
+  }, [post.authorId, getAuthorProfile]);
 
-    fetchAuthorProfile();
-  }, [authorId, getAuthorProfile]);
 
   useEffect(() => {
-    setLiked(Array.isArray(likedBy) && currentUser?.uid && likedBy.includes(currentUser.uid));
-  }, [likedBy, currentUser?.uid]);
+    setLiked(Array.isArray(likedBy) && likedBy.includes(currentUser.uid));
+  }, [likedBy, currentUser.uid]);
 
   useEffect(() => {
     const handleClickOutside = e => {
@@ -86,12 +74,6 @@ const Post = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (showComments && commentsRef.current) {
-      commentsRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [showComments]);
-
   const createdDate = createdAt?.toDate?.();
   const timeString = createdDate
     ? createdDate.toLocaleDateString('he-IL', {
@@ -100,32 +82,27 @@ const Post = ({
       })
     : '';
 
-  const handleDelete = () => setShowConfirmDelete(true);
+  const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
 
-  const confirmDelete = () => {
-    onDelete(id);
-    setShowConfirmDelete(false);
-    setMenuOpen(false);
+  const handleDelete = async () => {
+    if (!id || !onDelete) return;
+    
+    if (window.confirm('האם אתה בטוח שברצונך למחוק את הפוסט הזה?')) {
+      try {
+        await onDelete(id);
+        setMenuOpen(false);
+      } catch (err) {
+        console.error('Error deleting post:', err);
+        alert('Failed to delete post. Please try again.');
+      }
+    }
   };
-
-  const cancelDelete = () => setShowConfirmDelete(false);
 
   const handleSaveEdit = async () => {
     if (!id || !onUpdate) return;
     
-    if (containsBadWord(newContent)) {
-      setWarning('הפוסט מכיל מילים לא ראויות!');
-      setTimeout(() => setWarning(''), 3500);
-      return;
-    }
-    
     try {
       await onUpdate(id, { content: newContent, mediaFile: newMediaFile });
-      toast({
-        title: 'הצלחה',
-        description: 'הפוסט עודכן בהצלחה 🎉',
-        variant: 'success',
-      });
       setEditing(false);
       setNewMediaFile(null);
     } catch (err) {
@@ -137,12 +114,18 @@ const Post = ({
   const toggleLike = async () => {
     if (!id || !onLike || !currentUser) return;
     
-    const newState = !liked;
-    setLiked(newState);
-    setFloatLike(true);
-    onLike(id, newState);
-    setTimeout(() => setFloatLike(false), 600);
+    try {
+      const newState = !liked;
+      setLiked(newState);
+      setFloatLike(true);
+      await onLike(id, newState);
+      setTimeout(() => setFloatLike(false), 600);
+    } catch (err) {
+      console.error('Error toggling like:', err);
+      alert('Failed to update like. Please try again.');
+    }
   };
+
 
   const toggleCommentsSection = () => {
     setShowComments(prev => !prev);
@@ -160,29 +143,59 @@ const Post = ({
 
   const pickMedia = () => fileInputRef.current?.click();
   
-  const onMediaChange = e => {
+  const onMediaChange = async e => {
     const file = e.target.files[0];
-    if (file) setNewMediaFile(file);
-  };
+    if (!file) return;
 
-  // Helper function to detect media type from URL if mediaType is not available
-  const getMediaType = () => {
-    if (mediaType) return mediaType;
+    // Validate file size (max 100MB for videos, 10MB for images)
+    const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`File too large. Max ${isVideo ? '100MB' : '10MB'} allowed`);
+      return;
+    }
+
+    // Validate file type
+    const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     
-    // If we have a new media file during editing, check its type
-    if (newMediaFile) {
-      return newMediaFile.type.startsWith('video/') ? 'video' : 'image';
+    if (isVideo && !validVideoTypes.includes(file.type)) {
+      alert('Invalid video format. Please use MP4, WebM, or OGG format.');
+      return;
     }
     
-    if (!mediaUrl) return 'image';
-    
-    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];
-    const url = mediaUrl.toLowerCase();
-    
-    return videoExtensions.some(ext => url.includes(ext)) ? 'video' : 'image';
-  };
+    if (!isVideo && !validImageTypes.includes(file.type)) {
+      alert('Invalid image format. Please use JPEG, PNG, GIF, or WebP format.');
+      return;
+    }
 
-  const isVideo = getMediaType() === 'video';
+    try {
+      // For videos, we might want to check if the video is playable
+      if (isVideo) {
+        const videoBlob = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.src = videoBlob;
+        
+        await new Promise((resolve, reject) => {
+          video.onloadedmetadata = () => {
+            URL.revokeObjectURL(videoBlob);
+            // Check if video duration is reasonable (e.g., max 5 minutes)
+            if (video.duration > 300) { // 5 minutes in seconds
+              reject(new Error('Video too long. Maximum duration is 5 minutes.'));
+            } else {
+              resolve();
+            }
+          };
+          video.onerror = () => reject(new Error('Invalid video file'));
+        });
+      }
+
+      setNewMediaFile(file);
+    } catch (err) {
+      alert(err.message || 'Error processing media file');
+      e.target.value = ''; // Reset input
+      return;
+    }
+  };
 
   if (error) {
     return <div className="p-4 text-center text-red-500">{error}</div>;
@@ -243,7 +256,7 @@ const Post = ({
               <p className="text-xs text-gray-500">{timeString}</p>
             </div>
           </div>
-          {isOwner && (
+          {isOwner &&(
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(prev => !prev)}
@@ -252,7 +265,7 @@ const Post = ({
                 <MoreHorizontal size={20} />
               </button>
               {menuOpen && (
-                <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}>
+                <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}> 
                   <button
                     onClick={() => { setEditing(prev => !prev); setMenuOpen(false); }}
                     className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors`}
@@ -308,11 +321,13 @@ const Post = ({
         </div>
 
         {/* Media */}
-        {mediaUrl && (
+        {mediaUrl && !showPostModal &&(
           <div
-            className={`relative w-full overflow-hidden bg-${element}-soft ${editing ? '' : 'cursor-pointer group'}`}
+            className={`relative w-full overflow-hidden bg-${element}-soft ${
+              editing ? '' : 'cursor-pointer group'
+            }`}
             onClick={() => {
-              if (!editing) setShowPostModal(true);
+              if (!editing && !showPostModal) setShowPostModal(true);
             }}
           >
             {editing && (
@@ -327,7 +342,8 @@ const Post = ({
                   <span className="text-white text-sm font-medium bg-black/40 px-3 py-1 rounded-full">הצג פוסט</span>
                 </div>
               )}
-              {isVideo ? (
+
+              {mediaType === 'video' ? (
                 <video
                   src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
                   controls
@@ -358,12 +374,25 @@ const Post = ({
         )}
 
         {/* Actions */}
-        <div className={`px-5 py-3 flex items-center justify-between border-t border-${element}-soft`}>
+        <div className={`px-5 py-3 flex items-center justify-between border-t border-${element}-soft`}> 
           <div className="flex items-center gap-6">
             <div className="relative">
-              <button onClick={toggleLike} className="flex items-center gap-2 group" aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}>
-                <div className={`p-1.5 rounded-full transition-colors ${liked ? `bg-${element} text-white` : `bg-${element}-soft text-${element} hover:bg-${element}-accent`} `}>
-                  <ThumbsUp size={18} className={liked ? 'fill-white' : `group-hover:fill-${element}-accent`} />
+              <button
+                onClick={toggleLike}
+                className="flex items-center gap-2 group"
+                aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}
+              >
+                <div
+                  className={`p-1.5 rounded-full transition-colors ${
+                    liked
+                      ? `bg-${element} text-white`
+                      : `bg-${element}-soft text-${element} hover:bg-${element}-accent`
+                  }`}
+                >
+                  <ThumbsUp
+                    size={18}
+                    className={liked ? 'fill-white' : `group-hover:fill-${element}-accent`}
+                  />
                 </div>
                 <span className="text-sm font-medium transition-colors">{likesCount}</span>
               </button>
@@ -384,6 +413,7 @@ const Post = ({
               </AnimatePresence>
             </div>
 
+
             <button onClick={toggleCommentsSection} className="flex items-center gap-2 group" aria-label="הצג תגובות">
               <div className={`p-1.5 rounded-full transition-colors bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white`}>
                 <MessageCircle size={18} />
@@ -402,72 +432,45 @@ const Post = ({
         </div>
 
         {/* Comments Section */}
-        <AnimatePresence initial={false}>
-          {showComments && (
-            <motion.div
-              ref={commentsRef}
-              className="px-5 py-4 border-t border-gray-200"
-              key="comments-section"
-              initial={{ y: -24, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -24, opacity: 0 }}
-              transition={{ duration: 0.40 }}
-            >
-              {currentUser && (
-                <div className="flex gap-3 mb-4">
-                  <img src={currentUser.photoURL || '/default_user_pic.jpg'} alt="" className="w-8 h-8 rounded-full" />
-                  <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
-                </div>
-              )}
-              {replyTo && currentUser && (
-                <div className="ml-12 mb-4">
-                  <CommentInput placeholder="הגב..." element={element} onSubmit={submitComment} onCancel={() => setReplyTo(null)} />
-                </div>
-              )}
-              {comments.length > 0 ? (
-                comments.map(c => (
-                  <Comment
-                    key={c.id}
-                    comment={c}
-                    element={element}
-                    currentUser={currentUser}
-                    onReply={setReplyTo}
-                    onEdit={onEditComment}
-                    onDelete={() =>
-                      setCommentToDelete({
-                        postId: id,
-                        commentId: c.id,
-                        isReply: c.parentCommentId ? true : false,
-                        parentCommentId: c.parentCommentId || null,
-                      })
-                    }
-                    replyingToId={replyTo}
-                    onSubmitReply={(text, parentId) => {
-                      onAddComment(id, text, parentId);
-                      setReplyTo(null);
-                    }}
-                    onCancelReply={() => setReplyTo(null)}
-                    postId={id}
-                    postAuthorId={post.authorId}
-                    getAuthorProfile={getAuthorProfile}
-                  />
-                ))
-              ) : (
-                <p className="text-center text-gray-500">אין תגובות עדיין.</p>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {showComments && (
+          <div ref={commentsRef} className="px-5 py-4 border-t border-gray-200">
+            {currentUser && (
+              <div className="flex gap-3 mb-4">
+                <img src={currentUser.photoURL || '/default_user_pic.jpg'} alt="" className="w-8 h-8 rounded-full" />
+                <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
+              </div>
+            )}
+            {replyTo && currentUser && (
+              <div className="ml-12 mb-4">
+                <CommentInput placeholder="הגב..." element={element} onSubmit={submitComment} onCancel={() => setReplyTo(null)} />
+              </div>
+            )}
+            {comments.length > 0 ? (
+              comments.map(c => (
+                <Comment
+                  key={c.id}
+                  comment={c}
+                  element={element}
+                  currentUser={currentUser}
+                  onReply={setReplyTo}
+                  onEdit={onEditComment}
+                  onDelete={onDeleteComment}
+                  postId={id}
+                  postAuthorId={post.authorId}
+                  getAuthorProfile={getAuthorProfile}
+                />
+              ))
+            ) : (
+              <p className="text-center text-gray-500">אין תגובות עדיין.</p>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Post Modal (outside main card) */}
       {showPostModal && (
         <div className="fixed inset-0 z-40">
           {/* FULLSCREEN BLUR */}
-          <div 
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm" 
-            onClick={() => setShowPostModal(false)}
-          />
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
           {/* MODAL CONTENT */}
           <div className="flex items-center justify-center w-full h-full p-4 pointer-events-none">
             <motion.div
@@ -485,7 +488,7 @@ const Post = ({
               >
                 <X className="w-5 h-5" />
               </button>
-              <div className="overflow-y-auto scrollbar-hide px-6 pt-10 pb-6 flex-1">
+              <div className="overflow-y-auto px-6 pt-10 pb-6 flex-1">
                 <PostModalContent
                   post={post}
                   element={element}
@@ -505,39 +508,8 @@ const Post = ({
           </div>
         </div>
       )}
-
-      <ConfirmationModal
-        open={showConfirmDelete}
-        title="מחיקת פוסט"
-        message="האם אתה בטוח שברצונך למחוק את הפוסט הזה?"
-        confirmText="מחק"
-        cancelText="ביטול"
-        onConfirm={confirmDelete}
-        onCancel={cancelDelete}
-        element={element}
-      />
-      <ConfirmationModal
-        open={!!commentToDelete}
-        title="מחיקת תגובה"
-        message="האם אתה בטוח שברצונך למחוק את התגובה הזו?"
-        confirmText="מחק"
-        cancelText="ביטול"
-        onConfirm={() => {
-          if (commentToDelete) {
-            onDeleteComment(
-              commentToDelete.postId,
-              commentToDelete.commentId,
-              commentToDelete.isReply,
-              commentToDelete.parentCommentId
-            );
-            setCommentToDelete(null);
-          }
-        }}
-        onCancel={() => setCommentToDelete(null)}
-        element={element}
-      />
     </>
   );
 };
 
-export default Post;
+export default ProfilePost;
