@@ -39,7 +39,7 @@ import LeftSidebar  from '../components/social/LeftSideBar';
 import RightSidebar from '../components/social/Rightsidebar.jsx';
 import ProfileInfo  from '../components/social/profileInfo.jsx';
 import CreatePost   from '../components/social/createpost';
-import ProfilePost  from '../components/social/ProfilePost.jsx';
+import Post  from '../components/social/Post.jsx';
 
 const ProfilePage = () => {
   const { username } = useParams();
@@ -197,7 +197,7 @@ useEffect(() => {
     // Set up a listener for each post's comments
     posts.forEach(post => {
       const commentsRef = collection(db, 'posts', post.id, 'comments');
-      const commentsQuery = query(commentsRef, orderBy('timestamp', 'desc'));
+      const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
       
       const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
         const fetchedComments = [];
@@ -208,18 +208,19 @@ useEffect(() => {
           const commentData = {
             id: doc.id,
             ...doc.data(),
-            timestamp: doc.data().timestamp?.toDate() || new Date()
+            createdAt: doc.data().createdAt?.toDate() || new Date(),
+            updatedAt: doc.data().updatedAt?.toDate() || null,
           };
           
           fetchedComments.push(commentData);
           
           // Organize comments into a hierarchical structure
-          if (commentData.parentCommentId) {
+          if (commentData.parentId) {
             // This is a reply
-            if (!commentReplies[commentData.parentCommentId]) {
-              commentReplies[commentData.parentCommentId] = [];
+            if (!commentReplies[commentData.parentId]) {
+              commentReplies[commentData.parentId] = [];
             }
-            commentReplies[commentData.parentCommentId].push(commentData);
+            commentReplies[commentData.parentId].push(commentData);
           } else {
             // This is a top-level comment
             topLevelComments.push(commentData);
@@ -452,24 +453,25 @@ useEffect(() => {
   };
 
   // Add a new comment to a post
-  const addComment = async (postId, text, parentCommentId = null) => {
-    if (!text.trim()) return;
+  const addComment = async (postId, content, parentId = null) => {
+    if (!content.trim()) return;
     
     try {
       const commentData = {
         authorId: viewerProfile?.uid,
-        text: text.trim(),
-        timestamp: serverTimestamp(),
+        content: content.trim(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
         edited: false,
       };
       
-      // Add parentCommentId if this is a reply
-      if (parentCommentId) {
-        commentData.parentCommentId = parentCommentId;
+      // Add parentId if this is a reply
+      if (parentId) {
+        commentData.parentId = parentId;
       }
       
       // Add the comment to Firestore
-      const commentsRef = collection(db, 'posts', postId, 'comments');;
+      const commentsRef = collection(db, 'posts', postId, 'comments');
 
       await addDoc(commentsRef, commentData);
       
@@ -489,15 +491,15 @@ useEffect(() => {
   };
 
   // Edit an existing comment
-  const editComment = async (postId, commentId, newText) => {
-    if (!newText.trim()) return;
+  const editComment = async (postId, commentId, newContent) => {
+    if (!newContent.trim()) return;
     
     try {
       const commentRef = doc(db, 'posts', postId, 'comments', commentId);
       await updateDoc(commentRef, {
-        text: newText.trim(),
+        content: newContent.trim(),
         edited: true,
-        timestamp: serverTimestamp() // Update timestamp when edited
+        updatedAt: serverTimestamp()
       });
     } catch (error) {
       console.error('Error editing comment:', error);
@@ -505,7 +507,7 @@ useEffect(() => {
   };
 
   // Delete a comment
-  const deleteComment = async (postId, commentId, isReply = false, parentCommentId = null) => {
+  const deleteComment = async (postId, commentId, isReply = false, parentId = null) => {
     try {      
       // Delete the comment document
       await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
@@ -515,7 +517,7 @@ useEffect(() => {
         // Get all replies to this comment
         const repliesQuery = query(
           collection(db, 'posts', postId, 'comments'),
-          where('parentCommentId', '==', commentId)
+          where('parentId', '==', commentId)
         );
         const repliesSnapshot = await getDocs(repliesQuery);
         
@@ -612,7 +614,7 @@ useEffect(() => {
 
           <section className="space-y-6">
             {posts.map(p => (
-              <ProfilePost
+              <Post
                 key={p.id}
                 element={profile.element}
                 post={p}

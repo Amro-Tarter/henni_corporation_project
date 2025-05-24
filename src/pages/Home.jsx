@@ -170,7 +170,8 @@ const Home = () => {
           const commentData = {
             id: doc.id,
             ...doc.data(),
-            timestamp: doc.data().createdAt?.toDate() || new Date()
+            createdAt: doc.data().createdAt?.toDate() || new Date(),
+            updatedAt: doc.data().updatedAt?.toDate() || null,
           };
           
           fetchedComments.push(commentData);
@@ -214,7 +215,7 @@ const Home = () => {
     };
   }, [posts]);
 
-  const addPost = async ({ text, mediaFile }) => {
+  const addPost = async ({ text, mediaFile, mediaType }) => {
     if (!user) return;
 
     let mediaUrl = '';
@@ -230,6 +231,7 @@ const Home = () => {
       authorPhotoURL: user.photoURL || '',
       content: text,
       mediaUrl,
+      mediaType,
       likedBy: [],
       likesCount: 0,
       commentsCount: 0,
@@ -298,26 +300,25 @@ const Home = () => {
     try {
       const commentData = {
         authorId: user?.uid,
-        authorName: user?.username,
-        authorPhotoURL: user?.photoURL,
         content: text.trim(),
-        parentId: parentId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        edited: false
+        edited: false,
       };
-      
+      // Only add parentId if it’s a reply
+      if (parentId) {
+        commentData.parentId = parentId;
+      }
       // Add the comment to Firestore
       const commentsRef = collection(db, 'posts', postId, 'comments');
       await addDoc(commentsRef, commentData);
-      
+
       // Update the post's comment count
       const postRef = doc(db, 'posts', postId);
       await updateDoc(postRef, {
         commentsCount: increment(1)
       });
-      
-      // Update the commentsCount in the local state
+
       setPosts(prev => prev.map(p => 
         p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p
       ));
@@ -326,20 +327,21 @@ const Home = () => {
     }
   };
 
+
   const handleEditComment = async (postId, commentId, newText) => {
     if (!newText.trim()) return;
-    
     try {
       const commentRef = doc(db, 'posts', postId, 'comments', commentId);
       await updateDoc(commentRef, {
         content: newText.trim(),
         updatedAt: serverTimestamp(),
-        edited: true
+        edited: true,
       });
     } catch (error) {
       console.error('Error editing comment:', error);
     }
   };
+
 
   const handleDeleteComment = async (postId, commentId, isReply = false, parentId = null) => {
     try {
