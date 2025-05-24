@@ -185,8 +185,8 @@ const Navbar = ({ element }) => {
           <span className="text-white font-bold text-xl md:text-2xl">לגלות את האור – הנני</span>
           <span className="text-white/80 text-xs md:text-sm">מנהיגות. יצירה. שייכות.</span>
         </a>
-       
-       
+
+
         <nav className="flex flex-row-reverse items-center gap-6">
           {navTabs.map((tab) => (
             <button
