@@ -288,8 +288,16 @@ export const CommentInput = ({
         type="button"
         ref={emojiBtnRef}
         onClick={openEmojiPicker}
-        className="px-2 py-2 bg-gray-50 rounded-md hover:bg-gray-200 transition-colors flex items-center emoji-picker-btn"
-        tabIndex={-1}
+        className={`
+          ml-2 px-2 py-2 
+          rounded-md 
+          bg-${element}-soft 
+          text-${element} 
+          hover:bg-${element}-accent 
+          hover:text-white 
+          transition-colors 
+          flex items-center emoji-picker-btn
+        `}
         aria-label="הוסף אימוג׳י"
       >
         <Smile size={18} />

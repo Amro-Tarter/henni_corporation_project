@@ -1,18 +1,15 @@
-//Post.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check, X, Smile, Edit2 } from 'lucide-react';
-import { Comment, CommentInput } from './comments';
+import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check, X, Smile, Edit2, Users } from 'lucide-react';
+import { Comment, CommentInput } from '../social/comments';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '/src/hooks/use-toast.jsx';
-import PostModalContent from './PostModalContent';
-import ConfirmationModal from './ConfirmationModal';
-import { containsBadWord } from './utils/containsBadWord';
+import ConfirmationModal from '../social/ConfirmationModal';
 import EmojiPicker from 'emoji-picker-react';
+import { containsBadWord } from '../social/utils/containsBadWord';
 
-
-const ProfilePost = ({
-  post,
+const Project = ({
+  project,
   element,
   onDelete,
   onUpdate,
@@ -23,29 +20,32 @@ const ProfilePost = ({
   onEditComment,
   onDeleteComment,
   isOwner,
-  getAuthorProfile
+  getUserProfile,
+  allUsers // Needed for collaborators display
 }) => {
   const {
     id,
     createdAt,
-    content,
+    title,
+    description,
     mediaUrl,
     mediaType,
-    likesCount,
-    commentsCount,
-    likedBy = []
-  } = post;
+    likesCount = 0,
+    commentsCount = 0,
+    likedBy = [],
+    collaborators = [],
+    authorId,
+  } = project;
 
   const [editing, setEditing] = useState(false);
-  const [newContent, setNewContent] = useState(content);
+  const [newDescription, setNewDescription] = useState(description);
   const [newMediaFile, setNewMediaFile] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [replyTo, setReplyTo] = useState(null);
   const [liked, setLiked] = useState(false);
   const [authorProfile, setAuthorProfile] = useState(null);
-  const [showPostModal, setShowPostModal] = useState(false);
-  const [floatLike, setFloatLike] = useState(false);
+  const [collaboratorProfiles, setCollaboratorProfiles] = useState([]);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
   const [warning, setWarning] = useState('');
@@ -53,20 +53,45 @@ const ProfilePost = ({
   const emojiBtnRef = useRef();
   const emojiPickerRef = useRef();
   const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
+  const [newTitle, setNewTitle] = useState(title);
+  const [newCollaborators, setNewCollaborators] = useState(collaborators);
+  const [showUsers, setShowUsers] = useState(false);
+  const [collabSearch, setCollabSearch] = useState('');
+  const usersPopupRef = useRef();
   const { toast } = useToast();
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const commentsRef = useRef(null);
   const navigate = useNavigate();
-  
+
+  // Fetch project owner and collaborators' profiles
+  useEffect(() => {
+    async function fetchProfiles() {
+      setAuthorProfile(await getUserProfile(authorId));
+      // collaborators: array of UIDs
+      if (Array.isArray(collaborators)) {
+        const results = await Promise.all(
+          collaborators.map(uid => getUserProfile(uid))
+        );
+        setCollaboratorProfiles(results.filter(Boolean));
+      }
+    }
+    fetchProfiles();
+  }, [authorId, collaborators, getUserProfile]);
 
   useEffect(() => {
-    const fetch = async () => {
-      const profile = await getAuthorProfile(post.authorId);
-      setAuthorProfile(profile);
-    };
-    fetch();
-  }, [post.authorId, getAuthorProfile]);
+    if (!showUsers) return;
+    function handleClick(e) {
+      if (
+        usersPopupRef.current &&
+        !usersPopupRef.current.contains(e.target)
+      ) {
+        setShowUsers(false);
+      }
+    }
+    window.addEventListener('mousedown', handleClick);
+    return () => window.removeEventListener('mousedown', handleClick);
+  }, [showUsers]);
 
 
   useEffect(() => {
@@ -83,7 +108,6 @@ const ProfilePost = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Click-outside handler: closes only if click is not on the picker or button
   useEffect(() => {
     if (!showEmoji) return;
     function handleClick(e) {
@@ -111,7 +135,6 @@ const ProfilePost = ({
     setShowEmoji(true);
   };
 
-
   const createdDate = createdAt?.toDate?.();
   const timeString = createdDate
     ? createdDate.toLocaleDateString('he-IL', {
@@ -131,30 +154,34 @@ const ProfilePost = ({
   const cancelDelete = () => setShowConfirmDelete(false);
 
   const handleSaveEdit = () => {
-    if (containsBadWord(newContent)) {
-      setWarning('הפוסט מכיל מילים לא ראויות!');
+    if (containsBadWord(newTitle) || containsBadWord(newDescription)) {
+      setWarning('הפרויקט מכיל מילים לא ראויות!');
       setTimeout(() => setWarning(''), 3500);
       return;
     }
-    onUpdate(id, { content: newContent, mediaFile: newMediaFile });
+    onUpdate(id, {
+      title: newTitle,
+      description: newDescription,
+      collaborators: newCollaborators
+    });
     toast({
       title: 'הצלחה',
-      description: 'הפוסט עודכן בהצלחה 🎉',
+      description: 'הפרויקט עודכן בהצלחה 🎉',
       variant: 'success',
     });
     setEditing(false);
-    setNewMediaFile(null);
   };
+
 
   const insertEmoji = (emojiObject) => {
     const sym = emojiObject.emoji;
     const textarea = document.getElementById(`edit-textarea-${id}`);
     if (!textarea) {
-      setNewContent(prev => prev + sym);
+      setNewDescription(prev => prev + sym);
       return;
     }
     const [start, end] = [textarea.selectionStart, textarea.selectionEnd];
-    setNewContent(prev => prev.slice(0, start) + sym + prev.slice(end));
+    setNewDescription(prev => prev.slice(0, start) + sym + prev.slice(end));
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + sym.length, start + sym.length);
@@ -164,11 +191,8 @@ const ProfilePost = ({
   const toggleLike = () => {
     const newState = !liked;
     setLiked(newState);
-    setFloatLike(true);
     onLike(id, newState);
-    setTimeout(() => setFloatLike(false), 600);
   };
-
 
   const toggleCommentsSection = () => {
     setShowComments(prev => !prev);
@@ -261,7 +285,7 @@ const ProfilePost = ({
                   >
                     <Edit2 size={16} className={`text-${element}`} />
                     <span className={`text-${element} font-medium`}>
-                      {editing ? 'ביטול עריכה' : 'ערוך פוסט'}
+                      {editing ? 'ביטול עריכה' : 'ערוך פרויקט'}
                     </span>
                   </button>
                   <button
@@ -269,7 +293,7 @@ const ProfilePost = ({
                     className={`w-full text-right px-4 py-2 text-sm text-red-600 hover:bg-${element}-soft transition-colors flex items-center gap-2`}
                   >
                     <Trash2 size={16} className="text-red-500" />
-                    מחק פוסט
+                    מחק פרויקט
                   </button>
                 </div>
               )}
@@ -277,62 +301,155 @@ const ProfilePost = ({
           )}
         </div>
 
-        {/* Content */}
-        <div className="px-5 pb-4">
-          {editing ? (
-            <div className="relative mb-3">
-              <textarea
-                id={`edit-textarea-${id}`}
-                value={newContent}
-                onChange={e => setNewContent(e.target.value)}
-                rows={4}
-                dir="rtl"
-                className={`w-full border rounded-lg p-3 resize-none focus:ring-2 focus:ring-${element}-accent focus:border-${element}-accent border-${element}-soft transition-all outline-none`}
-                placeholder="מה בליבך?"
+        {/* --- Edit Mode --- */}
+        {editing ? (
+          <>
+            <div className="px-5 pb-1 flex items-center gap-4">
+              <input
+                className={`
+                  flex-1 bg-${element}-soft
+                  rounded-xl px-4 py-3
+                  text-lg text-${element}-dark font-bold
+                  border-0
+                  focus:outline-none
+                  focus:ring-2 focus:ring-${element}-accent
+                  transition
+                `}
+                value={newTitle}
+                onChange={e => setNewTitle(e.target.value)}
+                placeholder="כותרת הפרויקט"
               />
-              <div className="flex justify-end gap-2 mt-2 items-center">
-                {/* Emoji Button on the left */}
-                <button
-                  type="button"
-                  ref={emojiBtnRef}
-                  onClick={openEmojiPicker}
-                  className={`
-                    px-2 py-2 rounded-md 
-                    bg-${element}-soft 
-                    text-${element} 
-                    hover:bg-${element}-accent 
-                    hover:text-white 
-                    transition-colors
-                    flex items-center
-                  `}
-                  aria-label="הוסף אימוג׳י"
-                  tabIndex={-1}
-                  style={{ zIndex: 10 }}
+            </div>
+
+            <div className="px-5 flex items-center gap-2 mt-6 mb-6 relative z-20 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setShowUsers(!showUsers)}
+                className={`
+                  px-3 py-2 rounded
+                  bg-${element}-accent
+                  hover:bg-${element}
+                  text-white
+                  font-semibold flex items-center gap-2
+                  border border-${element}-accent
+                  transition
+                `}
+              >
+                <Users size={16} /> הוסף משתפי פעולה
+              </button>
+              {newCollaborators.map(uid => {
+                const u = allUsers.find(x => x.id === uid);
+                if (!u) return null;
+                return (
+                  <div
+                    key={uid}
+                    className={`flex items-center bg-${element}-soft px-2 py-1 rounded-full text-xs gap-2 border border-${element}-accent hover:bg-${element}-soft/80 transition`}
+                  >
+                    <img src={u.photoURL || '/default_user_pic.jpg'} className="w-5 h-5 rounded-full mr-1" alt={u.username} />
+                    <span className={`text-${element}-dark font-medium`}>{u.username}</span>
+                    <button
+                      type="button"
+                      onClick={() => setNewCollaborators(newCollaborators.filter(id => id !== uid))}
+                      className={`ml-2 text-${element}-accent hover:text-red-600 transition`}
+                      aria-label="הסר משתף"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+              {showUsers && (
+                <div
+                  ref={usersPopupRef}
+                  className="absolute mt-12 right-0 bg-white shadow-xl rounded-xl border border-gray-200 p-4 z-50 min-w-[240px]"
                 >
-                  <Smile size={18} />
-                </button>
-                {/* Cancel Button */}
-                <button
-                  onClick={() => setEditing(false)}
-                  className={`px-4 py-2 text-sm rounded-md text-${element}-accent bg-${element}-soft hover:bg-${element}-accent hover:text-white transition-colors`}
-                >
-                  ביטול
-                </button>
-                {/* Save Button */}
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  onClick={handleSaveEdit}
-                  className={`px-4 py-2 text-sm text-white rounded-md bg-${element} hover:bg-${element}-accent transition-colors flex items-center gap-1`}
-                >
-                  <Check size={16} />
-                  שמור שינויים
-                </motion.button>
-              </div>
-              {/* Emoji Picker Portal */}
-              {showEmoji &&
-                createPortal(
+                  <input
+                    type="text"
+                    value={collabSearch}
+                    onChange={e => setCollabSearch(e.target.value)}
+                    placeholder="חפש משתמש לפי שם..."
+                    className="w-full px-3 py-2 mb-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+                    autoFocus
+                  />
+                  <div className="max-h-48 overflow-y-auto space-y-1">
+                    {allUsers
+                      .filter(u =>
+                        !newCollaborators.includes(u.id) &&
+                        u.username.toLowerCase().includes(collabSearch.trim().toLowerCase())
+                      )
+                      .map(user => (
+                        <div
+                          key={user.id}
+                          className="flex items-center gap-2 py-1 px-2 cursor-pointer hover:bg-gray-100 rounded transition"
+                          onClick={() => {
+                            setNewCollaborators([...newCollaborators, user.id]);
+                            setCollabSearch('');
+                          }}
+                        >
+                          <img src={user.photoURL || '/default_user_pic.jpg'} className="w-6 h-6 rounded-full" alt={user.username} />
+                          <span className="text-sm">{user.username}</span>
+                        </div>
+                      ))}
+                    {allUsers.filter(u =>
+                      !newCollaborators.includes(u.id) &&
+                      u.username.toLowerCase().includes(collabSearch.trim().toLowerCase())
+                    ).length === 0 && (
+                      <div className="text-xs text-gray-400 px-2 py-1">לא נמצאו משתמשים</div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 pb-4 mt-6">
+              <div className="relative mb-3">
+                <textarea
+                  id={`edit-textarea-${id}`}
+                  value={newDescription}
+                  onChange={e => setNewDescription(e.target.value)}
+                  rows={4}
+                  dir="rtl"
+                  className={`w-full border rounded-lg p-3 resize-none focus:ring-2 focus:ring-${element}-accent focus:border-${element}-accent border-${element}-soft transition-all outline-none`}
+                  placeholder="מה בליבך?"
+                />
+                <div className="flex justify-end gap-2 mt-2 items-center">
+                  <button
+                    type="button"
+                    ref={emojiBtnRef}
+                    onClick={openEmojiPicker}
+                    className={`
+                      px-2 py-2 rounded-md 
+                      bg-${element}-soft 
+                      text-${element} 
+                      hover:bg-${element}-accent 
+                      hover:text-white 
+                      transition-colors
+                      flex items-center
+                    `}
+                    aria-label="הוסף אימוג׳י"
+                    tabIndex={-1}
+                    style={{ zIndex: 10 }}
+                  >
+                    <Smile size={18} />
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    className={`px-4 py-2 text-sm rounded-md text-${element}-accent bg-${element}-soft hover:bg-${element}-accent hover:text-white transition-colors`}
+                  >
+                    ביטול
+                  </button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={handleSaveEdit}
+                    className={`px-4 py-2 text-sm text-white rounded-md bg-${element} hover:bg-${element}-accent transition-colors flex items-center gap-1`}
+                  >
+                    <Check size={16} />
+                    שמור שינויים
+                  </motion.button>
+                </div>
+                {showEmoji && (
                   <div
                     ref={emojiPickerRef}
                     style={{
@@ -346,43 +463,55 @@ const ProfilePost = ({
                       onEmojiClick={insertEmoji}
                       autoFocusSearch={false}
                       theme="light"
-                      searchDisabled={false}
-                      skinTonesDisabled={false}
                       width={350}
                       height={400}
                     />
-                  </div>,
-                  document.body
+                  </div>
                 )}
+              </div>
             </div>
-          ) : (
-            <p className="px-5 pb-2 text-base leading-relaxed whitespace-pre-wrap break-words overflow-hidden">{content}</p>
-          )}
-        </div>
+          </>
+        ) : (
+          // -------- NOT EDITING MODE: SPACING ADDED! --------
+          <div className="px-5 pb-4 flex flex-col gap-6">
+            <div>
+              <h2 className={`font-bold text-xl text-${element}`}>{title}</h2>
+            </div>
 
-        {/* Media */}
-        {mediaUrl && !showPostModal &&(
-          <div
-            className={`relative w-full overflow-hidden bg-${element}-soft ${
-              editing ? '' : 'cursor-pointer group'
-            }`}
-            onClick={() => {
-              if (!editing && !showPostModal) setShowPostModal(true);
-            }}
-          >
-            {editing && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
-                <Camera className="w-10 h-10 text-white" />
-                <p className="text-white mt-2 font-medium">החלף מדיה</p>
+            {collaboratorProfiles.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Users size={18} className={`text-${element}-accent`} />
+                <span className="text-sm font-medium text-gray-700">משתפי פעולה:</span>
+                {collaboratorProfiles.map((c, idx) => (
+                  <button
+                    key={c.uid || c.id || idx}
+                    type="button"
+                    onClick={() => navigate(`/profile/${c.username}`)}
+                    className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs ml-1 hover:bg-gray-200 hover:shadow transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    title={`לבקר את הפרופיל של ${c.username}`}
+                    tabIndex={0}
+                  >
+                    <img
+                      src={c.photoURL || '/default_user_pic.jpg'}
+                      alt={c.username}
+                      className="w-6 h-6 rounded-full object-cover"
+                    />
+                    <span className="font-medium">{c.username}</span>
+                  </button>
+                ))}
               </div>
             )}
-            <div className={`group relative w-full max-h-[40rem] overflow-hidden flex justify-center items-center bg-${element}-soft cursor-pointer`}>
-              {!editing && (
-                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                  <span className="text-white text-sm font-medium bg-black/40 px-3 py-1 rounded-full">הצג פוסט</span>
-                </div>
-              )}
 
+            <div>
+              <p className="text-base leading-relaxed whitespace-pre-wrap break-words overflow-hidden">{description}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Media */}
+        {mediaUrl && (
+          <div className={`relative w-full overflow-hidden bg-${element}-soft`}>
+            <div className="group relative w-full max-h-[40rem] overflow-hidden flex justify-center items-center bg-${element}-soft cursor-pointer">
               {mediaType === 'video' ? (
                 <video
                   src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
@@ -392,7 +521,7 @@ const ProfilePost = ({
               ) : (
                 <img
                   src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
-                  alt="תוכן הפוסט"
+                  alt="תוכן הפרויקט"
                   className="max-h-[40rem] w-full object-cover"
                 />
               )}
@@ -401,7 +530,7 @@ const ProfilePost = ({
         )}
 
         {/* Actions */}
-        <div className={`px-5 py-3 flex items-center justify-between border-t border-${element}-soft`}> 
+        <div className={`px-5 py-3 flex items-center justify-between border-t border-${element}-soft`}>
           <div className="flex items-center gap-6">
             <div className="relative">
               <button
@@ -423,24 +552,7 @@ const ProfilePost = ({
                 </div>
                 <span className="text-sm font-medium transition-colors">{likesCount}</span>
               </button>
-
-              {/* Floating Icon Animation */}
-              <AnimatePresence>
-                {floatLike && (
-                  <motion.div
-                    initial={{ opacity: 1, y: 0, scale: 1 }}
-                    animate={{ opacity: 0, y: -40, scale: 1.5 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className={`absolute bottom-8 left-1/2 -translate-x-1/2 text-${element} pointer-events-none`}
-                  >
-                    <ThumbsUp size={24} className="fill-current" />
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
-
-
             <button onClick={toggleCommentsSection} className="flex items-center gap-2 group" aria-label="הצג תגובות">
               <div className={`p-1.5 rounded-full transition-colors bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white`}>
                 <MessageCircle size={18} />
@@ -486,7 +598,7 @@ const ProfilePost = ({
                       onEdit={onEditComment}
                       onDelete={() =>
                         setCommentToDelete({
-                          postId: id,
+                          projectId: id,
                           commentId: c.id,
                           isReply: c.parentCommentId ? true : false,
                           parentCommentId: c.parentCommentId || null,
@@ -499,8 +611,8 @@ const ProfilePost = ({
                       }}
                       onCancelReply={() => setReplyTo(null)}
                       postId={id}
-                      postAuthorId={post.authorId}
-                      getAuthorProfile={getAuthorProfile}
+                      postAuthorId={authorId}
+                      getAuthorProfile={getUserProfile}
                     />
                   ))
                 ) : (
@@ -512,55 +624,10 @@ const ProfilePost = ({
         </AnimatePresence>
       </div>
 
-      {showPostModal && (
-        <div className="fixed inset-0 z-[200]">
-          {/* FULLSCREEN BLUR */}
-          <div 
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm" 
-            onClick={() => setShowPostModal(false)}
-          />
-
-          {/* MODAL CONTENT */}
-          <div className="flex items-center justify-center w-full h-full p-4 pointer-events-none">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.25 }}
-              className="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-xl flex flex-col pointer-events-auto"
-              onClick={e => e.stopPropagation()}
-            >
-            <button
-              onClick={() => setShowPostModal(false)}
-              className={`absolute top-4 left-4 z-50 text-${element} bg-white hover:bg-${element}-soft border border-${element}-accent p-2 rounded-full shadow-md transition-all`}
-              aria-label="סגור פוסט"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="overflow-y-auto px-6 pt-10 pb-6 flex-1">
-              <PostModalContent
-                post={post}
-                element={element}
-                currentUser={currentUser}
-                comments={comments}
-                onAddComment={onAddComment}
-                onEditComment={onEditComment}
-                onDeleteComment={onDeleteComment}
-                onLike={onLike}
-                onDelete={onDelete}
-                onUpdate={onUpdate}
-                isOwner={isOwner}
-                getAuthorProfile={getAuthorProfile}
-              />
-            </div>
-          </motion.div>
-        </div>
-      </div>
-)}
       <ConfirmationModal
         open={showConfirmDelete}
-        title="מחיקת פוסט"
-        message="האם אתה בטוח שברצונך למחוק את הפוסט הזה?"
+        title="מחיקת פרויקט"
+        message="האם אתה בטוח שברצונך למחוק את הפרויקט הזה?"
         confirmText="מחק"
         cancelText="ביטול"
         onConfirm={confirmDelete}
@@ -576,7 +643,7 @@ const ProfilePost = ({
         onConfirm={() => {
           if (commentToDelete) {
             onDeleteComment(
-              commentToDelete.postId,
+              commentToDelete.projectId,
               commentToDelete.commentId,
               commentToDelete.isReply,
               commentToDelete.parentCommentId
@@ -589,6 +656,6 @@ const ProfilePost = ({
       />
     </>
   );
-};
 
-export default ProfilePost;
+};
+export default Project;
