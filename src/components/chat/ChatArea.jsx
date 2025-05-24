@@ -401,7 +401,6 @@ export default function ChatArea({
           <div className="text-center">
             <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צ'אט או התחל שיחה חדשה</h3>
             <p className="text-gray-500">או לחץ על הכפתור </p>
-            {console.log(currentUser)}
             {currentUser?.role === "participant" ? (
               <button
                 className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300"

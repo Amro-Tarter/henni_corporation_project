@@ -33,6 +33,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { badWords } from "../components/chat/utils/badWords";
 import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
 import notificationSound from '../assets/notification.mp3';
+import NewChatDialog from '../components/chat/components/NewChatDialog.jsx';
+import NewGroupDialog from '../components/chat/components/NewGroupDialog.jsx';
+import { handleCommunityChatMembership } from '../components/chat/hooks/useCommunityMembership';
 
 export default function ChatApp() {
   const { chatId } = useParams();
@@ -516,89 +519,6 @@ export default function ChatApp() {
     }
   };
 
-  // --- Community Chat Membership ---
-  const handleCommunityChatMembership = async (userId, userElement) => {
-    try {
-      const normalizedElement = userElement.toLowerCase();
-      const userDoc = await getDoc(doc(db, "users", userId));
-      const username = userDoc.data().username;
-      // 1. Find all community conversations the user is currently in
-      const allCommunitiesQuery = query(
-        collection(db, "conversations"),
-        where("type", "==", "community"),
-        where("participants", "array-contains", userId)
-      );
-      const allCommunitiesSnapshot = await getDocs(allCommunitiesQuery);
-      // 2. Remove user from all communities except the new one
-      for (const communityDoc of allCommunitiesSnapshot.docs) {
-        const data = communityDoc.data();
-        if (data.element !== normalizedElement) {
-          await updateDoc(communityDoc.ref, {
-            participants: data.participants.filter((id) => id !== userId),
-            participantNames: data.participantNames.filter((name) => name !== username),
-            lastMessage: `${username} left the community`
-          });
-          await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
-            text: `${username} left the community`,
-            type: "system",
-            createdAt: serverTimestamp(),
-          });
-        }
-      }
-      // 3. Find or create the new community for the user's current element
-      const q = query(
-        collection(db, "conversations"),
-        where("type", "==", "community"),
-        where("element", "==", normalizedElement)
-      );
-      const querySnapshot = await getDocs(q);
-      let communityDoc;
-      if (querySnapshot.empty) {
-        // No community exists for this element → create it
-        const newCommunityRef = doc(collection(db, "conversations"));
-        await setDoc(newCommunityRef, {
-          participants: [userId],
-          participantNames: [username],
-          type: "community",
-          element: normalizedElement,
-          lastMessage: "Community created!",
-          lastUpdated: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        });
-        await addDoc(collection(db, "conversations", newCommunityRef.id, "messages"), {
-          text: "Community created! Welcome!",
-          type: "system",
-          createdAt: serverTimestamp(),
-        });
-        communityDoc = await getDoc(newCommunityRef);
-      } else {
-        // A community already exists — use the first one
-        communityDoc = querySnapshot.docs[0];
-        const data = communityDoc.data();
-        if (!data.participants.includes(userId)) {
-          await updateDoc(communityDoc.ref, {
-            participants: arrayUnion(userId),
-            participantNames: arrayUnion(username),
-            lastMessage: `${username} joined the community`
-          });
-          await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
-            text: `${username} joined the community`,
-            type: "system",
-            createdAt: serverTimestamp(),
-          });
-        }
-      }
-      return {
-        id: communityDoc.id,
-        ...communityDoc.data(),
-        lastUpdated: communityDoc.data().lastUpdated?.toDate(),
-        createdAt: communityDoc.data().createdAt?.toDate(),
-      };
-    } catch (error) {
-      console.error("Error handling community chat:", error);
-    }
-  };
-
   // Add useEffect to handle initial conversation selection based on chatId URL parameter
   useEffect(() => {
     if (!currentUser.uid) return; // Skip if user not logged in
@@ -930,6 +850,12 @@ export default function ChatApp() {
           מחק את כל הצ'אטים (אדמין)
         </button>
         */} 
+              <button
+          onClick={handleDeleteAllConversations}
+          className="fixed self-center justify-center text-xs z-50 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
+        >
+          מחק  הצ'
+        </button>
       <ThemeProvider element={userElement}>
         <Navbar element={userElement}/>
       </ThemeProvider>
@@ -979,252 +905,96 @@ export default function ChatApp() {
         setSelectedConversation={handleSelectConversation}
       />
       {showNewChatDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
-            <h3 className="text-lg font-bold mb-4">צ'אט חדש</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">שם השותף:</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  className="w-full p-2 border rounded text-right"
-                  value={partnerName}
-                  onChange={(e) => handlePartnerSearch(e.target.value)}
-                  placeholder="הזן שם"
-                />
-                {isSearching && (
-                  <div className="absolute left-2 top-3">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
-                  </div>
-                )}
-                {searchResults.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
-                    {searchResults.map((user) => (
-                      <div
-                        key={user.id}
-                        className="p-2 hover:bg-gray-100 cursor-pointer text-right flex items-center gap-2"
-                        onClick={() => {
-                          setPartnerName(user.username);
-                          setSelectedUser(user);
-                          setSearchResults([]);
-                        }}
-                      >
-                        {user.photoURL && (
-                          <img src={user.photoURL} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
-                        )}
-                        <span>{user.username}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                className='px-4 py-2 text-white rounded-lg hover:scale-105 disabled:opacity-50'
-                onClick={createNewConversation}
-                disabled={!selectedUser}
-                style={{ 
-                  backgroundColor: elementColors.primary
-                }}
-              >
-                צור
-              </button>
-              <button
-                className="px-4 py-2 border rounded-lg hover:bg-gray-200"
-                onClick={() => {
-                  setShowNewChatDialog(false);
-                  setSearchResults([]);
-                }}
-              >
-                ביטול
-              </button>
-            </div>
-          </div>
-        </div>
+        <NewChatDialog
+          show={showNewChatDialog}
+          partnerName={partnerName}
+          setPartnerName={setPartnerName}
+          handlePartnerSearch={handlePartnerSearch}
+          isSearching={isSearching}
+          searchResults={searchResults}
+          setSelectedUser={setSelectedUser}
+          setSearchResults={setSearchResults}
+          selectedUser={selectedUser}
+          createNewConversation={createNewConversation}
+          setShowNewChatDialog={setShowNewChatDialog}
+          elementColors={elementColors}
+        />
       )}
       {showNewGroupDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
-            <h3 className="text-lg font-bold mb-4">קבוצה חדשה</h3>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2">שם הקבוצה:</label>
-              <input
-                type="text"
-                className="w-full p-2 border rounded text-right mb-2"
-                value={groupName}
-                onChange={e => setGroupName(e.target.value)}
-                placeholder="הזן שם קבוצה"
-              />
-              {/* Group avatar upload */}
-              <label className="block text-sm font-medium mb-2 mt-2">תמונת קבוצה (אופציונלי):</label>
-              <input
-                type="file"
-                accept="image/*"
-                className="w-full p-2 border rounded text-right mb-2"
-                onChange={e => {
-                  const file = e.target.files[0];
-                  setGroupAvatarFile(file || null);
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = ev => setGroupAvatarPreview(ev.target.result);
-                    reader.readAsDataURL(file);
-                  } else {
-                    setGroupAvatarPreview(null);
-                  }
-                }}
-              />
-              {groupAvatarPreview && (
-                <div className="mb-2 flex justify-center"><img src={groupAvatarPreview} alt="Group Preview" className="w-20 h-20 object-cover rounded-full border" /></div>
-              )}
-              <label className="block text-sm font-medium mb-2 mt-2">הוסף חברים:</label>
-              <input
-                type="text"
-                className="w-full p-2 border rounded text-right"
-                value={groupUserSearch}
-                onChange={async (e) => {
-                  setGroupUserSearch(e.target.value);
-                  if (!e.target.value.trim()) {
-                    setGroupUserResults([]);
-                    return;
-                  }
-                  setIsSearching(true);
-                  // Get all users and filter client-side for better search
-                  const usersRef = collection(db, "users");
-                  const snapshot = await getDocs(usersRef);
-                  const results = snapshot.docs
-                    .filter(doc => {
-                      const username = doc.data().username || '';
-                      return doc.id !== currentUser.uid && 
-                             !selectedGroupUsers.some(u => u.id === doc.id) &&
-                             username.toLowerCase().includes(e.target.value.toLowerCase());
-                    })
-                    .map(doc => ({
-                      id: doc.id,
-                      username: doc.data().username,
-                      photoURL: doc.data().photoURL
-                    }));
-                  setGroupUserResults(results);
-                  setIsSearching(false);
-                }}
-                placeholder="חפש משתמשים"
-              />
-              {isSearching && (
-                <div className="absolute left-2 top-3">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
-                </div>
-              )}
-              {groupUserResults.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
-                  {groupUserResults.map((user) => (
-                    <div
-                      key={user.id}
-                      className="p-2 hover:bg-gray-100 cursor-pointer text-right flex items-center gap-2"
-                      onClick={() => {
-                        setSelectedGroupUsers([...selectedGroupUsers, user]);
-                        setGroupUserResults([]);
-                        setGroupUserSearch("");
-                      }}
-                    >
-                      {user.photoURL && (
-                        <img src={user.photoURL} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
-                      )}
-                      <span>{user.username}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedGroupUsers.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {selectedGroupUsers.map(user => (
-                    <div key={user.id} className="flex items-center gap-1 bg-gray-200 px-2 py-1 rounded-full">
-                      {user.username}
-                      <button className="ml-1 text-red-500" onClick={() => setSelectedGroupUsers(selectedGroupUsers.filter(u => u.id !== user.id))}>×</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <button
-                className='px-4 py-2 text-white rounded-lg hover:scale-105 disabled:opacity-50'
-                onClick={async () => {
-                  if (!groupName.trim()) return;
-                  try {
-                    const batch = writeBatch(db);
-                    const groupRef = doc(collection(db, "conversations"));
-                    const adminUid = currentUser.uid;
-                    const participants = [adminUid, ...selectedGroupUsers.map(u => u.id)];
-                    const participantNames = [currentUser.username, ...selectedGroupUsers.map(u => u.username)];
-                    const groupData = {
-                      type: "group",
-                      name: groupName.trim(),
-                      admin: adminUid,
-                      participants,
-                      participantNames,
-                      lastMessage: "",
-                      lastUpdated: serverTimestamp(),
-                      createdAt: serverTimestamp(),
-                    };
-                    batch.set(groupRef, groupData);
-                    await batch.commit();
-                    let avatarURL = null;
-                    if (groupAvatarFile) {
-                      // Upload avatar to Storage
-                      const avatarRef = storageRef(storage, `group_avatars/${groupRef.id}.jpg`);
-                      await uploadBytesResumable(avatarRef, groupAvatarFile);
-                      avatarURL = await getDownloadURL(avatarRef);
-                      await updateDoc(groupRef, { avatarURL });
-                    }
-                    const newGroupDoc = await getDoc(groupRef);
-                    setPendingSelectedConversationId(newGroupDoc.id);
-                    setShowNewGroupDialog(false);
-                    setGroupName("");
-                    setGroupUserSearch("");
-                    setGroupUserResults([]);
-                    setSelectedGroupUsers([]);
-                    setGroupAvatarFile(null);
-                    setGroupAvatarPreview(null);
-                    // Send personal system message to each added user (except admin) about group creation
-                    for (const user of selectedGroupUsers) {
-                      await addDoc(collection(db, "conversations", groupRef.id, "messages"), {
-                        text: `${currentUser.username} יצר את הקבוצה (${groupName.trim()}) והוסיפך אליה`,
-                        type: "system",
-                        systemSubtype: "personal",
-                        createdAt: serverTimestamp(),
-                        targetUid: user.id
-                      });
-                      // Increment unread count for the added user
-                      await updateDoc(groupRef, {
-                        [`unread.${user.id}`]: 1
-                      });
-                    }
-                  } catch (error) {
-                    alert("שגיאה ביצירת קבוצה: " + error.message);
-                  }
-                }}
-                disabled={!groupName.trim()}
-                style={{ backgroundColor: elementColors.primary }}
-              >
-                צור קבוצה
-              </button>
-              <button
-                className="px-4 py-2 border rounded-lg hover:bg-gray-200"
-                onClick={() => {
-                  setShowNewGroupDialog(false);
-                  setGroupName("");
-                  setGroupUserSearch("");
-                  setGroupUserResults([]);
-                  setSelectedGroupUsers([]);
-                  setGroupAvatarFile(null);
-                  setGroupAvatarPreview(null);
-                }}
-              >
-                ביטול
-              </button>
-            </div>
-          </div>
-        </div>
+        <NewGroupDialog
+          show={showNewGroupDialog}
+          groupName={groupName}
+          setGroupName={setGroupName}
+          groupAvatarFile={groupAvatarFile}
+          setGroupAvatarFile={setGroupAvatarFile}
+          groupAvatarPreview={groupAvatarPreview}
+          setGroupAvatarPreview={setGroupAvatarPreview}
+          groupUserSearch={groupUserSearch}
+          setGroupUserSearch={setGroupUserSearch}
+          groupUserResults={groupUserResults}
+          setGroupUserResults={setGroupUserResults}
+          isSearching={isSearching}
+          selectedGroupUsers={selectedGroupUsers}
+          setSelectedGroupUsers={setSelectedGroupUsers}
+          currentUser={currentUser}
+          setShowNewGroupDialog={setShowNewGroupDialog}
+          elementColors={elementColors}
+          createGroup={async () => {
+            if (!groupName.trim()) return;
+            try {
+              const batch = writeBatch(db);
+              const groupRef = doc(collection(db, "conversations"));
+              const adminUid = currentUser.uid;
+              const participants = [adminUid, ...selectedGroupUsers.map(u => u.id)];
+              const participantNames = [currentUser.username, ...selectedGroupUsers.map(u => u.username)];
+              const groupData = {
+                type: "group",
+                name: groupName.trim(),
+                admin: adminUid,
+                participants,
+                participantNames,
+                lastMessage: "",
+                lastUpdated: serverTimestamp(),
+                createdAt: serverTimestamp(),
+              };
+              batch.set(groupRef, groupData);
+              await batch.commit();
+              let avatarURL = null;
+              if (groupAvatarFile) {
+                // Upload avatar to Storage
+                const avatarRef = storageRef(storage, `group_avatars/${groupRef.id}.jpg`);
+                await uploadBytesResumable(avatarRef, groupAvatarFile);
+                avatarURL = await getDownloadURL(avatarRef);
+                await updateDoc(groupRef, { avatarURL });
+              }
+              const newGroupDoc = await getDoc(groupRef);
+              setPendingSelectedConversationId(newGroupDoc.id);
+              setShowNewGroupDialog(false);
+              setGroupName("");
+              setGroupUserSearch("");
+              setGroupUserResults([]);
+              setSelectedGroupUsers([]);
+              setGroupAvatarFile(null);
+              setGroupAvatarPreview(null);
+              // Send personal system message to each added user (except admin) about group creation
+              for (const user of selectedGroupUsers) {
+                await addDoc(collection(db, "conversations", groupRef.id, "messages"), {
+                  text: `${currentUser.username} יצר את הקבוצה (${groupName.trim()}) והוסיפך אליה`,
+                  type: "system",
+                  systemSubtype: "personal",
+                  createdAt: serverTimestamp(),
+                  targetUid: user.id
+                });
+                // Increment unread count for the added user
+                await updateDoc(groupRef, {
+                  [`unread.${user.id}`]: 1
+                });
+              }
+            } catch (error) {
+              alert("שגיאה ביצירת קבוצה: " + error.message);
+            }
+          }}
+        />
       )}
     </div>
   );
