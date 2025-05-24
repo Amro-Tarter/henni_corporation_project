@@ -43,6 +43,10 @@ const ProfilePost = ({
   const [liked, setLiked] = useState(false);
   const [authorProfile, setAuthorProfile] = useState(null);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [floatLike, setFloatLike] = useState(false);
+  const [warning, setWarning] = useState('');
+  const [error, setError] = useState('');
+  const [mediaType, setMediaType] = useState('');
 
   const { toast } = useToast();
   const fileInputRef = useRef(null);
@@ -59,6 +63,12 @@ const ProfilePost = ({
     fetch();
   }, [post.authorId, getAuthorProfile]);
 
+  useEffect(() => {
+    if (mediaUrl) {
+      const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
+      setMediaType(isVideo ? 'video' : 'image');
+    }
+  }, [mediaUrl]);
 
   useEffect(() => {
     setLiked(Array.isArray(likedBy) && likedBy.includes(currentUser.uid));
