@@ -117,6 +117,13 @@
     .rotate-y-180 {
       transform: rotateY(180deg);
     }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
   }
   body {
     @apply bg-background text-foreground font-heebo;

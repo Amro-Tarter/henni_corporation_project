@@ -26,13 +26,13 @@ const ProfilePost = ({
   const {
     id,
     createdAt,
-    content,
-    mediaUrl,
-    mediaType,
-    likesCount,
-    commentsCount,
-    likedBy = []
-  } = post;
+    content = '',
+    mediaUrl = '',
+    likesCount = 0,
+    commentsCount = 0,
+    likedBy = [],
+    authorId
+  } = post || {};
 
   const [editing, setEditing] = useState(false);
   const [newContent, setNewContent] = useState(content);
@@ -44,9 +44,9 @@ const ProfilePost = ({
   const [authorProfile, setAuthorProfile] = useState(null);
   const [showPostModal, setShowPostModal] = useState(false);
   const [floatLike, setFloatLike] = useState(false);
-  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [commentToDelete, setCommentToDelete] = useState(null);
   const [warning, setWarning] = useState('');
+  const [error, setError] = useState('');
+  const [mediaType, setMediaType] = useState('');
 
   const { toast } = useToast();
   const fileInputRef = useRef(null);
@@ -63,6 +63,12 @@ const ProfilePost = ({
     fetch();
   }, [post.authorId, getAuthorProfile]);
 
+  useEffect(() => {
+    if (mediaUrl) {
+      const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
+      setMediaType(isVideo ? 'video' : 'image');
+    }
+  }, [mediaUrl]);
 
   useEffect(() => {
     setLiked(Array.isArray(likedBy) && likedBy.includes(currentUser.uid));
@@ -86,39 +92,48 @@ const ProfilePost = ({
       })
     : '';
 
-  const handleDelete = () => setShowConfirmDelete(true);
+  const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
 
-  const confirmDelete = () => {
-    onDelete(id);
-    setShowConfirmDelete(false);
-    setMenuOpen(false);
-  };
-
-  const cancelDelete = () => setShowConfirmDelete(false);
-
-  const handleSaveEdit = () => {
-    if (containsBadWord(newContent)) {
-      setWarning('הפוסט מכיל מילים לא ראויות!');
-      setTimeout(() => setWarning(''), 3500);
-      return;
+  const handleDelete = async () => {
+    if (!id || !onDelete) return;
+    
+    if (window.confirm('האם אתה בטוח שברצונך למחוק את הפוסט הזה?')) {
+      try {
+        await onDelete(id);
+        setMenuOpen(false);
+      } catch (err) {
+        console.error('Error deleting post:', err);
+        alert('Failed to delete post. Please try again.');
+      }
     }
-    onUpdate(id, { content: newContent, mediaFile: newMediaFile });
-    toast({
-      title: 'הצלחה',
-      description: 'הפוסט עודכן בהצלחה 🎉',
-      variant: 'success',
-    });
-    setEditing(false);
-    setNewMediaFile(null);
   };
 
+  const handleSaveEdit = async () => {
+    if (!id || !onUpdate) return;
+    
+    try {
+      await onUpdate(id, { content: newContent, mediaFile: newMediaFile });
+      setEditing(false);
+      setNewMediaFile(null);
+    } catch (err) {
+      console.error('Error updating post:', err);
+      alert('Failed to update post. Please try again.');
+    }
+  };
 
-  const toggleLike = () => {
-    const newState = !liked;
-    setLiked(newState);
-    setFloatLike(true);
-    onLike(id, newState);
-    setTimeout(() => setFloatLike(false), 600);
+  const toggleLike = async () => {
+    if (!id || !onLike || !currentUser) return;
+    
+    try {
+      const newState = !liked;
+      setLiked(newState);
+      setFloatLike(true);
+      await onLike(id, newState);
+      setTimeout(() => setFloatLike(false), 600);
+    } catch (err) {
+      console.error('Error toggling like:', err);
+      alert('Failed to update like. Please try again.');
+    }
   };
 
 
@@ -137,10 +152,64 @@ const ProfilePost = ({
   };
 
   const pickMedia = () => fileInputRef.current?.click();
-  const onMediaChange = e => {
+  
+  const onMediaChange = async e => {
     const file = e.target.files[0];
-    if (file) setNewMediaFile(file);
+    if (!file) return;
+
+    // Validate file size (max 100MB for videos, 10MB for images)
+    const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(`File too large. Max ${isVideo ? '100MB' : '10MB'} allowed`);
+      return;
+    }
+
+    // Validate file type
+    const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    
+    if (isVideo && !validVideoTypes.includes(file.type)) {
+      alert('Invalid video format. Please use MP4, WebM, or OGG format.');
+      return;
+    }
+    
+    if (!isVideo && !validImageTypes.includes(file.type)) {
+      alert('Invalid image format. Please use JPEG, PNG, GIF, or WebP format.');
+      return;
+    }
+
+    try {
+      // For videos, we might want to check if the video is playable
+      if (isVideo) {
+        const videoBlob = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.src = videoBlob;
+        
+        await new Promise((resolve, reject) => {
+          video.onloadedmetadata = () => {
+            URL.revokeObjectURL(videoBlob);
+            // Check if video duration is reasonable (e.g., max 5 minutes)
+            if (video.duration > 300) { // 5 minutes in seconds
+              reject(new Error('Video too long. Maximum duration is 5 minutes.'));
+            } else {
+              resolve();
+            }
+          };
+          video.onerror = () => reject(new Error('Invalid video file'));
+        });
+      }
+
+      setNewMediaFile(file);
+    } catch (err) {
+      alert(err.message || 'Error processing media file');
+      e.target.value = ''; // Reset input
+      return;
+    }
   };
+
+  if (error) {
+    return <div className="p-4 text-center text-red-500">{error}</div>;
+  }
 
   return (
     <>
@@ -288,13 +357,26 @@ const ProfilePost = ({
                 <video
                   src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
                   controls
+                  preload="metadata"
                   className="max-h-[40rem] w-auto object-contain"
-                />
+                  onError={(e) => {
+                    console.error('Video loading error:', e);
+                    // Fallback to image if video fails to load
+                    e.target.style.display = 'none';
+                  }}
+                >
+                  <source src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl} />
+                  הדפדפן שלך אינו תומך בהצגת וידאו.
+                </video>
               ) : (
                 <img
                   src={newMediaFile ? URL.createObjectURL(newMediaFile) : mediaUrl}
                   alt="תוכן הפוסט"
                   className="max-h-[40rem] w-full object-cover"
+                  onError={(e) => {
+                    console.error('Image loading error:', e);
+                    e.target.alt = 'שגיאה בטעינת התמונה';
+                  }}
                 />
               )}
             </div>
@@ -360,67 +442,45 @@ const ProfilePost = ({
         </div>
 
         {/* Comments Section */}
-        <AnimatePresence initial={false}>
-          {showComments && (
-            <motion.div
-              ref={commentsRef}
-              className="px-5 py-4 border-t border-gray-200"
-              key="comments-section"
-              initial={{ y: -24, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -24, opacity: 0 }}
-              transition={{ duration: 0.40 }}
-            >
-              <div>
-                <div className="flex gap-3 mb-4">
-                  <img src={currentUser.photoURL} alt="" className="w-8 h-8 rounded-full" />
-                  <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
-                </div>
-                {comments.length > 0 ? (
-                  comments.map(c => (
-                    <Comment
-                      key={c.id}
-                      comment={c}
-                      element={element}
-                      currentUser={currentUser}
-                      onReply={setReplyTo}
-                      onEdit={onEditComment}
-                      onDelete={() =>
-                        setCommentToDelete({
-                          postId: id,
-                          commentId: c.id,
-                          isReply: c.parentCommentId ? true : false,
-                          parentCommentId: c.parentCommentId || null,
-                        })
-                      }
-                      replyingToId={replyTo}
-                      onSubmitReply={(text, parentId) => {
-                        onAddComment(id, text, parentId);
-                        setReplyTo(null);
-                      }}
-                      onCancelReply={() => setReplyTo(null)}
-                      postId={id}
-                      postAuthorId={post.authorId}
-                      getAuthorProfile={getAuthorProfile}
-                    />
-                  ))
-                ) : (
-                  <p className="text-center text-gray-500">אין תגובות עדיין.</p>
-                )}
+        {showComments && (
+          <div ref={commentsRef} className="px-5 py-4 border-t border-gray-200">
+            {currentUser && (
+              <div className="flex gap-3 mb-4">
+                <img src={currentUser.photoURL || '/default_user_pic.jpg'} alt="" className="w-8 h-8 rounded-full" />
+                <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+            {replyTo && currentUser && (
+              <div className="ml-12 mb-4">
+                <CommentInput placeholder="הגב..." element={element} onSubmit={submitComment} onCancel={() => setReplyTo(null)} />
+              </div>
+            )}
+            {comments.length > 0 ? (
+              comments.map(c => (
+                <Comment
+                  key={c.id}
+                  comment={c}
+                  element={element}
+                  currentUser={currentUser}
+                  onReply={setReplyTo}
+                  onEdit={onEditComment}
+                  onDelete={onDeleteComment}
+                  postId={id}
+                  postAuthorId={post.authorId}
+                  getAuthorProfile={getAuthorProfile}
+                />
+              ))
+            ) : (
+              <p className="text-center text-gray-500">אין תגובות עדיין.</p>
+            )}
+          </div>
+        )}
       </div>
 
       {showPostModal && (
-        <div className="fixed inset-0 z-[200]">
+        <div className="fixed inset-0 z-40">
           {/* FULLSCREEN BLUR */}
-          <div 
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm" 
-            onClick={() => setShowPostModal(false)}
-          />
-
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" />
           {/* MODAL CONTENT */}
           <div className="flex items-center justify-center w-full h-full p-4 pointer-events-none">
             <motion.div
@@ -431,63 +491,33 @@ const ProfilePost = ({
               className="relative w-full max-w-3xl max-h-[90vh] bg-white rounded-xl overflow-hidden shadow-xl flex flex-col pointer-events-auto"
               onClick={e => e.stopPropagation()}
             >
-            <button
-              onClick={() => setShowPostModal(false)}
-              className={`absolute top-4 left-4 z-50 text-${element} bg-white hover:bg-${element}-soft border border-${element}-accent p-2 rounded-full shadow-md transition-all`}
-              aria-label="סגור פוסט"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="overflow-y-auto px-6 pt-10 pb-6 flex-1">
-              <PostModalContent
-                post={post}
-                element={element}
-                currentUser={currentUser}
-                comments={comments}
-                onAddComment={onAddComment}
-                onEditComment={onEditComment}
-                onDeleteComment={onDeleteComment}
-                onLike={onLike}
-                onDelete={onDelete}
-                onUpdate={onUpdate}
-                isOwner={isOwner}
-                getAuthorProfile={getAuthorProfile}
-              />
-            </div>
-          </motion.div>
+              <button
+                onClick={() => setShowPostModal(false)}
+                className={`absolute top-4 left-4 z-50 text-${element} bg-white hover:bg-${element}-soft border border-${element}-accent p-2 rounded-full shadow-md transition-all`}
+                aria-label="סגור פוסט"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="overflow-y-auto px-6 pt-10 pb-6 flex-1">
+                <PostModalContent
+                  post={post}
+                  element={element}
+                  currentUser={currentUser}
+                  comments={comments}
+                  onAddComment={onAddComment}
+                  onEditComment={onEditComment}
+                  onDeleteComment={onDeleteComment}
+                  onLike={onLike}
+                  onDelete={onDelete}
+                  onUpdate={onUpdate}
+                  isOwner={isOwner}
+                  getAuthorProfile={getAuthorProfile}
+                />
+              </div>
+            </motion.div>
+          </div>
         </div>
-      </div>
-)}
-      <ConfirmationModal
-        open={showConfirmDelete}
-        title="מחיקת פוסט"
-        message="האם אתה בטוח שברצונך למחוק את הפוסט הזה?"
-        confirmText="מחק"
-        cancelText="ביטול"
-        onConfirm={confirmDelete}
-        onCancel={cancelDelete}
-        element={element}
-      />
-      <ConfirmationModal
-        open={!!commentToDelete}
-        title="מחיקת תגובה"
-        message="האם אתה בטוח שברצונך למחוק את התגובה הזו?"
-        confirmText="מחק"
-        cancelText="ביטול"
-        onConfirm={() => {
-          if (commentToDelete) {
-            onDeleteComment(
-              commentToDelete.postId,
-              commentToDelete.commentId,
-              commentToDelete.isReply,
-              commentToDelete.parentCommentId
-            );
-            setCommentToDelete(null);
-          }
-        }}
-        onCancel={() => setCommentToDelete(null)}
-        element={element}
-      />
+      )}
     </>
   );
 };
