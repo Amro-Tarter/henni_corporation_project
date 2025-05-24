@@ -5,7 +5,7 @@ import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import useNotificationsComponent from './NotificationsComponent';
+import { useNotifications } from './NotificationsComponent';
 import { cn } from '@/lib/utils';
 
 const navTabs = [
@@ -16,7 +16,7 @@ const navTabs = [
 
 const Navbar = ({ element }) => {
   const navigate = useNavigate();
-  const { showNotifications, setShowNotifications, unreadCount, NotificationsModal, loading } = useNotificationsComponent();
+  const { showNotifications, setShowNotifications, unreadCount, loading } = useNotifications();
 
   const getInitialTab = () => {
     const path = window.location.pathname;
@@ -645,8 +645,6 @@ const Navbar = ({ element }) => {
           </div>
         </nav>
       </header>
-
-      {(() => { console.log('Rendering NotificationsModal (Navbar):', showNotifications); return <NotificationsModal /> })()}
     </>
   );
 };

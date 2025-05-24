@@ -7,7 +7,7 @@ import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnaps
 import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import useNotificationsComponent from './NotificationsComponent';
+import { useNotifications } from './NotificationsComponent';
 
 const tabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', route: '/home' },
@@ -29,8 +29,8 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   // Add state for profile pictures
   const [profilePictures, setProfilePictures] = useState({});
   
-  // Use NotificationsComponent directly
-  const { showNotifications, setShowNotifications, unreadCount, messageUnreadCount, NotificationsModal, loading } = useNotificationsComponent();
+  // Use shared notifications context
+  const { showNotifications, setShowNotifications, unreadCount, messageUnreadCount, loading } = useNotifications();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -391,9 +391,6 @@ const Rightsidebar = ({ element, onExpandChange }) => {
           <span>{user ? 'פרופיל' : 'התחברות'}</span>
         </button>
       </nav>
-
-      {/* Notifications Modal */}
-      {(() => { console.log('Rendering NotificationsModal:', showNotifications); return <NotificationsModal /> })()}
     </>
   );
 };

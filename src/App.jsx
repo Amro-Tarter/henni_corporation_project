@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider } from './context/AuthContext';
+import { NotificationsProvider, useNotifications } from './components/social/NotificationsComponent';
 
 // Import your page components
 import DashboardHome from "./pages/admin/DashboardHome";
@@ -64,6 +65,12 @@ const GATracker = () => {
   return null; // This component doesn't render any UI
 };
 
+// Component to render the shared notifications modal
+const NotificationsModalContainer = () => {
+  const { NotificationsModal } = useNotifications();
+  return <NotificationsModal />;
+};
+
 const App = () => {
   return (
     <AuthProvider>
@@ -72,45 +79,49 @@ const App = () => {
           <TooltipProvider>
             <Toaster />
             <BrowserRouter>
-              {/* Render the GATracker component inside BrowserRouter */}
-              <GATracker /> 
-              <Routes>
-                {/* Public Pages */}
-                <Route path="/" element={<Index />} />
-                <Route path="/accessibility" element={<AccessibilityStatement />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/terms" element={<TermsOfUse />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/forgotPassword" element={<ForgotPassword />} />
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/login" element={<LogIn />} />
-                <Route path="/community" element={<CommunityPage />} />
-                <Route path="/projects" element={<ElementalProjects />} />
-                <Route path="/team" element={<Team />} />
-                <Route path="/newsletter" element={<NewsletterPage />} />
+              <NotificationsProvider>
+                {/* Render the GATracker component inside BrowserRouter */}
+                <GATracker /> 
+                <Routes>
+                  {/* Public Pages */}
+                  <Route path="/" element={<Index />} />
+                  <Route path="/accessibility" element={<AccessibilityStatement />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/terms" element={<TermsOfUse />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/forgotPassword" element={<ForgotPassword />} />
+                  <Route path="/signup" element={<SignUp />} />
+                  <Route path="/login" element={<LogIn />} />
+                  <Route path="/community" element={<CommunityPage />} />
+                  <Route path="/projects" element={<ElementalProjects />} />
+                  <Route path="/team" element={<Team />} />
+                  <Route path="/newsletter" element={<NewsletterPage />} />
 
-                {/* Protected Pages */}
-                <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-                <Route path="/profile/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-                <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
-                <Route path="/chat/:chatId" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
-                <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
+                  {/* Protected Pages */}
+                  <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                  <Route path="/profile/:username" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+                  <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
+                  <Route path="/chat/:chatId" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
+                  <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
 
-                {/* Mentor Report Form */}
-                <Route path="/report" element={<MentorReportForm />} />
+                  {/* Mentor Report Form */}
+                  <Route path="/report" element={<MentorReportForm />} />
 
-                {/* Admin Pages */}
-                <Route path="/admin" element={<DashboardHome />} />
-                <Route path="/admin/Users" element={<Users />} />
-                <Route path="/admin/Partners" element={<PartnerForm />} />
-                <Route path="/admin/Reports" element={<Reports />} />
-                <Route path="/admin/Settings" element={<Settings />} />
-                <Route path="/admin/donations" element={<DonationForm/>} />
-                <Route path="/admin/forms" element={<FormsPage/>} />
+                  {/* Admin Pages */}
+                  <Route path="/admin" element={<DashboardHome />} />
+                  <Route path="/admin/Users" element={<Users />} />
+                  <Route path="/admin/Partners" element={<PartnerForm />} />
+                  <Route path="/admin/Reports" element={<Reports />} />
+                  <Route path="/admin/Settings" element={<Settings />} />
+                  <Route path="/admin/donations" element={<DonationForm/>} />
+                  <Route path="/admin/forms" element={<FormsPage/>} />
 
-                {/* 404 Page */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+                  {/* 404 Page */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                {/* Render the shared notifications modal */}
+                <NotificationsModalContainer />
+              </NotificationsProvider>
             </BrowserRouter>
           </TooltipProvider>
         </QueryClientProvider>

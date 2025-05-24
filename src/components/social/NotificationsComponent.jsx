@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { X, Trash2 } from 'lucide-react';
 import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnapshot, orderBy, updateDoc, limit, arrayUnion } from 'firebase/firestore';
 import { auth, db } from '../../config/firbaseConfig';
@@ -7,8 +7,21 @@ import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { onAuthStateChanged } from 'firebase/auth';
 
-const useNotificationsComponent = () => {
-  console.log('NotificationsComponent mounted');
+// Create the context
+const NotificationsContext = createContext();
+
+// Custom hook to use the notifications context
+export const useNotifications = () => {
+  const context = useContext(NotificationsContext);
+  if (!context) {
+    throw new Error('useNotifications must be used within a NotificationsProvider');
+  }
+  return context;
+};
+
+// Provider component
+export const NotificationsProvider = ({ children }) => {
+  console.log('NotificationsProvider mounted');
   const [notifications, setNotifications] = useState([]);
   const [profilePictures, setProfilePictures] = useState({});
   const [showNotifications, setShowNotifications] = useState(false);
@@ -696,14 +709,29 @@ const useNotificationsComponent = () => {
     );
   };
 
-  return {
+  const contextValue = {
     showNotifications,
     setShowNotifications,
     unreadCount,
     messageUnreadCount,
+    postUnreadCount,
     NotificationsModal,
-    loading
+    loading,
+    notifications,
+    isProcessing
   };
+
+  return (
+    <NotificationsContext.Provider value={contextValue}>
+      {children}
+    </NotificationsContext.Provider>
+  );
+};
+
+// Keep the old hook for backward compatibility (deprecated)
+const useNotificationsComponent = () => {
+  console.warn('useNotificationsComponent is deprecated. Use useNotifications hook with NotificationsProvider instead.');
+  return useNotifications();
 };
 
 export default useNotificationsComponent;
