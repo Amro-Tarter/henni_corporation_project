@@ -99,11 +99,11 @@ const useNotificationsComponent = () => {
 
         for (const conversationDoc of snapshot.docs) {
           const conversation = conversationDoc.data();
-          console.log('📝 Processing conversation:', conversationDoc.id, conversation);
-          
-          // Debug: Check unread structure
-          console.log('🔍 Unread data:', conversation.unread);
-          console.log('🔍 User unread count:', conversation.unread?.[user.uid]);
+          console.log('📝 Processing conversation:', conversationDoc.id, {
+            type: conversation.type,
+            unread: conversation.unread,
+            userUnreadCount: conversation.unread?.[user.uid]
+          });
           
           // Keep handling unread messages from all conversation types (direct, group, community)
           if (conversation.unread && conversation.unread[user.uid] > 0) {
@@ -117,7 +117,7 @@ const useNotificationsComponent = () => {
               const messagesQuery = query(
                 collection(db, 'conversations', conversationDoc.id, 'messages'),
                 orderBy('createdAt', 'desc'),
-                limit(10) // Get more messages for debugging
+                limit(Math.max(unreadCount, 5)) // Get at least 5 messages for safety
               );
               
               const messagesSnapshot = await getDocs(messagesQuery);
@@ -128,111 +128,96 @@ const useNotificationsComponent = () => {
                 
                 if (conversation.type === 'direct') {
                   const partnerUid = conversation.participants.find(p => p !== user.uid);
-                  console.log('👤 Partner UID:', partnerUid);
                   const partnerDoc = await getDoc(firestoreDoc(db, 'users', partnerUid));
                   conversationName = partnerDoc.exists() ? partnerDoc.data().username : "Unknown";
-                  console.log('👤 Partner name:', conversationName);
                 } else if (conversation.type === 'group') {
-                  conversationName = conversation.groupName || 'קבוצה';
+                  conversationName = conversation.groupName || conversation.name || 'קבוצה';
                 } else if (conversation.type === 'community') {
                   conversationName = conversation.element || 'קהילה';
                 }
 
-                // Get all messages for debugging
+                // Get all messages for analysis
                 const allMessages = messagesSnapshot.docs.map(doc => ({
                   id: doc.id,
                   ...doc.data()
                 }));
                 
-                console.log('📨 All messages:', allMessages);
+                console.log('📨 Latest messages:', allMessages.slice(0, 3));
 
-                // Filter messages - be more lenient with filtering
+                // More flexible message filtering
                 const messages = allMessages.filter(msg => {
-                  const isFromOtherUser = msg.sender && msg.sender !== user.uid;
-                  const isSystemForUser = msg.type === 'system' && msg.systemSubtype === 'personal' && msg.targetUid === user.uid;
-                  const shouldInclude = isFromOtherUser || isSystemForUser;
+                  // For regular messages: not from current user
+                  if (msg.sender && msg.sender !== user.uid) {
+                    return true;
+                  }
                   
-                  console.log(`🔍 Message ${msg.id}:`, {
-                    type: msg.type,
-                    sender: msg.sender,
-                    isFromOtherUser,
-                    isSystemForUser,
-                    shouldInclude,
-                    currentUser: user.uid
-                  });
+                  // For system messages: targeted to current user
+                  if (msg.type === 'system' && msg.systemSubtype === 'personal' && msg.targetUid === user.uid) {
+                    return true;
+                  }
                   
-                  return shouldInclude;
+                  return false;
                 }).slice(0, unreadCount);
 
-                console.log(`✅ Filtered messages for notifications:`, messages);
+                console.log(`✅ Filtered messages for notifications (${messages.length}):`, messages);
 
-                if (messages.length === 0) {
-                  console.log('⚠️ No messages passed the filter! This might be the issue.');
-                  // If no messages passed filter, still create a notification for debugging
-                  const latestMessage = allMessages[0];
-                  if (latestMessage) {
-                    console.log('🔧 Creating notification with latest message for debugging:', latestMessage);
-                    notificationList.push({
-                      id: `${conversationDoc.id}_${latestMessage.id}`,
-                      type: 'message',
-                      message: latestMessage.text || latestMessage.content || 'New message',
-                      timestamp: latestMessage.createdAt,
-                      conversationId: conversationDoc.id,
-                      senderId: latestMessage.sender || 'unknown',
-                      senderName: conversationName || 'Unknown',
-                      conversationName: conversationName,
-                      unreadCount: 1,
-                      conversationType: conversation.type || 'direct'
-                    });
-                  }
-                } else {
-                  const senderIds = [...new Set(messages.filter(msg => msg.sender).map(msg => msg.sender))];
-                  console.log('👥 Sender IDs:', senderIds);
-                  
-                  const senderDocs = await Promise.all(
-                    senderIds.map(id => getDoc(firestoreDoc(db, 'users', id)))
-                  );
-                  const senderNames = Object.fromEntries(
-                    senderIds.map((id, index) => [
-                      id,
-                      senderDocs[index].exists() ? senderDocs[index].data().username : "Unknown"
-                    ])
-                  );
+                // Create notifications for valid messages
+                for (const message of messages) {
+                  let displayName;
+                  let senderId;
+                  let notificationType = 'message';
 
-                  console.log('👥 Sender names:', senderNames);
-
-                  for (const message of messages) {
-                    let displayName;
-                    let senderId;
-                    let notificationType = message.type || 'message';
-
-                    if (message.type === 'system') {
-                      displayName = 'מערכת';
-                      senderId = 'system';
-                    } else {
-                      displayName = senderNames[message.sender] || 'Unknown';
-                      senderId = message.sender;
-                      if (conversation.type === 'group' || conversation.type === 'community') {
-                        displayName = `${displayName} (${conversationName})`;
-                      }
+                  if (message.type === 'system') {
+                    displayName = 'מערכת';
+                    senderId = 'system';
+                    notificationType = 'system';
+                  } else {
+                    // Get sender info
+                    try {
+                      const senderDoc = await getDoc(firestoreDoc(db, 'users', message.sender));
+                      displayName = senderDoc.exists() ? senderDoc.data().username : message.senderName || 'Unknown';
+                    } catch (e) {
+                      displayName = message.senderName || 'Unknown';
                     }
-
-                    const notification = {
-                      id: `${conversationDoc.id}_${message.id}`,
-                      type: notificationType,
-                      message: message.text || message.content || (message.type === 'system' ? 'System event' : 'Sent a message'),
-                      timestamp: message.createdAt,
-                      conversationId: conversationDoc.id,
-                      senderId: senderId,
-                      senderName: displayName,
-                      conversationName: conversationName,
-                      unreadCount: 1,
-                      conversationType: conversation.type || 'direct'
-                    };
-
-                    console.log('✅ Creating notification:', notification);
-                    notificationList.push(notification);
+                    
+                    senderId = message.sender;
+                    if (conversation.type === 'group' || conversation.type === 'community') {
+                      displayName = `${displayName} (${conversationName})`;
+                    }
                   }
+
+                  const notification = {
+                    id: `${conversationDoc.id}_${message.id}`,
+                    type: notificationType,
+                    message: message.text || message.content || (message.type === 'system' ? 'System event' : 'New message'),
+                    timestamp: message.createdAt,
+                    conversationId: conversationDoc.id,
+                    senderId: senderId,
+                    senderName: displayName,
+                    conversationName: conversationName,
+                    unreadCount: 1,
+                    conversationType: conversation.type || 'direct'
+                  };
+
+                  console.log('✅ Creating notification:', notification);
+                  notificationList.push(notification);
+                }
+
+                // If no valid messages found but we have unread count, create a generic notification
+                if (messages.length === 0 && unreadCount > 0) {
+                  console.log('⚠️ No specific messages found, creating generic notification');
+                  notificationList.push({
+                    id: `${conversationDoc.id}_generic`,
+                    type: 'message',
+                    message: `${unreadCount} הודעות חדשות`,
+                    timestamp: new Date(),
+                    conversationId: conversationDoc.id,
+                    senderId: 'unknown',
+                    senderName: conversationName || 'Unknown',
+                    conversationName: conversationName,
+                    unreadCount: unreadCount,
+                    conversationType: conversation.type || 'direct'
+                  });
                 }
               } else {
                 console.log(`⚠️ No messages found in conversation ${conversationDoc.id} despite unread count > 0`);
@@ -241,31 +226,26 @@ const useNotificationsComponent = () => {
               console.error("❌ Error fetching message details for conversation:", conversationDoc.id, error);
               continue;
             }
-          } else {
-            console.log(`📭 No unread messages in conversation ${conversationDoc.id}`);
           }
         }
 
         console.log('🔔 Final notification list:', notificationList);
-        console.log('📊 Total unread:', totalUnread, 'Message unread:', messageUnread);
 
         notificationList.sort((a, b) => {
-          const timeA = a.timestamp?.toMillis?.() || 0;
-          const timeB = b.timestamp?.toMillis?.() || 0;
+          const timeA = a.timestamp?.toMillis?.() || a.timestamp?.getTime?.() || 0;
+          const timeB = b.timestamp?.toMillis?.() || b.timestamp?.getTime?.() || 0;
           return timeB - timeA;
         });
         
         // Update notifications, but only replace message notifications, keep post notifications
         setNotifications(prevNotifications => {
-          console.log('🔄 Previous notifications:', prevNotifications);
           const postNotifications = prevNotifications.filter(n => n.type === 'post');
           const combined = [...notificationList, ...postNotifications];
           combined.sort((a, b) => {
-            const timeA = a.timestamp?.toMillis?.() || 0;
-            const timeB = b.timestamp?.toMillis?.() || 0;
+            const timeA = a.timestamp?.toMillis?.() || a.timestamp?.getTime?.() || 0;
+            const timeB = b.timestamp?.toMillis?.() || b.timestamp?.getTime?.() || 0;
             return timeB - timeA;
           });
-          console.log('🔄 Updated notifications:', combined);
           return combined;
         });
         
