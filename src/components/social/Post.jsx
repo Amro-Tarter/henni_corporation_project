@@ -550,11 +550,6 @@ const Post = ({
                 <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
               </div>
             )}
-            {replyTo && currentUser && (
-              <div className="ml-12 mb-4">
-                <CommentInput placeholder="הגב..." element={element} onSubmit={submitComment} onCancel={() => setReplyTo(null)} />
-              </div>
-            )}
             {comments.length > 0 ? (
               comments.map(c => (
                 <Comment
@@ -565,6 +560,9 @@ const Post = ({
                   onReply={setReplyTo}
                   onEdit={onEditComment}
                   onDelete={onDeleteComment}
+                  replyingToId={replyTo}
+                  onSubmitReply={submitComment}
+                  onCancelReply={() => setReplyTo(null)}
                   postId={id}
                   postAuthorId={post.authorId}
                   getAuthorProfile={getAuthorProfile}
