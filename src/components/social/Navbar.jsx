@@ -344,7 +344,7 @@ const Navbar = ({ element }) => {
               <Bell size={20} />
               <span>התראות</span>
               {unreadCount > 0 && (
-                <span className="bg-red-500 text-white rounded-full w-3 h-3 text-xs flex items-center justify-center">
+                <span className="bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -558,7 +558,7 @@ const Navbar = ({ element }) => {
               >
                 <Bell size={20} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-3 h-3 text-xs flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
