@@ -58,6 +58,8 @@ const Home = () => {
       try {
         setIsLoading(true);
         const fullUser = { uid: authUser.uid, email: authUser.email };
+        
+        // Fetch user data from users collection to get element
         const userSnap = await getDocs(
           query(collection(db, 'users'), where('associated_id', '==', authUser.uid))
         );
@@ -65,17 +67,22 @@ const Home = () => {
         if (!userSnap.empty) {
           const ud = userSnap.docs[0].data();
           fullUser.username = ud.username || 'משתמש';
+          // Get element from users collection
+          fullUser.element = ud.element || 'earth';
         }
 
+        // Fetch profile data from profiles collection
         const profRef = doc(db, 'profiles', authUser.uid);
         const profSnap = await getDoc(profRef);
         if (profSnap.exists()) {
           const profData = profSnap.data();
           fullUser.photoURL = profData.photoURL;
-          fullUser.element = profData.element || 'earth';
           fullUser.profile = profData;
           fullUser.username = profData.username || fullUser.username;
-          setProfile(profData);
+          setProfile({ ...profData, element: fullUser.element }); // Add element to profile
+        } else {
+          // If no profile exists, create a minimal profile with element from users
+          setProfile({ element: fullUser.element });
         }
 
         setUser(fullUser);
@@ -241,6 +248,11 @@ const Home = () => {
 
     const docRef = await addDoc(collection(db, 'posts'), newPost);
     setPosts(prev => [{ id: docRef.id, ...newPost, liked: false }, ...prev]);
+    
+    // Update the user's profile postsCount
+    await updateDoc(doc(db, 'profiles', user.uid), {
+      postsCount: increment(1)
+    });
   };
 
   const handleLike = async (postId, liked) => {
@@ -266,8 +278,18 @@ const Home = () => {
 
   const handleDeletePost = async (postId) => {
     try {
+      // Get the post to check if it belongs to the current user
+      const postToDelete = posts.find(p => p.id === postId);
+      
       await deleteDoc(doc(db, 'posts', postId));
       setPosts(prev => prev.filter(p => p.id !== postId));
+      
+      // Update the post author's profile postsCount (only if it's the current user's post)
+      if (postToDelete && postToDelete.authorId === user.uid) {
+        await updateDoc(doc(db, 'profiles', user.uid), {
+          postsCount: increment(-1)
+        });
+      }
     } catch (err) {
       console.error('Error deleting post:', err);
     }
@@ -305,7 +327,7 @@ const Home = () => {
         updatedAt: serverTimestamp(),
         edited: false,
       };
-      // Only add parentId if it’s a reply
+      // Only add parentId if it's a reply
       if (parentId) {
         commentData.parentId = parentId;
       }
@@ -415,7 +437,7 @@ const Home = () => {
 
     try {
       const othersQuery = query(
-        collection(db, 'profiles'),
+        collection(db, 'users'),
         where('element', '==', profile.element)
       );
       const othersSnap = await getDocs(othersQuery);
@@ -534,7 +556,7 @@ const Home = () => {
                     <div className="bg-element-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden">
                       {/* Sliding Underline */}
                       <div 
-                        className="absolute bottom-[10px] h-[2px] bg-blue-500 transition-all duration-300 ease-in-out"
+                        className={`absolute bottom-[10px] h-[2px] bg-${profile.element} transition-all duration-300 ease-in-out`}
                         style={{
                           left: '0',
                           width: '47%',
@@ -548,7 +570,7 @@ const Home = () => {
                           onClick={() => setActiveTab('all')}
                           className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
                             ${activeTab === 'all'
-                              ? 'text-blue-500 font-bold'
+                              ? `text-${profile.element} font-bold`
                               : 'text-element-text'
                             }
                             hover:bg-element-hover/10
@@ -561,8 +583,8 @@ const Home = () => {
                               xmlns="http://www.w3.org/2000/svg" 
                               className={`w-5 h-5 transition-colors duration-300 ${
                                 activeTab === 'all' 
-                                  ? 'text-blue-500' 
-                                  : 'opacity-70 group-hover:opacity-100 group-hover:text-blue-500'
+                                  ? `text-${profile.element}` 
+                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${profile.element}`
                               }`}
                               fill="none" 
                               viewBox="0 0 24 24" 
@@ -577,8 +599,8 @@ const Home = () => {
                             </svg>
                             <span className={`text-sm sm:text-base transition-colors duration-300 ${
                               activeTab === 'all' 
-                                ? 'text-blue-500' 
-                                : 'group-hover:text-blue-500'
+                                ? `text-${profile.element}` 
+                                : `group-hover:text-${profile.element}`
                             }`}>כל הפוסטים</span>
                           </div>
                         </button>
@@ -593,7 +615,7 @@ const Home = () => {
                           onClick={() => setActiveTab('following')}
                           className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
                             ${activeTab === 'following'
-                              ? 'text-blue-500 font-bold'
+                              ? `text-${profile.element} font-bold`
                               : 'text-element-text'
                             }
                             hover:bg-element-hover/10
@@ -606,8 +628,8 @@ const Home = () => {
                               xmlns="http://www.w3.org/2000/svg" 
                               className={`w-5 h-5 transition-colors duration-300 ${
                                 activeTab === 'following' 
-                                  ? 'text-blue-500' 
-                                  : 'opacity-70 group-hover:opacity-100 group-hover:text-blue-500'
+                                  ? `text-${profile.element}` 
+                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${profile.element}`
                               }`}
                               fill="none" 
                               viewBox="0 0 24 24" 
@@ -622,8 +644,8 @@ const Home = () => {
                             </svg>
                             <span className={`text-sm sm:text-base transition-colors duration-300 ${
                               activeTab === 'following' 
-                                ? 'text-blue-500' 
-                                : 'group-hover:text-blue-500'
+                                ? `text-${profile.element}` 
+                                : `group-hover:text-${profile.element}`
                             }`}>עוקב אחרי</span>
                           </div>
                         </button>
@@ -633,12 +655,12 @@ const Home = () => {
                     {/* Posts Count Indicator */}
                     <div className="mt-4 flex gap-4 sm:gap-8 text-sm text-element-text opacity-75 flex-wrap justify-center">
                       <span className={`flex items-center gap-1 transition-all duration-300 ${
-                        activeTab === 'all' ? 'text-element-accent font-semibold' : ''
+                        activeTab === 'all' ? `text-${profile.element} font-semibold` : ''
                       }`}>
                         <span className="font-medium">{posts.length}</span> פוסטים כלליים
                       </span>
                       <span className={`flex items-center gap-1 transition-all duration-300 ${
-                        activeTab === 'following' ? 'text-element-accent font-semibold' : ''
+                        activeTab === 'following' ? `text-${profile.element} font-semibold` : ''
                       }`}>
                         <span className="font-medium">{followingPosts.length}</span> פוסטים מעוקבים
                       </span>
