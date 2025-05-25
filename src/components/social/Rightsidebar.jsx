@@ -237,7 +237,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                   onClick={() => handleTabClick(tab.id)}
                   className={`
                     relative w-full h-12 rounded-lg
-                    flex items-center justify-start px-3 gap-3
+                    flex items-center justify-start ${!isExpanded ? 'pl-3 pr-3.5' : 'px-3'} gap-3
                     transition-all duration-200 ease-in-out group
                     ${activeTab === tab.id 
                       ? `text-white shadow-sm` 
@@ -284,7 +284,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
               }}
               className={`
                 relative w-full h-12 rounded-lg
-                flex items-center justify-start px-3 gap-3
+                flex items-center justify-start ${!isExpanded ? 'pl-3 pr-3.5' : 'px-3'} gap-3
                 transition-all duration-200 ease-in-out
                 ${showNotifications 
                   ? `text-white shadow-sm` 
@@ -323,7 +323,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
               onClick={handleProfileClick}
               className={`
                 relative w-full h-12 rounded-lg
-                flex items-center justify-start px-3 gap-3
+                flex items-center justify-start ${!isExpanded ? 'pl-3 pr-3.5' : 'px-3'} gap-3
                 transition-all duration-200 ease-in-out
                 ${activeTab === 'profile' 
                   ? `text-white shadow-sm` 
@@ -364,12 +364,12 @@ const Rightsidebar = ({ element, onExpandChange }) => {
               whileTap={{ scale: 0.98 }}
               transition={{ duration: 0.15 }}
               onClick={handleLogout}
-              className="
+              className={`
                 relative w-full h-12 rounded-lg
-                flex items-center justify-start px-3 gap-3
+                flex items-center justify-start ${!isExpanded ? 'pl-3 pr-3.5' : 'px-3'} gap-3
                 transition-all duration-200 ease-in-out
                 text-gray-700 hover:bg-gray-100
-              "
+              `}
             >
               <div className="flex-shrink-0">
                 <LogOut size={20} />
