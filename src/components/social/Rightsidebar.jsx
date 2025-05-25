@@ -8,6 +8,7 @@ import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useNotifications } from './NotificationsComponent';
+import { ELEMENT_COLORS } from '../chat/utils/ELEMENT_COLORS';
 
 const tabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', route: '/home' },
@@ -23,6 +24,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [userElement, setUserElement] = useState('fire'); // Default to fire
   const navigate = useNavigate();
   const user = auth.currentUser;
 
@@ -35,6 +37,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
+        // Fetch profile data
         const profileRef = firestoreDoc(db, 'profiles', user.uid);
         const profileSnap = await getDoc(profileRef);
         if (profileSnap.exists()) {
@@ -42,10 +45,25 @@ const Rightsidebar = ({ element, onExpandChange }) => {
           setUserPhotoURL(userData.photoURL);
           setUserProfile(userData);
         }
+
+        // Fetch element from 'users' collection (like in profile page)
+        const userRef = firestoreDoc(db, 'users', user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          if (userData.element) {
+            // Handle both string and array formats
+            const elementValue = Array.isArray(userData.element) ? userData.element[0] : userData.element;
+            setUserElement(elementValue || 'fire');
+          }
+        }
       }
     };
     fetchUserProfile();
   }, []);
+
+  // Get element colors
+  const elementColors = ELEMENT_COLORS[userElement] || ELEMENT_COLORS.fire;
 
   useEffect(() => {
     const path = window.location.pathname;
@@ -148,14 +166,23 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                   placeholder="חפש..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  className="w-full h-10 rounded-full border border-gray-300 bg-gray-50 px-4 pr-10 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:bg-white transition-all duration-300 ease-in-out opacity-100 scale-100"
-                  onSubmit={handleSearch}
+                  className="w-full h-10 rounded-full border border-gray-300 bg-gray-50 px-4 pr-10 text-sm placeholder-gray-500 focus:outline-none focus:bg-white transition-all duration-300 ease-in-out opacity-100 scale-100"
+                  style={{
+                    '--focus-border-color': elementColors.primary
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = elementColors.primary}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                 />
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 transition-all duration-200 opacity-100">
                   {!isSearching ? (
                     <Search size={16} className="text-gray-500" />
                   ) : (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-500" />
+                    <div 
+                      className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300"
+                      style={{
+                        borderTopColor: elementColors.primary
+                      }}
+                    />
                   )}
                 </div>
               </div>
@@ -213,10 +240,13 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                     flex items-center justify-start px-3 gap-3
                     transition-all duration-200 ease-in-out group
                     ${activeTab === tab.id 
-                      ? 'bg-blue-500 text-white shadow-sm' 
+                      ? `text-white shadow-sm` 
                       : 'text-gray-700 hover:bg-gray-100'
                     }
                   `}
+                  style={{
+                    backgroundColor: activeTab === tab.id ? elementColors.primary : 'transparent'
+                  }}
                 >
                   <div className="relative flex-shrink-0">
                     {tab.icon}
@@ -257,10 +287,13 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                 flex items-center justify-start px-3 gap-3
                 transition-all duration-200 ease-in-out
                 ${showNotifications 
-                  ? 'bg-blue-500 text-white shadow-sm' 
+                  ? `text-white shadow-sm` 
                   : 'text-gray-700 hover:bg-gray-100'
                 }
               `}
+              style={{
+                backgroundColor: showNotifications ? elementColors.primary : 'transparent'
+              }}
             >
               <div className="relative flex-shrink-0">
                 <Bell size={20} />
@@ -293,10 +326,13 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                 flex items-center justify-start px-3 gap-3
                 transition-all duration-200 ease-in-out
                 ${activeTab === 'profile' 
-                  ? 'bg-blue-500 text-white shadow-sm' 
+                  ? `text-white shadow-sm` 
                   : 'text-gray-700 hover:bg-gray-100'
                 }
               `}
+              style={{
+                backgroundColor: activeTab === 'profile' ? elementColors.primary : 'transparent'
+              }}
             >
               <div className="flex-shrink-0">
                 {userPhotoURL ? (
@@ -356,7 +392,10 @@ const Rightsidebar = ({ element, onExpandChange }) => {
           <button
             key={tab.id}
             onClick={() => handleTabClick(tab.id)}
-            className={`relative flex flex-col items-center text-xs ${activeTab === tab.id ? 'text-red-900' : 'text-gray-500'}`}
+            className={`relative flex flex-col items-center text-xs ${activeTab === tab.id ? 'text-gray-500' : 'text-gray-500'}`}
+            style={{
+              color: activeTab === tab.id ? elementColors.primary : '#6b7280'
+            }}
           >
             <span className="relative">
               {tab.icon}
