@@ -1,27 +1,78 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, increment, where, getDocs, writeBatch } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, collection, query, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, serverTimestamp, increment, where, getDocs, writeBatch, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth } from '../config/firbaseConfig';
-import { useUser } from '../hooks/useUser';
+import { ThemeProvider } from '../theme/ThemeProvider';
 import Navbar from '../components/social/Navbar';
 import Post from '../components/social/Post';
+import RightSidebar from '../components/social/Rightsidebar';
+import LeftSidebar from '../components/social/LeftSideBar';
+import ElementalLoader from '../theme/ElementalLoader';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const PostPage = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
-  const { user, profile } = useUser();
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [post, setPost] = useState(null);
   const [postComments, setPostComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [authorProfile, setAuthorProfile] = useState(null);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
+  const [sameElementUsers, setSameElementUsers] = useState([]);
+
+  // User authentication and profile loading
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      if (!authUser) {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const fullUser = { uid: authUser.uid, email: authUser.email };
+        const userSnap = await getDocs(
+          query(collection(db, 'users'), where('associated_id', '==', authUser.uid))
+        );
+
+        if (!userSnap.empty) {
+          const ud = userSnap.docs[0].data();
+          fullUser.username = ud.username || 'משתמש';
+        }
+
+        const profRef = doc(db, 'profiles', authUser.uid);
+        const profSnap = await getDoc(profRef);
+        if (profSnap.exists()) {
+          const profData = profSnap.data();
+          fullUser.photoURL = profData.photoURL;
+          fullUser.element = profData.element || 'earth';
+          fullUser.profile = profData;
+          fullUser.username = profData.username || fullUser.username;
+          fullUser.following = profData.following || [];
+          setProfile(profData);
+        }
+
+        setUser(fullUser);
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   // Fetch the post data
   useEffect(() => {
-    if (!postId) return;
+    if (!postId || !user) return;
 
     const fetchPost = async () => {
       try {
@@ -52,11 +103,11 @@ const PostPage = () => {
     };
 
     fetchPost();
-  }, [postId]);
+  }, [postId, user]);
 
   // Set up comment listener
   useEffect(() => {
-    if (!postId) return;
+    if (!postId || !user) return;
 
     const commentsRef = collection(db, 'posts', postId, 'comments');
     const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
@@ -97,7 +148,7 @@ const PostPage = () => {
     });
 
     return () => unsubscribe();
-  }, [postId]);
+  }, [postId, user]);
 
   // Post interaction handlers
   const handleLike = async (postId, liked) => {
@@ -273,80 +324,182 @@ const PostPage = () => {
     }
   };
 
+  const fetchSameElementUsers = async () => {
+    if (!profile?.element || !user?.uid) return;
+
+    try {
+      const othersQuery = query(
+        collection(db, 'profiles'),
+        where('element', '==', profile.element)
+      );
+      const othersSnap = await getDocs(othersQuery);
+
+      const others = othersSnap.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(u => u.id !== user.uid); // Exclude current user
+
+      const shuffled = others.sort(() => 0.5 - Math.random()).slice(0, 5);
+      setSameElementUsers(shuffled);
+    } catch (err) {
+      console.error('Error fetching same element users:', err);
+      setSameElementUsers([]);
+    }
+  };
+
+  const handleFollowToggle = async (targetUserId) => {
+    if (!user) return;
+
+    try {
+      const isFollowing = user.following?.includes(targetUserId);
+      const batch = writeBatch(db);
+
+      const userRef = doc(db, 'profiles', user.uid);
+      batch.update(userRef, {
+        following: isFollowing ? arrayRemove(targetUserId) : arrayUnion(targetUserId),
+        followingCount: increment(isFollowing ? -1 : 1)
+      });
+
+      const targetRef = doc(db, 'profiles', targetUserId);
+      batch.update(targetRef, {
+        followers: isFollowing ? arrayRemove(user.uid) : arrayUnion(user.uid),
+        followersCount: increment(isFollowing ? -1 : 1)
+      });
+
+      await batch.commit();
+
+      setUser(prev => ({
+        ...prev,
+        following: isFollowing
+          ? prev.following.filter(id => id !== targetUserId)
+          : [...(prev.following || []), targetUserId]
+      }));
+    } catch (err) {
+      console.error('Error toggling follow:', err);
+    }
+  };
+
+  // Handler for right sidebar expansion state
+  const handleRightSidebarExpandChange = (expanded) => {
+    setIsRightSidebarExpanded(expanded);
+  };
+
+  useEffect(() => {
+    if (profile?.element && user?.uid) {
+      fetchSameElementUsers();
+    }
+  }, [profile?.element, user?.uid]);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar element={profile?.element} />
-        <div className="pt-20 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">טוען פוסט...</p>
-          </div>
-        </div>
-      </div>
+      <ThemeProvider element={profile?.element || 'earth'}>
+        <ElementalLoader />
+      </ThemeProvider>
     );
   }
 
   if (error || !post) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar element={profile?.element} />
-        <div className="pt-20 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-600 text-lg">{error || 'פוסט לא נמצא'}</p>
-            <button
-              onClick={() => navigate(-1)}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              חזור
-            </button>
+      <ThemeProvider element={profile?.element || 'earth'}>
+        <div className="min-h-screen bg-element-base">
+          <Navbar element={profile?.element} />
+          <div className="pt-20 flex items-center justify-center">
+            <div className="text-center">
+              <p className="text-red-600 text-lg">{error || 'פוסט לא נמצא'}</p>
+              <button
+                onClick={() => navigate(-1)}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                חזור
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </ThemeProvider>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar element={profile?.element} />
-      
-      <div className="pt-20 pb-8">
-        <div className="max-w-4xl mx-auto px-4">
-          {/* Back Button */}
-          <motion.button
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 mb-6 text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            <ArrowLeft size={20} />
-            <span>חזור</span>
-          </motion.button>
+    <ThemeProvider element={profile?.element || 'earth'}>
+      <div className="flex min-h-screen bg-element-base">
+        <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
+          <LeftSidebar 
+            element={profile?.element}
+            users={sameElementUsers}
+            viewerProfile={user}
+            onFollowToggle={handleFollowToggle}
+          />
+        </aside>
 
-          {/* Post */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <Post
-              post={post}
-              element={profile?.element || 'earth'}
-              onDelete={handleDeletePost}
-              onUpdate={handleUpdatePost}
-              onLike={handleLike}
-              comments={postComments}
-              currentUser={user}
-              onAddComment={handleAddComment}
-              onEditComment={handleEditComment}
-              onDeleteComment={handleDeleteComment}
-              isOwner={user?.uid === post.authorId}
-              getAuthorProfile={getAuthorProfile}
+        <div className={`flex-1 transition-all duration-300 lg:ml-64 ${isRightSidebarExpanded ? 'lg:mr-64' : 'lg:mr-16'}`}>
+          <Navbar
+            element={profile?.element}
+            isLeftSidebarOpen={isLeftSidebarOpen}
+            setIsLeftSidebarOpen={setIsLeftSidebarOpen}
+            className="shadow-lg bg-element-navbar"
+          />
+          
+          <div className={`mt-12 px-2 sm:px-4 flex justify-center transition-all duration-300 ${
+            isLeftSidebarOpen ? 'lg:pl-50' : 'lg:pl-0'
+          } ${
+            isRightSidebarExpanded ? 'lg:pr-50' : 'lg:pr-0'
+          }`}>
+            <div className="w-full max-w-4xl space-y-4 sm:space-y-6 mx-auto px-2 sm:px-4 lg:px-8 mb-16 lg:mb-0">
+              {/* Back Button */}
+              <motion.button
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                onClick={() => navigate(-1)}
+                className="flex items-center gap-2 mb-6 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                <ArrowLeft size={20} />
+                <span>חזור</span>
+              </motion.button>
+
+              {/* Post */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Post
+                  post={post}
+                  element={profile?.element || 'earth'}
+                  onDelete={handleDeletePost}
+                  onUpdate={handleUpdatePost}
+                  onLike={handleLike}
+                  comments={postComments}
+                  currentUser={user}
+                  onAddComment={handleAddComment}
+                  onEditComment={handleEditComment}
+                  onDeleteComment={handleDeleteComment}
+                  isOwner={user?.uid === post.authorId}
+                  getAuthorProfile={getAuthorProfile}
+                />
+              </motion.div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Sidebar with adjusted margin - only render on desktop */}
+        <div className="hidden lg:block">
+          <div className={`fixed right-0 top-6 h-[calc(100vh-1.5rem)] shadow-2xl transition-all duration-300 ${
+            isRightSidebarExpanded ? 'w-64' : 'w-16'
+          } lg:shadow-lg`}>
+            <RightSidebar 
+              element={profile?.element} 
+              className="h-full" 
+              onExpandChange={handleRightSidebarExpandChange}
             />
-          </motion.div>
+          </div>
+        </div>
+        {/* Always render Rightsidebar for mobile bottom bar, but do not pass onExpandChange */}
+        <div className="lg:hidden">
+          <RightSidebar 
+            element={profile?.element} 
+          />
         </div>
       </div>
-    </div>
+    </ThemeProvider>
   );
 };
 
