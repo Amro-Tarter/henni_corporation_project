@@ -227,7 +227,7 @@ const Navbar = ({ element }) => {
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onFocus={() => setShowSearchDropdown(true)}
-                onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
+                onBlur={() => setTimeout(() => setShowSearchDropdown(false), 300)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') triggerSearch();
                 }}
@@ -250,7 +250,7 @@ const Navbar = ({ element }) => {
                   <ul className="space-y-1">
                     {searchHistory.map((term, index) => (
                       <li key={index} className="px-2 py-1 hover:bg-gray-100 cursor-pointer rounded text-sm">
-                        <span onClick={() => {
+                        <span onMouseDown={() => {
                           setSearchInput(term);
                           setShowSearchDropdown(false);
                         }}>{term}</span>
@@ -266,7 +266,7 @@ const Navbar = ({ element }) => {
                     <div
                       key={index}
                       className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-100"
-                      onClick={() => {
+                      onMouseDown={() => {
                         setSearchInput('');
                         setShowSearchDropdown(false);
                         setIsMenuOpen(false);
@@ -440,7 +440,7 @@ const Navbar = ({ element }) => {
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onFocus={() => setShowSearchDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowSearchDropdown(false), 150)}
+                  onBlur={() => setTimeout(() => setShowSearchDropdown(false), 300)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') triggerSearch();
                   }}
@@ -461,7 +461,7 @@ const Navbar = ({ element }) => {
                         <ul className="list-none mt-2">
                           {searchHistory.map((term, index) => (
                             <li key={index} className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                              <span className="flex-grow text-right text-sm" onClick={() => {
+                              <span className="flex-grow text-right text-sm" onMouseDown={() => {
                                 setSearchInput(term);
                                 setShowSearchDropdown(false);
                               }}>{term}</span>
@@ -477,7 +477,7 @@ const Navbar = ({ element }) => {
                           <div
                             key={index}
                             className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-100"
-                            onClick={() => {
+                            onMouseDown={() => {
                               setSearchInput('');
                               setShowSearchDropdown(false);
                               navigate(`/profile/${profile.username}`);
