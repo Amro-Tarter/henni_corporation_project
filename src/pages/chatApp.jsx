@@ -151,6 +151,10 @@ export default function ChatApp() {
 
   // --- Conversation Filtering ---
   const filteredConversations = useMemo(() => {
+    if (currentUser.role === 'staff') {
+      // Staff sees all conversations
+      return conversations;
+    }
     let filtered = conversations;
     if (activeTab === "private") {
       filtered = filtered.filter(conv => conv.type === "direct");
@@ -171,17 +175,27 @@ export default function ChatApp() {
       );
     }
     return filtered;
-  }, [conversations, searchQuery, activeTab, currentUser.element]);
+  }, [conversations, searchQuery, activeTab, currentUser.element, currentUser.role]);
 
   // --- Load Conversations ---
   useEffect(() => {
     if (!currentUser.uid) return;
     setIsLoadingConversations(true);
-    const q = query(
-      collection(db, "conversations"),
-      where("participants", "array-contains", currentUser.uid),
-      orderBy("lastUpdated", "desc")
-    );
+    let q;
+    if (currentUser.role === 'staff') {
+      // Staff: get all conversations
+      q = query(
+        collection(db, "conversations"),
+        orderBy("lastUpdated", "desc")
+      );
+    } else {
+      // Regular users: only their conversations
+      q = query(
+        collection(db, "conversations"),
+        where("participants", "array-contains", currentUser.uid),
+        orderBy("lastUpdated", "desc")
+      );
+    }
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const validConversations = [];
       for (const conversationDoc of snapshot.docs) {
@@ -272,7 +286,7 @@ export default function ChatApp() {
 
   // --- Load Messages for Selected Conversation ---
   useEffect(() => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || !selectedConversation.id) return;
     setIsLoadingMessages(true);
     
     // Create a query to get messages for the selected conversation
@@ -316,6 +330,7 @@ export default function ChatApp() {
 
   // --- Send Message (handles text and file/image/voice) ---
   const sendMessage = async (opts = {}) => {
+    if (currentUser.role === 'staff') return; // Staff cannot send
     // Support: opts.fileOverride, opts.mediaTypeOverride
     const fileToSend = opts.fileOverride || file;
     const mediaTypeOverride = opts.mediaTypeOverride;
@@ -938,8 +953,8 @@ export default function ChatApp() {
         setSearchQuery={setSearchQuery}
         filteredConversations={filteredConversations}
         isLoadingConversations={isLoadingConversations}
-        setShowNewChatDialog={setShowNewChatDialog}
-        setShowNewGroupDialog={setShowNewGroupDialog}
+        setShowNewChatDialog={currentUser.role === 'staff' ? undefined : setShowNewChatDialog}
+        setShowNewGroupDialog={currentUser.role === 'staff' ? undefined : setShowNewGroupDialog}
         getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
         elementColorsMap={ELEMENT_COLORS}
         activeTab={activeTab}
@@ -949,22 +964,22 @@ export default function ChatApp() {
         currentUser={currentUser}
         messages={messages}
         newMessage={newMessage}
-        setNewMessage={setNewMessage}
+        setNewMessage={currentUser.role === 'staff' ? () => {} : setNewMessage}
         sendMessage={sendMessage}
         isSending={isSending}
         isLoadingMessages={isLoadingMessages}
-        setShowNewChatDialog={setShowNewChatDialog}
+        setShowNewChatDialog={currentUser.role === 'staff' ? undefined : setShowNewChatDialog}
         getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
         file={file}
         preview={preview}
         isUploading={isUploading}
         uploadProgress={uploadProgress}
-        handleFileChange={handleFileChange}
-        removeFile={removeFile}
+        handleFileChange={currentUser.role === 'staff' ? () => {} : handleFileChange}
+        removeFile={currentUser.role === 'staff' ? () => {} : removeFile}
         elementColors={elementColors}
         userAvatars={userAvatars}
         activeTab={activeTab}
-        setShowNewGroupDialog={setShowNewGroupDialog}
+        setShowNewGroupDialog={currentUser.role === 'staff' ? undefined : setShowNewGroupDialog}
         conversations={conversations}
         setSelectedConversation={handleSelectConversation}
       />
