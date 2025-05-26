@@ -21,6 +21,7 @@ const sections = [
   { id: 'about-section', label: 'אודות העמותה', icon: '🌱' },
   { id: 'leadership-program', label: 'תכנית המנהיגות', icon: '⚙️'},
   { id: 'gallery', label: 'יצירות ופרויקטים', icon: '💨' },
+  // { id: 'events', label: 'אירועים', icon: '💧' },
   { id: 'join-us', label: 'הצטרפו אלינו', icon: '🔥' },
 ];
 
