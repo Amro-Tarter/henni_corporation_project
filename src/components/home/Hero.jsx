@@ -38,6 +38,7 @@ const Hero = () => {
 
       {/* Hero Content */}
       <div className="relative z-10 text-center px-4 sm:px-6 md:px-8 max-w-6xl mx-auto">
+        
         <motion.h1
           variants={fadeSlideUp}
           initial="hidden"

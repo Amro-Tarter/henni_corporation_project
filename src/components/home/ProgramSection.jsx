@@ -319,7 +319,7 @@ const ProgramSection = () => {
           </div>
           <div className="mt-8 text-center">
              <CTAButton
-                href=""
+                href="/artskills"
                 variant="inverse-air"
                 size="md"
                 className="bg-white text-orange-600 hover:bg-orange-50 transition-colors px-8 py-3"

@@ -16,11 +16,12 @@ import CommunityPage from '../../pages/CommunityPage';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 
+
 const sections = [
-  { id: 'about-section', label: 'אודות העמותה', icon: faLeaf },
-  { id: 'leadership-program', label: 'תכנית המנהיגות', icon: faHammer },
-  { id: 'gallery', label: 'יצירות ופרויקטים', icon: faWind },
-  { id: 'join-us', label: 'הצטרפו אלינו', icon: faFire },
+  { id: 'about-section', label: 'אודות העמותה', icon: '🌱' },
+  { id: 'leadership-program', label: 'תכנית המנהיגות', icon: '⚙️'},
+  { id: 'gallery', label: 'יצירות ופרויקטים', icon: '💨' },
+  { id: 'join-us', label: 'הצטרפו אלינו', icon: '🔥' },
 ];
 
 const Navigation = () => {
@@ -182,31 +183,32 @@ const Navigation = () => {
           </a>
 
           {/* Desktop Links */}
-          <div className="hidden lg:flex items-center">
-            <ul className="flex items-center space-x-1 space-x-reverse text-white">
+                <div className="hidden lg:flex items-center">
+                 <ul className="flex items-center space-x-1 space-x-reverse text-white">
               {sections.map(item => (
                 <li key={item.id}>
-                  <a
-                    href={item.id === 'community' ? '/community' : `#${item.id}`}
-                    onClick={(e) => item.id !== 'community' ? handleSectionClick(e, item.id) : null}
+                  <span
+                    onClick={item.id !== 'community' ? e => handleSectionClick(e, item.id) : null}
                     className={cn(
-                      'flex items-center gap-4 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10'
+                      'flex items-center gap-4 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10 cursor-pointer',
+                      activeSection === item.id && 'bg-white/10'
                     )}
                   >
-                    <FontAwesomeIcon icon={item.icon} className="text-xl" />
+                    <span className="text-xl" aria-hidden="true">{item.icon}</span>
                     <span>{item.label}</span>
-                  </a>
+                  </span>
                 </li>
               ))}
-                  {/* Donation Button */}
-                <a
-                  href="https://mrng.to/pFaSV3RKqT"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center bg-white text-orange-600 hover:bg-orange-50 transition-colors px-3 py-1 rounded-lg font-small shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 mx-2"
-                >
-                  <span className="text-sm font-medium">תרמו לנו</span>
-                </a>
+
+              {/* Donation button */}
+              <a
+                href="https://mrng.to/pFaSV3RKqT"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mx-2 flex items-center bg-white text-orange-600 hover:bg-orange-50 px-3 py-1 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                <span className="text-sm font-medium">תרמו לנו</span>
+              </a>
             </ul>
 
             <div className="flex items-center space-x-4 space-x-reverse pr-6">
