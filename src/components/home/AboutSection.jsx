@@ -388,7 +388,7 @@ const AboutSection = ({ currentUser }) => {
         {/* Compact Header */}
         <div className="text-center mb-8 md:mb-12">
           <h2 className="font-bold text-3xl md:text-4xl text-orange-800 mb-3">
-            שורשים של אור – החזון שמוביל אותנו
+            נוצצים של אור – החזון שמוביל אותנו
           </h2>
           <div className="h-1 w-20 bg-orange-500 mx-auto mb-4 rounded-full"></div>
           <p className="text-base md:text-lg text-gray-700 max-w-xl mx-auto leading-relaxed">
@@ -515,7 +515,7 @@ const AboutSection = ({ currentUser }) => {
                   <div
                     key={member.id}
                     onClick={() => openMemberModal(idx)}
-                    className="bg-white/90 rounded-xl p-4 shadow-md cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-orange-100"
+                    className="bg-white/60 rounded-xl p-4 shadow-md cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-orange-100"
                   >
                     <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full mx-auto mb-3 overflow-hidden bg-orange-100">
                       <AvatarImg src={member.photoURL} alt={member.displayName} />

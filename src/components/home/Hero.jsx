@@ -44,7 +44,7 @@ const Hero = () => {
           animate="visible"
           className="font-title text-6xl text-white mb-6 drop-shadow-lg"
         >
-          לגלות את האור – הנני
+          עמותת לגלות את האור – הנני 
         </motion.h1>
 
         <motion.p

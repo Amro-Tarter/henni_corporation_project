@@ -20,7 +20,6 @@ const sections = [
   { id: 'about-section', label: 'אודות העמותה', icon: faLeaf },
   { id: 'leadership-program', label: 'תכנית המנהיגות', icon: faHammer },
   { id: 'gallery', label: 'יצירות ופרויקטים', icon: faWind },
-  { id: 'community', label: 'קהילת העמותה', icon: faWater },
   { id: 'join-us', label: 'הצטרפו אלינו', icon: faFire },
 ];
 
@@ -176,10 +175,10 @@ const Navigation = () => {
           />
         )}
 
-        <nav className="relative z-50 container mx-auto flex items-center justify-between px-6">
-          <a href="/" className="flex flex-col items-start">
-            <span className="text-white font-bold text-xl md:text-2xl">לגלות את האור – הנני</span>
-            <span className="text-white/80 text-sm hidden md:block">מנהיגות. יצירה. שייכות.</span>
+        <nav className="relative z-50 container mx-auto flex items-end justify-around px-3">
+          <a href="/" className="flex flex-col leading-tight items-start ">
+            <span className="text-white font-semibold text-lg md:text-xl"> עמותת לגלות את האור – הנני </span>
+            <span className="text-orange-100 text-xs md:text-sm hidden md:block"> יצירה. מנהיגות. שייכות.</span>
           </a>
 
           {/* Desktop Links */}
@@ -191,7 +190,7 @@ const Navigation = () => {
                     href={item.id === 'community' ? '/community' : `#${item.id}`}
                     onClick={(e) => item.id !== 'community' ? handleSectionClick(e, item.id) : null}
                     className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10'
+                      'flex items-center gap-4 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10'
                     )}
                   >
                     <FontAwesomeIcon icon={item.icon} className="text-xl" />
@@ -199,19 +198,19 @@ const Navigation = () => {
                   </a>
                 </li>
               ))}
+                  {/* Donation Button */}
+                <a
+                  href="https://mrng.to/pFaSV3RKqT"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center bg-white text-orange-600 hover:bg-orange-50 transition-colors px-3 py-1 rounded-lg font-small shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 mx-2"
+                >
+                  <span className="text-sm font-medium">תרמו לנו</span>
+                </a>
             </ul>
 
-            {/* Donation Button */}
-            <a
-              href="https://mrng.to/pFaSV3RKqT"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center bg-white text-orange-600 hover:bg-orange-50 transition-colors px-3 py-1 rounded-lg font-small shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 mx-2"
-            >
-              <span className="text-sm font-small">תרמו עכשיו</span>
-            </a>
-
-            <div className="flex items-center space-x-4 space-x-reverse border-r border-white/20 pr-6">
+            <div className="flex items-center space-x-4 space-x-reverse pr-6">
+            <div className="h-6 border-r border-white/30"></div>
               <a href="tel:0500000000" className="text-white hover:text-green-400">
                 <Phone size={20} />
               </a>
