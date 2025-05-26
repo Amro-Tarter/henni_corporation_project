@@ -36,7 +36,7 @@ import CommunityPage from './pages/CommunityPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Team from './pages/Team';
 import NewsletterPage from './pages/NewsletterPage';
-import ScrollDown from './components/ui/ScrollDown';
+import ArtSkillsPage from './pages/ArtSkillsPage';
 
 const queryClient = new QueryClient();
 
@@ -97,6 +97,7 @@ const App = () => {
                   <Route path="/projects" element={<ElementalProjects />} />
                   <Route path="/team" element={<Team />} />
                   <Route path="/newsletter" element={<NewsletterPage />} />
+                  <Route path="/artSkills" element={<ArtSkillsPage />} />
 
                   {/* Protected Pages */}
                   <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />

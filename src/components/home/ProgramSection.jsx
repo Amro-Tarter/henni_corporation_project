@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Hammer, Activity, Sparkles, Paintbrush, Music, Move3D, Pen } from "lucide-react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMasksTheater } from '@fortawesome/free-solid-svg-icons';
+import CTAButton from "@/components/CTAButton";
 
 
 // Color utilities
@@ -315,6 +316,16 @@ const ProgramSection = () => {
           
           <div dir="rtl">
             <ArtSkillsGrid skills={artSkills} />
+          </div>
+          <div className="mt-8 text-center">
+             <CTAButton
+                href="/artskills"
+                variant="inverse-air"
+                size="md"
+                className="bg-white text-orange-600 hover:bg-orange-50 transition-colors px-8 py-3"
+              >
+                <span className="text-base font-medium">לראות עוד</span>
+              </CTAButton>
           </div>
         </div>
       </div>

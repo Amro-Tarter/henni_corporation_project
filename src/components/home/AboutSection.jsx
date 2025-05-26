@@ -7,13 +7,59 @@ import { db } from '@/config/firbaseConfig';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  HandHeart, Users, Heart, TreePine, X, Edit2, Check, ChevronDown, ChevronUp
+  HandHeart, Users, Heart, TreePine, X, Edit2, Check, ChevronDown, ChevronUp,
+  TrendingUp, MapPin, Lightbulb
 } from 'lucide-react';
 import CTAButton from '@/components/CTAButton';
 import { Link } from 'react-router-dom';
 
-
 const DEFAULT_IMAGE = '/default_user_pic.jpg';
+
+// Statistics data
+const stats = [
+  { 
+    value: 1200, 
+    label: 'בני נוער שגילו את האור שבתוכם', 
+    color: 'pink',
+    icon: <Lightbulb className="h-6 w-6" />
+  },
+  { 
+    value: 85, 
+    label: 'פרויקטים קהילתיים יזמיים', 
+    color: 'orange',
+    icon: <TrendingUp className="h-6 w-6" />
+  },
+  { 
+    value: 30, 
+    label: 'יישובים בהם פועלת העמותה', 
+    color: 'green',
+    icon: <MapPin className="h-6 w-6" />
+  },
+];
+
+// Animated Counter Component
+const AnimatedCounter = ({ endValue, isVisible, duration = 2000 }) => {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    if (!isVisible) return;
+    
+    let startTime;
+    const animate = (timestamp) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      setCount(Math.floor(progress * endValue));
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [isVisible, endValue, duration]);
+  
+  return <span>{count.toLocaleString()}+</span>;
+};
 
 // Custom image component with fallback
 function AvatarImg({ src, alt }) {
@@ -39,10 +85,34 @@ const AboutSection = ({ currentUser }) => {
   const [newsletterModal, setNewsletterModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
+  const [isStatsInView, setIsStatsInView] = useState(false);
   const isAdmin = currentUser?.role === 'admin';
 
-  // Ref for closing modals with ESC
+  // Refs
   const modalRef = useRef();
+  const statsRef = useRef();
+
+  // Intersection Observer for stats animation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsStatsInView(true);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (statsRef.current) {
+      observer.observe(statsRef.current);
+    }
+
+    return () => {
+      if (statsRef.current) {
+        observer.unobserve(statsRef.current);
+      }
+    };
+  }, []);
 
   // Fetch admins on mount
   useEffect(() => {
@@ -232,6 +302,31 @@ const AboutSection = ({ currentUser }) => {
     );
   }
 
+  // Get color classes for stats
+  const getColorClasses = (color) => {
+    const colorMap = {
+      pink: {
+        bg: 'from-pink-100 to-pink-50',
+        text: 'text-pink-800',
+        icon: 'text-pink-600',
+        border: 'border-pink-200'
+      },
+      orange: {
+        bg: 'from-orange-100 to-orange-50',
+        text: 'text-orange-800',
+        icon: 'text-orange-600',
+        border: 'border-orange-200'
+      },
+      green: {
+        bg: 'from-green-100 to-green-50',
+        text: 'text-green-800',
+        icon: 'text-green-600',
+        border: 'border-green-200'
+      }
+    };
+    return colorMap[color] || colorMap.orange;
+  };
+
   // --- UI ---
   return (
     <section
@@ -288,11 +383,12 @@ const AboutSection = ({ currentUser }) => {
         )}
       </AnimatePresence>
 
-      {/* Compact Header */}
+      {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Compact Header */}
         <div className="text-center mb-8 md:mb-12">
           <h2 className="font-bold text-3xl md:text-4xl text-orange-800 mb-3">
-            שורשים של אור – החזון שמוביל אותנו
+            נוצצים של אור – החזון שמוביל אותנו
           </h2>
           <div className="h-1 w-20 bg-orange-500 mx-auto mb-4 rounded-full"></div>
           <p className="text-base md:text-lg text-gray-700 max-w-xl mx-auto leading-relaxed">
@@ -324,6 +420,7 @@ const AboutSection = ({ currentUser }) => {
           ))}
         </div>
 
+      
         {/* Newsletter/CTA */}
         <div className="text-center mb-12 bg-gradient-to-br from-white/80 to-orange-50/80 backdrop-blur-sm rounded-2xl p-8 mx-auto max-w-3xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-orange-100">
           <div className="inline-flex items-center gap-3 mb-4 bg-green-50 px-4 py-2 rounded-full">
@@ -351,6 +448,49 @@ const AboutSection = ({ currentUser }) => {
             </CTAButton>
           </div>
         </div>
+         {/* Animated Statistics */}
+        <div ref={statsRef} className="mb-12">
+          <motion.h3
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-2xl md:text-3xl font-bold text-orange-800 mb-8 text-center"
+          >
+            ההשפעה שלנו – במספרים
+          </motion.h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {stats.map((stat, index) => {
+              const colors = getColorClasses(stat.color);
+                return (
+                <div key={index} className="relative">
+                  <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.6 }}
+                  className={`bg-white/90 rounded-xl shadow-lg border ${colors.border} p-6 text-center hover:shadow-xl transition-all hover:-translate-y-1 backdrop-blur-sm mt-8`}
+                  >
+                  <div className="absolute -top-6 left-1/2 -translate-x-1/2">
+                    <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/80 ${colors.icon} shadow-sm border ${colors.border}`}>
+                    {stat.icon}
+                    </div>
+                  </div>
+                  <div className={`text-4xl md:text-5xl font-bold ${colors.text} mt-2 mb-2`}>
+                    <AnimatedCounter
+                    endValue={stat.value}
+                    isVisible={isStatsInView}
+                    duration={2000 + index * 500}
+                    />
+                  </div>
+                  <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+                    {stat.label}
+                  </p>
+                  </motion.div>
+                </div>
+                );
+            })}
+          </div>
+        </div>
 
         {/* Team Section */}
         <div className="text-center">
@@ -375,7 +515,7 @@ const AboutSection = ({ currentUser }) => {
                   <div
                     key={member.id}
                     onClick={() => openMemberModal(idx)}
-                    className="bg-white/90 rounded-xl p-4 shadow-md cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-orange-100"
+                    className="bg-white/60 rounded-xl p-4 shadow-md cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-orange-100"
                   >
                     <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full mx-auto mb-3 overflow-hidden bg-orange-100">
                       <AvatarImg src={member.photoURL} alt={member.displayName} />
