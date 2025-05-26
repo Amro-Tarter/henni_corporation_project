@@ -128,16 +128,11 @@ useEffect(() => {
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        // If there's an element in users, override/add it
-        if (userData.element) {
-          profileData = { ...profileData, element: userData.element };
-        }
-        if (userData.role) {
-          profileData = { ...profileData, role: userData.role };
-        }
+        if (userData.element) profileData = { ...profileData, element: userData.element };
+        if (userData.role)    profileData = { ...profileData, role: userData.role };
       }
+      if (profileData) setProfile({ ...profileData, uid }); // <--- Fix: Always add UID!
 
-      if (profileData) setProfile(profileData);
       else console.warn('No profile for', uid);
 
       // Posts
@@ -785,6 +780,7 @@ useEffect(() => {
               element={profile.element}
               users={sameElementUsers}
               viewerProfile={viewerProfile}
+              profileUser={profile}
               onFollowToggle={handleFollowToggle}
             />
           </aside>

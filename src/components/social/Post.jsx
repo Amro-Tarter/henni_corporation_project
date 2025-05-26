@@ -49,6 +49,9 @@ const Post = ({
   const [warning, setWarning] = useState('');
   const [error, setError] = useState('');
   const [mediaType, setMediaType] = useState('');
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(null);
+
 
   const [showEmoji, setShowEmoji] = useState(false);
   const emojiBtnRef = useRef();
@@ -129,22 +132,24 @@ const Post = ({
 
   const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
 
-  const handleDelete = async () => {
+  const handleDelete = () => setShowConfirmDelete(true);
+
+  const confirmDelete = async () => {
     if (!id || !onDelete) return;
-    
-    if (window.confirm('האם אתה בטוח שברצונך למחוק את הפוסט הזה?')) {
-      try {
-        await onDelete(id);
-        setMenuOpen(false);
-      } catch (err) {
-        console.error('Error deleting post:', err);
-        alert('Failed to delete post. Please try again.');
-      }
+    try {
+      await onDelete(id);
+      setMenuOpen(false);
+      setShowConfirmDelete(false);
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      setError('מחיקת הפוסט נכשלה. נסה שוב.');
+      setShowConfirmDelete(false);
     }
   };
 
-  const handleSaveEdit = async () => {
-    if (!id || !onUpdate) return;
+  const cancelDelete = () => setShowConfirmDelete(false);
+    const handleSaveEdit = async () => {
+      if (!id || !onUpdate) return;
     
     try {
       await onUpdate(id, { content: newContent, mediaFile: newMediaFile });
@@ -542,37 +547,47 @@ const Post = ({
         </div>
 
         {/* Comments Section */}
-        {showComments && (
-          <div ref={commentsRef} className="px-5 py-4 border-t border-gray-200">
-            {currentUser && (
-              <div className="flex gap-3 mb-4">
-                <img src={currentUser.photoURL || '/default_user_pic.jpg'} alt="" className="w-8 h-8 rounded-full" />
-                <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
-              </div>
-            )}
-            {comments.length > 0 ? (
-              comments.map(c => (
-                <Comment
-                  key={c.id}
-                  comment={c}
-                  element={element}
-                  currentUser={currentUser}
-                  onReply={setReplyTo}
-                  onEdit={onEditComment}
-                  onDelete={onDeleteComment}
-                  replyingToId={replyTo}
-                  onSubmitReply={submitComment}
-                  onCancelReply={() => setReplyTo(null)}
-                  postId={id}
-                  postAuthorId={post.authorId}
-                  getAuthorProfile={getAuthorProfile}
-                />
-              ))
-            ) : (
-              <p className="text-center text-gray-500">אין תגובות עדיין.</p>
-            )}
-          </div>
-        )}
+        <AnimatePresence initial={false}>
+          {showComments && (
+            <motion.div
+              ref={commentsRef}
+              className="px-5 py-4 border-t border-gray-200"
+              key="comments-section"
+              initial={{ y: -24, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -24, opacity: 0 }}
+              transition={{ duration: 0.40 }}
+            >
+              {currentUser && (
+                <div className="flex gap-3 mb-4">
+                  <img src={currentUser.photoURL || '/default_user_pic.jpg'} alt="" className="w-8 h-8 rounded-full" />
+                  <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
+                </div>
+              )}
+              {comments.length > 0 ? (
+                comments.map(c => (
+                  <Comment
+                    key={c.id}
+                    comment={c}
+                    element={element}
+                    currentUser={currentUser}
+                    onReply={setReplyTo}
+                    onEdit={onEditComment}
+                    onDelete={onDeleteComment}
+                    replyingToId={replyTo}
+                    onSubmitReply={submitComment}
+                    onCancelReply={() => setReplyTo(null)}
+                    postId={id}
+                    postAuthorId={post.authorId}
+                    getAuthorProfile={getAuthorProfile}
+                  />
+                ))
+              ) : (
+                <p className="text-center text-gray-500">אין תגובות עדיין.</p>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {showPostModal && (
@@ -616,6 +631,37 @@ const Post = ({
           </div>
         </div>
       )}
+        <ConfirmationModal
+          open={showConfirmDelete}
+          title="מחיקת פוסט"
+          message="האם אתה בטוח שברצונך למחוק את הפוסט הזה?"
+          confirmText="מחק"
+          cancelText="ביטול"
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+          element={element}
+          />
+
+          <ConfirmationModal
+            open={!!commentToDelete}
+            title="מחיקת תגובה"
+            message="האם אתה בטוח שברצונך למחוק את התגובה הזו?"
+            confirmText="מחק"
+            cancelText="ביטול"
+            onConfirm={() => {
+              if (commentToDelete) {
+                onDeleteComment(
+                  commentToDelete.postId,
+                  commentToDelete.commentId,
+                  commentToDelete.isReply,
+                  commentToDelete.parentCommentId
+                );
+                setCommentToDelete(null);
+              }
+            }}
+            onCancel={() => setCommentToDelete(null)}
+            element={element}
+          />
     </>
   );
 };

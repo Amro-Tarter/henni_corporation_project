@@ -1,3 +1,4 @@
+// LeftSideBar.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -24,7 +25,7 @@ const ELEMENT_NAMES = {
   metal: 'מתכת',
 };
 
-const LeftSidebar = ({ element, users = [], viewerProfile, onFollowToggle }) => {
+const LeftSidebar = ({ element, users = [], viewerProfile, profileUser, onFollowToggle }) => {
   const navigate = useNavigate();
   const [communityChat, setCommunityChat] = useState(null);
 
@@ -35,7 +36,7 @@ const LeftSidebar = ({ element, users = [], viewerProfile, onFollowToggle }) => 
     const fetchCommunityChat = async () => {
       const q = query(
         collection(db, 'conversations'),
-        where('communityType', '==', 'element'),
+        where('type', '==', 'community'),
         where('element', '==', element)
       );
       const snap = await getDocs(q);
@@ -46,13 +47,27 @@ const LeftSidebar = ({ element, users = [], viewerProfile, onFollowToggle }) => 
     fetchCommunityChat();
   }, [element]);
 
+  const isOwnProfile =
+  viewerProfile && profileUser &&
+  String(viewerProfile.uid) === String(profileUser.uid);
+
+  let elementSectionTitle = '';
+  if (!profileUser) {
+    elementSectionTitle = 'עוד מהאלמנט';
+  } else if (isOwnProfile) {
+    elementSectionTitle = 'עוד מהאלמנט שלך';
+  } else {
+    // Show username, fallback to 'המשתמש הזה'
+    elementSectionTitle = `עוד מהאלמנט של ${profileUser.username || 'המשתמש הזה'}`;
+  }
+
   return (
     <div className="w-64 h-[calc(100vh-56.8px)] bg-white shadow-lg overflow-y-auto">
       <div className="p-6">
         <div className="mb-4 text-right flex items-center justify-between">
           <div>
             <h2 className={`text-${element} text-lg mb-1 flex items-center gap-2`}>
-              עוד מהאלמנט שלך
+              {elementSectionTitle}
               <span className="text-lg">{ELEMENT_ICONS[element]}</span>
             </h2>
             <div className={`w-12 h-0.5 bg-${element} rounded-full ml-auto`} />

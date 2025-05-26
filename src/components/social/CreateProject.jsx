@@ -136,7 +136,7 @@ const CreateProject = ({
       <div
         style={{
           position: 'fixed',
-          top: '28px',
+          top: '75px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 9999,
@@ -190,10 +190,10 @@ const CreateProject = ({
             <textarea
               ref={textareaRef}
               className={`
-                flex-1 bg-white
+                flex-1 bg-${element}-soft
                 rounded-xl px-4 py-3
                 text-sm text-${element}-dark
-                border border-${element}-accent
+                border-0
                 resize-none
                 focus:outline-none
                 focus:ring-2 focus:ring-${element}-accent
@@ -212,10 +212,10 @@ const CreateProject = ({
               className={`
                 ml-2 px-2 py-2 
                 rounded-md 
-                bg-${element}
-                text-white
+                bg-${element}-soft
+                text-${element}
                 hover:bg-${element}-accent
-                focus:outline-none focus:ring-2 focus:ring-${element}-accent
+                hover:text-white
                 transition-colors
                 flex items-center emoji-picker-btn
               `}
@@ -336,7 +336,7 @@ const CreateProject = ({
             <button
               type="button"
               onClick={() => pickMedia('image/*', 'photo')}
-              className={`flex items-center gap-2 flex-1 justify-center bg-${element} text-white rounded-lg px-4 py-2 border border-${element}-accent hover:bg-${element}-accent hover:text-white transition`}
+              className={`flex items-center gap-2 flex-1 justify-center bg-${element}-soft text-${element} rounded-lg px-4 py-2 border border-${element}-accent hover:bg-${element}-accent hover:text-white transition`}
             >
               <FaPhotoVideo className={`h-5 w-5`} />
               תמונה
@@ -344,7 +344,7 @@ const CreateProject = ({
             <button
               type="button"
               onClick={() => pickMedia('video/*', 'video')}
-              className={`flex items-center gap-2 flex-1 justify-center bg-${element} text-white rounded-lg px-4 py-2 border border-${element}-accent hover:bg-${element}-accent hover:text-white transition`}
+              className={`flex items-center gap-2 flex-1 justify-center bg-${element}-soft text-${element} rounded-lg px-4 py-2 border border-${element}-accent hover:bg-${element}-accent hover:text-white transition`}
             >
               <FaVideo className={`h-5 w-5`} />
               וידאו
@@ -394,10 +394,10 @@ const CreateProject = ({
               <button
                 type="submit"
                 className={`
-                  bg-${element}-accent
+                  bg-${element}
                   text-white font-semibold
                   rounded-full px-6 py-2 text-sm
-                  hover:bg-${element}
+                  hover:bg-${element}-accent
                   transition
                 `}
               >

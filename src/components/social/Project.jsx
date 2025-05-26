@@ -50,6 +50,7 @@ const Project = ({
   const [commentToDelete, setCommentToDelete] = useState(null);
   const [warning, setWarning] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
+  const [floatLike, setFloatLike] = useState(false);
   const emojiBtnRef = useRef();
   const emojiPickerRef = useRef();
   const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
@@ -191,8 +192,11 @@ const Project = ({
   const toggleLike = () => {
     const newState = !liked;
     setLiked(newState);
+    setFloatLike(true);
     onLike(id, newState);
+    setTimeout(() => setFloatLike(false), 600);
   };
+
 
   const toggleCommentsSection = () => {
     setShowComments(prev => !prev);
@@ -220,7 +224,7 @@ const Project = ({
         <div
           style={{
             position: 'fixed',
-            top: '28px',
+            top: '65px',
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 9999,
@@ -380,7 +384,7 @@ const Project = ({
                       .map(user => (
                         <div
                           key={user.id}
-                          className="flex items-center gap-2 py-1 px-2 cursor-pointer hover:bg-gray-100 rounded transition"
+                          className={`flex items-center bg-${element}-soft px-2 py-1 rounded-full text-xs gap-2 border border-${element}-accent hover:bg-${element}-soft/80 transition`}
                           onClick={() => {
                             setNewCollaborators([...newCollaborators, user.id]);
                             setCollabSearch('');
@@ -487,7 +491,8 @@ const Project = ({
                     key={c.uid || c.id || idx}
                     type="button"
                     onClick={() => navigate(`/profile/${c.username}`)}
-                    className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full text-xs ml-1 hover:bg-gray-200 hover:shadow transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    className={`flex items-center bg-${element}-soft px-2 py-1 rounded-full text-xs gap-2 border border-${element}-accent hover:bg-${element}-soft/80 hover:scale-105
+                                transition duration-130`}
                     title={`לבקר את הפרופיל של ${c.username}`}
                     tabIndex={0}
                   >
@@ -552,6 +557,19 @@ const Project = ({
                 </div>
                 <span className="text-sm font-medium transition-colors">{likesCount}</span>
               </button>
+              <AnimatePresence>
+                {floatLike && (
+                  <motion.div
+                    initial={{ opacity: 1, y: 0, scale: 1 }}
+                    animate={{ opacity: 0, y: -40, scale: 1.5 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className={`absolute bottom-8 left-1/2 -translate-x-1/2 text-${element} pointer-events-none`}
+                  >
+                    <ThumbsUp size={24} className="fill-current" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             <button onClick={toggleCommentsSection} className="flex items-center gap-2 group" aria-label="הצג תגובות">
               <div className={`p-1.5 rounded-full transition-colors bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white`}>

@@ -56,7 +56,7 @@ export const Comment = ({
       <img
         src={authorProfile?.photoURL || '/default_user_pic.jpg'}
         alt={authorProfile?.username || '...'}
-        className="w-8 h-8 rounded-full object-cover mt-1"
+        className={`w-8 h-8 rounded-full object-cover mt-1 ring-2 ring-${element}-accent ring-offset-1`}
       />
       <div className="flex-1">
         <div className={`p-3 rounded-lg bg-${element}-soft relative`}>  

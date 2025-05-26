@@ -104,7 +104,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
       <div
         style={{
           position: 'fixed',
-          top: '28px',
+          top: '75px',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 9999,
@@ -125,7 +125,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
         {warning}
       </div>
     )}
-    <div className="mb-10 flex justify-center px-4 pt-12" dir="rtl">
+    <div className="mb-10 flex justify-center px-4" dir="rtl">
       <div className={`w-full max-w-4xl bg-white rounded-2xl p-6 space-y-4 border border-${element}-accent`}>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Avatar + Textarea */}
@@ -200,7 +200,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
             <button
               type="button"
               onClick={() => pickMedia('video', 'video/*')}
-              className={`flex items-center gap-2 flex-1 justify-center bg-${element}-soft text-${element} rounded-lg px-4 py-2 hover:bg-${element}-accent transition`}
+              className={`flex items-center gap-2 flex-1 justify-center bg-${element}-soft text-${element} border border-${element}-accent rounded-lg px-4 py-2 hover:bg-${element}-accent hover:text-white transition`}
             >
               <FaVideo className="h-5 w-5" /> וידאו
             </button>
@@ -208,7 +208,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
             <button
               type="button"
               onClick={() => pickMedia('photo', 'image/*')}
-              className={`flex items-center gap-2 flex-1 justify-center bg-${element}-soft text-${element} rounded-lg px-4 py-2 hover:bg-${element}-accent transition`}
+              className={`flex items-center gap-2 flex-1 justify-center bg-${element}-soft text-${element} border border-${element}-accent rounded-lg px-4 py-2 hover:bg-${element}-accent hover:text-white transition`}
             >
               <FaPhotoVideo className="h-5 w-5" /> תמונה
             </button>
@@ -216,11 +216,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
             <button
               type="button"
               onClick={startBlog}
-              className={`flex items-center gap-2 flex-1 justify-center rounded-lg px-4 py-2 transition ${
-                mediaType === 'blog'
-                  ? `bg-${element}-accent text-white`
-                  : `bg-${element}-soft text-${element} hover:bg-${element}-accent`
-              }`}
+              className={`flex items-center gap-2 flex-1 justify-center bg-${element}-soft text-${element} border border-${element}-accent rounded-lg px-4 py-2 hover:bg-${element}-accent hover:text-white transition `}
             >
               <FaRegNewspaper className="h-5 w-5" /> בלוג
             </button>

@@ -1,6 +1,6 @@
 //ProfileInfo.jsx
 import React, { useState } from 'react';
-import { MapPin, Pencil, Camera, MessageSquare, Users, Image } from 'lucide-react';
+import { MapPin, Pencil, Camera, MessageSquare, Users, Image} from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '/src/hooks/use-toast.jsx';
 import { containsBadWord } from './utils/containsBadWord';
@@ -60,6 +60,15 @@ const ProfileInfo = ({
     setEditing(field);
     setTempValue(value);
   };
+
+  const followersLabel = isOwner
+    ? "העוקבים שלי"
+    : `העוקבים של ${username}`;
+
+  const followingLabel = isOwner
+    ? "אני עוקב אחרי"
+    : `העוקב אחרי ${username}`;
+
 
   const saveEditing = () => {
     if (containsBadWord(tempValue)) {
@@ -330,9 +339,10 @@ const ProfileInfo = ({
           className={`mt-8 grid grid-cols-3 gap-x-40 gap-y-4 sm:flex sm:justify-center bg-${element}-soft rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow duration-300`}
         >
           <Stat element={element} icon={<MessageSquare className="w-5 h-5" />} count={postsCount} label="פוסטים" />
-          <Stat element={element} icon={<Users className="w-5 h-5" />} count={followersCount} label="עוקבים" />
-          <Stat element={element} icon={<Users className="w-5 h-5" />} count={followingCount} label="עוקב אחרי" />
+          <Stat element={element} icon={<Users className="w-5 h-5" />} count={followersCount} label={followersLabel} />
+          <Stat element={element} icon={<Users className="w-5 h-5" />} count={followingCount} label={followingLabel} />
         </motion.div>
+
       </div>
     </section>
     </>
