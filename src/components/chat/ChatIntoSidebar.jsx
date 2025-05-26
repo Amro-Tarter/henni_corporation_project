@@ -241,6 +241,24 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     }
   };
 
+  useEffect(() => {
+    // Fetch usernames for all participants in direct, group, or community
+    if (conversation && Array.isArray(conversation.participants)) {
+      const idsToFetch = conversation.participants.filter(id => !usernames[id]);
+      if (idsToFetch.length === 0) return;
+      Promise.all(idsToFetch.map(async (uid) => {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', uid));
+          return [uid, userDoc.exists() ? userDoc.data().username : uid];
+        } catch {
+          return [uid, uid];
+        }
+      })).then(entries => {
+        setUsernames(prev => ({ ...prev, ...Object.fromEntries(entries) }));
+      });
+    }
+  }, [conversation && conversation.participants]);
+
   if (!isMounted) return null;
 
   // Only for community chats
@@ -248,7 +266,6 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     const element = conversation.element;
     const icon = ELEMENT_COLORS[element]?.icon;
     const memberUids = conversation.participants || [];
-    const memberNames = conversation.participantNames || [];
     // All images sent in the conversation
     const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
     const imagesToShow = showAllImages ? images : images.slice(0, 6);
@@ -615,7 +632,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                   );
                   const snapshot = await getDocs(q);
                   const results = snapshot.docs
-                    .filter(doc => doc.id !== adminUid && !memberUids.includes(doc.id))
+                    .filter(doc => {doc.id !== adminUid && !memberUids.includes(doc.id) && doc.role !== 'staff'})
                     .map(doc => ({
                       id: doc.id,
                       username: doc.data().username,
@@ -802,13 +819,99 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   }
 
   // Get partner UID and name
-  const partnerName = conversation.participantNames.find((name) => name !== currentUser.username) || 'Unknown';
-  const partnerProfilePic = conversation.partnerProfilePic;
+  const partnerUids = conversation.participants.filter(uid => uid !== currentUser.uid);
+  const partnerNames = conversation.participantNames?.filter(name => name !== currentUser.username) || [];
   const mentorName = currentUser.mentorName;
 
   // All images sent in the conversation
   const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
   const imagesToShow = showAllImages ? images : images.slice(0, 6);
+
+  // STAFF: Direct chat - show both sides info and images sent by each
+  if (currentUser.role === 'staff' && conversation.type === 'direct') {
+    // Get both user infos
+    const userInfos = conversation.participants.map((uid, idx) => {
+      const name = conversation.participantNames?.[idx] || uid;
+      const profilePic = conversation.partnerProfilePic && conversation.participants.length === 2 && idx === 1 ? conversation.partnerProfilePic : '/default_user_pic.jpg';
+      const userImages = images.filter(img => img.sender === uid);
+      return { uid, name, profilePic, userImages };
+    });
+    return (
+      <div 
+        className={`fixed left-0 top-16 mt-0.5 bottom-0
+          w-80 max-w-full sm:w-96 sm:max-w-md
+          shadow-2xl z-40 flex flex-col p-6 pt-16 border-r overflow-y-auto
+          transition-all duration-300
+          ${shouldShow ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{
+          backgroundColor: elementColors.light,
+          borderRight: `2px solid ${elementColors.primary}`
+        }}
+        onTransitionEnd={handleAnimationEnd}
+      >
+        <button 
+          className="absolute top-4 left-6 px-3.5 py-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
+          style={{ color: elementColors.primary }}
+          onClick={onClose}
+          aria-label="Close sidebar"
+        >
+          ✕
+        </button>
+        <div className="font-bold text-lg right-6 px-3.5 py-2 -mt-12" style={{ color: elementColors.primary }}>פרטי צ'אט (צד א' וצד ב')</div>
+        <div className="flex flex-col gap-8 mt-4">
+          {userInfos.map((user, idx) => (
+            <div key={user.uid} className="flex flex-col items-center mb-2 border-b pb-4">
+              <img
+                src={user.profilePic}
+                alt={user.name}
+                className="w-20 h-20 rounded-full object-cover border-4 mb-2"
+                style={{ borderColor: elementColors.primary, backgroundColor: elementColors.light }}
+              />
+              <div className="font-semibold text-gray-800 text-lg mb-2" style={{ color: elementColors.primary }}>{user.name}</div>
+              <a
+                href={`/profile/${user.name}`}
+                className="px-4 py-1 rounded transition mb-2"
+                style={{ backgroundColor: elementColors.primary, color: elementColors.light }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                מעבר לפרופיל
+              </a>
+              <div className="font-semibold text-gray-700 mb-2">תמונות שנשלחו על ידי {user.name}:</div>
+              {user.userImages.length === 0 ? (
+                <div className="text-gray-400 text-sm mb-2">לא נשלחו תמונות על ידי משתמש זה.</div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  {user.userImages.map(img => (
+                    <a
+                      key={img.id}
+                      href={img.mediaURL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <img
+                        src={img.mediaURL}
+                        alt="תמונה בצ'אט"
+                        className="w-full h-20 object-cover rounded shadow"
+                        loading="lazy"
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // For staff: hide chat navigation button in community/group
+  // Find the section with the chat navigation button and only render it if currentUser.role !== 'staff'
+  // (In community: the button with href={`/profile/${partnerName}`})
+  // (In group: the button with onClick={() => handleOpenDirectChat(uid)})
+  // So, in the JSX for those, wrap with {currentUser.role !== 'staff' && (...button...)}
 
   return (
     <div 

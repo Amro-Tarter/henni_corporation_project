@@ -264,7 +264,7 @@ export default function ChatArea({
             onInfoClick={() => setShowInfoSidebar(true)}
             mentorName={currentUser.mentorName}
             currentUser={currentUser}
-            
+            participantNames={selectedConversation.participantNames}
           />
           <ChatInfoSidebar
             open={showInfoSidebar}
@@ -298,7 +298,7 @@ export default function ChatArea({
                 ))}
                 <MessageLoadingState type="image" isOwnMessage={true} elementColors={elementColors} />
               </>
-            ) : filteredMessages.length === 0 ? (
+            ) : filteredMessages.length === 0 && currentUser.role !== 'staff' ? (
               <div className="text-center text-gray-500 py-8">אין הודעות עדיין. התחל את השיחה!</div>
             ) : (
               <>
@@ -330,90 +330,97 @@ export default function ChatArea({
               </svg>
             </button>
           )}
-          <ChatInput
-            newMessage={newMessage}
-            setNewMessage={setNewMessage}
-            handleSendMessage={async () => {
-              // Handle voice message
-              if (audioBlob && !isRecording) {
+          {currentUser.role !== 'staff' && (
+            <ChatInput
+              newMessage={newMessage}
+              setNewMessage={setNewMessage}
+              handleSendMessage={async () => {
+                // Handle voice message
+                if (audioBlob && !isRecording) {
+                  try {
+                    const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
+                      type: 'audio/webm',
+                      lastModified: Date.now()
+                    });
+                    await sendMessage({ 
+                      fileOverride: voiceFile,
+                      mediaTypeOverride: 'audio',
+                      durationOverride: Math.round(recordingTime)
+                    });
+                    resetRecording();
+                    if (messagesEndRef.current) {
+                      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+                    }
+                    return;
+                  } catch (error) {
+                    console.error("Error sending voice message:", error);
+                    alert("Failed to send voice message. Please try again.");
+                    return;
+                  }
+                }
+                // Handle regular messages and images
                 try {
-                  const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
-                    type: 'audio/webm',
-                    lastModified: Date.now()
-                  });
-                  
-                  await sendMessage({ 
-                    fileOverride: voiceFile,
-                    mediaTypeOverride: 'audio',
-                    durationOverride: Math.round(recordingTime)
-                  });
-                  
-                  resetRecording();
+                  if (file && file.type && file.type.startsWith('image/')) {
+                    setIsSendingImage(true);
+                  }
+                  await sendMessage();
+                  setIsSendingImage(false);
                   if (messagesEndRef.current) {
                     messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
                   }
-                  return;
                 } catch (error) {
-                  console.error("Error sending voice message:", error);
-                  alert("Failed to send voice message. Please try again.");
-                  return;
+                  console.error("Error sending message:", error);
+                  setIsSendingImage(false);
                 }
-              }
-
-              // Handle regular messages and images
-              try {
-                if (file && file.type && file.type.startsWith('image/')) {
-                  setIsSendingImage(true);
-                }
-                await sendMessage();
-                setIsSendingImage(false);
-                if (messagesEndRef.current) {
-                  messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-                }
-              } catch (error) {
-                console.error("Error sending message:", error);
-                setIsSendingImage(false);
-              }
-            }}
-            file={file}
-            preview={preview}
-            isUploading={isUploading}
-            uploadProgress={uploadProgress}
-            handleFileChange={handleFileChange}
-            removeFile={removeFile}
-            elementColors={elementColors}
-            showEmojiPicker={showEmojiPicker}
-            setShowEmojiPicker={setShowEmojiPicker}
-            onEmojiClick={onEmojiClick}
-            emojiPickerRef={emojiPickerRef}
-            sendButtonRef={sendButtonRef}
-            isRecording={isRecording}
-            recordingTime={recordingTime}
-            startRecording={startRecording}
-            stopRecording={stopRecording}
-            audioURL={audioURL}
-            audioBlob={audioBlob}
-            resetRecording={resetRecording}
-          />
+              }}
+              file={file}
+              preview={preview}
+              isUploading={isUploading}
+              uploadProgress={uploadProgress}
+              handleFileChange={handleFileChange}
+              removeFile={removeFile}
+              elementColors={elementColors}
+              showEmojiPicker={showEmojiPicker}
+              setShowEmojiPicker={setShowEmojiPicker}
+              onEmojiClick={onEmojiClick}
+              emojiPickerRef={emojiPickerRef}
+              sendButtonRef={sendButtonRef}
+              isRecording={isRecording}
+              recordingTime={recordingTime}
+              startRecording={startRecording}
+              stopRecording={stopRecording}
+              audioURL={audioURL}
+              audioBlob={audioBlob}
+              resetRecording={resetRecording}
+            />
+          )}
         </>
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צ'אט או התחל שיחה חדשה</h3>
-            <p className="text-gray-500">או לחץ על הכפתור </p>
-            {console.log(currentUser)}
-            {currentUser?.role === "participant" ? (
-              <button
-                className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300"
-                style={{ backgroundColor: elementColors.primary }}
-                onClick={handleGoToMentorChat}
-                disabled={isCreatingMentorChat}
-              >
-                {isCreatingMentorChat ? "פותח צ'אט..." : "ובוא נדבר"}
-              </button>
-            ) : null}
+        (currentUser.role === 'participant' || currentUser.role === 'mentor') ? (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צ'אט או התחל שיחה חדשה</h3>
+              <p className="text-gray-500">או לחץ על הכפתור </p>
+              {currentUser?.role === "participant" ? (
+                <button
+                  className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300"
+                  style={{ backgroundColor: elementColors.primary }}
+                  onClick={handleGoToMentorChat}
+                  disabled={isCreatingMentorChat}
+                >
+                  {isCreatingMentorChat ? "פותח צ'אט..." : "ובוא נדבר"}
+                </button>
+              ) : null}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צאט והתחל לדווח</h3>
+              <p className="text-gray-500">אנא בחר צ'אט מהתפריט ובדוק אותו .</p>
+            </div>
+          </div>
+        )
       )}
       <style>{`
         .message-content {
