@@ -3,22 +3,48 @@ import React from 'react';
 /**
  * ChatHeader displays the name of the chat partner or community.
  */
-const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, currentUser }) => {
+const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, currentUser, participantNames }) => {
   const handleVideoCall = () => {
     // Open Zoom meeting link in a new tab
     window.open('https://zoom.us/start', '_blank');
   };
 
+  // For direct chats, get partner name from participantNames
+  const partnerName = type === 'direct'
+    ? participantNames?.find(name => name !== currentUser.username)
+    : chatTitle;
+
+  // Determine what name to show in header
+  const displayName = type === 'direct'
+    ? partnerName || ''
+    : chatTitle;
+
   return (
-    <div className="p-4 z-30 shadow-xl mt-16 border-gray-200 text-right flex items-center gap-3 relative">
-      {type === 'community' ? (
-        <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">{icon}</span>
-      ) : avatar ? (
-        <img src={avatar} alt="avatar" className="w-10 h-10 object-cover rounded-full" />
-      ) : (
-        <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-xl text-gray-400">👤</span>
+    <div className="p-4 z-30 shadow-xl mt-16 border-gray-200 text-right flex items-center gap-3 relative">      {currentUser.role !== 'staff' && (
+        type === 'community' ? (
+          <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">{icon}</span>
+        ) : avatar ? (
+          <img src={avatar} alt="avatar" className="w-10 h-10 object-cover rounded-full" />
+        ) : (
+          <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-xl text-gray-400">👤</span>
+        )
       )}
-      <h3 className="font-bold text-lg text-gray-900">{chatTitle}</h3>
+      
+      {currentUser.role === 'staff' && type === 'direct' && (
+        <div className="text-gray-900 font-bold text-lg">
+          {participantNames.join(' - ')}
+        </div>
+      )}
+      {currentUser.role === 'staff' && (type === 'community' || type === 'group') &&(
+        <div className="text-gray-900 font-bold text-lg">
+          {chatTitle}
+        </div>
+      )}
+      {currentUser.role !== 'staff' && (
+        <div className="text-gray-900 font-bold text-lg">
+          {displayName}
+        </div>
+      )}
       {chatTitle === mentorName && (
         <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
       )}
@@ -45,4 +71,4 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
   );
 };
 
-export default ChatHeader; 
+export default ChatHeader;

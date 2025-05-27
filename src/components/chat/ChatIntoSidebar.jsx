@@ -345,15 +345,20 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
                             </svg>
                           </a>
-                          <button
-                            className="p-1 rounded-full hover:bg-gray-200 transition"
-                            title="פתח צ'אט"
-                            onClick={() => handleOpenDirectChat(uid)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-green-600">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 15.75a6.375 6.375 0 100-12.75 6.375 6.375 0 000 12.75zM15.75 15.75v-1.125a3.375 3.375 0 00-3.375-3.375H8.625a3.375 3.375 0 00-3.375 3.375V15.75" />
-                            </svg>
-                          </button>
+                          {currentUser.role !== 'staff' && (
+                            <button
+                              className="p-1 rounded-full hover:bg-gray-200 transition"
+                              title="פתח צ'אט"
+                              onClick={() => handleOpenDirectChat(uid)  }
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
+                              </svg>
+                            </button>
+                          )}
+                          
+
                         </>
                       )}
                     </div>
@@ -729,16 +734,18 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
                             </svg>
                           </button>
-                          <button
-                            className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
-                            title="פתח צ'אט"
-                            aria-label="פתח צ'אט"
-                            onClick={() => handleOpenDirectChat(uid)}
+                          {currentUser.role !== 'staff' && (
+                            <button
+                              className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
+                              title="פתח צ'אט"
+                              aria-label="פתח צ'אט"
+                              onClick={() => handleOpenDirectChat(uid)}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 15.75a6.375 6.375 0 100-12.75 6.375 6.375 0 000 12.75zM15.75 15.75v-1.125a3.375 3.375 0 00-3.375-3.375H8.625a3.375 3.375 0 00-3.375 3.375V15.75" />
                             </svg>
-                          </button>
+                            </button>
+                          )}
                         </>
                       )}
                       {isAdmin && uid !== adminUid && (
@@ -817,23 +824,33 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       </div>
     );
   }
-
   // Get partner UID and name
   const partnerUids = conversation.participants.filter(uid => uid !== currentUser.uid);
   const partnerNames = conversation.participantNames?.filter(name => name !== currentUser.username) || [];
   const mentorName = currentUser.mentorName;
-
+  const partnerProfilePic = conversation.partnerProfilePic || '/default_user_pic.jpg';
+  const partnerName = partnerNames[0] || partnerUids[0] || 'משתמש לא מזוהה';
   // All images sent in the conversation
   const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
   const imagesToShow = showAllImages ? images : images.slice(0, 6);
 
   // STAFF: Direct chat - show both sides info and images sent by each
-  if (currentUser.role === 'staff' && conversation.type === 'direct') {
-    // Get both user infos
+  if (currentUser.role === 'staff' && conversation.type === 'direct') {    // Get both user infos with their correct images
     const userInfos = conversation.participants.map((uid, idx) => {
       const name = conversation.participantNames?.[idx] || uid;
-      const profilePic = conversation.partnerProfilePic && conversation.participants.length === 2 && idx === 1 ? conversation.partnerProfilePic : '/default_user_pic.jpg';
-      const userImages = images.filter(img => img.sender === uid);
+      // Get the correct profile picture for each user
+      let profilePic;
+      if (idx === 0) {
+        profilePic = conversation.user1ProfilePic || '/default_user_pic.jpg';
+      } else {
+        profilePic = conversation.user2ProfilePic || conversation.partnerProfilePic || '/default_user_pic.jpg';
+      }
+      // Make sure we filter images by the actual sender ID
+      const userImages = messages.filter(m => 
+        m.mediaType === 'image' && 
+        m.mediaURL && 
+        m.sender !== uid
+      );
       return { uid, name, profilePic, userImages };
     });
     return (
@@ -861,12 +878,6 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         <div className="flex flex-col gap-8 mt-4">
           {userInfos.map((user, idx) => (
             <div key={user.uid} className="flex flex-col items-center mb-2 border-b pb-4">
-              <img
-                src={user.profilePic}
-                alt={user.name}
-                className="w-20 h-20 rounded-full object-cover border-4 mb-2"
-                style={{ borderColor: elementColors.primary, backgroundColor: elementColors.light }}
-              />
               <div className="font-semibold text-gray-800 text-lg mb-2" style={{ color: elementColors.primary }}>{user.name}</div>
               <a
                 href={`/profile/${user.name}`}
@@ -877,30 +888,42 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
               >
                 מעבר לפרופיל
               </a>
-              <div className="font-semibold text-gray-700 mb-2">תמונות שנשלחו על ידי {user.name}:</div>
-              {user.userImages.length === 0 ? (
-                <div className="text-gray-400 text-sm mb-2">לא נשלחו תמונות על ידי משתמש זה.</div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2 mb-2">
-                  {user.userImages.map(img => (
-                    <a
-                      key={img.id}
-                      href={img.mediaURL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
-                      <img
-                        src={img.mediaURL}
-                        alt="תמונה בצ'אט"
-                        className="w-full h-20 object-cover rounded shadow"
-                        loading="lazy"
-                      />
-                    </a>
-                  ))}
-                </div>
-              )}
-            </div>
+              {/* Images Gallery */}
+                <div className="mt-2 font-semibold text-gray-700 mb-2">תמונות שנשלחו על ידי {user.name}:</div>
+                {user.userImages.length === 0 ? (
+                  <div className="text-gray-400 text-sm">לא נשלחו תמונות בצ'אט זה.</div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-2">
+                      {imagesToShow.map(img => (
+                        <a
+                          key={img.id}
+                          href={img.mediaURL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <img
+                            src={img.mediaURL}
+                            alt="תמונה בצ'אט"
+                            className="w-full h-20 object-cover rounded shadow"
+                            loading="lazy"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                    {images.length > 6 && (
+                      <button
+                        className="mt-2 hover:underline text-sm"
+                        onClick={() => setShowAllImages(v => !v)}
+                        style={{ color: elementColors.primary }}
+                      >
+                        {showAllImages ? '<< הצג פחות' : 'הצג עוד >>'}
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
           ))}
         </div>
       </div>

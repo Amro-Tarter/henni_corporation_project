@@ -274,6 +274,8 @@ export default function ChatArea({
             messages={messages}
             elementColors={elementColors}
             setSelectedConversation={setSelectedConversation}
+            partnerProfilePic={getDirectAvatar()}
+            mentorName={currentUser.mentorName}
           />
           <div className="flex-1 overflow-y-auto p-4 bg-white" style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
             {isLoadingMessages ? (

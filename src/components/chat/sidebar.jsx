@@ -13,7 +13,7 @@ export default function Sidebar({ elementColors, onTabChange, userElement, activ
     { icon: HiMiniHome, label: "הכל", type: "all" },
     { icon: HiOutlineChatBubbleBottomCenterText, label: "פרטי", type: "direct" },
     { icon: HiMiniUsers, label: "קבוצות", type: "group" },
-    { icon: HiUserGroup, label: `${userElement} קהילה`, type: "community" }
+    { icon: HiUserGroup, label: `קהילות`, type: "community" }
   ];
 
   // Handle tab click

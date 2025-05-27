@@ -44,5 +44,13 @@ export const ELEMENT_COLORS = {
       darkHover: '#5ca8c4',
       background: '#f7fcff',
       icon: <AirIcon style={{color: '#87ceeb'}} />
+    },
+    staff: {
+      primary: '#a83232',      // Rich warm red (less saturated than #7f1d1d)
+      hover: '#922b21',        // Darker, deeper hover red
+      light: '#fdecea',        // Very light red-tinted background
+      darkHover: '#7f1d1d',    // The reference color (darkest tone)
+      background: '#fff6f6',   // Soft light red background
+      icon: <FireIcon style={{ color: '#a83232' }} />, // Match primary
     }
   };

@@ -94,7 +94,8 @@ export default function ChatApp() {
         .filter(doc => {
           const username = doc.data().username || '';
           return doc.id !== currentUser.uid && 
-                 username.toLowerCase().includes(searchTerm.toLowerCase());
+                 username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                  doc.data().role !== 'staff'; // Exclude staff users
         })
         .map(doc => ({
           id: doc.id,
@@ -129,7 +130,7 @@ export default function ChatApp() {
           const userData = {
             uid: user.uid,
             username: userDoc.data().username,
-            element: userElement,
+            element: userElement || "staff",
             role: userRole,
             associated_id,
             mentorName: userDoc.data().mentorName,
@@ -213,31 +214,55 @@ export default function ChatApp() {
               participantNames: [`${data.element} Community`]
             });
             continue;
-          }
-          if (data.type === "direct") {
-            const partnerUid = data.participants?.find(p => p !== currentUser.uid);
-            if (!partnerUid) continue;
-            // Fetch partner's username from users, and photoURL from profiles
-            const userDocRef = doc(db, "users", partnerUid);
-            const partnerDoc = await getDoc(userDocRef);
+          }          if (data.type === "direct") {
+            // Use existing participantNames and fetch profile pic
+            const partnerUid = data.participants.find(uid => uid !== currentUser.uid);
             let partnerProfilePic = null;
+            
             try {
-              const profileDocRef = doc(db, "profiles", partnerUid);
-              const profileDoc = await getDoc(profileDocRef);
+              const profileDoc = await getDoc(doc(db, 'profiles', partnerUid));
               if (profileDoc.exists()) {
                 partnerProfilePic = profileDoc.data().photoURL || null;
               }
             } catch (e) {
-              partnerProfilePic = null;
+              console.error('Error fetching partner profile:', e);
             }
-            validConversations.push({
-              ...base,
-              participantNames: [
-                currentUser.username,
-                partnerDoc.exists() ? partnerDoc.data().username : "Unknown"
-              ],
-              partnerProfilePic
-            });
+            
+            if (data.participantNames?.length === 2) {
+              validConversations.push({
+                ...base,
+                participantNames: data.participantNames,
+                partnerProfilePic
+              });
+              continue;
+            }
+
+            // If participantNames not available, fetch user data and update
+            try {
+              const participants = await Promise.all(
+                data.participants.map(async uid => {
+                  const userDoc = await getDoc(doc(db, "users", uid));
+                  return userDoc.data()?.username || uid;
+                })
+              );
+
+              // Update conversation with participant names
+              await updateDoc(doc(db, "conversations", data.id), {
+                participantNames: participants
+              });
+
+              validConversations.push({
+                ...base,
+                participantNames: participants
+              });
+            } catch (error) {
+              console.error("Error fetching participant names:", error);
+              // Fallback to using UIDs if fetch fails
+              validConversations.push({
+                ...base,
+                participantNames: data.participants
+              });
+            }
             continue;
           }
           if (data.type === "group") {
@@ -260,27 +285,31 @@ export default function ChatApp() {
     });
     return () => unsubscribe();
   }, [currentUser.uid]);
-
-  // Utility to fetch a user's profile picture (Firestore, then Storage fallback)
+  // Utility to fetch a user's profile picture with caching and loaders
   async function fetchUserAvatar(uid) {
     try {
+      // Check if we already have it cached
+      if (userAvatars[uid]) {
+        return userAvatars[uid];
+      }
+
+      // Try to get from profiles collection first
       const profileDoc = await getDoc(doc(db, 'profiles', uid));
       let photoURL = null;
       if (profileDoc.exists()) {
         photoURL = profileDoc.data().photoURL || null;
       }
-      if (!photoURL) {
-        try {
-          const storage = getStorage();
-          const ref = storageRef(storage, `profiles/${uid}/profile.jpg`);
-          photoURL = await getDownloadURL(ref);
-        } catch (e) {
-          photoURL = null;
-        }
-      }
-      return photoURL;
+
+      // Cache the result
+      setUserAvatars(prev => ({
+        ...prev,
+        [uid]: photoURL || '/default_user_pic.jpg'
+      }));
+
+      return photoURL || '/default_user_pic.jpg';
     } catch (e) {
-      return null;
+      console.error("Error fetching avatar:", e);
+      return '/default_user_pic.jpg';
     }
   }
 
@@ -305,24 +334,26 @@ export default function ChatApp() {
       }));
       
       setMessages(msgs);
-      setIsLoadingMessages(false);
-
-      // Build a set of unique sender UIDs (including currentUser)
+      setIsLoadingMessages(false);      // Build a set of unique sender UIDs (including currentUser)
       const senderUids = new Set(msgs.map(m => m.sender));
-      
       senderUids.add(currentUser.uid);
       
-      // For direct chats, add partner UID
-      if (selectedConversation.type === 'direct') {
-        const partnerUid = selectedConversation.participants.find(p => p !== currentUser.uid);
-        if (partnerUid) senderUids.add(partnerUid);
+      // Add all participants for group/community chats
+      if (selectedConversation.participants) {
+        selectedConversation.participants.forEach(uid => senderUids.add(uid));
       }
-      // Fetch avatars for all senders
+      
+      // Fetch avatars for all senders and participants
       const avatarEntries = await Promise.all(
         Array.from(senderUids).map(async uid => [uid, await fetchUserAvatar(uid)])
       );
       
-      setUserAvatars(Object.fromEntries(avatarEntries));
+      // Update avatar cache
+      const newAvatars = Object.fromEntries(avatarEntries);
+      setUserAvatars(prev => ({
+        ...prev,
+        ...newAvatars
+      }));
     });
     
     return () => unsubscribe();
@@ -523,9 +554,14 @@ export default function ChatApp() {
   // --- Community Chat Membership ---
   const handleCommunityChatMembership = async (userId, userElement) => {
     try {
-      const normalizedElement = userElement.toLowerCase();
+      const normalizedElement = userElement;
       const userDoc = await getDoc(doc(db, "users", userId));
       const username = userDoc.data().username;
+      const userRole = userDoc.data().role;
+      if (userRole === 'staff') {
+        // Staff members do not join community chats
+        return null;
+      }
       // 1. Find all community conversations the user is currently in
       const allCommunitiesQuery = query(
         collection(db, "conversations"),
@@ -871,6 +907,7 @@ export default function ChatApp() {
       selectedConversation.type === 'group' &&
       Array.isArray(selectedConversation.participants) &&
       !selectedConversation.participants.includes(currentUser.uid)
+      && currentUser.role !== 'staff' // Only auto-close for non-staff
     ) {
       // Check for a personal removal message
       const lastPersonalRemovalMsg = messages
@@ -1102,7 +1139,8 @@ export default function ChatApp() {
                       const username = doc.data().username || '';
                       return doc.id !== currentUser.uid && 
                              !selectedGroupUsers.some(u => u.id === doc.id) &&
-                             username.toLowerCase().includes(e.target.value.toLowerCase());
+                             username.toLowerCase().includes(e.target.value.toLowerCase()) &&
+                             doc.data().role !== 'staff'; // Exclude staff users
                     })
                     .map(doc => ({
                       id: doc.id,

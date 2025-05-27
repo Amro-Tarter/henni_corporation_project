@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import getDirection from '../utils/identifyLang';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { functions as firebaseFunctions } from '@/config/firbaseConfig';
 
 const DEFAULT_AVATAR = 'https://www.gravatar.com/avatar/?d=mp&f=y';
 
@@ -186,53 +188,53 @@ const MessageItem = ({
     setReportError('');
     setReportSuccess(false);
     try {
-      // Get admin user email
-      const q = query(collection(db, 'users'), where('role', '==', 'admin'));
-      const snapshot = await getDocs(q);
-      let adminEmail = '';
-      if (!snapshot.empty) {
-        adminEmail = snapshot.docs[0].data().email;
-      } else {
-        setReportError('לא נמצא מנהל מערכת לשליחת הדיווח.');
-        setIsReporting(false);
-        return;
-      }
-      // Send report to backend API (assume /api/sendReport exists)
+      // Compose message content
       let messageContent = '';
+      let mediaType = null;
+      let mediaURL = null;
+      let fileName = null;
       if (message.text) {
         messageContent = message.text;
       } else if (message.mediaType === 'image') {
-        messageContent = `תמונה: ${message.mediaURL || ''}`;
+        messageContent = '';
+        mediaType = 'image';
+        mediaURL = message.mediaURL || '';
+        fileName = message.fileName || '';
       } else if (message.mediaType === 'audio') {
-        messageContent = `הודעת קול: ${message.mediaURL || ''}`;
+        messageContent = '';
+        mediaType = 'audio';
+        mediaURL = message.mediaURL || '';
+        fileName = message.fileName || '';
       } else {
         messageContent = JSON.stringify(message, null, 2);
       }
-      const res = await fetch('https://sendreport-gvldg2d2ya-uc.a.run.app', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: adminEmail,
-          subject: 'דיווח על הודעה בצ׳אט',
-          message: `התקבל דיווח על הודעה בצ׳אט:\n\nסיבה: ${reportCause}\nדיווח על: ${reportTarget}\nתוכן ההודעה: ${messageContent}\nנשלח על ידי: ${currentUser.username} (${currentUser.email})\nבצ׳אט: ${selectedConversation.id}`
-        })
-      }).catch(() => ({ ok: false, status: 0 }));
-      if (res && res.ok) {
-        setReportSuccess(true);
-        setShowReportModal(false);
-      } else {
-        let errorMsg = 'שליחת הדיווח נכשלה. ודא שהשרת פעיל ושהפרטים נכונים.';
-        if (res && res.status && res.status !== 0) {
-          try {
-            const data = await res.json();
-            if (data && data.error) errorMsg += `\n${data.error}`;
-          } catch {}
-        }
-        setReportError(errorMsg);
-      }
+      // Save report to Firestore
+      await addDoc(collection(db, 'Reports'), {
+        reportedMessageId: message.id || null,
+        reportedUser: message.sender || null,
+        reportedUserName: message.senderName || '',
+        reporterUid: currentUser.uid || null,
+        reporterEmail: currentUser.email || '',
+        reporterName: currentUser.username || '',
+        cause: reportCause || '',
+        customCause: reportCause === 'אחר' ? (reportCustomCause || '') : '',
+        target: reportTarget || '',
+        messageContent: messageContent || '',
+        mediaType: mediaType || '',
+        mediaURL: mediaURL || '',
+        fileName: fileName || '',
+        chatId: selectedConversation.id || null,
+        chatType: selectedConversation.type || '',
+        createdAt: serverTimestamp(),
+      });
+      setReportSuccess(true);
+      setShowReportModal(false);
     } catch (e) {
-      setReportError('שגיאה בשליחת הדיווח: ' + e.message);
+      setReportError('שגיאה בשליחת הדיווח: ' + (e.message || e.code || e.toString()));
+      return;
     }
+    //success alert
+    setReportSuccess(true);
     setIsReporting(false);
   };
 
