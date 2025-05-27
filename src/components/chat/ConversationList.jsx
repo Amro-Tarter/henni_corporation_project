@@ -51,7 +51,7 @@ export default function ConversationList({
   }, [visibleConversations]);
 
   return (
-    <div className="w-full md:w-1/4 z-50 shadow-md flex flex-col conversation-list mt-16" dir="rtl">
+    <div className="w-full md:w-1/4 z-50 shadow-md flex flex-col conversation-list mt-16" dir="rtl" onClick={() => setSelectedConversation(null)}>
       <div className="p-4">
         <h1 className="text-xl font-bold text-gray-900">כל הצ'אטים</h1>
         <h2 className="text-sm text-gray-500 mt-1">הודעות ({visibleConversations.length})</h2>
@@ -77,14 +77,22 @@ export default function ConversationList({
             const isSelected = selectedConversation?.id === conv.id;
             const mentorName = currentUser.mentorName;
             let avatar = null;
-            if (conv.type === 'community') {
+            if (conv.type === 'community' && conv.communityType !== 'mentor_community') {
               const icon = elementColorsMap[conv.element]?.icon;
               avatar = (
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
                   {icon}
                 </div>
               );
-            } else if (conv.type === 'group') {
+            } else if (conv.type === 'community' && conv.communityType === 'mentor_community') {
+              avatar = (
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
+                  👨‍🏫
+                </div>
+              );
+            }
+            
+            else if (conv.type === 'group') {
               avatar = conv.avatarURL ? (
                 <img src={conv.avatarURL} alt="group avatar" className="w-10 h-10 object-cover rounded-full" />
               ) : (
@@ -120,14 +128,15 @@ export default function ConversationList({
             }
             const bgColorStyle = isSelected ? { backgroundColor: elementColorsMap[currentUser?.element]?.light || '#f5f5f5' } : {};
             let partnerName;
-            if (currentUser.role === 'staff' && conv.type === 'direct') {
+            if (conv.displayName) {
+              partnerName = conv.displayName;
+            } else if (currentUser.role === 'staff' && conv.type === 'direct') {
               partnerName = Array.isArray(conv.participants)
                 ? conv.participants.map(uid => usernames[uid] || uid).join(' - ')
                 : 'Unknown';
             } else if (conv.type === 'direct' && Array.isArray(conv.participants)) {
               const partnerUid = conv.participants.find(uid => uid !== currentUser.uid);
               partnerName = partnerUid ? (usernames[partnerUid] || partnerUid) : 'Unknown';
-            } else {
               partnerName = getChatPartner(
                 conv.participants,
                 conv.type,
@@ -136,6 +145,18 @@ export default function ConversationList({
                 undefined,
                 conv.type === 'group' ? conv.groupName : undefined,
                 conv.participantNames
+              );
+            } else {
+              partnerName = getChatPartner(
+                conv.participants,
+                conv.type,
+                conv.element,
+                currentUser,
+                undefined,
+                conv.type === 'group' ? conv.groupName : undefined,
+                conv.participantNames,
+                conv.communityType,
+                conv.mentorName
               );
             }
             return (

@@ -250,7 +250,10 @@ export default function ChatArea({
               selectedConversation.element,
               currentUser,
               undefined,
-              selectedConversation.type === 'group' ? selectedConversation.groupName : undefined
+              selectedConversation.type === 'group' ? selectedConversation.groupName : undefined,
+              selectedConversation.participantNames,
+              selectedConversation.communityType,
+              selectedConversation.mentorName
             )}
             type={selectedConversation.type}
             icon={selectedConversation.type === 'community' ? elementColors.icon : undefined}
@@ -262,9 +265,11 @@ export default function ChatArea({
                   : undefined
             }
             onInfoClick={() => setShowInfoSidebar(true)}
-            mentorName={currentUser.mentorName}
+            mentorName={selectedConversation.mentorName || currentUser.mentorName}
             currentUser={currentUser}
             participantNames={selectedConversation.participantNames}
+            communityType={selectedConversation.communityType}
+            element={selectedConversation.element}
           />
           <ChatInfoSidebar
             open={showInfoSidebar}

@@ -266,9 +266,17 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     const element = conversation.element;
     const icon = ELEMENT_COLORS[element]?.icon;
     const memberUids = conversation.participants || [];
+    const communityType = conversation.communityType;
+    const mentorName = conversation.mentorName;
     // All images sent in the conversation
     const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
     const imagesToShow = showAllImages ? images : images.slice(0, 6);
+    let displayName;
+    if (communityType === 'mentor_community') {
+      displayName = mentorName ? `קהילה של ${mentorName}` : 'קהילת מנטור';
+    } else {
+      displayName = element ? `${element} Community` : 'Community';
+    }
     return (
       <div
         className={`fixed left-0 top-16 mt-0.5 bottom-0
@@ -284,18 +292,22 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         onTransitionEnd={handleAnimationEnd}
       >
         <button
-          className="absolute top-4 left-6 px-3.5 py-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
+          className={`absolute top-4 left-6 px-3.5 py-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors`}
           style={{ color: elementColors.primary }}
           onClick={onClose}
           aria-label="Close sidebar"
         >
           ✕
         </button>
-        <div className="font-bold text-lg right-6 px-3.5 py-2 -mt-12" style={{ color: elementColors.primary }}>
-          {icon && <span className="text-2xl mr-2">{icon}</span>}
-          {element ? `${element} Community` : 'Community'}
+        <div className={`font-bold text-lg right-6 px-3.5 py-2 -mt-12 flex items-center gap-2`} style={{ color: elementColors.primary }}>
+          {communityType === 'mentor_community' ? (
+            <span className="text-2xl mr-2">👨‍🏫</span>
+          ) : (
+            icon && <span className="text-2xl mr-2">{icon}</span>
+          )}
+          {displayName}
         </div>
-        <div className="text-gray-500 text-sm mb-4">מספר חברים: {memberUids.length}</div>
+        <div className={`text-${communityType === 'mentor_community' ? 'gray-700' : 'gray-500'} text-sm mb-4`}>מספר חברים: {memberUids.length}</div>
         {/* Members List */}
         <div className="mb-6">
           <div className="font-semibold text-gray-700 mb-2">חברי הקהילה</div>
@@ -346,19 +358,22 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                             </svg>
                           </a>
                           {currentUser.role !== 'staff' && (
-                            <button
-                              className="p-1 rounded-full hover:bg-gray-200 transition"
-                              title="פתח צ'אט"
-                              onClick={() => handleOpenDirectChat(uid)  }
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
-                              </svg>
-                            </button>
+                           <button
+                           className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
+                           title="פתח צ'אט"
+                           aria-label="פתח צ'אט"
+                           onClick={() => handleOpenDirectChat(uid)}
+                       >
+                         <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 512 512"
+                          fill="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path d="M256.064 32C132.288 32 32 125.248 32 241.6c0 66.016 34.816 123.36 89.216 160.192V480l81.312-44.608c17.472 4.736 35.84 7.296 53.536 7.296 123.744 0 223.936-93.248 223.936-209.6S379.808 32 256.064 32zm29.056 257.728l-54.4-58.88-111.936 58.88 132.736-141.632 54.4 58.88 111.936-58.88-132.736 141.632z"/>
+                        </svg>
+                         </button>
                           )}
-                          
-
                         </>
                       )}
                     </div>
@@ -741,9 +756,14 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                               aria-label="פתח צ'אט"
                               onClick={() => handleOpenDirectChat(uid)}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 15.75a6.375 6.375 0 100-12.75 6.375 6.375 0 000 12.75zM15.75 15.75v-1.125a3.375 3.375 0 00-3.375-3.375H8.625a3.375 3.375 0 00-3.375 3.375V15.75" />
-                            </svg>
+                            <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 512 512"
+                            fill="currentColor"
+                            className="w-5 h-5"
+                          >
+                            <path d="M256.064 32C132.288 32 32 125.248 32 241.6c0 66.016 34.816 123.36 89.216 160.192V480l81.312-44.608c17.472 4.736 35.84 7.296 53.536 7.296 123.744 0 223.936-93.248 223.936-209.6S379.808 32 256.064 32zm29.056 257.728l-54.4-58.88-111.936 58.88 132.736-141.632 54.4 58.88 111.936-58.88-132.736 141.632z"/>
+                          </svg>
                             </button>
                           )}
                         </>

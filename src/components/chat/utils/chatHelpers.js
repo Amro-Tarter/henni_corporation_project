@@ -7,8 +7,10 @@
  * @param {Array} conversations
  * @param {string} groupName
  * @param {Array} participantNames
+ * @param {string} communityType (optional)
+ * @param {string} mentorName (optional)
  */
-export function getChatPartner(participants, conversationType, element, currentUser, conversations, groupName, participantNames) {
+export function getChatPartner(participants, conversationType, element, currentUser, conversations, groupName, participantNames, communityType, mentorName) {
   if (conversationType === "group") {
     if (groupName && groupName.trim() !== "") {
       return groupName;
@@ -22,6 +24,9 @@ export function getChatPartner(participants, conversationType, element, currentU
   }
   
   if (conversationType === "community") {
+    if (communityType === "mentor_community") {
+      return mentorName ? `קהילה של ${mentorName}` : 'קהילת מנטור';
+    }
     return `${element} Community`;
   }
 

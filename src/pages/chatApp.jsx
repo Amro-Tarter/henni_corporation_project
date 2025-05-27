@@ -136,8 +136,10 @@ export default function ChatApp() {
             mentorName: userDoc.data().mentorName,
           };
           setCurrentUser(userData);
-          // Ensure user is in their community
+          // Ensure user is in their element community
           const community = await handleCommunityChatMembership(user.uid, userElement);
+          // Ensure mentor community logic
+          await handleMentorCommunityMembership(user.uid, userRole, userDoc.data().mentorName, userDoc.data().username);
           if (community) setSelectedConversation(false);
           setAuthInitialized(true);
         } catch (error) {
@@ -162,9 +164,13 @@ export default function ChatApp() {
     } else if (activeTab === "group") {
       filtered = filtered.filter(conv => conv.type === "group");
     } else if (activeTab === "community") {
+      // Show both element and mentor communities, but can be grouped in UI
       filtered = filtered.filter(conv =>
         conv.type === "community" &&
-        conv.element === currentUser.element?.toLowerCase()
+        (
+          (!conv.communityType || conv.communityType === "element") ||
+          conv.communityType === "mentor_community"
+        )
       );
     }
     if (searchQuery) {
@@ -208,13 +214,26 @@ export default function ChatApp() {
             lastUpdated: data.lastUpdated?.toDate(),
             createdAt: data.createdAt?.toDate()
           };
-          if (data.type === "community") {
+          if (data.type === "community" && data.communityType === "mentor_community") {
             validConversations.push({
               ...base,
-              participantNames: [`${data.element} Community`]
+              mentorName: data.mentorName,
+              participantNames: data.participantNames,
+              participants: data.participants,
+              communityType: data.communityType,
+              displayName: data.mentorName ? `קהילה של ${data.mentorName}` : 'קהילת מנטור',
             });
             continue;
-          }          if (data.type === "direct") {
+          } else if (data.type === "community" && (!data.communityType || data.communityType === "element")) {
+            validConversations.push({
+              ...base,
+              participantNames: [`${data.element} Community`],
+              communityType: data.communityType,
+              displayName: data.element ? `${data.element} Community` : 'Community',
+            });
+            continue;
+          }
+          if (data.type === "direct") {
             // Use existing participantNames and fetch profile pic
             const partnerUid = data.participants.find(uid => uid !== currentUser.uid);
             let partnerProfilePic = null;
@@ -272,6 +291,15 @@ export default function ChatApp() {
               groupName: data.name,
               admin: data.admin,
               avatarURL: data.avatarURL || null
+            });
+            continue;
+          }
+          if (data.type === "mentor_community") {
+            validConversations.push({
+              ...base,
+              mentorName: data.mentorName,
+              participantNames: data.participantNames,
+              participants: data.participants,
             });
             continue;
           }
@@ -562,14 +590,15 @@ export default function ChatApp() {
         // Staff members do not join community chats
         return null;
       }
-      // 1. Find all community conversations the user is currently in
+      // 1. Find all element community conversations the user is currently in
       const allCommunitiesQuery = query(
         collection(db, "conversations"),
         where("type", "==", "community"),
-        where("participants", "array-contains", userId)
+        where("participants", "array-contains", userId),
+        where("communityType", "in", [null, "element"])
       );
       const allCommunitiesSnapshot = await getDocs(allCommunitiesQuery);
-      // 2. Remove user from all communities except the new one
+      // 2. Remove user from all element communities except the new one
       for (const communityDoc of allCommunitiesSnapshot.docs) {
         const data = communityDoc.data();
         if (data.element !== normalizedElement) {
@@ -585,11 +614,12 @@ export default function ChatApp() {
           });
         }
       }
-      // 3. Find or create the new community for the user's current element
+      // 3. Find or create the new element community for the user's current element
       const q = query(
         collection(db, "conversations"),
         where("type", "==", "community"),
-        where("element", "==", normalizedElement)
+        where("element", "==", normalizedElement),
+        where("communityType", "in", [null, "element"])
       );
       const querySnapshot = await getDocs(q);
       let communityDoc;
@@ -601,6 +631,7 @@ export default function ChatApp() {
           participantNames: [username],
           type: "community",
           element: normalizedElement,
+          communityType: "element",
           lastMessage: "Community created!",
           lastUpdated: serverTimestamp(),
           createdAt: serverTimestamp(),
@@ -636,6 +667,159 @@ export default function ChatApp() {
       };
     } catch (error) {
       console.error("Error handling community chat:", error);
+    }
+  };
+
+  // --- Mentor Community Chat Membership ---
+  const handleMentorCommunityMembership = async (userId, userRole, mentorName, username) => {
+    try {
+      // Fetch all users
+      const usersSnapshot = await getDocs(collection(db, "users"));
+      const allUsers = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      if (userRole === 'mentor') {
+        // 1. Ensure mentor_community exists for this mentor
+        let mentorCommunityDoc = null;
+        const mentorCommunityQuery = query(
+          collection(db, "conversations"),
+          where("type", "==", "community"),
+          where("communityType", "==", "mentor_community"),
+          where("mentorId", "==", userId)
+        );
+        const mentorCommunitySnapshot = await getDocs(mentorCommunityQuery);
+        // Find all participants (mentees) for this mentor
+        const myParticipants = allUsers.filter(u => u.role === 'participant' && u.mentorName === username);
+        const participantIds = myParticipants.map(u => u.id);
+        const participantNames = myParticipants.map(u => u.username);
+        const allIds = [userId, ...participantIds];
+        const allNames = [username, ...participantNames];
+        // Build unread object for all participants
+        const unread = {};
+        allIds.forEach(uid => { unread[uid] = 0; });
+        if (mentorCommunitySnapshot.empty) {
+          // Create new mentor community with mentor and all participants
+          const newCommunityRef = doc(collection(db, "conversations"));
+          await setDoc(newCommunityRef, {
+            type: "community",
+            communityType: "mentor_community",
+            mentorId: userId,
+            mentorName: username,
+            participants: allIds,
+            participantNames: allNames,
+            unread,
+            lastMessage: "Mentor community created!",
+            lastUpdated: serverTimestamp(),
+            createdAt: serverTimestamp(),
+          });
+          mentorCommunityDoc = await getDoc(newCommunityRef);
+        } else {
+          mentorCommunityDoc = mentorCommunitySnapshot.docs[0];
+          const currentData = mentorCommunityDoc.data();
+          const currentIds = currentData.participants || [];
+          const currentNames = currentData.participantNames || [];
+          // Add missing participants
+          const newIds = allIds;
+          const newNames = allNames;
+          // Merge unread, add 0 for any new participants
+          const newUnread = { ...currentData.unread };
+          newIds.forEach(uid => { if (!(uid in newUnread)) newUnread[uid] = 0; });
+          // Remove unread for users no longer in the community
+          Object.keys(newUnread).forEach(uid => { if (!newIds.includes(uid)) delete newUnread[uid]; });
+          if (
+            newIds.length !== currentIds.length ||
+            newNames.length !== currentNames.length ||
+            !newIds.every(id => currentIds.includes(id))
+          ) {
+            await updateDoc(mentorCommunityDoc.ref, {
+              participants: newIds,
+              participantNames: newNames,
+              unread: newUnread,
+              lastMessage: "Mentor community updated!",
+              lastUpdated: serverTimestamp(),
+            });
+          }
+        }
+      } else if (userRole === 'participant' && mentorName) {
+        // 1. Find the mentor user
+        const mentor = allUsers.find(u => u.role === 'mentor' && u.username === mentorName);
+        if (!mentor) return;
+        // 2. Find mentor's community (create if not exists)
+        let mentorCommunityDoc = null;
+        const mentorCommunityQuery = query(
+          collection(db, "conversations"),
+          where("type", "==", "community"),
+          where("communityType", "==", "mentor_community"),
+          where("mentorId", "==", mentor.id)
+        );
+        const mentorCommunitySnapshot = await getDocs(mentorCommunityQuery);
+        if (mentorCommunitySnapshot.empty) {
+          // Create new mentor community with mentor and this participant
+          const newCommunityRef = doc(collection(db, "conversations"));
+          const unread = {};
+          [mentor.id, userId].forEach(uid => { unread[uid] = 0; });
+          await setDoc(newCommunityRef, {
+            type: "community",
+            communityType: "mentor_community",
+            mentorId: mentor.id,
+            mentorName: mentor.username,
+            participants: [mentor.id, userId],
+            participantNames: [mentor.username, username],
+            unread,
+            lastMessage: "Mentor community created!",
+            lastUpdated: serverTimestamp(),
+            createdAt: serverTimestamp(),
+          });
+          mentorCommunityDoc = await getDoc(newCommunityRef);
+        } else {
+          mentorCommunityDoc = mentorCommunitySnapshot.docs[0];
+          // Add participant if not already in
+          const data = mentorCommunityDoc.data();
+          if (!data.participants.includes(userId)) {
+            const newIds = [...data.participants, userId];
+            const newNames = [...data.participantNames, username];
+            const newUnread = { ...data.unread };
+            if (!(userId in newUnread)) newUnread[userId] = 0;
+            await updateDoc(mentorCommunityDoc.ref, {
+              participants: newIds,
+              participantNames: newNames,
+              unread: newUnread,
+              lastMessage: `${username} joined the mentor community`,
+              lastUpdated: serverTimestamp(),
+            });
+          }
+        }
+        // 3. Remove participant from any other mentor_community chats
+        const allMentorCommunitiesQuery = query(
+          collection(db, "conversations"),
+          where("type", "==", "community"),
+          where("communityType", "==", "mentor_community"),
+          where("participants", "array-contains", userId)
+        );
+        const allMentorCommunitiesSnapshot = await getDocs(allMentorCommunitiesQuery);
+        for (const communityDoc of allMentorCommunitiesSnapshot.docs) {
+          const data = communityDoc.data();
+          if (data.mentorId !== mentor.id) {
+            const newIds = data.participants.filter((id) => id !== userId);
+            const newNames = data.participantNames.filter((name) => name !== username);
+            const newUnread = { ...data.unread };
+            delete newUnread[userId];
+            await updateDoc(communityDoc.ref, {
+              participants: newIds,
+              participantNames: newNames,
+              unread: newUnread,
+              lastMessage: `${username} left the mentor community`,
+              lastUpdated: serverTimestamp(),
+            });
+            await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
+              text: `${username} left the mentor community`,
+              type: "system",
+              createdAt: serverTimestamp(),
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error handling mentor community chat:", error);
     }
   };
 
@@ -972,6 +1156,7 @@ export default function ChatApp() {
           מחק את כל הצ'אטים (אדמין)
         </button>
         */} 
+
       <ThemeProvider element={userElement}>
         <Navbar element={userElement}/>
       </ThemeProvider>
