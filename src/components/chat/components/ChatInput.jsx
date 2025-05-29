@@ -76,7 +76,7 @@ const ChatInput = memo(({
   }, [setNewMessage]);
 
   return (
-    <div className="p-2 border-t border-gray-200 bg-white">
+    <div className="p-2 border-t border-gray-200 bg-white absolute bottom-0 left-0 w-full lg:w-9/12 md:w-8/12 sm:w-11/12">
       {/* Image Preview */}
       {preview && (
         <div className="relative mb-2 sm:mb-3 border rounded p-2 bg-gray-50 overflow-x-auto max-w-full">
