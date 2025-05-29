@@ -56,12 +56,17 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         setUsernamesLoading(true);
         Promise.all(
           memberUids.map(uid =>
-            getDoc(doc(db, 'profiles', uid)).then(docSnap =>
-              [uid, docSnap.exists() ? docSnap.data().username : uid]
-            )
+            getDoc(doc(db, 'users', uid)).then(docSnap => [
+              uid,
+              docSnap.exists() ? docSnap.data().username : uid,
+              docSnap.exists() ? docSnap.data().element : null,
+            ])
           )
-        ).then(entries => setUsernames(Object.fromEntries(entries)));
-        setUsernamesLoading(false);
+        ).then(entries => {
+          setUsernames(Object.fromEntries(entries.map(([uid, username]) => [uid, username])));
+          setUserElements(Object.fromEntries(entries.map(([uid, _, element]) => [uid, element])));
+          setUsernamesLoading(false);
+        });
       }
     }
   }, [open, conversation.participants]);
@@ -73,17 +78,15 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         setUsernamesLoading(true);
         Promise.all(
           memberUids.map(uid =>
-            getDoc(doc(db, 'profiles', uid)).then(docSnap => [
+            getDoc(doc(db, 'users', uid)).then(docSnap => [
               uid,
               docSnap.exists() ? docSnap.data().username : uid,
               docSnap.exists() ? docSnap.data().element : null,
-              docSnap.exists() ? docSnap.data().photoURL : null
             ])
           )
         ).then(entries => {
           setUsernames(Object.fromEntries(entries.map(([uid, username]) => [uid, username])));
           setUserElements(Object.fromEntries(entries.map(([uid, _, element]) => [uid, element])));
-          setUserAvatars(Object.fromEntries(entries.map(([uid, _, __, photoURL]) => [uid, photoURL])));
           setUsernamesLoading(false);
         });
       }
