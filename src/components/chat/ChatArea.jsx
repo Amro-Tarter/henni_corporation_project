@@ -7,7 +7,7 @@ import MessageLoadingState from './components/MessageLoadingState';
 import { useChatScroll } from './hooks/useChatScroll';
 import { useEmojiPicker } from './hooks/useEmojiPicker';
 import ChatInfoSidebar from './ChatIntoSidebar';
-import { doc, collection, serverTimestamp, writeBatch, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useNavigate } from "react-router-dom";
@@ -22,9 +22,7 @@ export default function ChatArea({
   newMessage,
   setNewMessage,
   sendMessage,
-  isSending,
   isLoadingMessages,
-  setShowNewChatDialog,
   getChatPartner,
   file,
   preview,
@@ -34,8 +32,6 @@ export default function ChatArea({
   removeFile,
   elementColors,
   userAvatars,
-  activeTab,
-  setShowNewGroupDialog,
   conversations,
   setSelectedConversation
 }) {

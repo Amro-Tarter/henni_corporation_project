@@ -77,7 +77,7 @@ export default function ConversationList({
             const isSelected = selectedConversation?.id === conv.id;
             const mentorName = currentUser.mentorName;
             let avatar = null;
-            if (conv.type === 'community' && conv.communityType !== 'mentor_community') {
+            if (conv.type === 'community' && conv.communityType === 'element') {
               const icon = elementColorsMap[conv.element]?.icon;
               avatar = (
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
@@ -85,6 +85,18 @@ export default function ConversationList({
                 </div>
               );
             } else if (conv.type === 'community' && conv.communityType === 'mentor_community') {
+              avatar = (
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
+                  👨‍🏫
+                </div>
+              );
+            } else if (conv.type === 'community' && conv.communityType === 'all_mentors') {
+              avatar = (
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
+                  👨‍🏫
+                </div>
+              );
+            } else if (conv.type === 'community' && conv.communityType === 'all_mentors_with_admin') {
               avatar = (
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
                   👨‍🏫
@@ -135,8 +147,6 @@ export default function ConversationList({
                 ? conv.participants.map(uid => usernames[uid] || uid).join(' - ')
                 : 'Unknown';
             } else if (conv.type === 'direct' && Array.isArray(conv.participants)) {
-              const partnerUid = conv.participants.find(uid => uid !== currentUser.uid);
-              partnerName = partnerUid ? (usernames[partnerUid] || partnerUid) : 'Unknown';
               partnerName = getChatPartner(
                 conv.participants,
                 conv.type,
@@ -146,18 +156,10 @@ export default function ConversationList({
                 conv.type === 'group' ? conv.groupName : undefined,
                 conv.participantNames
               );
+            } else if (conv.type === 'community') {
+              partnerName = conv.displayName;
             } else {
-              partnerName = getChatPartner(
-                conv.participants,
-                conv.type,
-                conv.element,
-                currentUser,
-                undefined,
-                conv.type === 'group' ? conv.groupName : undefined,
-                conv.participantNames,
-                conv.communityType,
-                conv.mentorName
-              );
+              partnerName = conv.groupName;
             }
             return (
               <div

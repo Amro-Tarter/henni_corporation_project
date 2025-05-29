@@ -16,13 +16,22 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
 
   // Determine what name to show in header
   let displayName;
+  let displayIcon;
   if (type === 'direct') {
     displayName = partnerName || '';
   } else if (type === 'community') {
     if (communityType === 'mentor_community') {
       displayName = mentorName ? `קהילה של ${mentorName}` : 'קהילת מנטור';
-    } else {
-      displayName = element ? `${element} Community` : chatTitle || 'Community';
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫</span>;
+    } else if (communityType === 'element') {
+      displayName = element ? `${element} קהילה` : chatTitle || 'קהילה';
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">{icon}</span>;
+    } else if (communityType === 'all_mentors') {
+      displayName = 'קהילת כל המנטורים';
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫</span>;
+    } else if (communityType === 'all_mentors_with_admin') {
+      displayName = 'קהילת כל המנטורים והמנהלים';
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫👨‍🏫</span>;
     }
   } else {
     displayName = chatTitle;
@@ -31,10 +40,8 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
   return (
     <div className="p-4 z-30 shadow-xl mt-16 border-gray-200 text-right flex items-center gap-3 relative">
       {currentUser.role !== 'staff' && (
-        type === 'community' && communityType === 'mentor_community' ? (
-          <span className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-2xl">👨‍🏫</span>
-        ) : type === 'community' ? (
-          <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">{icon}</span>
+        type === 'community' ? (
+          displayIcon
         ) : avatar ? (
           <img src={avatar} alt="avatar" className="w-10 h-10 object-cover rounded-full" />
         ) : (
@@ -47,12 +54,8 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
           {participantNames.join(' - ')}
         </div>
       )}
-      {currentUser.role === 'staff' && (type === 'community' || type === 'group') && communityType !== 'mentor_community' && (
-        <div className="text-gray-900 font-bold text-lg">
-          {displayName}
-        </div>
-      )}
-      {type === 'community' && communityType === 'mentor_community' ? (
+      
+      {type === 'community' || type === 'group' ? (
         <div className="text-gray-900 font-bold text-lg flex items-center gap-2">
           {displayName}
         </div>

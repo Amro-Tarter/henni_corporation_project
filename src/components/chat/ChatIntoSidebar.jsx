@@ -271,11 +271,16 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     // All images sent in the conversation
     const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
     const imagesToShow = showAllImages ? images : images.slice(0, 6);
-    let displayName;
+    let displayName = conversation.displayName;
+    let displayIcon;
     if (communityType === 'mentor_community') {
-      displayName = mentorName ? `קהילה של ${mentorName}` : 'קהילת מנטור';
-    } else {
-      displayName = element ? `${element} Community` : 'Community';
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-2xl">👨‍🏫</span>;
+    } else if (communityType === 'element') {
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">{icon}</span>;
+    } else if (communityType === 'all_mentors') {
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫</span>;
+    } else if (communityType === 'all_mentors_with_admin') {
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫👨‍🏫</span>;
     }
     return (
       <div
@@ -300,11 +305,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           ✕
         </button>
         <div className={`font-bold text-lg right-6 px-3.5 py-2 -mt-12 flex items-center gap-2`} style={{ color: elementColors.primary }}>
-          {communityType === 'mentor_community' ? (
-            <span className="text-2xl mr-2">👨‍🏫</span>
-          ) : (
-            icon && <span className="text-2xl mr-2">{icon}</span>
-          )}
+          {displayIcon}
           {displayName}
         </div>
         <div className={`text-${communityType === 'mentor_community' ? 'gray-700' : 'gray-500'} text-sm mb-4`}>מספר חברים: {memberUids.length}</div>
