@@ -7,7 +7,7 @@ import MessageLoadingState from './components/MessageLoadingState';
 import { useChatScroll } from './hooks/useChatScroll';
 import { useEmojiPicker } from './hooks/useEmojiPicker';
 import ChatInfoSidebar from './ChatIntoSidebar';
-import { doc, collection, serverTimestamp, writeBatch, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useNavigate } from "react-router-dom";
@@ -22,9 +22,7 @@ export default function ChatArea({
   newMessage,
   setNewMessage,
   sendMessage,
-  isSending,
   isLoadingMessages,
-  setShowNewChatDialog,
   getChatPartner,
   file,
   preview,
@@ -34,10 +32,10 @@ export default function ChatArea({
   removeFile,
   elementColors,
   userAvatars,
-  activeTab,
-  setShowNewGroupDialog,
   conversations,
-  setSelectedConversation
+  setSelectedConversation,
+  setMobilePanel,
+  ...props
 }) {
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
@@ -239,8 +237,13 @@ export default function ChatArea({
     return true;
   });
 
+  // Only show back button on mobile
+  const handleBack = () => {
+    if (window.innerWidth < 768 && setMobilePanel) setMobilePanel('conversations');
+  };
+
   return (
-    <div className='flex-1 flex flex-col relative' dir="rtl">
+    <div className='flex-1 flex flex-col relative bg-white h-full max-h-full' dir="rtl">
       {selectedConversation ? (
         <>
           <ChatHeader
@@ -250,7 +253,10 @@ export default function ChatArea({
               selectedConversation.element,
               currentUser,
               undefined,
-              selectedConversation.type === 'group' ? selectedConversation.groupName : undefined
+              selectedConversation.type === 'group' ? selectedConversation.groupName : undefined,
+              selectedConversation.participantNames,
+              selectedConversation.communityType,
+              selectedConversation.mentorName
             )}
             type={selectedConversation.type}
             icon={selectedConversation.type === 'community' ? elementColors.icon : undefined}
@@ -262,9 +268,12 @@ export default function ChatArea({
                   : undefined
             }
             onInfoClick={() => setShowInfoSidebar(true)}
-            mentorName={currentUser.mentorName}
+            mentorName={selectedConversation.mentorName || currentUser.mentorName}
             currentUser={currentUser}
-            
+            participantNames={selectedConversation.participantNames}
+            communityType={selectedConversation.communityType}
+            element={selectedConversation.element}
+            onBack={window.innerWidth < 768 ? handleBack : undefined}
           />
           <ChatInfoSidebar
             open={showInfoSidebar}
@@ -274,8 +283,10 @@ export default function ChatArea({
             messages={messages}
             elementColors={elementColors}
             setSelectedConversation={setSelectedConversation}
+            partnerProfilePic={getDirectAvatar()}
+            mentorName={currentUser.mentorName}
           />
-          <div className="flex-1 overflow-y-auto p-4 bg-white" style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
+          <div className="flex-1 overflow-y-auto p-2 bg-white pb-[calc(100vh-20rem)]" style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
             {isLoadingMessages ? (
               <div className="space-y-4">
                 <MessageLoadingState type="text" isOwnMessage={false} elementColors={elementColors} />
@@ -298,7 +309,7 @@ export default function ChatArea({
                 ))}
                 <MessageLoadingState type="image" isOwnMessage={true} elementColors={elementColors} />
               </>
-            ) : filteredMessages.length === 0 ? (
+            ) : filteredMessages.length === 0 && currentUser.role !== 'staff' ? (
               <div className="text-center text-gray-500 py-8">אין הודעות עדיין. התחל את השיחה!</div>
             ) : (
               <>
@@ -330,90 +341,97 @@ export default function ChatArea({
               </svg>
             </button>
           )}
-          <ChatInput
-            newMessage={newMessage}
-            setNewMessage={setNewMessage}
-            handleSendMessage={async () => {
-              // Handle voice message
-              if (audioBlob && !isRecording) {
+          {currentUser.role !== 'staff' && (
+            <ChatInput
+              newMessage={newMessage}
+              setNewMessage={setNewMessage}
+              handleSendMessage={async () => {
+                // Handle voice message
+                if (audioBlob && !isRecording) {
+                  try {
+                    const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
+                      type: 'audio/webm',
+                      lastModified: Date.now()
+                    });
+                    await sendMessage({ 
+                      fileOverride: voiceFile,
+                      mediaTypeOverride: 'audio',
+                      durationOverride: Math.round(recordingTime)
+                    });
+                    resetRecording();
+                    if (messagesEndRef.current) {
+                      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+                    }
+                    return;
+                  } catch (error) {
+                    console.error("Error sending voice message:", error);
+                    alert("Failed to send voice message. Please try again.");
+                    return;
+                  }
+                }
+                // Handle regular messages and images
                 try {
-                  const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
-                    type: 'audio/webm',
-                    lastModified: Date.now()
-                  });
-                  
-                  await sendMessage({ 
-                    fileOverride: voiceFile,
-                    mediaTypeOverride: 'audio',
-                    durationOverride: Math.round(recordingTime)
-                  });
-                  
-                  resetRecording();
+                  if (file && file.type && file.type.startsWith('image/')) {
+                    setIsSendingImage(true);
+                  }
+                  await sendMessage();
+                  setIsSendingImage(false);
                   if (messagesEndRef.current) {
                     messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
                   }
-                  return;
                 } catch (error) {
-                  console.error("Error sending voice message:", error);
-                  alert("Failed to send voice message. Please try again.");
-                  return;
+                  console.error("Error sending message:", error);
+                  setIsSendingImage(false);
                 }
-              }
-
-              // Handle regular messages and images
-              try {
-                if (file && file.type && file.type.startsWith('image/')) {
-                  setIsSendingImage(true);
-                }
-                await sendMessage();
-                setIsSendingImage(false);
-                if (messagesEndRef.current) {
-                  messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-                }
-              } catch (error) {
-                console.error("Error sending message:", error);
-                setIsSendingImage(false);
-              }
-            }}
-            file={file}
-            preview={preview}
-            isUploading={isUploading}
-            uploadProgress={uploadProgress}
-            handleFileChange={handleFileChange}
-            removeFile={removeFile}
-            elementColors={elementColors}
-            showEmojiPicker={showEmojiPicker}
-            setShowEmojiPicker={setShowEmojiPicker}
-            onEmojiClick={onEmojiClick}
-            emojiPickerRef={emojiPickerRef}
-            sendButtonRef={sendButtonRef}
-            isRecording={isRecording}
-            recordingTime={recordingTime}
-            startRecording={startRecording}
-            stopRecording={stopRecording}
-            audioURL={audioURL}
-            audioBlob={audioBlob}
-            resetRecording={resetRecording}
-          />
+              }}
+              file={file}
+              preview={preview}
+              isUploading={isUploading}
+              uploadProgress={uploadProgress}
+              handleFileChange={handleFileChange}
+              removeFile={removeFile}
+              elementColors={elementColors}
+              showEmojiPicker={showEmojiPicker}
+              setShowEmojiPicker={setShowEmojiPicker}
+              onEmojiClick={onEmojiClick}
+              emojiPickerRef={emojiPickerRef}
+              sendButtonRef={sendButtonRef}
+              isRecording={isRecording}
+              recordingTime={recordingTime}
+              startRecording={startRecording}
+              stopRecording={stopRecording}
+              audioURL={audioURL}
+              audioBlob={audioBlob}
+              resetRecording={resetRecording}
+            />
+          )}
         </>
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צ'אט או התחל שיחה חדשה</h3>
-            <p className="text-gray-500">או לחץ על הכפתור </p>
-            {console.log(currentUser)}
-            {currentUser?.role === "participant" ? (
-              <button
-                className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300"
-                style={{ backgroundColor: elementColors.primary }}
-                onClick={handleGoToMentorChat}
-                disabled={isCreatingMentorChat}
-              >
-                {isCreatingMentorChat ? "פותח צ'אט..." : "ובוא נדבר"}
-              </button>
-            ) : null}
+        (currentUser.role === 'participant' || currentUser.role === 'mentor') ? (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צ'אט או התחל שיחה חדשה</h3>
+              <p className="text-gray-500">או לחץ על הכפתור </p>
+              {currentUser?.role === "participant" ? (
+                <button
+                  className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300"
+                  style={{ backgroundColor: elementColors.primary }}
+                  onClick={handleGoToMentorChat}
+                  disabled={isCreatingMentorChat}
+                >
+                  {isCreatingMentorChat ? "פותח צ'אט..." : "ובוא נדבר"}
+                </button>
+              ) : null}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צאט והתחל לדווח</h3>
+              <p className="text-gray-500">אנא בחר צ'אט מהתפריט ובדוק אותו .</p>
+            </div>
+          </div>
+        )
       )}
       <style>{`
         .message-content {

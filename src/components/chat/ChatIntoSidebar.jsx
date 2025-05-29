@@ -56,12 +56,17 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         setUsernamesLoading(true);
         Promise.all(
           memberUids.map(uid =>
-            getDoc(doc(db, 'profiles', uid)).then(docSnap =>
-              [uid, docSnap.exists() ? docSnap.data().username : uid]
-            )
+            getDoc(doc(db, 'users', uid)).then(docSnap => [
+              uid,
+              docSnap.exists() ? docSnap.data().username : uid,
+              docSnap.exists() ? docSnap.data().element : null,
+            ])
           )
-        ).then(entries => setUsernames(Object.fromEntries(entries)));
-        setUsernamesLoading(false);
+        ).then(entries => {
+          setUsernames(Object.fromEntries(entries.map(([uid, username]) => [uid, username])));
+          setUserElements(Object.fromEntries(entries.map(([uid, _, element]) => [uid, element])));
+          setUsernamesLoading(false);
+        });
       }
     }
   }, [open, conversation.participants]);
@@ -73,17 +78,15 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         setUsernamesLoading(true);
         Promise.all(
           memberUids.map(uid =>
-            getDoc(doc(db, 'profiles', uid)).then(docSnap => [
+            getDoc(doc(db, 'users', uid)).then(docSnap => [
               uid,
               docSnap.exists() ? docSnap.data().username : uid,
               docSnap.exists() ? docSnap.data().element : null,
-              docSnap.exists() ? docSnap.data().photoURL : null
             ])
           )
         ).then(entries => {
           setUsernames(Object.fromEntries(entries.map(([uid, username]) => [uid, username])));
           setUserElements(Object.fromEntries(entries.map(([uid, _, element]) => [uid, element])));
-          setUserAvatars(Object.fromEntries(entries.map(([uid, _, __, photoURL]) => [uid, photoURL])));
           setUsernamesLoading(false);
         });
       }
@@ -241,6 +244,24 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     }
   };
 
+  useEffect(() => {
+    // Fetch usernames for all participants in direct, group, or community
+    if (conversation && Array.isArray(conversation.participants)) {
+      const idsToFetch = conversation.participants.filter(id => !usernames[id]);
+      if (idsToFetch.length === 0) return;
+      Promise.all(idsToFetch.map(async (uid) => {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', uid));
+          return [uid, userDoc.exists() ? userDoc.data().username : uid];
+        } catch {
+          return [uid, uid];
+        }
+      })).then(entries => {
+        setUsernames(prev => ({ ...prev, ...Object.fromEntries(entries) }));
+      });
+    }
+  }, [conversation && conversation.participants]);
+
   if (!isMounted) return null;
 
   // Only for community chats
@@ -248,10 +269,22 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     const element = conversation.element;
     const icon = ELEMENT_COLORS[element]?.icon;
     const memberUids = conversation.participants || [];
-    const memberNames = conversation.participantNames || [];
+    const communityType = conversation.communityType;
+    const mentorName = conversation.mentorName;
     // All images sent in the conversation
     const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
     const imagesToShow = showAllImages ? images : images.slice(0, 6);
+    let displayName = conversation.displayName;
+    let displayIcon;
+    if (communityType === 'mentor_community') {
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-2xl">👨‍🏫</span>;
+    } else if (communityType === 'element') {
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">{icon}</span>;
+    } else if (communityType === 'all_mentors') {
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫</span>;
+    } else if (communityType === 'all_mentors_with_admin') {
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫👨‍🏫</span>;
+    }
     return (
       <div
         className={`fixed left-0 top-16 mt-0.5 bottom-0
@@ -267,18 +300,18 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         onTransitionEnd={handleAnimationEnd}
       >
         <button
-          className="absolute top-4 left-6 px-3.5 py-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
+          className={`absolute top-4 left-6 px-3.5 py-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors`}
           style={{ color: elementColors.primary }}
           onClick={onClose}
           aria-label="Close sidebar"
         >
           ✕
         </button>
-        <div className="font-bold text-lg right-6 px-3.5 py-2 -mt-12" style={{ color: elementColors.primary }}>
-          {icon && <span className="text-2xl mr-2">{icon}</span>}
-          {element ? `${element} Community` : 'Community'}
+        <div className={`font-bold text-lg right-6 px-3.5 py-2 -mt-12 flex items-center gap-2`} style={{ color: elementColors.primary }}>
+          {displayIcon}
+          {displayName}
         </div>
-        <div className="text-gray-500 text-sm mb-4">מספר חברים: {memberUids.length}</div>
+        <div className={`text-${communityType === 'mentor_community' ? 'gray-700' : 'gray-500'} text-sm mb-4`}>מספר חברים: {memberUids.length}</div>
         {/* Members List */}
         <div className="mb-6">
           <div className="font-semibold text-gray-700 mb-2">חברי הקהילה</div>
@@ -313,7 +346,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                       {userElements && userElements[uid] && (
                         <span className="flex items-center gap-1 text-xs text-gray-500 ml-2">
                           {ELEMENT_COLORS[userElements[uid]]?.icon}
-                          {userElements[uid]}
+                          {ELEMENT_COLORS[userElements[uid]]?.label}
                         </span>
                       )}
                       {uid !== currentUser.uid && (
@@ -328,15 +361,23 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
                             </svg>
                           </a>
-                          <button
-                            className="p-1 rounded-full hover:bg-gray-200 transition"
-                            title="פתח צ'אט"
-                            onClick={() => handleOpenDirectChat(uid)}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-green-600">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 15.75a6.375 6.375 0 100-12.75 6.375 6.375 0 000 12.75zM15.75 15.75v-1.125a3.375 3.375 0 00-3.375-3.375H8.625a3.375 3.375 0 00-3.375 3.375V15.75" />
-                            </svg>
-                          </button>
+                          {currentUser.role !== 'staff' && (
+                           <button
+                           className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
+                           title="פתח צ'אט"
+                           aria-label="פתח צ'אט"
+                           onClick={() => handleOpenDirectChat(uid)}
+                       >
+                         <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 512 512"
+                          fill="currentColor"
+                          className="w-5 h-5"
+                        >
+                          <path d="M256.064 32C132.288 32 32 125.248 32 241.6c0 66.016 34.816 123.36 89.216 160.192V480l81.312-44.608c17.472 4.736 35.84 7.296 53.536 7.296 123.744 0 223.936-93.248 223.936-209.6S379.808 32 256.064 32zm29.056 257.728l-54.4-58.88-111.936 58.88 132.736-141.632 54.4 58.88 111.936-58.88-132.736 141.632z"/>
+                        </svg>
+                         </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -615,7 +656,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                   );
                   const snapshot = await getDocs(q);
                   const results = snapshot.docs
-                    .filter(doc => doc.id !== adminUid && !memberUids.includes(doc.id))
+                    .filter(doc => {doc.id !== adminUid && !memberUids.includes(doc.id) && doc.role !== 'staff'})
                     .map(doc => ({
                       id: doc.id,
                       username: doc.data().username,
@@ -692,9 +733,9 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                         {uid === adminUid && <span className="ml-1 px-2 py-0.5 bg-yellow-300 text-yellow-900 rounded-full text-xs">מנהל</span>}
                       </div>
                       {userElements && userElements[uid] && (
-                        <span className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                        <span className="flex items-center gap-1 text-xs text-gray-500 ml-2">
                           {ELEMENT_COLORS[userElements[uid]]?.icon}
-                          {userElements[uid]}
+                          {ELEMENT_COLORS[userElements[uid]]?.label}
                         </span>
                       )}
                     </div>
@@ -712,16 +753,23 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
                             </svg>
                           </button>
-                          <button
-                            className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
-                            title="פתח צ'אט"
-                            aria-label="פתח צ'אט"
-                            onClick={() => handleOpenDirectChat(uid)}
+                          {currentUser.role !== 'staff' && (
+                            <button
+                              className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
+                              title="פתח צ'אט"
+                              aria-label="פתח צ'אט"
+                              onClick={() => handleOpenDirectChat(uid)}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 15.75a6.375 6.375 0 100-12.75 6.375 6.375 0 000 12.75zM15.75 15.75v-1.125a3.375 3.375 0 00-3.375-3.375H8.625a3.375 3.375 0 00-3.375 3.375V15.75" />
-                            </svg>
-                          </button>
+                            <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 512 512"
+                            fill="currentColor"
+                            className="w-5 h-5"
+                          >
+                            <path d="M256.064 32C132.288 32 32 125.248 32 241.6c0 66.016 34.816 123.36 89.216 160.192V480l81.312-44.608c17.472 4.736 35.84 7.296 53.536 7.296 123.744 0 223.936-93.248 223.936-209.6S379.808 32 256.064 32zm29.056 257.728l-54.4-58.88-111.936 58.88 132.736-141.632 54.4 58.88 111.936-58.88-132.736 141.632z"/>
+                          </svg>
+                            </button>
+                          )}
                         </>
                       )}
                       {isAdmin && uid !== adminUid && (
@@ -800,15 +848,117 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       </div>
     );
   }
-
   // Get partner UID and name
-  const partnerName = conversation.participantNames.find((name) => name !== currentUser.username) || 'Unknown';
-  const partnerProfilePic = conversation.partnerProfilePic;
+  const partnerUids = conversation.participants.filter(uid => uid !== currentUser.uid);
+  const partnerNames = conversation.participantNames?.filter(name => name !== currentUser.username) || [];
   const mentorName = currentUser.mentorName;
-
+  const partnerProfilePic = conversation.partnerProfilePic || '/default_user_pic.jpg';
+  const partnerName = partnerNames[0] || partnerUids[0] || 'משתמש לא מזוהה';
   // All images sent in the conversation
   const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
   const imagesToShow = showAllImages ? images : images.slice(0, 6);
+
+  // STAFF: Direct chat - show both sides info and images sent by each
+  if (currentUser.role === 'staff' && conversation.type === 'direct') {    // Get both user infos with their correct images
+    const userInfos = conversation.participants.map((uid, idx) => {
+      const name = conversation.participantNames?.[idx] || uid;
+      // Get the correct profile picture for each user
+      let profilePic;
+      if (idx === 0) {
+        profilePic = conversation.user1ProfilePic || '/default_user_pic.jpg';
+      } else {
+        profilePic = conversation.user2ProfilePic || conversation.partnerProfilePic || '/default_user_pic.jpg';
+      }
+      // Make sure we filter images by the actual sender ID
+      const userImages = messages.filter(m => 
+        m.mediaType === 'image' && 
+        m.mediaURL && 
+        m.sender !== uid
+      );
+      return { uid, name, profilePic, userImages };
+    });
+    return (
+      <div 
+        className={`fixed left-0 top-16 mt-0.5 bottom-0
+          w-80 max-w-full sm:w-96 sm:max-w-md
+          shadow-2xl z-40 flex flex-col p-6 pt-16 border-r overflow-y-auto
+          transition-all duration-300
+          ${shouldShow ? 'translate-x-0' : '-translate-x-full'}`}
+        style={{
+          backgroundColor: elementColors.light,
+          borderRight: `2px solid ${elementColors.primary}`
+        }}
+        onTransitionEnd={handleAnimationEnd}
+      >
+        <button 
+          className="absolute top-4 left-6 px-3.5 py-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-colors"
+          style={{ color: elementColors.primary }}
+          onClick={onClose}
+          aria-label="Close sidebar"
+        >
+          ✕
+        </button>
+        <div className="font-bold text-lg right-6 px-3.5 py-2 -mt-12" style={{ color: elementColors.primary }}>פרטי צ'אט (צד א' וצד ב')</div>
+        <div className="flex flex-col gap-8 mt-4">
+          {userInfos.map((user, idx) => (
+            <div key={user.uid} className="flex flex-col items-center mb-2 border-b pb-4">
+              <div className="font-semibold text-gray-800 text-lg mb-2" style={{ color: elementColors.primary }}>{user.name}</div>
+              <a
+                href={`/profile/${user.name}`}
+                className="px-4 py-1 rounded transition mb-2"
+                style={{ backgroundColor: elementColors.primary, color: elementColors.light }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                מעבר לפרופיל
+              </a>
+              {/* Images Gallery */}
+                <div className="mt-2 font-semibold text-gray-700 mb-2">תמונות שנשלחו על ידי {user.name}:</div>
+                {user.userImages.length === 0 ? (
+                  <div className="text-gray-400 text-sm">לא נשלחו תמונות בצ'אט זה.</div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-3 gap-2">
+                      {imagesToShow.map(img => (
+                        <a
+                          key={img.id}
+                          href={img.mediaURL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block"
+                        >
+                          <img
+                            src={img.mediaURL}
+                            alt="תמונה בצ'אט"
+                            className="w-full h-20 object-cover rounded shadow"
+                            loading="lazy"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                    {images.length > 6 && (
+                      <button
+                        className="mt-2 hover:underline text-sm"
+                        onClick={() => setShowAllImages(v => !v)}
+                        style={{ color: elementColors.primary }}
+                      >
+                        {showAllImages ? '<< הצג פחות' : 'הצג עוד >>'}
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // For staff: hide chat navigation button in community/group
+  // Find the section with the chat navigation button and only render it if currentUser.role !== 'staff'
+  // (In community: the button with href={`/profile/${partnerName}`})
+  // (In group: the button with onClick={() => handleOpenDirectChat(uid)})
+  // So, in the JSX for those, wrap with {currentUser.role !== 'staff' && (...button...)}
 
   return (
     <div 
