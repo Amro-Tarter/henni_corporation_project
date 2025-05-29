@@ -36,6 +36,13 @@ import notificationSound from '../assets/notification.mp3';
 import { handleMentorCommunityMembership } from "../components/chat/utils/handleMentorCommunityMembership";
 import { handleElementCommunityChatMembership } from "../components/chat/utils/handleElementCommunityMembership";
 
+const COMMUNITY_DESCRIPTIONS = {
+  element: 'קהילה זו מיועדת לכל חברי היסוד שלך. כאן תוכלו לשתף, לשאול ולהתחבר עם חברים מהיסוד.',
+  mentor_community: 'קהילה זו כוללת את המנטור שלך ואת כל המשתתפים שמלווים על ידו. כאן אפשר להתייעץ, לשאול ולשתף.',
+  all_mentors: 'קהילה זו מאגדת את כל המנטורים בתכנית. כאן ניתן להחליף רעיונות, לשתף ידע ולתמוך זה בזה.',
+  all_mentors_with_admin: 'קהילה זו כוללת את כל המנטורים והמנהלים. כאן מתקיימים עדכונים, שיתופים ודיונים מקצועיים.'
+};
+
 export default function ChatApp() {
   const { chatId } = useParams();
   const navigate = useNavigate();
@@ -890,6 +897,30 @@ export default function ChatApp() {
     });
     return () => unsubscribe();
   }, [selectedConversation?.id]);
+
+  // Add a useEffect after selectedConversation changes, to insert the description as a system message if not present
+  useEffect(() => {
+    async function ensureCommunityDescriptionMessage() {
+      if (!selectedConversation || selectedConversation.type !== 'community') return;
+      const descKey = selectedConversation.communityType || 'element';
+      const description = COMMUNITY_DESCRIPTIONS[descKey];
+      if (!description) return;
+      // Check if the first message is the description
+      const messagesRef = collection(db, 'conversations', selectedConversation.id, 'messages');
+      const q = query(messagesRef, orderBy('createdAt'), limit(1));
+      const snapshot = await getDocs(q);
+      const firstMsg = snapshot.docs[0]?.data();
+      if (!firstMsg || firstMsg.text !== description) {
+        // Insert the description as the first system message
+        await addDoc(messagesRef, {
+          text: description,
+          type: 'system',
+          createdAt: serverTimestamp(),
+        });
+      }
+    }
+    ensureCommunityDescriptionMessage();
+  }, [selectedConversation?.id, selectedConversation?.type, selectedConversation?.communityType]);
 
   if (!authInitialized) {
     return <ElementalLoader />;

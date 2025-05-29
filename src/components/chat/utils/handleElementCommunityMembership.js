@@ -26,10 +26,10 @@ export const handleElementCommunityChatMembership = async (userId, userElement) 
           await updateDoc(communityDoc.ref, {
             participants: data.participants.filter((id) => id !== userId),
             participantNames: data.participantNames.filter((name) => name !== username),
-            lastMessage: `${username} left the community`
+            lastMessage: `${username} עזב/ה את קהילת היסוד`,
           });
           await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
-            text: `${username} left the community`,
+            text: `${username} עזב/ה את קהילת היסוד`,
             type: "system",
             createdAt: serverTimestamp(),
           });
@@ -53,12 +53,12 @@ export const handleElementCommunityChatMembership = async (userId, userElement) 
           type: "community",
           element: normalizedElement,
           communityType: "element",
-          lastMessage: "Community created!",
+          lastMessage: "קהילה נוצרה! ברוכים הבאים!",
           lastUpdated: serverTimestamp(),
           createdAt: serverTimestamp(),
         });
         await addDoc(collection(db, "conversations", newCommunityRef.id, "messages"), {
-          text: "Community created! Welcome!",
+          text: "קהילה נוצרה! ברוכים הבאים!",
           type: "system",
           createdAt: serverTimestamp(),
         });
@@ -71,10 +71,10 @@ export const handleElementCommunityChatMembership = async (userId, userElement) 
           await updateDoc(communityDoc.ref, {
             participants: arrayUnion(userId),
             participantNames: arrayUnion(username),
-            lastMessage: `${username} joined the community`
+            lastMessage: `${username} הצטרף/ה לקהילת היסוד`,
           });
           await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
-            text: `${username} joined the community`,
+            text: `${username} הצטרף/ה לקהילת היסוד`,
             type: "system",
             createdAt: serverTimestamp(),
           });

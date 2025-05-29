@@ -24,7 +24,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
             await updateDoc(docSnap.ref, {
               participants: newIds,
               participantNames: newNames,
-              lastMessage: `${username} left the mentors community`,
+              lastMessage: `${username} עזב/ה את קהילת המנטורים`,
               lastUpdated: serverTimestamp(),
             });
           }
@@ -46,7 +46,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
             await updateDoc(docSnap.ref, {
               participants: newIds,
               participantNames: newNames,
-              lastMessage: `${username} left the mentors+admin community`,
+              lastMessage: `${username} עזב/ה את קהילת המנטורים והמנהלים`,
               lastUpdated: serverTimestamp(),
             });
           }
@@ -69,7 +69,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
             await updateDoc(docSnap.ref, {
               participants: newIds,
               participantNames: newNames,
-              lastMessage: `${username} left the mentor community`,
+              lastMessage: `${username} עזב/ה את קהילת המנטור`,
               lastUpdated: serverTimestamp(),
             });
           }
@@ -197,13 +197,13 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         participants: newIds,
         participantNames: newNames,
         unread: newUnread,
-        lastMessage: `${username} left the mentor community`,
+        lastMessage: `${username} עזב/ה את קהילת המנטור`,
         lastUpdated: serverTimestamp(),
       });
       
       // Add system message
       await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
-        text: `${username} left the mentor community`,
+        text: `${username} עזב/ה את קהילת המנטור`,
         type: "system",
         createdAt: serverTimestamp(),
       });
