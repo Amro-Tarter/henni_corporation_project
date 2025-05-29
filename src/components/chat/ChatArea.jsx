@@ -33,7 +33,9 @@ export default function ChatArea({
   elementColors,
   userAvatars,
   conversations,
-  setSelectedConversation
+  setSelectedConversation,
+  setMobilePanel,
+  ...props
 }) {
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
@@ -235,8 +237,13 @@ export default function ChatArea({
     return true;
   });
 
+  // Only show back button on mobile
+  const handleBack = () => {
+    if (window.innerWidth < 768 && setMobilePanel) setMobilePanel('conversations');
+  };
+
   return (
-    <div className='flex-1 flex flex-col relative' dir="rtl">
+    <div className='flex-1 flex flex-col relative bg-white h-screen max-h-screen' dir="rtl">
       {selectedConversation ? (
         <>
           <ChatHeader
@@ -266,6 +273,7 @@ export default function ChatArea({
             participantNames={selectedConversation.participantNames}
             communityType={selectedConversation.communityType}
             element={selectedConversation.element}
+            onBack={window.innerWidth < 768 ? handleBack : undefined}
           />
           <ChatInfoSidebar
             open={showInfoSidebar}
@@ -278,7 +286,7 @@ export default function ChatArea({
             partnerProfilePic={getDirectAvatar()}
             mentorName={currentUser.mentorName}
           />
-          <div className="flex-1 overflow-y-auto p-4 bg-white" style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
+          <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-white max-h-[calc(100vh-8rem)] md:max-h-none" style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
             {isLoadingMessages ? (
               <div className="space-y-4">
                 <MessageLoadingState type="text" isOwnMessage={false} elementColors={elementColors} />

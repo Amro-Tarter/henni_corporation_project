@@ -35,6 +35,7 @@ import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
 import notificationSound from '../assets/notification.mp3';
 import { handleMentorCommunityMembership } from "../components/chat/utils/handleMentorCommunityMembership";
 import { handleElementCommunityChatMembership } from "../components/chat/utils/handleElementCommunityMembership";
+import { FaComments, FaCommentDots } from 'react-icons/fa';
 
 const COMMUNITY_DESCRIPTIONS = {
   element: 'קהילה זו מיועדת לכל חברי היסוד שלך. כאן תוכלו לשתף, לשאול ולהתחבר עם חברים מהיסוד.',
@@ -76,7 +77,7 @@ export default function ChatApp() {
   const [pendingSelectedConversationId, setPendingSelectedConversationId] = useState(null);
   const [groupAvatarFile, setGroupAvatarFile] = useState(null);
   const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
-
+  const [mobilePanel, setMobilePanel] = useState('conversations'); // 'conversations' | 'chat'
 
   // File upload state/logic (moved to hook)
   const {
@@ -260,7 +261,7 @@ export default function ChatApp() {
               ...base,
               participantNames: [`${data.element} קהילה`],
               communityType: data.communityType,
-              displayName: data.element ? `${data.element} קהילה` : 'קהילה',
+              displayName: data.element ? `קהילת ${ELEMENT_COLORS[data.element]?.label}` : 'קהילה',
             });
             continue;
           } else if (data.type === "community" && data.communityType === "all_mentors") {
@@ -536,8 +537,8 @@ export default function ChatApp() {
 
     // Update conversation metadata separately
     const lastMessageText = messageData.mediaType ? 
-      (messageData.mediaType === 'audio' ? 'Sent a voice message' : 
-       messageData.mediaType === 'image' ? 'Sent an image' : 'Sent a file') : 
+      (messageData.mediaType === 'audio' ? 'שלח הודעת קול' : 
+       messageData.mediaType === 'image' ? 'שלח תמונה' : 'שלח קובץ') : 
       messageData.text;
 
     const unreadUpdate = {};
@@ -746,37 +747,44 @@ export default function ChatApp() {
     if (!conv) {
       setSelectedConversation(null);
       navigate(`/chat`);
+      // On mobile, go back to conversations
+      if (window.innerWidth < 768) setMobilePanel('conversations');
       return;
     }
     // If conv is an ID, or partial, find the full object
     const convId = conv.id || conv;
     const fullConv = conversations.find(c => c.id === convId);
-    
     if (fullConv) {
       // Create a lastRead key to track updates
       const lastReadKey = `${fullConv.id}_${currentUser.uid}`;
-      
       setSelectedConversation(fullConv);
       navigate(`/chat/${fullConv.id}`);
-      
+      // On mobile, switch to chat area
+      if (window.innerWidth < 768) setMobilePanel('chat');
       // --- Reset unread count for current user and update lastRead timestamp ---
       const conversationRef = doc(db, "conversations", fullConv.id);
       updateDoc(conversationRef, {
         [`unread.${currentUser.uid}`]: 0,
         [`lastRead.${currentUser.uid}`]: serverTimestamp()
       });
-      
       // Mark this conversation as updated
       setLastReadUpdated(prev => ({
         ...prev,
         [lastReadKey]: true
       }));
     } else {
-      // fallback: set as is
       setSelectedConversation(conv);
       navigate(`/chat/${convId}`);
+      if (window.innerWidth < 768) setMobilePanel('chat');
     }
   };
+
+  // On mobile, if chat is closed, go back to conversations
+  useEffect(() => {
+    if (window.innerWidth < 768 && !selectedConversation) {
+      setMobilePanel('conversations');
+    }
+  }, [selectedConversation]);
 
   // When conversations update, if there's a pending selection, select it
   useEffect(() => {
@@ -931,7 +939,11 @@ export default function ChatApp() {
 
 
   return (
-    <div id='messenger' className="flex h-screen">
+    <div className="h-screen w-full flex flex-col overflow-hidden bg-gray-50">
+    <ThemeProvider element={userElement}>
+        <Navbar element={userElement} className="hidden md:block"/>
+      </ThemeProvider>
+    <div className="h-[calc(100bvh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50">
       {/* TEMP: Admin-only delete all conversations button 
       <button
           onClick={handleDeleteAllConversations}
@@ -941,54 +953,80 @@ export default function ChatApp() {
         </button>
         */} 
 
-      <ThemeProvider element={userElement}>
-        <Navbar element={userElement}/>
-      </ThemeProvider>
-      <Sidebar 
-        elementColors={elementColors}
-        userElement={userElement}
-        onTabChange={setActiveTab}
-        activeTab={activeTab}
-      />
-      <ConversationList
-        currentUser={currentUser}
-        conversations={conversations}
-        selectedConversation={selectedConversation}
-        setSelectedConversation={handleSelectConversation}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        filteredConversations={filteredConversations}
-        isLoadingConversations={isLoadingConversations}
-        setShowNewChatDialog={currentUser.role === 'staff' ? undefined : setShowNewChatDialog}
-        setShowNewGroupDialog={currentUser.role === 'staff' ? undefined : setShowNewGroupDialog}
-        getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
-        elementColorsMap={ELEMENT_COLORS}
-        activeTab={activeTab}
-      />
-      <ChatArea
-        selectedConversation={selectedConversation}
-        currentUser={currentUser}
-        messages={messages}
-        newMessage={newMessage}
-        setNewMessage={currentUser.role === 'staff' ? () => {} : setNewMessage}
-        sendMessage={sendMessage}
-        isSending={isSending}
-        isLoadingMessages={isLoadingMessages}
-        setShowNewChatDialog={currentUser.role === 'staff' ? undefined : setShowNewChatDialog}
-        getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
-        file={file}
-        preview={preview}
-        isUploading={isUploading}
-        uploadProgress={uploadProgress}
-        handleFileChange={currentUser.role === 'staff' ? () => {} : handleFileChange}
-        removeFile={currentUser.role === 'staff' ? () => {} : removeFile}
-        elementColors={elementColors}
-        userAvatars={userAvatars}
-        activeTab={activeTab}
-        setShowNewGroupDialog={currentUser.role === 'staff' ? undefined : setShowNewGroupDialog}
-        conversations={conversations}
-        setSelectedConversation={handleSelectConversation}
-      />
+      
+      {((typeof window !== 'undefined' && window.innerWidth >= 768) || mobilePanel !== 'chat') && (
+        <Sidebar 
+          elementColors={elementColors}
+          userElement={userElement}
+          onTabChange={setActiveTab}
+          activeTab={activeTab}
+          className="hidden md:block h-full"
+        />
+      )}
+      {/* Main Panels */}
+      {/* Conversation List Panel */}
+      <div
+        className={`flex-1 md:max-w-xs md:block ${mobilePanel === 'conversations' ? 'block' : 'hidden'} md:block h-full`}
+        style={{ minWidth: 0 }}
+      >
+        <ConversationList
+          currentUser={currentUser}
+          conversations={conversations}
+          selectedConversation={selectedConversation}
+          setSelectedConversation={handleSelectConversation}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filteredConversations={filteredConversations}
+          isLoadingConversations={isLoadingConversations}
+          setShowNewChatDialog={currentUser.role === 'staff' ? undefined : setShowNewChatDialog}
+          setShowNewGroupDialog={currentUser.role === 'staff' ? undefined : setShowNewGroupDialog}
+          getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
+          elementColorsMap={ELEMENT_COLORS}
+          activeTab={activeTab}
+        />
+      </div>
+      {/* Chat Area Panel */}
+      <div
+        className={`flex-1 md:block ${mobilePanel === 'chat' ? 'block' : 'hidden'} h-full`}
+        style={{ minWidth: 0 }}
+      >
+        {/* Mobile back button */}
+        {typeof window !== 'undefined' && window.innerWidth < 768 && selectedConversation && (
+          <button
+            className="md:hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded mb-2 mt-2 ml-2"
+            onClick={() => setMobilePanel('conversations')}
+          >
+            ← חזרה לרשימת שיחות
+          </button>
+        )}
+        <div className="flex-1 flex flex-col h-full">
+          <ChatArea
+            selectedConversation={selectedConversation}
+            currentUser={currentUser}
+            messages={messages}
+            newMessage={newMessage}
+            setNewMessage={currentUser.role === 'staff' ? () => {} : setNewMessage}
+            sendMessage={sendMessage}
+            isSending={isSending}
+            isLoadingMessages={isLoadingMessages}
+            setShowNewChatDialog={currentUser.role === 'staff' ? undefined : setShowNewChatDialog}
+            getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
+            file={file}
+            preview={preview}
+            isUploading={isUploading}
+            uploadProgress={uploadProgress}
+            handleFileChange={currentUser.role === 'staff' ? () => {} : handleFileChange}
+            removeFile={currentUser.role === 'staff' ? () => {} : removeFile}
+            elementColors={elementColors}
+            userAvatars={userAvatars}
+            activeTab={activeTab}
+            setShowNewGroupDialog={currentUser.role === 'staff' ? undefined : setShowNewGroupDialog}
+            conversations={conversations}
+            setSelectedConversation={handleSelectConversation}
+            setMobilePanel={setMobilePanel}
+          />
+        </div>
+      </div>
       {showNewChatDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
@@ -1238,6 +1276,7 @@ export default function ChatApp() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

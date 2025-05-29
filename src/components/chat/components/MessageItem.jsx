@@ -257,13 +257,13 @@ const MessageItem = ({
   }, [selectedConversation]);
 
   return (
-    <div className={`flex ${isOwn ? 'justify-start' : 'justify-end'} w-full px-4 py-2 group`}>
-      <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-start gap-1 max-w-[85%]`}>
+    <div className={`flex ${isOwn ? 'justify-start' : 'justify-end'} w-full px-2 sm:px-4 py-1 sm:py-2 group`}>
+      <div className={`flex ${isOwn ? 'flex-row-reverse' : 'flex-row'} items-start gap-1 sm:gap-2 max-w-[95vw] sm:max-w-[85%]`}>
         {/* Avatar (always visible but positioned differently) */}
         <img
           src={avatarSrc}
           alt="avatar"
-          className={`w-8 h-8 rounded-full object-cover border-2 shadow-sm transition-transform ${
+          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border-2 shadow-sm transition-transform ${
             isOwn ? 'ml-2 order-2' : 'mr-2 order-1'
           }`}
           style={{
@@ -296,11 +296,11 @@ const MessageItem = ({
           </div>
           {/* Image Message (separate div) */}
           {message.mediaURL && message.mediaType === 'image' && (
-            <div className="relative mb-2 overflow-hidden rounded-xl flex justify-center">
+            <div className="relative mb-2 overflow-x-auto rounded-xl flex justify-center max-w-full">
               <img
                 src={message.mediaURL}
                 alt="תמונה"
-                className="max-w-[240px] max-h-[180px] object-cover shadow-inner cursor-pointer"
+                className="max-w-[70vw] sm:max-w-[240px] max-h-[180px] object-cover shadow-inner cursor-pointer"
                 style={{
                   border: `4px solid ${elementColors.primary}90`,
                   aspectRatio: '16/9'
@@ -472,8 +472,8 @@ const MessageItem = ({
 
       {/* Report Modal */}
       {showReportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-2 sm:px-0">
+          <div className="bg-white rounded-lg shadow-lg p-2 sm:p-6 w-full max-w-xs sm:max-w-md relative animate-fade-in">
             <button
               className="absolute top-2 left-2 text-gray-400 hover:text-gray-700 text-2xl font-bold"
               onClick={() => setShowReportModal(false)}

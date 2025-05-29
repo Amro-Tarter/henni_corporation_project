@@ -346,7 +346,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                       {userElements && userElements[uid] && (
                         <span className="flex items-center gap-1 text-xs text-gray-500 ml-2">
                           {ELEMENT_COLORS[userElements[uid]]?.icon}
-                          {userElements[uid]}
+                          {ELEMENT_COLORS[userElements[uid]]?.label}
                         </span>
                       )}
                       {uid !== currentUser.uid && (
@@ -733,9 +733,9 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                         {uid === adminUid && <span className="ml-1 px-2 py-0.5 bg-yellow-300 text-yellow-900 rounded-full text-xs">מנהל</span>}
                       </div>
                       {userElements && userElements[uid] && (
-                        <span className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                        <span className="flex items-center gap-1 text-xs text-gray-500 ml-2">
                           {ELEMENT_COLORS[userElements[uid]]?.icon}
-                          {userElements[uid]}
+                          {ELEMENT_COLORS[userElements[uid]]?.label}
                         </span>
                       )}
                     </div>

@@ -130,7 +130,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         participants: allIds,
         participantNames: allNames,
         unread,
-        lastMessage: "Mentor community created!",
+        lastMessage: "קהילת המנטור נוצרה!",
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
@@ -157,7 +157,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
           participants: allIds,
           participantNames: allNames,
           unread: newUnread,
-          lastMessage: "Mentor community updated!",
+          lastMessage: "קהילת המנטור עודכנה!",
           lastUpdated: serverTimestamp(),
         });
       }
@@ -231,7 +231,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         communityType: "all_mentors",
         participants: mentorIds,
         participantNames: mentorNames,
-        lastMessage: "All mentors community created!",
+        lastMessage: "קהילת כל המנטורים נוצרה!",
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
@@ -246,7 +246,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         await updateDoc(docRef, {
           participants: mentorIds,
           participantNames: mentorNames,
-          lastMessage: "All mentors community updated!",
+          lastMessage: "קהילת כל המנטורים עודכנה!",
           lastUpdated: serverTimestamp(),
         });
       }
@@ -283,7 +283,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         communityType: "all_mentors_with_admin",
         participants: mentorAdminIds,
         participantNames: mentorAdminNames,
-        lastMessage: "All mentors + admin community created!",
+        lastMessage: "קהילת כל המנטורים והמנהלים נוצרה!",
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
@@ -298,7 +298,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         await updateDoc(docRef, {
           participants: mentorAdminIds,
           participantNames: mentorAdminNames,
-          lastMessage: "All mentors + admin community updated!",
+          lastMessage: "קהילת כל המנטורים והמנהלים עודכנה!",
           lastUpdated: serverTimestamp(),
         });
       }

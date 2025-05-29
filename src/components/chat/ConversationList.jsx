@@ -51,15 +51,15 @@ export default function ConversationList({
   }, [visibleConversations]);
 
   return (
-    <div className="w-full md:w-1/4 z-50 shadow-md flex flex-col conversation-list mt-16" dir="rtl" onClick={() => setSelectedConversation(null)}>
-      <div className="p-4">
-        <h1 className="text-xl font-bold text-gray-900">כל הצ'אטים</h1>
-        <h2 className="text-sm text-gray-500 mt-1">הודעות ({visibleConversations.length})</h2>
-        <div className="mt-4 relative">
+    <div className="w-full md:w-72 lg:w-80 z-50 shadow-md flex flex-col conversation-list mt-16 bg-white h-[calc(100dvh-4rem)] overflow-y-auto" dir="rtl" onClick={() => setSelectedConversation(null)}>
+      <div className="p-2 sm:p-4 sticky top-0 bg-white z-10 border-b border-gray-100">
+        <h1 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">שיחות</h1>
+        <h2 className="text-xs md:text-sm text-gray-500 mt-1">הודעות ({visibleConversations.length})</h2>
+        <div className="mt-2 sm:mt-4 relative">
           <input
             type="text"
             placeholder="חיפוש"
-            className={`w-full p-2 pr-8 bg-gray-100 rounded-lg text-sm text-right focus:ring-1 focus:outline-none`}
+            className="w-full p-2 pr-8 bg-gray-100 rounded-lg text-xs md:text-sm text-right focus:ring-1 focus:outline-none"
             style={{ borderColor: "transparent", outlineColor: elementColorsMap[currentUser?.element]?.primary || '#ccc' }}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -68,8 +68,9 @@ export default function ConversationList({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
-      </div>      <div className="flex-1 overflow-y-auto px-2">
-        <div className="text-xs font-medium text-gray-500 px-4 py-2 text-right">כל ההודעות</div>
+      </div>
+      <div className="flex-1 overflow-y-auto max-h-[calc(100dvh-4rem)] px-1 sm:px-2">
+        <div className="text-xs font-medium text-gray-500 px-2 sm:px-4 py-2 text-right">כל ההודעות</div>
         {isLoadingConversations ? (
           <div className="p-4 text-center text-gray-500">טוען צ'אטים...</div>
         ) : (
@@ -171,7 +172,6 @@ export default function ConversationList({
                 className={`p-3 rounded-md border-b border-gray-100 cursor-pointer hover:bg-gray-50 text-right mx-auto mb-2 w-full max-w-full flex items-center gap-3`}
                 style={bgColorStyle}
               >
-
                 {avatar}
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-gray-900 truncate flex items-center gap-2">
