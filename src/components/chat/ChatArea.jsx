@@ -243,7 +243,7 @@ export default function ChatArea({
   };
 
   return (
-    <div className='flex-1 flex flex-col relative bg-white h-screen max-h-screen' dir="rtl">
+    <div className='flex-1 flex flex-col relative bg-white h-full max-h-full' dir="rtl">
       {selectedConversation ? (
         <>
           <ChatHeader
@@ -286,7 +286,7 @@ export default function ChatArea({
             partnerProfilePic={getDirectAvatar()}
             mentorName={currentUser.mentorName}
           />
-          <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-white max-h-[calc(100vh-8rem)] md:max-h-none" style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
+          <div className="flex-1 overflow-y-auto p-2 sm:p-4 bg-white pb-[calc(100vh-20rem)]" style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
             {isLoadingMessages ? (
               <div className="space-y-4">
                 <MessageLoadingState type="text" isOwnMessage={false} elementColors={elementColors} />
