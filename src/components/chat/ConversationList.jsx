@@ -200,7 +200,7 @@ export default function ConversationList({
         )}
       </div>
       {activeTab === "direct" && currentUser.role !== 'staff' && (
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-2.5 border-t border-gray-200">
           <button
             onClick={() => setShowNewChatDialog(true)}
             className="w-full text-white py-2 rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"

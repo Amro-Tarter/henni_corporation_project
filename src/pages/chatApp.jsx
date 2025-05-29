@@ -943,7 +943,7 @@ export default function ChatApp() {
     <ThemeProvider element={userElement}>
         <Navbar element={userElement} className="hidden md:block"/>
       </ThemeProvider>
-    <div className="h-[calc(100bvh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50">
+    <div className="h-[calc(100vh-4rem)] mt-16 w-full flex flex-row overflow-hidden bg-gray-50">
       {/* TEMP: Admin-only delete all conversations button 
       <button
           onClick={handleDeleteAllConversations}

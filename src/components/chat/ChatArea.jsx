@@ -243,7 +243,7 @@ export default function ChatArea({
   };
 
   return (
-    <div className='flex-1 flex flex-col relative bg-white h-full max-h-full' dir="rtl">
+    <div className='flex-1 flex flex-col bg-white h-full max-h-full' dir="rtl">
       {selectedConversation ? (
         <>
           <ChatHeader
@@ -286,48 +286,120 @@ export default function ChatArea({
             partnerProfilePic={getDirectAvatar()}
             mentorName={currentUser.mentorName}
           />
-          <div className="flex-1 overflow-y-auto p-2 bg-white pb-[calc(100vh-20rem)]" style={{backgroundColor: elementColors.background}} ref={messagesContainerRef}>
-            {isLoadingMessages ? (
-              <div className="space-y-4">
-                <MessageLoadingState type="text" isOwnMessage={false} elementColors={elementColors} />
-                <MessageLoadingState type="image" isOwnMessage={true} elementColors={elementColors} />
-                <MessageLoadingState type="text" isOwnMessage={false} elementColors={elementColors} />
-              </div>
-            ) : isSendingImage ? (
-              <>
-                {filteredMessages.map((msg) => (
-                  <MessageItem
-                    key={msg.id}
-                    message={msg}
-                    currentUser={currentUser}
-                    avatarUrl={userAvatars[msg.sender]}
-                    selectedConversation={selectedConversation}
-                    getChatPartner={getChatPartner}
-                    elementColors={elementColors}
-                    handleMediaLoad={handleMediaLoad}
-                  />
-                ))}
-                <MessageLoadingState type="image" isOwnMessage={true} elementColors={elementColors} />
-              </>
-            ) : filteredMessages.length === 0 && currentUser.role !== 'staff' ? (
-              <div className="text-center text-gray-500 py-8">אין הודעות עדיין. התחל את השיחה!</div>
-            ) : (
-              <>
-                {filteredMessages.map((msg) => (
-                  <MessageItem
-                    key={msg.id}
-                    message={msg}
-                    currentUser={currentUser}
-                    avatarUrl={userAvatars[msg.sender]}
-                    selectedConversation={selectedConversation}
-                    getChatPartner={getChatPartner}
-                    elementColors={elementColors}
-                    handleMediaLoad={handleMediaLoad}
-                  />
-                ))}
-              </>
+          {/* Main chat area with messages and input, using flex column layout */}
+          <div className="flex flex-col flex-1 min-h-0 max-h-full overflow-y-auto">
+            <div
+              className="flex-1 overflow-y-auto pb-10"
+              style={{ backgroundColor: elementColors.background }}
+              ref={messagesContainerRef}
+            >
+              {isLoadingMessages ? (
+                <div className="space-y-4">
+                  <MessageLoadingState type="text" isOwnMessage={false} elementColors={elementColors} />
+                  <MessageLoadingState type="image" isOwnMessage={true} elementColors={elementColors} />
+                  <MessageLoadingState type="text" isOwnMessage={false} elementColors={elementColors} />
+                </div>
+              ) : isSendingImage ? (
+                <>
+                  {filteredMessages.map((msg) => (
+                    <MessageItem
+                      key={msg.id}
+                      message={msg}
+                      currentUser={currentUser}
+                      avatarUrl={userAvatars[msg.sender]}
+                      selectedConversation={selectedConversation}
+                      getChatPartner={getChatPartner}
+                      elementColors={elementColors}
+                      handleMediaLoad={handleMediaLoad}
+                    />
+                  ))}
+                  <MessageLoadingState type="image" isOwnMessage={true} elementColors={elementColors} />
+                </>
+              ) : filteredMessages.length === 0 && currentUser.role !== 'staff' ? (
+                <div className="text-center text-gray-500 py-8">אין הודעות עדיין. התחל את השיחה!</div>
+              ) : (
+                <>
+                  {filteredMessages.map((msg) => (
+                    <MessageItem
+                      key={msg.id}
+                      message={msg}
+                      currentUser={currentUser}
+                      avatarUrl={userAvatars[msg.sender]}
+                      selectedConversation={selectedConversation}
+                      getChatPartner={getChatPartner}
+                      elementColors={elementColors}
+                      handleMediaLoad={handleMediaLoad}
+                    />
+                  ))}
+                </>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+            {/* ChatInput always at the bottom */}
+            {currentUser.role !== 'staff' && (
+              <ChatInput
+                newMessage={newMessage}
+                setNewMessage={setNewMessage}
+                handleSendMessage={async () => {
+                  // Handle voice message
+                  if (audioBlob && !isRecording) {
+                    try {
+                      const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
+                        type: 'audio/webm',
+                        lastModified: Date.now()
+                      });
+                      await sendMessage({ 
+                        fileOverride: voiceFile,
+                        mediaTypeOverride: 'audio',
+                        durationOverride: Math.round(recordingTime)
+                      });
+                      resetRecording();
+                      if (messagesEndRef.current) {
+                        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+                      }
+                      return;
+                    } catch (error) {
+                      console.error("Error sending voice message:", error);
+                      alert("Failed to send voice message. Please try again.");
+                      return;
+                    }
+                  }
+                  // Handle regular messages and images
+                  try {
+                    if (file && file.type && file.type.startsWith('image/')) {
+                      setIsSendingImage(true);
+                    }
+                    await sendMessage();
+                    setIsSendingImage(false);
+                    if (messagesEndRef.current) {
+                      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+                    }
+                  } catch (error) {
+                    console.error("Error sending message:", error);
+                    setIsSendingImage(false);
+                  }
+                }}
+                file={file}
+                preview={preview}
+                isUploading={isUploading}
+                uploadProgress={uploadProgress}
+                handleFileChange={handleFileChange}
+                removeFile={removeFile}
+                elementColors={elementColors}
+                showEmojiPicker={showEmojiPicker}
+                setShowEmojiPicker={setShowEmojiPicker}
+                onEmojiClick={onEmojiClick}
+                emojiPickerRef={emojiPickerRef}
+                sendButtonRef={sendButtonRef}
+                isRecording={isRecording}
+                recordingTime={recordingTime}
+                startRecording={startRecording}
+                stopRecording={stopRecording}
+                audioURL={audioURL}
+                audioBlob={audioBlob}
+                resetRecording={resetRecording}
+              />
             )}
-            <div ref={messagesEndRef} />
           </div>
           {showScrollToBottom && (
             <button
@@ -340,70 +412,6 @@ export default function ChatArea({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12.75L12 20.25M12 20.25L4.5 12.75M12 20.25V3.75" />
               </svg>
             </button>
-          )}
-          {currentUser.role !== 'staff' && (
-            <ChatInput
-              newMessage={newMessage}
-              setNewMessage={setNewMessage}
-              handleSendMessage={async () => {
-                // Handle voice message
-                if (audioBlob && !isRecording) {
-                  try {
-                    const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
-                      type: 'audio/webm',
-                      lastModified: Date.now()
-                    });
-                    await sendMessage({ 
-                      fileOverride: voiceFile,
-                      mediaTypeOverride: 'audio',
-                      durationOverride: Math.round(recordingTime)
-                    });
-                    resetRecording();
-                    if (messagesEndRef.current) {
-                      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-                    }
-                    return;
-                  } catch (error) {
-                    console.error("Error sending voice message:", error);
-                    alert("Failed to send voice message. Please try again.");
-                    return;
-                  }
-                }
-                // Handle regular messages and images
-                try {
-                  if (file && file.type && file.type.startsWith('image/')) {
-                    setIsSendingImage(true);
-                  }
-                  await sendMessage();
-                  setIsSendingImage(false);
-                  if (messagesEndRef.current) {
-                    messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-                  }
-                } catch (error) {
-                  console.error("Error sending message:", error);
-                  setIsSendingImage(false);
-                }
-              }}
-              file={file}
-              preview={preview}
-              isUploading={isUploading}
-              uploadProgress={uploadProgress}
-              handleFileChange={handleFileChange}
-              removeFile={removeFile}
-              elementColors={elementColors}
-              showEmojiPicker={showEmojiPicker}
-              setShowEmojiPicker={setShowEmojiPicker}
-              onEmojiClick={onEmojiClick}
-              emojiPickerRef={emojiPickerRef}
-              sendButtonRef={sendButtonRef}
-              isRecording={isRecording}
-              recordingTime={recordingTime}
-              startRecording={startRecording}
-              stopRecording={stopRecording}
-              audioURL={audioURL}
-              audioBlob={audioBlob}
-              resetRecording={resetRecording}
-            />
           )}
         </>
       ) : (

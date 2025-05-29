@@ -182,61 +182,6 @@ const MessageItem = ({
     );
   }
 
-  // Report handler
-  const handleReport = async () => {
-    setIsReporting(true);
-    setReportError('');
-    setReportSuccess(false);
-    try {
-      // Compose message content
-      let messageContent = '';
-      let mediaType = null;
-      let mediaURL = null;
-      let fileName = null;
-      if (message.text) {
-        messageContent = message.text;
-      } else if (message.mediaType === 'image') {
-        messageContent = '';
-        mediaType = 'image';
-        mediaURL = message.mediaURL || '';
-        fileName = message.fileName || '';
-      } else if (message.mediaType === 'audio') {
-        messageContent = '';
-        mediaType = 'audio';
-        mediaURL = message.mediaURL || '';
-        fileName = message.fileName || '';
-      } else {
-        messageContent = JSON.stringify(message, null, 2);
-      }
-      // Save report to Firestore
-      await addDoc(collection(db, 'Reports'), {
-        reportedMessageId: message.id || null,
-        reportedUser: message.sender || null,
-        reportedUserName: message.senderName || '',
-        reporterUid: currentUser.uid || null,
-        reporterEmail: currentUser.email || '',
-        reporterName: currentUser.username || '',
-        cause: reportCause || '',
-        customCause: reportCause === 'אחר' ? (reportCustomCause || '') : '',
-        target: reportTarget || '',
-        messageContent: messageContent || '',
-        mediaType: mediaType || '',
-        mediaURL: mediaURL || '',
-        fileName: fileName || '',
-        chatId: selectedConversation.id || null,
-        chatType: selectedConversation.type || '',
-        createdAt: serverTimestamp(),
-      });
-      setReportSuccess(true);
-      setShowReportModal(false);
-    } catch (e) {
-      setReportError('שגיאה בשליחת הדיווח: ' + (e.message || e.code || e.toString()));
-      return;
-    }
-    //success alert
-    setReportSuccess(true);
-    setIsReporting(false);
-  };
 
   // Fetch usernames for all participants in the selected chat
   useEffect(() => {
@@ -283,14 +228,6 @@ const MessageItem = ({
                    color: elementColors.darkHover
                  }}>
               {message.senderName || getChatPartner(selectedConversation.participants)}
-            </div>
-          )}
-
-          {currentUser.role === 'staff' && (
-            <div className="text-xs font-medium mb-1 px-2 py-1 rounded-full bg-red-600 text-white hover:bg-red-700">
-              <button onClick={() => setShowReportModal(true)}>
-                !report message
-              </button>
             </div>
           )}
           </div>
@@ -469,99 +406,6 @@ const MessageItem = ({
           )}
         </div>
       </div>
-
-      {/* Report Modal */}
-      {showReportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-2 sm:px-0">
-          <div className="bg-white rounded-lg shadow-lg p-2 sm:p-6 w-full max-w-xs sm:max-w-md relative animate-fade-in">
-            <button
-              className="absolute top-2 left-2 text-gray-400 hover:text-gray-700 text-2xl font-bold"
-              onClick={() => setShowReportModal(false)}
-              aria-label="סגור חלון דיווח"
-            >×</button>
-            <h2 className="text-lg font-bold mb-4 text-red-700">דיווח על הודעה</h2>
-            <div className="mb-3">
-              <label className="block mb-1 font-medium">סיבה לדיווח</label>
-              <select
-                className="w-full p-2 border rounded mb-2"
-                value={reportCause}
-                onChange={e => setReportCause(e.target.value)}
-              >
-                <option value="">בחר סיבה</option>
-                <option value="שפה לא נאותה">שפה לא נאותה</option>
-                <option value="בריונות/הטרדה">בריונות/הטרדה</option>
-                <option value="מידע שגוי/פוגעני">מידע שגוי/פוגעני</option>
-                <option value="אחר">אחר</option>
-              </select>
-              {reportCause === 'אחר' && (
-                <textarea
-                  className="w-full p-2 border rounded mt-2"
-                  placeholder="פרט את הסיבה"
-                  value={reportCustomCause}
-                  onChange={e => setReportCustomCause(e.target.value)}
-                  rows={2}
-                />
-              )}
-            </div>
-            <div className="mb-3">
-              <label className="block mb-1 font-medium">דיווח על משתמש</label>
-              <select
-                className="w-full p-2 border rounded"
-                value={reportTarget}
-                onChange={e => setReportTarget(e.target.value)}
-              >
-                <option value="">בחר משתמש</option>
-                {selectedConversation && selectedConversation.participants && selectedConversation.participants.map(uid => (
-                  <option key={uid} value={usernames[uid] || uid}>
-                    {usernames[uid] || uid}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="mb-3">
-              <label className="block mb-1 font-medium">תוכן ההודעה</label>
-              {message.text ? (
-                <textarea
-                  className="w-full p-2 border rounded bg-gray-100 text-sm text-gray-700"
-                  value={message.text}
-                  readOnly
-                  rows={3}
-                />
-              ) : message.mediaType === 'image' ? (
-                <div className="flex flex-col items-center">
-                  <img
-                    src={message.mediaURL}
-                    alt="תמונה שדווחה"
-                    className="max-w-[180px] max-h-[120px] rounded mb-2 border"
-                  />
-                  <span className="text-xs text-gray-500 break-all">{message.mediaURL}</span>
-                </div>
-              ) : message.mediaType === 'audio' ? (
-                <div className="flex flex-col items-center">
-                  <audio controls src={message.mediaURL} className="mb-2" />
-                  <span className="text-xs text-gray-500 break-all">{message.mediaURL}</span>
-                </div>
-              ) : (
-                <textarea
-                  className="w-full p-2 border rounded bg-gray-100 text-sm text-gray-700"
-                  value={JSON.stringify(message, null, 2)}
-                  readOnly
-                  rows={3}
-                />
-              )}
-            </div>
-            {reportError && <div className="text-red-600 mb-2">{reportError}</div>}
-            {reportSuccess && <div className="text-green-600 mb-2">הדיווח נשלח בהצלחה!</div>}
-            <button
-              className="w-full py-2 rounded bg-red-600 text-white font-bold hover:bg-red-700 transition mt-2"
-              onClick={handleReport}
-              disabled={isReporting || !reportCause || (reportCause === 'אחר' ? !reportCustomCause : false) || !reportTarget}
-            >
-              {isReporting ? 'שולח דיווח...' : 'אשר ושלח דיווח'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
