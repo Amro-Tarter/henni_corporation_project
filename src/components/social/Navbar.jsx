@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, MessageSquare, Settings, Search, Bell, User, LogOut, LayoutDashboard, BarChart2, LogIn } from 'lucide-react';
+import { Home, MessageSquare, Settings, Search, Bell, User, LogOut, BarChart2, LogIn, FileText } from 'lucide-react';
 import { collection, getDocs, doc, updateDoc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
@@ -26,6 +26,7 @@ const Navbar = ({ element }) => {
     if (path.startsWith('/notifications')) return 'notifications';
     if (path.startsWith('/profile')) return 'profile';
     if (path.startsWith('/admin')) return 'dashboard';
+    if (path.startsWith('/report')) return 'report';
     return 'home';
   };
 
@@ -316,7 +317,7 @@ const Navbar = ({ element }) => {
               </button>
             </li>
           ))}
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'staff') && (
             <li>
               <button
                 onClick={() => {
@@ -326,10 +327,26 @@ const Navbar = ({ element }) => {
                 className="flex items-center gap-2 w-full text-right"
               >
                 <BarChart2 size={20} />
-                <span>דשבורד</span>
+                <span>לוח בקרה</span>
+
               </button>
             </li>
           )}
+          {role === 'mentor' && (
+            <li>
+              <button
+                onClick={() => {
+                  handleTabClick('report', '/report');
+                  setIsMenuOpen(false);
+                }}
+                className="flex items-center gap-2 w-full text-right"
+              >
+                <FileText size={20} />
+                <span>דוחות</span>
+              </button>
+            </li>
+          )}
+
 
           {/* Notifications */}
           <li className="pt-4 border-t border-white/10">
@@ -530,7 +547,7 @@ const Navbar = ({ element }) => {
                   </button>
                 </li>
               ))}
-              {role === 'admin' && (
+              {(role === 'admin' || role === 'staff') && (
                 <li>
                   <button
                     onClick={() => handleTabClick('dashboard', '/admin')}
@@ -540,7 +557,21 @@ const Navbar = ({ element }) => {
                     )}
                   >
                     <BarChart2 size={20} />
-                    <span>דשבורד</span>
+                    <span>לוח בקרה</span>
+                  </button>
+                </li>
+              )}
+              {role === 'mentor' && (
+                <li>
+                  <button
+                    onClick={() => handleTabClick('report', '/report')}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
+                      activeTab === 'report' && 'bg-white/20'
+                    )}
+                  >
+                    <FileText size={20} />
+                    <span>דוחות</span>
                   </button>
                 </li>
               )}

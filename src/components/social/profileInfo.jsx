@@ -12,7 +12,7 @@ const elementOptions = [
   { value: 'earth', label: 'אדמה', icon: '🌱' },
   { value: 'metal', label: 'מתכת', icon: '⚙️' },
 ];
-
+const MAX_FIELD_LENGTH = 50;
 const findOption = v => elementOptions.find(o => o.value === v) || { icon: '', label: '' };
 
 const Stat = ({ icon, count, label, element }) => (
@@ -168,7 +168,12 @@ const ProfileInfo = ({
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           {editing === 'username' ? (
             <div className="flex justify-end items-center gap-3">
-              <input type="text" value={tempValue} onChange={e => setTempValue(e.target.value)} className={`border-b-2 border-${element}-soft focus:border-${element}-accent focus:outline-none text-3xl sm:text-4xl font-bold text-${element}`} dir="rtl" />
+              <input type="text" value={tempValue} onChange={e => {setTempValue(e.target.value);}}
+              maxLength={MAX_FIELD_LENGTH} 
+              className={`border-b-2 border-${element}-soft focus:border-${element}-accent focus:outline-none text-3xl sm:text-4xl font-bold text-${element}`} dir="rtl" />
+              <div className="text-xs text-gray-400 text-left mt-1">
+                {tempValue.length} / {MAX_FIELD_LENGTH}
+              </div>
               <div className="flex gap-2">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -197,10 +202,12 @@ const ProfileInfo = ({
               {role === 'mentor' && (
                 <span
                   style={{ alignSelf: 'center' }}
-                  className="ml-2 px-2 py-0.5 border border-blue-400 text-blue-700 text-xs rounded-full bg-blue-50 font-semibold flex items-center gap-1"
+                  className={`ml-2 px-2 py-0.5 border border-${element}-accent text-${element} text-xs rounded-full
+                             bg-${element}-soft font-semibold flex items-center gap-1`}
                   title="מנחה"
                 >
-                  <svg className="w-3 h-3 text-blue-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 1.5l2.47 5.26 5.81.5c.46.04.64.6.31.93l-4.38 3.94 1.35 5.72c.1.43-.37.77-.76.54L10 15.18l-4.8 2.15c-.39.17-.86-.12-.76-.54l1.35-5.72-4.38-3.94c-.33-.33-.15-.89.31-.93l5.81-.5L10 1.5z"/></svg>
+                  <svg className={`w-3 h-3 text-${element}-accent`} fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 1.5l2.47 5.26 5.81.5c.46.04.64.6.31.93l-4.38 3.94 1.35 5.72c.1.43-.37.77-.76.54L10 15.18l-4.8 2.15c-.39.17-.86-.12-.76-.54l1.35-5.72-4.38-3.94c-.33-.33-.15-.89.31-.93l5.81-.5L10 1.5z"/></svg>
                   מנחה
                 </span>
               )}
@@ -232,7 +239,12 @@ const ProfileInfo = ({
           <MapPin className="w-5 h-5 ml-1" />
           {editing === 'location' ? (
             <>
-              <input type="text" value={tempValue} onChange={e => setTempValue(e.target.value)} className={`flex-1 border-b-2 border-${element}-soft focus:border-${element}-accent focus:outline-none text-base text-${element}`} dir="rtl" />
+              <input type="text" value={tempValue} onChange={e => {setTempValue(e.target.value);}}
+              maxLength={MAX_FIELD_LENGTH} 
+              className={`flex-1 border-b-2 border-${element}-soft focus:border-${element}-accent focus:outline-none text-base text-${element}`} dir="rtl" />
+              <div className="text-xs text-gray-400 text-left mt-1">
+                {tempValue.length} / {MAX_FIELD_LENGTH}
+              </div>
               <div className="flex gap-2">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
@@ -298,7 +310,7 @@ const ProfileInfo = ({
           ) : (
             <>
               {bio ? (
-                <p className={`text-${element}`}>{bio}</p>
+                <p className={`text-${element} break-words break-all whitespace-pre-line`}>{bio}</p>
               ) : isOwner ? (
                 <p className="text-gray-400 italic">הוסף תיאור קצר על עצמך...</p>
               ) : null}

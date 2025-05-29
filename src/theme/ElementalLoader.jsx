@@ -30,7 +30,7 @@ export default function CleanElementalOrbitLoader() {
   
   return (
     <div 
-      className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4"
+      className="flex flex-col items-center justify-center min-h-screen p-4"
       role="status"
       aria-label="Loading elements"
     >

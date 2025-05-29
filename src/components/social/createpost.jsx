@@ -5,7 +5,7 @@ import { containsBadWord } from './utils/containsBadWord';
 import EmojiPicker from 'emoji-picker-react';
 import { createPortal } from 'react-dom';
 import { Smile } from 'lucide-react';
-
+import ElementalLoader from '/src/theme/ElementalLoader.jsx';
 
 const CreatePost = ({ addPost, profilePic, element }) => {
   const [text, setText] = useState('');
@@ -18,6 +18,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
   const emojiBtnRef = useRef();
   const pickerRef = useRef();
   const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
+  const [loading, setLoading] = useState(false);
 
   const pickMedia = (type, accept) => {
     setMediaType(type);
@@ -56,10 +57,14 @@ const CreatePost = ({ addPost, profilePic, element }) => {
       setTimeout(() => setWarning(''), 3500);
       return;
     }
-
-    await addPost({ text: text.trim(), mediaType, mediaFile });
-    cancelPost();
-    setWarning('');
+   setLoading(true); // show loader
+   try {
+      await addPost({ text: text.trim(), mediaType, mediaFile });
+      cancelPost();
+      setWarning('');
+    } finally {
+      setLoading(false); // hide loader
+    }
   };
 
     const insertEmoji = (emojiObject) => {
@@ -100,6 +105,11 @@ const CreatePost = ({ addPost, profilePic, element }) => {
 
   return (
     <>
+    {loading && (
+      <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center backdrop-blur-sm">
+        <ElementalLoader element={element} />
+      </div>
+    )}
     {warning && (
       <div
         style={{

@@ -128,7 +128,6 @@ useEffect(() => {
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        if (userData.element) profileData = { ...profileData, element: userData.element };
         if (userData.role)    profileData = { ...profileData, role: userData.role };
       }
       if (profileData) setProfile({ ...profileData, uid }); // <--- Fix: Always add UID!
@@ -592,11 +591,25 @@ useEffect(() => {
     };
     const projectRef = await addDoc(collection(db, 'personal_projects'), newProject);
     setProjects(prev => [{ id: projectRef.id, ...newProject, liked: false }, ...prev]);
+    await updateDoc(doc(db,'profiles',uid), {
+      postsCount:increment(1)
+    })
+    setProfile(prev => ({
+      ...prev,
+      postsCount: (prev.postsCount || 0) + 1,
+    }));
   };
 
   const handleProjectDelete = async id => {
     await deleteDoc(doc(db, 'personal_projects', id));
     setProjects(prev => prev.filter(p => p.id !== id));
+    await updateDoc(doc(db, 'profiles', uid), {
+      postsCount: increment(-1),
+    });
+    setProfile(prev => ({
+      ...prev,
+      postsCount: Math.max((prev.postsCount || 1) - 1, 0),
+    }));
   };
 
   const handleProjectUpdate = async (id, { title, description, collaborators, mediaFile }) => {

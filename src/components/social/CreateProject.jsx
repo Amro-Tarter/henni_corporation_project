@@ -3,6 +3,7 @@ import { UserPlus, Upload, X, Send, Smile } from 'lucide-react'; // Lucide icons
 import { FaPhotoVideo, FaVideo } from 'react-icons/fa';           // FontAwesome icons
 import EmojiPicker from 'emoji-picker-react';
 import { containsBadWord } from '../social/utils/containsBadWord';
+import ElementalLoader from '/src/theme/ElementalLoader.jsx';
 
 const CreateProject = ({
   profilePic,
@@ -21,10 +22,13 @@ const CreateProject = ({
   const [showEmoji, setShowEmoji] = useState(false);
   const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
   const [collabSearch, setCollabSearch] = useState('');
+  const [loading, setLoading] = useState(false);
   const textareaRef = useRef();
   const emojiBtnRef = useRef();
   const fileInputRef = useRef();
   const usersPopupRef = useRef();
+  const MAX_FIELD_LENGTH = 50;
+
 
   useEffect(() => {
     if (!showUsers) return;
@@ -100,13 +104,18 @@ const CreateProject = ({
       setTimeout(() => setWarning(''), 3500);
       return;
     }
-    await onCreateProject({
-      title,
-      description,
-      mediaFile,
-      mediaType,
-      collaborators,
-    });
+    setLoading(true); // show loader
+    try {
+      await onCreateProject({
+        title,
+        description,
+        mediaFile,
+        mediaType,
+        collaborators,
+      });
+    } finally {
+      setLoading(false); // hide loader
+    }
     setTitle('');
     setDescription('');
     setMediaFile(null);
@@ -132,6 +141,11 @@ const CreateProject = ({
 
   return (
   <>
+    {loading && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center backdrop-blur-sm">
+          <ElementalLoader element={element} />
+        </div>
+      )}  
     {warning && (
       <div
         style={{
@@ -180,9 +194,13 @@ const CreateProject = ({
                 transition
               `}
               value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={e => {setTitle(e.target.value);}}
+              maxLength={MAX_FIELD_LENGTH}
               placeholder="כותרת הפרויקט"
             />
+            <div className="text-xs text-gray-400 text-left mt-1">
+              {title.length} / {MAX_FIELD_LENGTH}
+            </div>
           </div>
 
           {/* Description */}

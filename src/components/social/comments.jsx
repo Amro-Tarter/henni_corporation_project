@@ -105,7 +105,7 @@ export const Comment = ({
               </div>
             </>
           ) : (
-            <p className="text-sm mt-1 whitespace-pre-wrap">{comment.content || comment.text}</p>
+            <p className="text-sm mt-1 whitespace-pre-wrap break-words break-all">{comment.content || comment.text}</p>
           )}
         </div>
 

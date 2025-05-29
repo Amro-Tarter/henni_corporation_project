@@ -508,7 +508,7 @@ const Project = ({
             )}
 
             <div>
-              <p className="text-base leading-relaxed whitespace-pre-wrap break-words overflow-hidden">{description}</p>
+              <p className="text-base leading-relaxed whitespace-pre-wrap break-words break-all overflow-hidden">{description}</p>
             </div>
           </div>
         )}
