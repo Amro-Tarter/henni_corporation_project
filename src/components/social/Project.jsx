@@ -139,9 +139,9 @@ const Project = ({
   const createdDate = createdAt?.toDate?.();
   const timeString = createdDate
     ? createdDate.toLocaleDateString('he-IL', {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      })
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    })
     : '';
 
   const handleDelete = () => setShowConfirmDelete(true);
@@ -273,7 +273,7 @@ const Project = ({
               <p className="text-xs text-gray-500">{timeString}</p>
             </div>
           </div>
-          {isOwner &&(
+          {isOwner && (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(prev => !prev)}
@@ -282,7 +282,7 @@ const Project = ({
                 <MoreHorizontal size={20} />
               </button>
               {menuOpen && (
-                <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}> 
+                <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}>
                   <button
                     onClick={() => { setEditing(prev => !prev); setMenuOpen(false); }}
                     className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors flex items-center gap-2`}
@@ -398,8 +398,8 @@ const Project = ({
                       !newCollaborators.includes(u.id) &&
                       u.username.toLowerCase().includes(collabSearch.trim().toLowerCase())
                     ).length === 0 && (
-                      <div className="text-xs text-gray-400 px-2 py-1">לא נמצאו משתמשים</div>
-                    )}
+                        <div className="text-xs text-gray-400 px-2 py-1">לא נמצאו משתמשים</div>
+                      )}
                   </div>
                 </div>
               )}
@@ -544,11 +544,10 @@ const Project = ({
                 aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}
               >
                 <div
-                  className={`p-1.5 rounded-full transition-colors ${
-                    liked
-                      ? `bg-${element} text-white`
-                      : `bg-${element}-soft text-${element} hover:bg-${element}-accent`
-                  }`}
+                  className={`p-1.5 rounded-full transition-colors ${liked
+                    ? `bg-${element} text-white`
+                    : `bg-${element}-soft text-${element} hover:bg-${element}-accent`
+                    }`}
                 >
                   <ThumbsUp
                     size={18}
@@ -614,13 +613,8 @@ const Project = ({
                       currentUser={currentUser}
                       onReply={setReplyTo}
                       onEdit={onEditComment}
-                      onDelete={() =>
-                        setCommentToDelete({
-                          projectId: id,
-                          commentId: c.id,
-                          isReply: c.parentCommentId ? true : false,
-                          parentCommentId: c.parentCommentId || null,
-                        })
+                      onDelete={(projectId, commentId, isReply, parentId) =>
+                        setCommentToDelete({ projectId, commentId, isReply, parentId })
                       }
                       replyingToId={replyTo}
                       onSubmitReply={(text, parentId) => {
@@ -664,7 +658,7 @@ const Project = ({
               commentToDelete.projectId,
               commentToDelete.commentId,
               commentToDelete.isReply,
-              commentToDelete.parentCommentId
+              commentToDelete.parentId
             );
             setCommentToDelete(null);
           }

@@ -60,7 +60,7 @@ const Navbar = ({ element }) => {
           const profileDocRef = doc(db, 'profiles', user.uid);
           const profileDoc = await getDoc(profileDocRef);
           if (profileDoc.exists()) {
-            setSearchHistory(profileDoc.data().searchHistory || []); 
+            setSearchHistory(profileDoc.data().searchHistory || []);
           }
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
@@ -90,10 +90,10 @@ const Navbar = ({ element }) => {
             // Enhanced Hebrew search with normalization
             const normalizedUsername = normalizeText(profile.username || '');
             const normalizedName = normalizeText(profile.name || '');
-            
+
             // Check if the normalized search term appears in username or name
-            return normalizedUsername.includes(normalizedSearchTerm) || 
-                   normalizedName.includes(normalizedSearchTerm);
+            return normalizedUsername.includes(normalizedSearchTerm) ||
+              normalizedName.includes(normalizedSearchTerm);
           });
 
         setSearchResults(filteredResults);
@@ -123,11 +123,11 @@ const Navbar = ({ element }) => {
           const normalizedUsername = normalizeText(profile.username || '');
           const normalizedName = normalizeText(profile.name || '');
           const normalizedBio = normalizeText(profile.bio || '');
-          
+
           // Enhanced search with multiple profile fields
-          return normalizedUsername.includes(normalizedInput) || 
-                 normalizedName.includes(normalizedInput) || 
-                 normalizedBio.includes(normalizedInput);
+          return normalizedUsername.includes(normalizedInput) ||
+            normalizedName.includes(normalizedInput) ||
+            normalizedBio.includes(normalizedInput);
         });
 
       setSearchResults(results);
@@ -201,7 +201,7 @@ const Navbar = ({ element }) => {
           'fixed top-0 right-0 h-full w-72 z-[100] transform transition-transform duration-300 ease-in-out flex flex-col',
           isMenuOpen ? 'translate-x-0' : 'translate-x-full'
         )}
-        style={{ 
+        style={{
           backgroundColor: '#7f1d1d', // Solid red-900 background
           opacity: 1 // Ensure full opacity
         }}
@@ -441,9 +441,9 @@ const Navbar = ({ element }) => {
 
       <header dir="rtl" className={`fixed top-0 left-0 w-full bg-red-900 backdrop-blur-md shadow-md border-b border-red-800 z-50`}>
         <nav className="relative z-50 container mx-auto flex items-center justify-between px-6 py-2">
-          <a href="/Home" className="flex flex-col items-start">
-            <span className="text-white font-bold text-xl md:text-2xl">לגלות את האור – הנני</span>
-            <span className="text-white/80 text-sm hidden md:block">מנהיגות. יצירה. שייכות.</span>
+          <a href="/" className="flex flex-col items-start">
+            <span className="text-white font-semibold text-lg md:text-xl">עמותת לגלות את האור – הנני</span>
+            <span className="text-white/80 text-xs hidden md:block">יצירה. מנהיגות. שייכות.</span>
           </a>
 
           {/* Search Bar - Desktop */}

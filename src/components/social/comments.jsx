@@ -71,7 +71,7 @@ export const Comment = ({
                   <Edit2 size={14} />
                 </button>
                 <button
-                  onClick={() => onDelete(postId, comment.id, isReply, isReply ? comment.parentCommentId : null)}
+                  onClick={() => onDelete(postId, comment.id, isReply, isReply ? comment.parentId : null)}
                   className="p-1 text-red-500 hover:text-red-700 transition-colors"
                 >
                   <Trash2 size={14} />
@@ -150,7 +150,7 @@ export const Comment = ({
                 replyingToId={replyingToId}
                 onSubmitReply={onSubmitReply}
                 onCancelReply={onCancelReply}
-                isReply
+                isReply={true}
                 postId={postId}
                 postAuthorId={postAuthorId}
                 getAuthorProfile={getAuthorProfile}
