@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Facebook, Instagram, MessageCircle, Phone, LogIn, LogOut, User } from 'lucide-react';
+import { Facebook, Instagram, MessageCircle, Phone, LogIn, LogOut, User, Heart } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faLeaf,
@@ -17,13 +17,12 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 
 
-
 const sections = [
-  { id: 'about-section', label: 'אודות העמותה', icon: faLeaf },
-  { id: 'leadership-program', label: 'תכנית המנהיגות', icon: faHammer },
-  { id: 'gallery', label: 'יצירות ופרויקטים', icon: faWind },
-  { id: 'community', label: 'קהילת העמותה', icon: faWater },
-  { id: 'join-us', label: 'הצטרפו אלינו', icon: faFire },
+  { id: 'about-section', label: 'אודות העמותה', icon: '🌱' },
+  { id: 'leadership-program', label: 'תכנית המנהיגות', icon: '⚙️'},
+  { id: 'gallery', label: 'יצירות ופרויקטים', icon: '💨' },
+  // { id: 'events', label: 'אירועים', icon: '💧' },
+  { id: 'join-us', label: 'הצטרפו אלינו', icon: '🔥' },
 ];
 
 const Navigation = () => {
@@ -59,7 +58,7 @@ const Navigation = () => {
     const onScroll = () => {
       // Handle nav transparency
       setIsScrolled(window.scrollY > 50);
-      
+
       // Handle active section
       let found = '';
       for (const section of sections) {
@@ -69,14 +68,14 @@ const Navigation = () => {
         }
       }
       setActiveSection(found);
-      
+
       // Calculate scroll progress
       const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
       const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
       const scrolled = (winScroll / height) * 100;
       setScrollProgress(scrolled);
     };
-    
+
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -101,7 +100,7 @@ const Navigation = () => {
   }, [showAuthDropdown]);
 
   const handleSignIn = async () => {
-  // redirect to sign in page
+    // redirect to sign in page
     window.location.href = '/login';
   };
 
@@ -126,12 +125,12 @@ const Navigation = () => {
 
   const handleSectionClick = (e, sectionId) => {
     e.preventDefault();
-    
+
     // Close mobile menu if open
     if (isMenuOpen) {
       setIsMenuOpen(false);
     }
-    
+
     // If we're not on the home page, navigate to home and then scroll
     if (location.pathname !== '/') {
       navigate('/', { state: { scrollToSection: sectionId } });
@@ -149,7 +148,7 @@ const Navigation = () => {
     if (location.state?.scrollToSection) {
       const sectionId = location.state.scrollToSection;
       const element = document.getElementById(sectionId);
-      
+
       if (element) {
         // Small timeout to ensure DOM is fully rendered
         setTimeout(() => {
@@ -178,33 +177,43 @@ const Navigation = () => {
           />
         )}
 
-        <nav className="relative z-50 container mx-auto flex items-center justify-between px-6">
-          <a href="/" className="flex flex-col items-start">
-            <span className="text-white font-bold text-xl md:text-2xl">לגלות את האור – הנני</span>
-            <span className="text-white/80 text-sm hidden md:block">מנהיגות. יצירה. שייכות.</span>
+        <nav className="relative z-50 container mx-auto flex items-end justify-around px-3">
+          <a href="/" className="flex flex-col leading-tight items-start ">
+            <span className="text-white font-semibold text-lg md:text-xl"> עמותת לגלות את האור – הנני </span>
+            <span className="text-orange-100 text-xs md:text-sm hidden md:block"> יצירה. מנהיגות. שייכות.</span>
           </a>
 
           {/* Desktop Links */}
-          <div className="hidden lg:flex items-center">
-            <ul className="flex items-center space-x-1 space-x-reverse text-white">
+                <div className="hidden lg:flex items-center">
+                 <ul className="flex items-center space-x-1 space-x-reverse text-white">
               {sections.map(item => (
                 <li key={item.id}>
-                  <a
-                    href={item.id === 'community' ? '/community' : `#${item.id}`}
-                    onClick={(e) => item.id !== 'community' ? handleSectionClick(e, item.id) : null}
+                  <span
+                    onClick={item.id !== 'community' ? e => handleSectionClick(e, item.id) : null}
                     className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10'
+                      'flex items-center gap-4 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10 cursor-pointer',
+                      activeSection === item.id && 'bg-white/10'
                     )}
                   >
-                    <FontAwesomeIcon icon={item.icon} className="text-xl" />
+                    <span className="text-xl" aria-hidden="true">{item.icon}</span>
                     <span>{item.label}</span>
-                  </a>
+                  </span>
                 </li>
               ))}
-            
+
+              {/* Donation button */}
+              <a
+                href="https://mrng.to/pFaSV3RKqT"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mx-2 flex items-center bg-white text-orange-600 hover:bg-orange-50 px-3 py-1 rounded-lg shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                <span className="text-sm font-medium">תרמו לנו</span>
+              </a>
             </ul>
 
-            <div className="flex items-center space-x-4 space-x-reverse border-r border-white/20 mr-4 pr-6">
+            <div className="flex items-center space-x-4 space-x-reverse pr-6">
+            <div className="h-6 border-r border-white/30"></div>
               <a href="tel:0500000000" className="text-white hover:text-green-400">
                 <Phone size={20} />
               </a>
@@ -232,7 +241,7 @@ const Navigation = () => {
                   {currentUser ? (currentUser.displayName || 'החשבון שלי') : 'התחברות'}
                 </span>
               </button>
-                  {/* Auth Dropdown */}
+              {/* Auth Dropdown */}
               {showAuthDropdown && (
                 <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
                   {currentUser ? (
@@ -308,7 +317,7 @@ const Navigation = () => {
         </nav>
 
         {/* Progress Bar */}
-        <div 
+        <div
           className="blog_progress_bar absolute bottom-0 left-0 h-1 bg-orange-400 transition-all duration-200"
           style={{ width: `${scrollProgress}%`, opacity: scrollProgress > 0 ? 1 : 0, willChange: 'width, height, opacity' }}
           aria-hidden="true"
@@ -335,9 +344,9 @@ const Navigation = () => {
           <ul className="flex-1 flex flex-col p-4 space-y-4 text-white text-lg">
             {sections.map(item => (
               <li key={item.id}>
-                <a 
+                <a
                   href={item.id === 'community' ? '/community' : `#${item.id}`}
-                  onClick={item.id !== 'community' ? (e) => handleSectionClick(e, item.id) : null} 
+                  onClick={item.id !== 'community' ? (e) => handleSectionClick(e, item.id) : null}
                   className="flex items-center gap-2"
                 >
                   <FontAwesomeIcon icon={item.icon} className="text-xl" />
@@ -345,14 +354,16 @@ const Navigation = () => {
                 </a>
               </li>
             ))}
+
+            {/* Mobile Donation Button */}
             <li>
               <a
                 href="https://mrng.to/pFaSV3RKqT"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block py-2 bg-white text-orange-500 text-center rounded-md font-medium shadow"
+                className="flex items-center justify-center py-2 bg-white text-orange-600 rounded-lg font-small shadow-md hover:bg-orange-50 transition-colors"
               >
-                תרמו
+                <span className="text-sm font-small">תרמו עכשיו</span>
               </a>
             </li>
 

@@ -7,7 +7,8 @@ import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnaps
 import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import NotificationsComponent from './NotificationsComponent';
+import { useNotifications } from './NotificationsComponent';
+import { ELEMENT_COLORS } from '../chat/utils/ELEMENT_COLORS';
 
 const tabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', route: '/home' },
@@ -23,24 +24,38 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   const [userPhotoURL, setUserPhotoURL] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+  const [userElement, setUserElement] = useState('fire'); // Default to fire
   const navigate = useNavigate();
   const user = auth.currentUser;
 
   // Add state for profile pictures
   const [profilePictures, setProfilePictures] = useState({});
   
-  // Use NotificationsComponent directly
-  const { showNotifications, setShowNotifications, unreadCount, NotificationsModal } = NotificationsComponent();
+  // Use shared notifications context
+  const { showNotifications, setShowNotifications, unreadCount, messageUnreadCount, loading } = useNotifications();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
+        // Fetch profile data
         const profileRef = firestoreDoc(db, 'profiles', user.uid);
         const profileSnap = await getDoc(profileRef);
         if (profileSnap.exists()) {
           const userData = profileSnap.data();
           setUserPhotoURL(userData.photoURL);
           setUserProfile(userData);
+        }
+
+        // Fetch element from 'users' collection (like in profile page)
+        const userRef = firestoreDoc(db, 'users', user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          if (userData.element) {
+            // Handle both string and array formats
+            const elementValue = Array.isArray(userData.element) ? userData.element[0] : userData.element;
+            setUserElement(elementValue || 'fire');
+          }
         }
       }
     };
@@ -127,188 +142,272 @@ const Rightsidebar = ({ element, onExpandChange }) => {
 
   return (
     <>
+    {/* Desktop Sidebar - only show on large screens */}
+    <div className="hidden lg:block">
       <motion.aside
         initial={{ width: 64 }}
         animate={{ width: isExpanded ? 256 : 64 }}
         transition={{ duration: 0.4 }}
-        className={`fixed top-[56.8px] bottom-0 right-0 bg-white shadow-lg z-40 flex flex-col overflow-hidden ${
-          showNotifications ? 'pointer-events-none opacity-50' : ''
-        }`}
+        className={`fixed top-6 bottom-0 right-0 bg-white shadow-lg z-20 flex flex-col h-[calc(100vh-1.5rem)] max-h-[calc(100vh-1.5rem)] overflow-hidden ${showNotifications ? 'pointer-events-none opacity-50' : ''}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <form onSubmit={handleSearch} className={`px-2 pt-4 ${isExpanded ? 'px-4' : ''} transition-all`}>
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="חפש..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className={`
-                ${isExpanded ? 'w-full opacity-100' : 'w-0 opacity-0'}
-                rounded-full border border-${element}-accent
-                bg-${element}-soft px-4 py-2 pr-10 text-${element}
-                placeholder-${element}-accent focus:border-${element}
-                focus:outline-none transition-all duration-300
-              `}
-            />
-            {!isSearching ? (
-              <button
-                type="submit"
-                className={`absolute left-3 top-1/2 -translate-y-1/2 text-${element}-accent`}
-              >
-                <Search size={18} />
-              </button>
-            ) : (
-              <div
-                className={`absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-${element}-accent border-t-transparent`}
+        {/* Search */}
+        {isExpanded ? (
+          <form onSubmit={handleSearch} className="px-2 pt-16 px-4 transition-all flex-shrink-0">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="חפש..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                className="w-full h-10 rounded-full border border-gray-300 bg-gray-50 px-4 pr-10 text-sm placeholder-gray-500 focus:outline-none focus:bg-white transition-all duration-300 ease-in-out opacity-100 scale-100"
               />
-            )}
-          </div>
-        </form>
-
-        {searchInput && searchResults.length > 0 && isExpanded && (
-          <div className="px-4 overflow-x-hidden">
-            <h3 className="font-semibold text-sm text-gray-600 mt-2">תוצאות חיפוש</h3>
-            <ul className="list-none mt-2 divide-y divide-gray-200">
-              {searchResults.map((profile, index) => (
-                <li
-                  key={index}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-gray-100 rounded-md cursor-pointer transition"
-                  onClick={() => {
-                    setSearchInput('');
-                    navigate(`/profile/${profile.username}`);
-                  }}
-                >
-                  <img
-                    src={profile.photoURL || '/images/default-avatar.png'}
-                    alt={profile.username}
-                    className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200 shadow-sm"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/images/default-avatar.png';
-                    }}
-                  />
-                  <span className="text-sm text-gray-800 font-medium truncate">{profile.username}</span>
-                </li>
-              ))}
-            </ul>
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 transition-all duration-200 opacity-100">
+                {!isSearching ? (
+                  <Search size={16} className="text-gray-500" />
+                ) : (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-400" />
+                )}
+              </div>
+            </div>
+          </form>
+        ) : (
+          <div className="flex items-center justify-center pt-16 pb-4">
+            <Search size={24} className="text-gray-400" />
           </div>
         )}
 
-        <nav className={`flex-1 py-6 space-y-2 overflow-y-auto ${isExpanded ? 'px-4' : 'px-2'}`}>
-          {tabs.map((tab) => (
-            <motion.button
-              key={tab.id}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              transition={{ duration: 0.15 }}
-              onClick={() => handleTabClick(tab.id)}
-              className={`
-                flex items-center gap-3 rounded-md px-3 py-2 w-full
-                text-${element} hover:bg-${element}-soft transition-colors duration-200
-                ${activeTab === tab.id ? `bg-${element} text-white` : ''}
-                ${isExpanded ? "justify-start" : "justify-center"}
-              `}
-            >
-              <span className="min-w-[24px] flex justify-center items-center relative">
-                {tab.icon}
-                {!isExpanded && tab.id === 'messenger' && unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 rounded-full bg-red-500 w-2 h-2" />
-                )}
-              </span>
-              <span className={`
-                font-medium overflow-hidden whitespace-nowrap transition-all duration-300
-                ${isExpanded ? 'block opacity-100 max-w-[200px]' : 'hidden opacity-0 max-w-0'}
-              `}>
-                <span>{tab.label}</span>
-                {isExpanded && tab.id === 'messenger' && unreadCount > 0 && (
-                  <span className="rounded-full bg-red-500 text-white px-2 py-1 text-xs">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </span>
-            </motion.button>
-          ))}
-        </nav>
+        {/* Search Results */}
+        {searchInput && searchResults.length > 0 && isExpanded && (
+          <div className="max-h-32 overflow-y-auto border-b border-gray-100">
+            <div className="px-3 py-2">
+              <h3 className="font-semibold text-xs text-gray-600 mb-2">תוצאות חיפוש</h3>
+              <div className="space-y-1">
+                {searchResults.map((profile, index) => (
+                  <div
+                    key={index}
+                    className={`flex items-center gap-2 p-2 hover:bg-${element}-soft rounded-md cursor-pointer transition-all duration-150`}
+                    onClick={() => {
+                      setSearchInput('');
+                      navigate(`/profile/${profile.username}`);
+                    }}
+                  >
+                    <img
+                      src={profile.photoURL || '/images/default-avatar.png'}
+                      alt={profile.username}
+                      className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/images/default-avatar.png';
+                      }}
+                    />
+                    <span className="text-xs text-gray-800 font-medium truncate">{profile.username}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
-        <div className={`pb-6 space-y-2 ${isExpanded ? 'px-4' : 'px-2'} relative`}>
-          {/* Use Bell component directly instead of NotificationButton */}
+        {/* Navigation */}
+        <div className="flex-1 overflow-y-auto py-3 scrollbar-hide">
+          <div className="space-y-1 px-2">
+            {tabs.map((tab) => (
+              <motion.button
+                key={tab.id}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                onClick={() => handleTabClick(tab.id)}
+                className={`
+                  relative w-full h-12 rounded-lg
+                  flex items-center justify-start ${!isExpanded ? 'pl-3 pr-3.5' : 'px-3'} gap-3
+                  transition-all duration-200 ease-in-out group
+                  ${
+                    activeTab === tab.id
+                      ? `text-white bg-${element} shadow-sm`
+                      : `text-gray-700 hover:bg-${element}-soft`
+                  }
+                `}
+              >
+                <div className="relative flex-shrink-0">
+                  {tab.icon}
+                  {!isExpanded && tab.id === 'messenger' && messageUnreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
+                  )}
+                </div>
+                <span className={`
+                  font-medium text-sm whitespace-nowrap
+                  transition-all duration-300 ease-in-out
+                  ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}
+                `}>
+                  {tab.label}
+                  {isExpanded && tab.id === 'messenger' && messageUnreadCount > 0 && (
+                    <span className="ml-2 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-xs">
+                      {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
+                    </span>
+                  )}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom Actions */}
+        <div className="border-t border-gray-100 p-2 space-y-1">
+          {/* Notifications */}
           <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.15 }}
             onClick={() => setShowNotifications(!showNotifications)}
-            className={`flex items-center gap-3 rounded-md px-3 py-2 w-full text-${element} hover:bg-${element}-soft transition-colors duration-200 ${
-              showNotifications ? `bg-${element} text-white` : ''
-            } ${isExpanded ? '' : 'w-10'}`}
+            className={`
+              relative w-full h-12 rounded-lg
+              flex items-center justify-start ${!isExpanded ? 'pl-3 pr-3.5' : 'px-3'} gap-3
+              transition-all duration-200 ease-in-out
+              ${
+                showNotifications
+                  ? `text-white bg-${element}-accent shadow-sm`
+                  : `text-gray-700 hover:bg-${element}-soft`
+              }
+            `}
           >
-            <span className="relative">
+            <div className="relative flex-shrink-0">
               <Bell size={20} />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 rounded-full bg-red-500 w-2 h-2" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
               )}
-            </span>
-            <span className="flex flex-1 justify-between font-medium overflow-hidden whitespace-nowrap transition-all duration-300">
-              <span>התראות</span>
-              {unreadCount > 0 && (
-                <span className="rounded-full bg-red-500 text-white px-2 py-1 text-xs">
+            </div>
+            <span className={`
+              font-medium text-sm whitespace-nowrap
+              transition-all duration-300 ease-in-out
+              ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}
+            `}>
+              התראות
+              {isExpanded && unreadCount > 0 && (
+                <span className="ml-2 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-xs">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </span>
           </motion.button>
 
+          {/* Profile */}
           <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.15 }}
             onClick={handleProfileClick}
-            className={`flex items-center gap-3 rounded-md px-3 py-2 w-full text-${element} hover:bg-${element}-soft transition-colors duration-200 ${
-              activeTab === 'profile' ? `bg-${element} text-white` : ''
-            }`}
+            className={`
+              relative w-full h-12 rounded-lg
+              flex items-center justify-start ${!isExpanded ? 'pl-3 pr-3.5' : 'px-3'} gap-3
+              transition-all duration-200 ease-in-out
+              ${
+                activeTab === 'profile'
+                  ? `text-white bg-${element}-accent shadow-sm`
+                  : `text-gray-700 hover:bg-${element}-soft`
+              }
+            `}
           >
-            {userPhotoURL ? (
-              <img
-                src={userPhotoURL}
-                alt="Profile"
-                className="w-6 h-6 rounded-full object-cover"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = '/images/default-avatar.png';
-                }}
-              />
-            ) : (
-              <User size={20} />
-            )}
-            {isExpanded && (
-              <span className="font-medium overflow-hidden whitespace-nowrap transition-all duration-300">
-                פרופיל
-              </span>
-            )}
+            <div className="flex-shrink-0">
+              {userPhotoURL ? (
+                <img
+                  src={userPhotoURL}
+                  alt="Profile"
+                  className="w-5 h-5 rounded-full object-cover"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/images/default-avatar.png';
+                  }}
+                />
+              ) : (
+                <User size={20} />
+              )}
+            </div>
+            <span className={`
+              font-medium text-sm whitespace-nowrap
+              transition-all duration-300 ease-in-out
+              ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}
+            `}>
+              פרופיל
+            </span>
           </motion.button>
 
+          {/* Logout */}
           <motion.button
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.96 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.15 }}
             onClick={handleLogout}
-            className={`flex items-center gap-3 rounded-md px-3 py-2 w-full text-${element} hover:bg-${element}-soft transition-colors duration-200`}
+            className={`
+              relative w-full h-12 rounded-lg
+              flex items-center justify-start ${!isExpanded ? 'pl-3 pr-3.5' : 'px-3'} gap-3
+              transition-all duration-200 ease-in-out
+              text-gray-700 hover:bg-${element}-soft
+            `}
           >
-            <LogOut size={20} />
-            {isExpanded && (
-              <span className="font-medium overflow-hidden whitespace-nowrap transition-all duration-300">
-                התנתק
-              </span>
-            )}
+            <div className="flex-shrink-0">
+              <LogOut size={20} />
+            </div>
+            <span className={`
+              font-medium text-sm whitespace-nowrap
+              transition-all duration-300 ease-in-out
+              ${isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}
+            `}>
+              התנתק
+            </span>
           </motion.button>
         </div>
       </motion.aside>
+    </div>
 
-      {/* Render the notifications modal from the component */}
-      <NotificationsModal />
-    </>
-  );
+    {/* Mobile Bottom Bar */}
+    <nav className="fixed bottom-0 right-0 left-0 z-30 bg-white border-t border-gray-200 flex justify-around items-center py-2 lg:hidden shadow-lg">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          onClick={() => handleTabClick(tab.id)}
+          className={`relative flex flex-col items-center text-xs ${
+            activeTab === tab.id ? `text-${element}-accent` : 'text-gray-500'
+          }`}
+        >
+          <span className="relative">
+            {tab.icon}
+            {tab.id === 'messenger' && messageUnreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
+            )}
+          </span>
+          <span>{tab.label}</span>
+        </button>
+      ))}
+      <button
+        onClick={() => setShowNotifications(!showNotifications)}
+        className="relative flex flex-col items-center text-xs text-gray-500"
+      >
+        <span className="relative">
+          <Bell size={20} />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 rounded-full bg-red-500 w-2 h-2" />
+          )}
+        </span>
+        <span>התראות</span>
+      </button>
+      <button
+        onClick={user ? handleProfileClick : () => navigate('/login')}
+        className="flex flex-col items-center text-xs text-gray-500"
+      >
+        {userPhotoURL ? (
+          <img src={userPhotoURL} alt="Profile" className="w-6 h-6 rounded-full object-cover" />
+        ) : (
+          <User size={20} />
+        )}
+        <span>{user ? 'פרופיל' : 'התחברות'}</span>
+      </button>
+    </nav>
+  </>
+);
+
 };
 
 export default Rightsidebar;

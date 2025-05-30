@@ -27,34 +27,6 @@ const mediaItems = [
 
 ];
 
-const stats = [
-  { value: 1200, label: 'בני נוער שגילו את האור שבתוכם', color: 'blue' },
-  { value: 85, label: 'פרויקטים קהילתיים יזמיים', color: 'purple' },
-  { value: 30, label: 'יישובים בהם פועלת העמותה', color: 'indigo' },
-];
-
-const AnimatedCounter = ({ endValue, isVisible, duration = 2000 }) => {
-  const [count, setCount] = useState(0);
-  
-  useEffect(() => {
-    if (!isVisible) return;
-    
-    let startTime;
-    const animate = (timestamp) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      setCount(Math.floor(progress * endValue));
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-    
-    requestAnimationFrame(animate);
-  }, [isVisible, endValue, duration]);
-  
-  return <span>{count.toLocaleString()}+</span>;
-};
 
 const Gallery = () => {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -233,42 +205,6 @@ const Gallery = () => {
             </div>
           </div>
         </div>
-
-        {/* Animated Statistics */}
-        <div ref={statsRef} className="mb-12">
-          <motion.h3
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-2xl md:text-3xl font-bold text-blue-700 mb-8 text-center"
-          >
-            ההשפעה שלנו – במספרים
-          </motion.h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
-                className={`bg-gradient-to-br from-${stat.color}-100 to-white rounded-xl shadow-lg p-6 text-center hover:shadow-xl transition-all hover:-translate-y-1`}
-              >
-                <div className={`text-4xl md:text-5xl font-bold text-${stat.color}-800 mb-2`}>
-                  <AnimatedCounter
-                    endValue={stat.value}
-                    isVisible={isStatsInView}
-                    duration={2000 + index * 500}
-                  />
-                </div>
-                <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-                  {stat.label}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-
       </div>
     </section>
   );

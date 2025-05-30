@@ -295,7 +295,6 @@ function Reports() {
     <DashboardLayout>
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
       
-      <div className="w-full max-w-7xl mx-auto bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
         
         {/* Heading */}
         <div className="text-center mb-8">
@@ -560,7 +559,6 @@ function Reports() {
             <p className="text-gray-500">ודא שאתה מחובר כמשתמש אדמין או נסה לשנות את פרמטרי החיפוש שלך</p>
           </div>
         )}
-      </div>
     </div>
     </DashboardLayout>
   );

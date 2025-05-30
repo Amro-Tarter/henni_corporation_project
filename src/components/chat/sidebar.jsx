@@ -13,7 +13,7 @@ export default function Sidebar({ elementColors, onTabChange, userElement, activ
     { icon: HiMiniHome, label: "הכל", type: "all" },
     { icon: HiOutlineChatBubbleBottomCenterText, label: "פרטי", type: "direct" },
     { icon: HiMiniUsers, label: "קבוצות", type: "group" },
-    { icon: HiUserGroup, label: `${userElement} קהילה`, type: "community" }
+    { icon: HiUserGroup, label: `קהילות`, type: "community" }
   ];
 
   // Handle tab click
@@ -23,7 +23,7 @@ export default function Sidebar({ elementColors, onTabChange, userElement, activ
 
   return (
     <div
-      className="mt-16 w-12 shadow-md hover:w-48 transition-all duration-300 border-l border-gray-200 flex flex-col items-start py-4 gap-2 overflow-hidden"
+      className="mt-14 w-12 shadow-md hover:w-48 transition-all duration-300 border-l border-gray-200 flex flex-col items-start py-4 gap-2 overflow-hidden"
       style={{ backgroundColor: elementColors.light }}
     >
       {sidebarItems.map((item, idx) => {

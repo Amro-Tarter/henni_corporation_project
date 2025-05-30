@@ -18,11 +18,11 @@ const elementStyles = {
 };
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 30 },
+  hidden: { opacity: 0, y: 20 },
   visible: (i) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.15, duration: 0.6, ease: "easeOut" },
+    transition: { delay: i * 0.1, duration: 0.4, ease: "easeOut" },
   }),
 };
 
@@ -44,16 +44,16 @@ const ProjectModal = ({ project, onClose }) => {
   const theme = elementStyles[project.element] || elementStyles.earth;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-      <div className="bg-white rounded-2xl max-w-xl w-full p-6 relative shadow-xl">
-        <button onClick={onClose} className="absolute top-4 left-4 text-gray-500 hover:text-black">
-          <X size={24} />
+      <div className="bg-white rounded-xl max-w-md w-full p-4 relative shadow-lg">
+        <button onClick={onClose} className="absolute top-3 left-3 text-gray-500 hover:text-black">
+          <X size={20} />
         </button>
-        <div className="mb-4">
-          <img src={project.image} alt={project.title} className="w-full h-64 object-cover rounded-xl" />
+        <div className="mb-3">
+          <img src={project.image} alt={project.title} className="w-full h-48 object-cover rounded-lg" />
         </div>
-        <h3 className="text-2xl font-bold mb-2 text-gray-800">{project.title}</h3>
-        <p className="text-gray-600 text-sm mb-2">{project.location} • {formatDate(project.date)}</p>
-        <p className="text-gray-700 text-base leading-relaxed whitespace-pre-line">
+        <h3 className="text-lg font-bold mb-1 text-gray-800">{project.title}</h3>
+        <p className="text-gray-600 text-xs mb-2">{project.location} • {formatDate(project.date)}</p>
+        <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
           {project.description || "אין תיאור זמין לפרויקט זה."}
         </p>
       </div>
@@ -71,25 +71,25 @@ const ProjectCard = ({ title, date, location, image, element, index, onDetails }
       viewport={{ once: true, amount: 0.2 }}
       variants={cardVariants}
     >
-      <Card className={`overflow-hidden rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 group border ${theme.lightBg}`}>
-        <div className="h-64 relative overflow-hidden">
+      <Card className={`overflow-hidden rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 group border ${theme.lightBg}`}>
+        <div className="h-48 relative overflow-hidden">
           <img
             src={image}
             alt={title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         </div>
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           <div className={`flex items-center mb-2 ${theme.text}`}>
-            <Calendar size={18} className="mr-2" />
-            <span className="text-sm font-medium">{formatDate(date)}</span>
+            <Calendar size={14} className="mr-2" />
+            <span className="text-xs font-medium">{formatDate(date)}</span>
           </div>
-          <h3 className="text-2xl font-bold text-gray-800 mb-1 leading-snug">{title}</h3>
-          <p className="text-gray-600 text-base mb-6">{location}</p>
+          <h3 className="text-lg font-bold text-gray-800 mb-1 leading-snug">{title}</h3>
+          <p className="text-gray-600 text-sm mb-4">{location}</p>
           <Button
             variant="outline"
             onClick={onDetails}
-            className={`w-full ${theme.text} border hover:shadow-md hover:bg-opacity-10 transition-all duration-300`}
+            className={`w-full text-sm ${theme.text} border hover:shadow-sm hover:bg-opacity-10 transition-all duration-300`}
           >
             פרטים נוספים
           </Button>
@@ -128,13 +128,13 @@ const EventsSection = () => {
 
   return (
     <section 
-    className="relative py-20 md:py-28 bg-gradient-to-tr from-green-100 to-lime-50 overflow-hidden"
+    className="relative py-12 md:py-16 bg-gradient-to-tr from-green-100 to-lime-50 overflow-hidden"
      id="projects" dir="rtl">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-20">
-          <h2 className="font-gveret-levin text-4xl md:text-5xl text-emerald-800 mb-6">פרויקטים מהשטח</h2>
-          <div className="h-1 w-24 mx-auto bg-fire rounded-full mb-6"></div>
-          <p className="text-lg text-gray-700 max-w-2xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="font-gveret-levin text-3xl md:text-4xl font-bold text-emerald-800 mb-4">פרויקטים מהשטח</h2>
+          <div className="h-0.5 w-16 mx-auto bg-fire rounded-full mb-4"></div>
+          <p className="text-base text-gray-700 max-w-xl mx-auto">
             הצצה לפרויקטים יצירתיים שנולדו מהתכנית – נבחרת אקראית מתוך המאגר.
           </p>
         </div>
@@ -142,7 +142,7 @@ const EventsSection = () => {
         {loading ? (
              <ElementalLoader />
         ) : projects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {projects.map((project, index) => (
               <ProjectCard
                 key={project.id}
@@ -153,15 +153,15 @@ const EventsSection = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center text-gray-500">אין פרויקטים להצגה כרגע.</div>
+          <div className="text-center text-gray-500 text-sm">אין פרויקטים להצגה כרגע.</div>
         )}
 
-        <div className="mt-16 text-center">
+        <div className="mt-10 text-center">
           <CTAButton
             href="/projects"
             variant="earth"
-            size="lg"
-           className="bg-green-500 hover:bg-green-600 text-white text-lg px-6 py-3 rounded-xl shadow-lg transition-all duration-300"
+            size="md"
+           className="bg-green-500 hover:bg-green-600 text-white text-base px-5 py-2 rounded-lg shadow-md transition-all duration-300"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="צפו בכל הפרויקטים שלנו – ייפתח בכרטיסייה חדשה"

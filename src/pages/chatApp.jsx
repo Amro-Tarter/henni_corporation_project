@@ -33,6 +33,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import { badWords } from "../components/chat/utils/badWords";
 import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
 import notificationSound from '../assets/notification.mp3';
+import { handleMentorCommunityMembership } from "../components/chat/utils/handleMentorCommunityMembership";
+import { handleElementCommunityChatMembership } from "../components/chat/utils/handleElementCommunityMembership";
+import { FaComments, FaCommentDots } from 'react-icons/fa';
+
+const COMMUNITY_DESCRIPTIONS = {
+  element: 'קהילה זו מיועדת לכל חברי היסוד שלך. כאן תוכלו לשתף, לשאול ולהתחבר עם חברים מהיסוד.',
+  mentor_community: 'קהילה זו כוללת את המנטור שלך ואת כל המשתתפים שמלווים על ידו. כאן אפשר להתייעץ, לשאול ולשתף.',
+  all_mentors: 'קהילה זו מאגדת את כל המנטורים בתכנית. כאן ניתן להחליף רעיונות, לשתף ידע ולתמוך זה בזה.',
+  all_mentors_with_admin: 'קהילה זו כוללת את כל המנטורים והמנהלים. כאן מתקיימים עדכונים, שיתופים ודיונים מקצועיים.'
+};
 
 export default function ChatApp() {
   const { chatId } = useParams();
@@ -67,8 +77,7 @@ export default function ChatApp() {
   const [pendingSelectedConversationId, setPendingSelectedConversationId] = useState(null);
   const [groupAvatarFile, setGroupAvatarFile] = useState(null);
   const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
-  const [isSendingImage, setIsSendingImage] = useState(false);
-  const messagesEndRef = useRef(null);
+  const [mobilePanel, setMobilePanel] = useState('conversations'); // 'conversations' | 'chat'
 
   // File upload state/logic (moved to hook)
   const {
@@ -94,7 +103,8 @@ export default function ChatApp() {
         .filter(doc => {
           const username = doc.data().username || '';
           return doc.id !== currentUser.uid && 
-                 username.toLowerCase().includes(searchTerm.toLowerCase());
+                 username.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                  doc.data().role !== 'staff'; // Exclude staff users
         })
         .map(doc => ({
           id: doc.id,
@@ -129,14 +139,16 @@ export default function ChatApp() {
           const userData = {
             uid: user.uid,
             username: userDoc.data().username,
-            element: userElement,
+            element: userElement || "staff",
             role: userRole,
             associated_id,
             mentorName: userDoc.data().mentorName,
           };
           setCurrentUser(userData);
-          // Ensure user is in their community
-          const community = await handleCommunityChatMembership(user.uid, userElement);
+          // Ensure user is in their element community
+          const community = await handleElementCommunityChatMembership(user.uid, userElement);
+                    // Ensure mentor community logic
+          await handleMentorCommunityMembership(user.uid, userRole, userDoc.data().mentorName, userDoc.data().username);
           if (community) setSelectedConversation(false);
           setAuthInitialized(true);
         } catch (error) {
@@ -149,17 +161,48 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, []);
 
+  // --- Automatic Community Management: Keep all communities in sync with users collection ---
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "users"), async (snapshot) => {
+      const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      for (const user of users) {
+        // Element community
+        if (user.element) {
+          await handleElementCommunityChatMembership(user.id, user.element);
+        }
+        // Mentor/admin communities
+        await handleMentorCommunityMembership(
+          user.id,
+          user.role,
+          user.mentorName,
+          user.username
+        );
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   // --- Conversation Filtering ---
   const filteredConversations = useMemo(() => {
+    if (currentUser.role === 'staff') {
+      // Staff sees all conversations
+      return conversations;
+    }
     let filtered = conversations;
     if (activeTab === "private") {
       filtered = filtered.filter(conv => conv.type === "direct");
     } else if (activeTab === "group") {
       filtered = filtered.filter(conv => conv.type === "group");
     } else if (activeTab === "community") {
+      // Show all community types relevant to the user
       filtered = filtered.filter(conv =>
         conv.type === "community" &&
-        conv.element === currentUser.element?.toLowerCase()
+        (
+          (!conv.communityType || conv.communityType === "element") ||
+          conv.communityType === "mentor_community" ||
+          conv.communityType === "all_mentors" ||
+          conv.communityType === "all_mentors_with_admin"
+        )
       );
     }
     if (searchQuery) {
@@ -171,17 +214,27 @@ export default function ChatApp() {
       );
     }
     return filtered;
-  }, [conversations, searchQuery, activeTab, currentUser.element]);
+  }, [conversations, searchQuery, activeTab, currentUser.element, currentUser.role]);
 
   // --- Load Conversations ---
   useEffect(() => {
     if (!currentUser.uid) return;
     setIsLoadingConversations(true);
-    const q = query(
-      collection(db, "conversations"),
-      where("participants", "array-contains", currentUser.uid),
-      orderBy("lastUpdated", "desc")
-    );
+    let q;
+    if (currentUser.role === 'staff') {
+      // Staff: get all conversations
+      q = query(
+        collection(db, "conversations"),
+        orderBy("lastUpdated", "desc")
+      );
+    } else {
+      // Regular users: only their conversations
+      q = query(
+        collection(db, "conversations"),
+        where("participants", "array-contains", currentUser.uid),
+        orderBy("lastUpdated", "desc")
+      );
+    }
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const validConversations = [];
       for (const conversationDoc of snapshot.docs) {
@@ -193,37 +246,90 @@ export default function ChatApp() {
             lastUpdated: data.lastUpdated?.toDate(),
             createdAt: data.createdAt?.toDate()
           };
-          if (data.type === "community") {
+          if (data.type === "community" && data.communityType === "mentor_community") {
             validConversations.push({
               ...base,
-              participantNames: [`${data.element} Community`]
+              mentorName: data.mentorName,
+              participantNames: data.participantNames,
+              participants: data.participants,
+              communityType: data.communityType,
+              displayName: data.mentorName ? `קהילה של ${data.mentorName}` : 'קהילת מנטור',
+            });
+            continue;
+          } else if (data.type === "community" && (!data.communityType || data.communityType === "element")) {
+            validConversations.push({
+              ...base,
+              participantNames: [`${data.element} קהילה`],
+              communityType: data.communityType,
+              displayName: data.element ? `קהילת ${ELEMENT_COLORS[data.element]?.label}` : 'קהילה',
+            });
+            continue;
+          } else if (data.type === "community" && data.communityType === "all_mentors") {
+            validConversations.push({
+              ...base,
+              participantNames: data.participantNames,
+              communityType: data.communityType,
+              displayName: 'קהילת כל המנטורים',
+            });
+            continue;
+          } else if (data.type === "community" && data.communityType === "all_mentors_with_admin") {
+            validConversations.push({
+              ...base,
+              participantNames: data.participantNames,
+              communityType: data.communityType,
+              displayName: 'קהילת מנטורים ומנהלים',
             });
             continue;
           }
           if (data.type === "direct") {
-            const partnerUid = data.participants?.find(p => p !== currentUser.uid);
-            if (!partnerUid) continue;
-            // Fetch partner's username from users, and photoURL from profiles
-            const userDocRef = doc(db, "users", partnerUid);
-            const partnerDoc = await getDoc(userDocRef);
+            // Use existing participantNames and fetch profile pic
+            const partnerUid = data.participants.find(uid => uid !== currentUser.uid);
             let partnerProfilePic = null;
+            
             try {
-              const profileDocRef = doc(db, "profiles", partnerUid);
-              const profileDoc = await getDoc(profileDocRef);
+              const profileDoc = await getDoc(doc(db, 'profiles', partnerUid));
               if (profileDoc.exists()) {
                 partnerProfilePic = profileDoc.data().photoURL || null;
               }
             } catch (e) {
-              partnerProfilePic = null;
+              console.error('Error fetching partner profile:', e);
             }
-            validConversations.push({
-              ...base,
-              participantNames: [
-                currentUser.username,
-                partnerDoc.exists() ? partnerDoc.data().username : "Unknown"
-              ],
-              partnerProfilePic
-            });
+            
+            if (data.participantNames?.length === 2) {
+              validConversations.push({
+                ...base,
+                participantNames: data.participantNames,
+                partnerProfilePic
+              });
+              continue;
+            }
+
+            // If participantNames not available, fetch user data and update
+            try {
+              const participants = await Promise.all(
+                data.participants.map(async uid => {
+                  const userDoc = await getDoc(doc(db, "users", uid));
+                  return userDoc.data()?.username || uid;
+                })
+              );
+
+              // Update conversation with participant names
+              await updateDoc(doc(db, "conversations", data.id), {
+                participantNames: participants
+              });
+
+              validConversations.push({
+                ...base,
+                participantNames: participants
+              });
+            } catch (error) {
+              console.error("Error fetching participant names:", error);
+              // Fallback to using UIDs if fetch fails
+              validConversations.push({
+                ...base,
+                participantNames: data.participants
+              });
+            }
             continue;
           }
           if (data.type === "group") {
@@ -233,6 +339,15 @@ export default function ChatApp() {
               groupName: data.name,
               admin: data.admin,
               avatarURL: data.avatarURL || null
+            });
+            continue;
+          }
+          if (data.type === "mentor_community") {
+            validConversations.push({
+              ...base,
+              mentorName: data.mentorName,
+              participantNames: data.participantNames,
+              participants: data.participants,
             });
             continue;
           }
@@ -246,33 +361,37 @@ export default function ChatApp() {
     });
     return () => unsubscribe();
   }, [currentUser.uid]);
-
-  // Utility to fetch a user's profile picture (Firestore, then Storage fallback)
+  // Utility to fetch a user's profile picture with caching and loaders
   async function fetchUserAvatar(uid) {
     try {
+      // Check if we already have it cached
+      if (userAvatars[uid]) {
+        return userAvatars[uid];
+      }
+
+      // Try to get from profiles collection first
       const profileDoc = await getDoc(doc(db, 'profiles', uid));
       let photoURL = null;
       if (profileDoc.exists()) {
         photoURL = profileDoc.data().photoURL || null;
       }
-      if (!photoURL) {
-        try {
-          const storage = getStorage();
-          const ref = storageRef(storage, `profiles/${uid}/profile.jpg`);
-          photoURL = await getDownloadURL(ref);
-        } catch (e) {
-          photoURL = null;
-        }
-      }
-      return photoURL;
+
+      // Cache the result
+      setUserAvatars(prev => ({
+        ...prev,
+        [uid]: photoURL || '/default_user_pic.jpg'
+      }));
+
+      return photoURL || '/default_user_pic.jpg';
     } catch (e) {
-      return null;
+      console.error("Error fetching avatar:", e);
+      return '/default_user_pic.jpg';
     }
   }
 
   // --- Load Messages for Selected Conversation ---
   useEffect(() => {
-    if (!selectedConversation) return;
+    if (!selectedConversation || !selectedConversation.id) return;
     setIsLoadingMessages(true);
     
     // Create a query to get messages for the selected conversation
@@ -291,35 +410,26 @@ export default function ChatApp() {
       }));
       
       setMessages(msgs);
-      setIsLoadingMessages(false);
-
-      // Build a set of unique sender UIDs
-      const senderUids = new Set(msgs.map(m => m.sender).filter(Boolean));
-      
-      // Add current user's UID to the set
+      setIsLoadingMessages(false);      // Build a set of unique sender UIDs (including currentUser)
+      const senderUids = new Set(msgs.map(m => m.sender));
       senderUids.add(currentUser.uid);
       
-      // For direct chats, add partner UID
-      if (selectedConversation.type === 'direct') {
-        const partnerUid = selectedConversation.participants.find(p => p !== currentUser.uid);
-        if (partnerUid) senderUids.add(partnerUid);
-      }
-      // For community chats, add all participants if available
-      else if (selectedConversation.type === 'community' && Array.isArray(selectedConversation.participants)) {
-        selectedConversation.participants.forEach(uid => {
-          if (uid) senderUids.add(uid);
-        });
+      // Add all participants for group/community chats
+      if (selectedConversation.participants) {
+        selectedConversation.participants.forEach(uid => senderUids.add(uid));
       }
       
-      // Fetch avatars for all senders
+      // Fetch avatars for all senders and participants
       const avatarEntries = await Promise.all(
-        Array.from(senderUids).map(async uid => {
-          if (!uid) return [null, null]; // Skip null/undefined UIDs
-          return [uid, await fetchUserAvatar(uid)];
-        }).filter(entry => entry[0]) // Filter out entries with null/undefined UIDs
+        Array.from(senderUids).map(async uid => [uid, await fetchUserAvatar(uid)])
       );
       
-      setUserAvatars(Object.fromEntries(avatarEntries));
+      // Update avatar cache
+      const newAvatars = Object.fromEntries(avatarEntries);
+      setUserAvatars(prev => ({
+        ...prev,
+        ...newAvatars
+      }));
     });
     
     return () => unsubscribe();
@@ -327,6 +437,7 @@ export default function ChatApp() {
 
   // --- Send Message (handles text and file/image/voice) ---
   const sendMessage = async (opts = {}) => {
+    if (currentUser.role === 'staff') return; // Staff cannot send
     // Support: opts.fileOverride, opts.mediaTypeOverride
     const fileToSend = opts.fileOverride || file;
     const mediaTypeOverride = opts.mediaTypeOverride;
@@ -426,8 +537,8 @@ export default function ChatApp() {
 
     // Update conversation metadata separately
     const lastMessageText = messageData.mediaType ? 
-      (messageData.mediaType === 'audio' ? 'Sent a voice message' : 
-       messageData.mediaType === 'image' ? 'Sent an image' : 'Sent a file') : 
+      (messageData.mediaType === 'audio' ? 'שלח הודעת קול' : 
+       messageData.mediaType === 'image' ? 'שלח תמונה' : 'שלח קובץ') : 
       messageData.text;
 
     const unreadUpdate = {};
@@ -513,89 +624,6 @@ export default function ChatApp() {
     } catch (error) {
       console.error("Error creating conversation:", error);
       alert(`Error creating conversation: ${error.message}`);
-    }
-  };
-
-  // --- Community Chat Membership ---
-  const handleCommunityChatMembership = async (userId, userElement) => {
-    try {
-      const normalizedElement = userElement.toLowerCase();
-      const userDoc = await getDoc(doc(db, "users", userId));
-      const username = userDoc.data().username;
-      // 1. Find all community conversations the user is currently in
-      const allCommunitiesQuery = query(
-        collection(db, "conversations"),
-        where("type", "==", "community"),
-        where("participants", "array-contains", userId)
-      );
-      const allCommunitiesSnapshot = await getDocs(allCommunitiesQuery);
-      // 2. Remove user from all communities except the new one
-      for (const communityDoc of allCommunitiesSnapshot.docs) {
-        const data = communityDoc.data();
-        if (data.element !== normalizedElement) {
-          await updateDoc(communityDoc.ref, {
-            participants: data.participants.filter((id) => id !== userId),
-            participantNames: data.participantNames.filter((name) => name !== username),
-            lastMessage: `${username} left the community`
-          });
-          await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
-            text: `${username} left the community`,
-            type: "system",
-            createdAt: serverTimestamp(),
-          });
-        }
-      }
-      // 3. Find or create the new community for the user's current element
-      const q = query(
-        collection(db, "conversations"),
-        where("type", "==", "community"),
-        where("element", "==", normalizedElement)
-      );
-      const querySnapshot = await getDocs(q);
-      let communityDoc;
-      if (querySnapshot.empty) {
-        // No community exists for this element → create it
-        const newCommunityRef = doc(collection(db, "conversations"));
-        await setDoc(newCommunityRef, {
-          participants: [userId],
-          participantNames: [username],
-          type: "community",
-          element: normalizedElement,
-          lastMessage: "Community created!",
-          lastUpdated: serverTimestamp(),
-          createdAt: serverTimestamp(),
-        });
-        await addDoc(collection(db, "conversations", newCommunityRef.id, "messages"), {
-          text: "Community created! Welcome!",
-          type: "system",
-          createdAt: serverTimestamp(),
-        });
-        communityDoc = await getDoc(newCommunityRef);
-      } else {
-        // A community already exists — use the first one
-        communityDoc = querySnapshot.docs[0];
-        const data = communityDoc.data();
-        if (!data.participants.includes(userId)) {
-          await updateDoc(communityDoc.ref, {
-            participants: arrayUnion(userId),
-            participantNames: arrayUnion(username),
-            lastMessage: `${username} joined the community`
-          });
-          await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
-            text: `${username} joined the community`,
-            type: "system",
-            createdAt: serverTimestamp(),
-          });
-        }
-      }
-      return {
-        id: communityDoc.id,
-        ...communityDoc.data(),
-        lastUpdated: communityDoc.data().lastUpdated?.toDate(),
-        createdAt: communityDoc.data().createdAt?.toDate(),
-      };
-    } catch (error) {
-      console.error("Error handling community chat:", error);
     }
   };
 
@@ -719,38 +747,44 @@ export default function ChatApp() {
     if (!conv) {
       setSelectedConversation(null);
       navigate(`/chat`);
+      // On mobile, go back to conversations
+      if (window.innerWidth < 768) setMobilePanel('conversations');
       return;
     }
-    
     // If conv is an ID, or partial, find the full object
     const convId = conv.id || conv;
     const fullConv = conversations.find(c => c.id === convId);
-    
     if (fullConv) {
       // Create a lastRead key to track updates
       const lastReadKey = `${fullConv.id}_${currentUser.uid}`;
-      
       setSelectedConversation(fullConv);
       navigate(`/chat/${fullConv.id}`);
-      
+      // On mobile, switch to chat area
+      if (window.innerWidth < 768) setMobilePanel('chat');
       // --- Reset unread count for current user and update lastRead timestamp ---
       const conversationRef = doc(db, "conversations", fullConv.id);
       updateDoc(conversationRef, {
         [`unread.${currentUser.uid}`]: 0,
         [`lastRead.${currentUser.uid}`]: serverTimestamp()
       });
-      
       // Mark this conversation as updated
       setLastReadUpdated(prev => ({
         ...prev,
         [lastReadKey]: true
       }));
     } else {
-      // fallback: set as is
       setSelectedConversation(conv);
       navigate(`/chat/${convId}`);
+      if (window.innerWidth < 768) setMobilePanel('chat');
     }
   };
+
+  // On mobile, if chat is closed, go back to conversations
+  useEffect(() => {
+    if (window.innerWidth < 768 && !selectedConversation) {
+      setMobilePanel('conversations');
+    }
+  }, [selectedConversation]);
 
   // When conversations update, if there's a pending selection, select it
   useEffect(() => {
@@ -817,49 +851,6 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, [currentUser.uid, selectedConversation, conversations]);
 
-  // Handle sending message
-  const handleSendMessage = async () => {
-    // Handle voice message
-    if (audioBlob && !isRecording) {
-      try {
-        const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
-          type: 'audio/webm',
-          lastModified: Date.now()
-        });
-        
-        await sendMessage({ 
-          fileOverride: voiceFile,
-          mediaTypeOverride: 'audio',
-          durationOverride: Math.round(recordingTime) // Ensure it's a rounded number
-        });
-        
-        resetRecording();
-        if (messagesEndRef.current) {
-          messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-        return;
-      } catch (error) {
-        console.error("Error sending voice message:", error);
-        alert("Failed to send voice message. Please try again.");
-        return;
-      }
-    }
-
-    // Handle regular messages and images
-    try {
-      if (file && file.type && file.type.startsWith('image/')) {
-        setIsSendingImage(true);
-      }
-      await sendMessage();
-      setIsSendingImage(false);
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      setIsSendingImage(false);
-    }
-  };
 
   // Auto-close chat if user is removed from a group they are viewing
   useEffect(() => {
@@ -868,6 +859,7 @@ export default function ChatApp() {
       selectedConversation.type === 'group' &&
       Array.isArray(selectedConversation.participants) &&
       !selectedConversation.participants.includes(currentUser.uid)
+      && currentUser.role !== 'staff' // Only auto-close for non-staff
     ) {
       // Check for a personal removal message
       const lastPersonalRemovalMsg = messages
@@ -914,6 +906,30 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, [selectedConversation?.id]);
 
+  // Add a useEffect after selectedConversation changes, to insert the description as a system message if not present
+  useEffect(() => {
+    async function ensureCommunityDescriptionMessage() {
+      if (!selectedConversation || selectedConversation.type !== 'community') return;
+      const descKey = selectedConversation.communityType || 'element';
+      const description = COMMUNITY_DESCRIPTIONS[descKey];
+      if (!description) return;
+      // Check if the first message is the description
+      const messagesRef = collection(db, 'conversations', selectedConversation.id, 'messages');
+      const q = query(messagesRef, orderBy('createdAt'), limit(1));
+      const snapshot = await getDocs(q);
+      const firstMsg = snapshot.docs[0]?.data();
+      if (!firstMsg || firstMsg.text !== description) {
+        // Insert the description as the first system message
+        await addDoc(messagesRef, {
+          text: description,
+          type: 'system',
+          createdAt: serverTimestamp(),
+        });
+      }
+    }
+    ensureCommunityDescriptionMessage();
+  }, [selectedConversation?.id, selectedConversation?.type, selectedConversation?.communityType]);
+
   if (!authInitialized) {
     return <ElementalLoader />;
   }
@@ -923,7 +939,11 @@ export default function ChatApp() {
 
 
   return (
-    <div id='messenger' className="flex h-screen">
+    <div className="h-screen w-full flex flex-col overflow-hidden bg-gray-50">
+    <ThemeProvider element={userElement}>
+        <Navbar element={userElement} className="hidden md:block"/>
+      </ThemeProvider>
+    <div className="h-[calc(100vh-4rem)] mt-16 w-full flex flex-row overflow-hidden bg-gray-50">
       {/* TEMP: Admin-only delete all conversations button 
       <button
           onClick={handleDeleteAllConversations}
@@ -932,54 +952,81 @@ export default function ChatApp() {
           מחק את כל הצ'אטים (אדמין)
         </button>
         */} 
-      <ThemeProvider element={userElement}>
-        <Navbar element={userElement}/>
-      </ThemeProvider>
-      <Sidebar 
-        elementColors={elementColors}
-        userElement={userElement}
-        onTabChange={setActiveTab}
-        activeTab={activeTab}
-      />
-      <ConversationList
-        currentUser={currentUser}
-        conversations={conversations}
-        selectedConversation={selectedConversation}
-        setSelectedConversation={handleSelectConversation}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        filteredConversations={filteredConversations}
-        isLoadingConversations={isLoadingConversations}
-        setShowNewChatDialog={setShowNewChatDialog}
-        setShowNewGroupDialog={setShowNewGroupDialog}
-        getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
-        elementColorsMap={ELEMENT_COLORS}
-        activeTab={activeTab}
-      />
-      <ChatArea
-        selectedConversation={selectedConversation}
-        currentUser={currentUser}
-        messages={messages}
-        newMessage={newMessage}
-        setNewMessage={setNewMessage}
-        sendMessage={sendMessage}
-        isSending={isSending}
-        isLoadingMessages={isLoadingMessages}
-        setShowNewChatDialog={setShowNewChatDialog}
-        getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
-        file={file}
-        preview={preview}
-        isUploading={isUploading}
-        uploadProgress={uploadProgress}
-        handleFileChange={handleFileChange}
-        removeFile={removeFile}
-        elementColors={elementColors}
-        userAvatars={userAvatars}
-        activeTab={activeTab}
-        setShowNewGroupDialog={setShowNewGroupDialog}
-        conversations={conversations}
-        setSelectedConversation={handleSelectConversation}
-      />
+
+      
+      {((typeof window !== 'undefined' && window.innerWidth >= 768) || mobilePanel !== 'chat') && (
+        <Sidebar 
+          elementColors={elementColors}
+          userElement={userElement}
+          onTabChange={setActiveTab}
+          activeTab={activeTab}
+          className="hidden md:block h-full"
+        />
+      )}
+      {/* Main Panels */}
+      {/* Conversation List Panel */}
+      <div
+        className={`flex-1 md:max-w-xs md:block ${mobilePanel === 'conversations' ? 'block' : 'hidden'} md:block h-full`}
+        style={{ minWidth: 0 }}
+      >
+        <ConversationList
+          currentUser={currentUser}
+          conversations={conversations}
+          selectedConversation={selectedConversation}
+          setSelectedConversation={handleSelectConversation}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filteredConversations={filteredConversations}
+          isLoadingConversations={isLoadingConversations}
+          setShowNewChatDialog={currentUser.role === 'staff' ? undefined : setShowNewChatDialog}
+          setShowNewGroupDialog={currentUser.role === 'staff' ? undefined : setShowNewGroupDialog}
+          getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
+          elementColorsMap={ELEMENT_COLORS}
+          activeTab={activeTab}
+        />
+      </div>
+      {/* Chat Area Panel */}
+      <div
+        className={`flex-1 md:block ${mobilePanel === 'chat' ? 'block' : 'hidden'} h-full`}
+        style={{ minWidth: 0 }}
+      >
+        {/* Mobile back button */}
+        {typeof window !== 'undefined' && window.innerWidth < 768 && selectedConversation && (
+          <button
+            className="md:hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded mb-2 mt-2 ml-2"
+            onClick={() => setMobilePanel('conversations')}
+          >
+            ← חזרה לרשימת שיחות
+          </button>
+        )}
+        <div className="flex-1 flex flex-col h-full">
+          <ChatArea
+            selectedConversation={selectedConversation}
+            currentUser={currentUser}
+            messages={messages}
+            newMessage={newMessage}
+            setNewMessage={currentUser.role === 'staff' ? () => {} : setNewMessage}
+            sendMessage={sendMessage}
+            isSending={isSending}
+            isLoadingMessages={isLoadingMessages}
+            setShowNewChatDialog={currentUser.role === 'staff' ? undefined : setShowNewChatDialog}
+            getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
+            file={file}
+            preview={preview}
+            isUploading={isUploading}
+            uploadProgress={uploadProgress}
+            handleFileChange={currentUser.role === 'staff' ? () => {} : handleFileChange}
+            removeFile={currentUser.role === 'staff' ? () => {} : removeFile}
+            elementColors={elementColors}
+            userAvatars={userAvatars}
+            activeTab={activeTab}
+            setShowNewGroupDialog={currentUser.role === 'staff' ? undefined : setShowNewGroupDialog}
+            conversations={conversations}
+            setSelectedConversation={handleSelectConversation}
+            setMobilePanel={setMobilePanel}
+          />
+        </div>
+      </div>
       {showNewChatDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
@@ -1099,7 +1146,8 @@ export default function ChatApp() {
                       const username = doc.data().username || '';
                       return doc.id !== currentUser.uid && 
                              !selectedGroupUsers.some(u => u.id === doc.id) &&
-                             username.toLowerCase().includes(e.target.value.toLowerCase());
+                             username.toLowerCase().includes(e.target.value.toLowerCase()) &&
+                             doc.data().role !== 'staff'; // Exclude staff users
                     })
                     .map(doc => ({
                       id: doc.id,
@@ -1228,6 +1276,7 @@ export default function ChatApp() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

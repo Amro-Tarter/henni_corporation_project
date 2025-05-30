@@ -24,7 +24,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Navbar from '../components/social/Navbar';
-import CreatePost from '../components/social/CreatePost';
+import CreatePost from '../components/social/createpost';
 import PostList from '../components/social/Postlist';
 import RightSidebar from '../components/social/Rightsidebar';
 import LeftSidebar from '../components/social/LeftSideBar';
@@ -58,6 +58,8 @@ const Home = () => {
       try {
         setIsLoading(true);
         const fullUser = { uid: authUser.uid, email: authUser.email };
+        
+        // Fetch user data from users collection to get element
         const userSnap = await getDocs(
           query(collection(db, 'users'), where('associated_id', '==', authUser.uid))
         );
@@ -65,17 +67,22 @@ const Home = () => {
         if (!userSnap.empty) {
           const ud = userSnap.docs[0].data();
           fullUser.username = ud.username || 'משתמש';
+          // Get element from users collection
+          fullUser.element = ud.element || 'earth';
         }
 
+        // Fetch profile data from profiles collection
         const profRef = doc(db, 'profiles', authUser.uid);
         const profSnap = await getDoc(profRef);
         if (profSnap.exists()) {
           const profData = profSnap.data();
           fullUser.photoURL = profData.photoURL;
-          fullUser.element = profData.element || 'earth';
           fullUser.profile = profData;
           fullUser.username = profData.username || fullUser.username;
-          setProfile(profData);
+          setProfile({ ...profData, element: fullUser.element }); // Add element to profile
+        } else {
+          // If no profile exists, create a minimal profile with element from users
+          setProfile({ element: fullUser.element });
         }
 
         setUser(fullUser);
@@ -170,7 +177,8 @@ const Home = () => {
           const commentData = {
             id: doc.id,
             ...doc.data(),
-            timestamp: doc.data().createdAt?.toDate() || new Date()
+            createdAt: doc.data().createdAt?.toDate() || new Date(),
+            updatedAt: doc.data().updatedAt?.toDate() || null,
           };
           
           fetchedComments.push(commentData);
@@ -214,7 +222,7 @@ const Home = () => {
     };
   }, [posts]);
 
-  const addPost = async ({ text, mediaFile }) => {
+  const addPost = async ({ text, mediaFile, mediaType }) => {
     if (!user) return;
 
     let mediaUrl = '';
@@ -230,6 +238,7 @@ const Home = () => {
       authorPhotoURL: user.photoURL || '',
       content: text,
       mediaUrl,
+      mediaType,
       likedBy: [],
       likesCount: 0,
       commentsCount: 0,
@@ -239,6 +248,11 @@ const Home = () => {
 
     const docRef = await addDoc(collection(db, 'posts'), newPost);
     setPosts(prev => [{ id: docRef.id, ...newPost, liked: false }, ...prev]);
+    
+    // Update the user's profile postsCount
+    await updateDoc(doc(db, 'profiles', user.uid), {
+      postsCount: increment(1)
+    });
   };
 
   const handleLike = async (postId, liked) => {
@@ -264,8 +278,18 @@ const Home = () => {
 
   const handleDeletePost = async (postId) => {
     try {
+      // Get the post to check if it belongs to the current user
+      const postToDelete = posts.find(p => p.id === postId);
+      
       await deleteDoc(doc(db, 'posts', postId));
       setPosts(prev => prev.filter(p => p.id !== postId));
+      
+      // Update the post author's profile postsCount (only if it's the current user's post)
+      if (postToDelete && postToDelete.authorId === user.uid) {
+        await updateDoc(doc(db, 'profiles', user.uid), {
+          postsCount: increment(-1)
+        });
+      }
     } catch (err) {
       console.error('Error deleting post:', err);
     }
@@ -298,26 +322,25 @@ const Home = () => {
     try {
       const commentData = {
         authorId: user?.uid,
-        authorName: user?.username,
-        authorPhotoURL: user?.photoURL,
         content: text.trim(),
-        parentId: parentId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        edited: false
+        edited: false,
       };
-      
+      // Only add parentId if it's a reply
+      if (parentId) {
+        commentData.parentId = parentId;
+      }
       // Add the comment to Firestore
       const commentsRef = collection(db, 'posts', postId, 'comments');
       await addDoc(commentsRef, commentData);
-      
+
       // Update the post's comment count
       const postRef = doc(db, 'posts', postId);
       await updateDoc(postRef, {
         commentsCount: increment(1)
       });
-      
-      // Update the commentsCount in the local state
+
       setPosts(prev => prev.map(p => 
         p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p
       ));
@@ -326,20 +349,21 @@ const Home = () => {
     }
   };
 
+
   const handleEditComment = async (postId, commentId, newText) => {
     if (!newText.trim()) return;
-    
     try {
       const commentRef = doc(db, 'posts', postId, 'comments', commentId);
       await updateDoc(commentRef, {
         content: newText.trim(),
         updatedAt: serverTimestamp(),
-        edited: true
+        edited: true,
       });
     } catch (error) {
       console.error('Error editing comment:', error);
     }
   };
+
 
   const handleDeleteComment = async (postId, commentId, isReply = false, parentId = null) => {
     try {
@@ -413,7 +437,7 @@ const Home = () => {
 
     try {
       const othersQuery = query(
-        collection(db, 'profiles'),
+        collection(db, 'users'),
         where('element', '==', profile.element)
       );
       const othersSnap = await getDocs(othersQuery);
@@ -479,27 +503,27 @@ const Home = () => {
     </ThemeProvider>
   );
 
+  if (isLoading) {
+    return (
+      <ThemeProvider element={profile.element}>
+        <ElementalLoader />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider element={profile.element}>
       <div className="flex min-h-screen bg-element-base">
-        {/* Left Sidebar with shadow */}
-        <div className={`fixed left-0 h-full z-10 shadow-2xl transition-transform duration-300 top-[56.8px] ${
-          isLeftSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}>
+        <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
           <LeftSidebar 
             element={profile.element}
             users={sameElementUsers}
             viewerProfile={user}
             onFollowToggle={handleFollowToggle}
-            className="h-full"
           />
-        </div>
+        </aside>
 
-        <div className={`flex-1 transition-all duration-300 ${
-          isLeftSidebarOpen ? 'ml-64' : 'ml-0'
-        } ${
-          isRightSidebarExpanded ? 'mr-64' : 'mr-16'
-        }`}>
+        <div className={`flex-1 transition-all duration-300 lg:ml-64 ${isRightSidebarExpanded ? 'lg:mr-64' : 'lg:mr-16'}`}>
           <Navbar
             element={profile.element}
             isLeftSidebarOpen={isLeftSidebarOpen}
@@ -507,12 +531,12 @@ const Home = () => {
             className="shadow-lg bg-element-navbar"
           />
           
-          <div className={`pt-20 px-4 flex justify-center transition-all duration-300 ${
-            isLeftSidebarOpen ? 'pl-50' : 'pl-0'
+          <div className={`mt-12 px-2 sm:px-4 flex justify-center transition-all duration-300 ${
+            isLeftSidebarOpen ? 'lg:pl-50' : 'lg:pl-0'
           } ${
-            isRightSidebarExpanded ? 'pr-50' : 'pr-0'
+            isRightSidebarExpanded ? 'lg:pr-50' : 'lg:pr-0'
           }`}>
-            <div className="w-full max-w-4xl space-y-6 mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="w-full max-w-4xl space-y-4 sm:space-y-6 mx-auto px-2 sm:px-4 lg:px-8 mb-16 lg:mb-0">
               {isLoading ? (
                 <div className="flex items-center justify-center h-64">
                   <ElementalLoader />
@@ -520,19 +544,20 @@ const Home = () => {
               ) : (
                 <>
                   {/* CreatePost */}
-                  <CreatePost
-                    addPost={addPost}
-                    profilePic={profile.photoURL || '/default-avatar.png'}
-                    element={profile.element}
-                    className="shadow-md bg-element-post rounded-xl p-4 w-full"
-                  />
-
+                  <div className='pt-12'>
+                    <CreatePost
+                      addPost={addPost}
+                      profilePic={profile.photoURL || '/default-avatar.png'}
+                      element={profile.element}
+                      className="shadow-md bg-element-post rounded-xl p-3 sm:p-4 w-full"
+                    />
+                  </div>
                   {/* Creative Tab Navigation */}
-                  <div className="flex flex-col items-center mb-8 w-full">
+                  <div className="flex flex-col items-center mb-6 sm:mb-8 w-full">
                     <div className="bg-element-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden">
                       {/* Sliding Underline */}
                       <div 
-                        className="absolute bottom-[10px] h-[2px] bg-blue-500 transition-all duration-300 ease-in-out"
+                        className={`absolute bottom-[10px] h-[2px] bg-${profile.element} transition-all duration-300 ease-in-out`}
                         style={{
                           left: '0',
                           width: '47%',
@@ -546,7 +571,7 @@ const Home = () => {
                           onClick={() => setActiveTab('all')}
                           className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
                             ${activeTab === 'all'
-                              ? 'text-blue-500 font-bold'
+                              ? `text-${profile.element} font-bold`
                               : 'text-element-text'
                             }
                             hover:bg-element-hover/10
@@ -559,8 +584,8 @@ const Home = () => {
                               xmlns="http://www.w3.org/2000/svg" 
                               className={`w-5 h-5 transition-colors duration-300 ${
                                 activeTab === 'all' 
-                                  ? 'text-blue-500' 
-                                  : 'opacity-70 group-hover:opacity-100 group-hover:text-blue-500'
+                                  ? `text-${profile.element}` 
+                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${profile.element}`
                               }`}
                               fill="none" 
                               viewBox="0 0 24 24" 
@@ -575,8 +600,8 @@ const Home = () => {
                             </svg>
                             <span className={`text-sm sm:text-base transition-colors duration-300 ${
                               activeTab === 'all' 
-                                ? 'text-blue-500' 
-                                : 'group-hover:text-blue-500'
+                                ? `text-${profile.element}` 
+                                : `group-hover:text-${profile.element}`
                             }`}>כל הפוסטים</span>
                           </div>
                         </button>
@@ -591,7 +616,7 @@ const Home = () => {
                           onClick={() => setActiveTab('following')}
                           className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
                             ${activeTab === 'following'
-                              ? 'text-blue-500 font-bold'
+                              ? `text-${profile.element} font-bold`
                               : 'text-element-text'
                             }
                             hover:bg-element-hover/10
@@ -604,8 +629,8 @@ const Home = () => {
                               xmlns="http://www.w3.org/2000/svg" 
                               className={`w-5 h-5 transition-colors duration-300 ${
                                 activeTab === 'following' 
-                                  ? 'text-blue-500' 
-                                  : 'opacity-70 group-hover:opacity-100 group-hover:text-blue-500'
+                                  ? `text-${profile.element}` 
+                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${profile.element}`
                               }`}
                               fill="none" 
                               viewBox="0 0 24 24" 
@@ -620,8 +645,8 @@ const Home = () => {
                             </svg>
                             <span className={`text-sm sm:text-base transition-colors duration-300 ${
                               activeTab === 'following' 
-                                ? 'text-blue-500' 
-                                : 'group-hover:text-blue-500'
+                                ? `text-${profile.element}` 
+                                : `group-hover:text-${profile.element}`
                             }`}>עוקב אחרי</span>
                           </div>
                         </button>
@@ -631,12 +656,12 @@ const Home = () => {
                     {/* Posts Count Indicator */}
                     <div className="mt-4 flex gap-4 sm:gap-8 text-sm text-element-text opacity-75 flex-wrap justify-center">
                       <span className={`flex items-center gap-1 transition-all duration-300 ${
-                        activeTab === 'all' ? 'text-element-accent font-semibold' : ''
+                        activeTab === 'all' ? `text-${profile.element} font-semibold` : ''
                       }`}>
                         <span className="font-medium">{posts.length}</span> פוסטים כלליים
                       </span>
                       <span className={`flex items-center gap-1 transition-all duration-300 ${
-                        activeTab === 'following' ? 'text-element-accent font-semibold' : ''
+                        activeTab === 'following' ? `text-${profile.element} font-semibold` : ''
                       }`}>
                         <span className="font-medium">{followingPosts.length}</span> פוסטים מעוקבים
                       </span>
@@ -685,20 +710,28 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Right Sidebar with adjusted margin */}
-        <div className={`fixed right-0 h-full shadow-2xl transition-all duration-300 ${
-          isRightSidebarExpanded ? 'w-64' : 'w-16'
-        }`}>
+        {/* Right Sidebar with adjusted margin - only render on desktop */}
+        <div className="hidden lg:block">
+          <div className={`fixed right-0 top-6 h-[calc(100vh-1.5rem)] shadow-2xl transition-all duration-300 ${
+            isRightSidebarExpanded ? 'w-64' : 'w-16'
+          } lg:shadow-lg`}>
+            <RightSidebar 
+              element={profile.element} 
+              className="h-full" 
+              onExpandChange={handleRightSidebarExpandChange}
+            />
+          </div>
+        </div>
+        {/* Always render Rightsidebar for mobile bottom bar, but do not pass onExpandChange */}
+        <div className="lg:hidden">
           <RightSidebar 
             element={profile.element} 
-            className="h-full" 
-            onExpandChange={handleRightSidebarExpandChange}
           />
         </div>
       </div>
 
       {/* Add keyframe animation for the background pulse */}
-      <style jsx>{`
+      <style jsx='true'>{`
         @keyframes pulse {
           0% {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);

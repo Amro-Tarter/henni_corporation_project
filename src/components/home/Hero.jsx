@@ -38,13 +38,14 @@ const Hero = () => {
 
       {/* Hero Content */}
       <div className="relative z-10 text-center px-4 sm:px-6 md:px-8 max-w-6xl mx-auto">
+        
         <motion.h1
           variants={fadeSlideUp}
           initial="hidden"
           animate="visible"
           className="font-title text-6xl text-white mb-6 drop-shadow-lg"
         >
-          לגלות את האור – הנני
+          עמותת לגלות את האור – הנני 
         </motion.h1>
 
         <motion.p
@@ -63,12 +64,12 @@ const Hero = () => {
           className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6"
         >
           <CTAButton
-            href="#join-us"
+            href="https://forms.monday.com/forms/af28672efe2a47320cd729b1d01f6841?r=euc1"
             variant="fire"
             size="lg"
             className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-lg sm:text-xl font-medium shadow-lg hover:shadow-xl px-8 sm:px-10 py-3 sm:py-4"
           >
-            הצטרפו למסע
+            הצטרפו לעמותה
           </CTAButton>
 
           {/* conditional Link */}

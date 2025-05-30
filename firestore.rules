@@ -12,14 +12,31 @@ service cloud.firestore {
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function isMentor() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'mentor';
+    }
+
     // ── Users collection ───────────────────────────
     match /users/{userId} {
-      allow read: if true;
+      allow read: if true; // Public read for user lookup (e.g., display names)
       allow create: if isAuthenticated();
       allow update: if isAdmin() || request.auth.uid == userId;
       allow delete: if isAdmin();
+      allow write: if isAdmin();
     }
+	
+    // Publicly readable newsletters
+    match /newsletters/{newsletterId} {
+      allow read: if true; // Anyone can read
 
+      // Only admin users can write
+      allow create, update, delete: if
+        request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_active == true;
+    }
+    
     // ── Participants collection ───────────────────
     match /participants/{userId} {
       allow read: if true;
@@ -58,25 +75,66 @@ service cloud.firestore {
 
     // ── Profiles collection ───────────────────────
     match /profiles/{userId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true; // Public read for display names, etc.
+      allow create: if isAuthenticated();
+      allow update: if isAdmin() || request.auth.uid == userId;
+      allow delete: if isAdmin();
+      allow write: if isAdmin();
     }
 
     // ── Posts collection ───────────────────────────
     match /posts/{postId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read: if true; // Public read for posts
+      allow create: if isAuthenticated();
+      allow update, delete: if request.auth.uid == resource.data.authorId || isAdmin();
+      allow update: if isAuthenticated() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'likedBy', 'commentsCount']);
+      
       match /comments/{commentId} {
         allow read: if true;
-        allow write: if isAuthenticated();
+        allow create: if isAuthenticated() &&
+          request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if isAuthenticated() && 
+          (request.auth.uid == resource.data.authorId || isAdmin());
       }
+    }
+
+    // ── Personal Projects collection ───────────────────────────
+    match /personal_projects/{projectId} {
+      allow read: if true; // Public read for projects
+      allow create: if isAuthenticated();
+      allow update, delete: if request.auth.uid == resource.data.authorId || isAdmin();
+      allow update: if isAuthenticated() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likesCount', 'likedBy', 'commentsCount']);
+      
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isAuthenticated() &&
+          request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if isAuthenticated() && 
+          (request.auth.uid == resource.data.authorId || isAdmin());
+      }
+    }
+
+    // ── Collection Group Rules for Comments ───────────────────────────
+    match /{path=**}/comments/{commentId} {
+      allow read: if true;
+      allow create: if isAuthenticated() &&
+        request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && 
+        (request.auth.uid == resource.data.authorId || isAdmin());
+    }
+
+    // ── Mentorship collection ───────────────────────────
+    match /mentorship/{mentorshipId} {
+      allow read, write: if isAdmin();
     }
 
     // ── Conversations & messages ───────────────────
     match /conversations/{convoId} {
-      allow read, write: if isAuthenticated();
+      allow read, write: if true;
       match /messages/{msgId} {
-        allow read, write: if isAuthenticated();
+        allow read, write: if true;
       }
     }
 
@@ -93,10 +151,35 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+    
+    // ── Progress Reports collection ───────────────────────────
+    match /progress_reports/{reportId} {
+      allow create: if isMentor() || isAdmin();
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // ── Page Analytics collection ───────────────────────────
+    match /page_analytics/{pageId} {
+      allow read, update: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
 
-    // 🚫 Default deny fallback
+    // ── Partners collection ───────────────────────────
+    match /partners/{partnerId} {
+      allow create, read, update, delete: if isAdmin();
+    }
+
+    // ── Donations collection ───────────────────────────
+    match /donations/{donationId} {
+      // Allow any user (authenticated or not) to create a donation
+      allow create: if true; 
+      // Only allow admins to read, update, and delete donations
+      allow read, update, delete: if isAdmin();
+    }
+
+    // 🚫 Admin override for everything
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if isAdmin();
     }
   }
 }

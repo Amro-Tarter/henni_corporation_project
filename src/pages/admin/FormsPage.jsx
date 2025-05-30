@@ -326,8 +326,10 @@ function FormsPage() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
-        <div className="w-full max-w-7xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden p-8">
+      <div
+        className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative w-full max-w-7xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden p-8"
+        dir="rtl"
+      >
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-2">
               <FileText size={32} className="text-purple-600" />
@@ -380,7 +382,6 @@ function FormsPage() {
               <p className="text-xl font-medium">אנא בחר טופס לצפייה</p>
             </div>
           )}
-        </div>
       </div>
     </DashboardLayout>
   );
