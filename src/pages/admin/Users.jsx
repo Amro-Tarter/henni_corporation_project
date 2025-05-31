@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { collection, query, getDocs, orderBy, updateDoc, doc, deleteDoc, getDoc, where } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, updateDoc, doc, deleteDoc, getDoc, where, arrayUnion, arrayRemove } from "firebase/firestore";
 
 import { db } from "../../config/firbaseConfig";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -13,7 +13,9 @@ import {
   faTrash,
   faEye,
   faSave,
-  faTimes
+  faTimes,
+  faUserFriends,
+  faUsers
 } from '@fortawesome/free-solid-svg-icons';
 import { Search, Filter, User, Star } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -430,17 +432,236 @@ const DeleteConfirmModal = ({ user, onConfirm, onCancel, isLoading }) => {
   );
 };
 
+// Mentor Management Modal Component
+const MentorManagementModal = ({ user, onClose, onSave, availableMentors }) => {
+  const [selectedMentors, setSelectedMentors] = useState(user.mentors || []);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await onSave(user.id, selectedMentors);
+      onClose();
+    } catch (error) {
+      console.error('Error saving mentors:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6"
+        dir="rtl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+            ניהול מנטורים: {user.username}
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors"
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">בחר מנטורים</label>
+            <div className="max-h-60 overflow-y-auto space-y-2">
+              {availableMentors.map((mentor) => (
+                <label
+                  key={mentor.id}
+                  className="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedMentors.includes(mentor.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedMentors([...selectedMentors, mentor.id]);
+                      } else {
+                        setSelectedMentors(selectedMentors.filter(id => id !== mentor.id));
+                      }
+                    }}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className="text-sm text-slate-700">{mentor.username}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+            >
+              ביטול
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" />
+              ) : (
+                <FontAwesomeIcon icon={faSave} className="ml-2" />
+              )}
+              שמור
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Mentor's Participants Modal Component
+const MentorParticipantsModal = ({ mentor, onClose }) => {
+  const [participants, setParticipants] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      try {
+        const q = query(collection(db, "users"), where("mentors", "array-contains", mentor.id));
+        const querySnapshot = await getDocs(q);
+        const participantsData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setParticipants(participantsData);
+      } catch (error) {
+        console.error("Error fetching participants:", error);
+        toast.error("אירעה שגיאה בטעינת המשתתפים");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchParticipants();
+  }, [mentor.id]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl p-6"
+        dir="rtl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+            משתתפים של {mentor.username}
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors"
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : participants.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
+            {participants.map((participant) => (
+              <div
+                key={participant.id}
+                className="bg-white dark:bg-slate-700 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-full overflow-hidden">
+                    <img
+                      src={participant.profile?.photoURL || "https://placehold.co/100x100/e2e8f0/64748b?text=User"}
+                      alt={participant.username}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/100x100/e2e8f0/64748b?text=User";
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-slate-900 dark:text-white">
+                      {participant.profile?.displayName || participant.username}
+                    </h4>
+                    <p className="text-sm text-slate-500 dark:text-slate-300">
+                      {participant.email}
+                    </p>
+                    {participant.location && (
+                      <p className="text-sm text-slate-500 dark:text-slate-300">
+                        {participant.location}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-slate-500 dark:text-slate-400">
+              אין משתתפים למנטור זה
+            </p>
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+          >
+            סגור
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [elementFilter, setElementFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [displayedUsers, setDisplayedUsers] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const { user: currentUser } = useUser();
+  const [managingMentors, setManagingMentors] = useState(null);
+  const [availableMentors, setAvailableMentors] = useState([]);
+  const [viewingMentorParticipants, setViewingMentorParticipants] = useState(null);
 
   const elementGradients = {
     fire: 'bg-gradient-to-r from-rose-700 via-amber-550 to-yellow-500',
@@ -514,17 +735,18 @@ function Users() {
   }, []);
 
   useEffect(() => {
-      const filtered = users.filter(user => {
+    const filtered = users.filter(user => {
       const matchesSearch = searchTerm === "" ||
         (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (user.profile?.displayName && user.profile.displayName.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesElement = elementFilter === "" || user.element === elementFilter;
       const matchesLocation = locationFilter === "" ||
         (user.location && user.location.toLowerCase().includes(locationFilter.toLowerCase()));
-      return matchesSearch && matchesElement && matchesLocation;
+      const matchesRole = roleFilter === "" || user.role === roleFilter;
+      return matchesSearch && matchesElement && matchesLocation && matchesRole;
     });
     setDisplayedUsers(filtered);
-  }, [searchTerm, elementFilter, locationFilter, users]);
+  }, [searchTerm, elementFilter, locationFilter, roleFilter, users]);
 
    const handleSaveUser = async (userId, formData) => {
     try {
@@ -570,9 +792,40 @@ function Users() {
     setSearchTerm("");
     setElementFilter("");
     setLocationFilter("");
+    setRoleFilter("");
   };
 
   const isAdmin = currentUser?.isAdmin || currentUser?.role === 'admin';
+
+  // Add this function to fetch available mentors
+  const fetchAvailableMentors = async () => {
+    const q = query(collection(db, "users"), where("role", "==", "mentor"));
+    const querySnapshot = await getDocs(q);
+    const mentors = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setAvailableMentors(mentors);
+  };
+
+  useEffect(() => {
+    fetchAvailableMentors();
+  }, []);
+
+  const handleSaveMentors = async (userId, selectedMentors) => {
+    try {
+      await updateDoc(doc(db, "users", userId), {
+        mentors: selectedMentors,
+        updatedAt: new Date(),
+      });
+      toast.success("המנטורים עודכנו בהצלחה");
+      fetchUsers(); // Refresh the users list
+    } catch (error) {
+      console.error("Error updating mentors:", error);
+      toast.error("אירעה שגיאה בעדכון המנטורים");
+      throw error;
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -634,6 +887,25 @@ function Users() {
             </div>
           </div>
 
+          <div className="flex flex-col">
+            <label className="mb-1 text-sm font-medium text-gray-700">סנן לפי תפקיד</label>
+            <div className="relative">
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="appearance-none rounded-md w-full px-3 py-3 pr-4 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
+              >
+                <option value="">כל התפקידים</option>
+                <option value="admin">מנהל</option>
+                <option value="mentor">מנטור</option>
+                <option value="participant">משתתף</option>
+              </select>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Filter size={18} className="text-gray-400" />
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-col justify-end">
             <button
               onClick={clearFilters}
@@ -676,6 +948,24 @@ function Users() {
                     >
                       <FontAwesomeIcon icon={faEdit} size="sm" />
                     </button>
+                    {user.role === 'participant' && (
+                      <button
+                        onClick={() => setManagingMentors(user)}
+                        className="p-2 bg-purple-600 text-white rounded-lg shadow-lg hover:bg-purple-700 transition-colors"
+                        title="ניהול מנטורים"
+                      >
+                        <FontAwesomeIcon icon={faUserFriends} size="sm" />
+                      </button>
+                    )}
+                    {user.role === 'mentor' && (
+                      <button
+                        onClick={() => setViewingMentorParticipants(user)}
+                        className="p-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
+                        title="צפייה במשתתפים"
+                      >
+                        <FontAwesomeIcon icon={faUsers} size="sm" />
+                      </button>
+                    )}
                     <button
                       onClick={() => setDeletingUser(user)}
                       className="p-2 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 transition-colors"
@@ -765,6 +1055,28 @@ function Users() {
             onConfirm={handleDeleteUser}
             onCancel={() => setDeletingUser(null)}
             isLoading={isDeleting}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Mentor Management Modal */}
+      <AnimatePresence>
+        {managingMentors && (
+          <MentorManagementModal
+            user={managingMentors}
+            onClose={() => setManagingMentors(null)}
+            onSave={handleSaveMentors}
+            availableMentors={availableMentors}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Mentor Participants Modal */}
+      <AnimatePresence>
+        {viewingMentorParticipants && (
+          <MentorParticipantsModal
+            mentor={viewingMentorParticipants}
+            onClose={() => setViewingMentorParticipants(null)}
           />
         )}
       </AnimatePresence>

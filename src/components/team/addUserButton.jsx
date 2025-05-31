@@ -10,13 +10,36 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 // Role Selection Modal Component
 const RoleSelectionModal = ({ user, onConfirm, onCancel, isProcessing }) => {
   const [selectedRole, setSelectedRole] = useState(user.role || 'participant');
+  const [mentorId, setMentorId] = useState('');
+  const [mentorsList, setMentorsList] = useState([]);
 
   const roles = [
     { value: 'admin', label: 'מנהל', description: 'גישה מלאה לכל המערכת', color: 'bg-purple-100 text-purple-800' },
     { value: 'mentor', label: 'מנטור', description: 'הדרכה וליווי משתתפים', color: 'bg-blue-100 text-blue-800' },
     { value: 'participant', label: 'משתתף', description: 'משתתף בתוכניות', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'family', label: 'משפחה', description: 'בן משפחה של משתתף', color: 'bg-orange-100 text-orange-800' }
+    { value: 'staff', label: 'צוות', description: 'גישה מוגבלת למידע', color: 'bg-gray-100 text-gray-800' }
   ];
+
+  useEffect(() => {
+    const fetchMentors = async () => {
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const mentors = usersSnap.docs
+          .filter(doc => doc.data().role === 'mentor' && doc.data().is_active)
+          .map(doc => ({ 
+            id: doc.id, 
+            name: doc.data().displayName || doc.data().username || 'מנטור' 
+          }));
+        setMentorsList(mentors);
+      } catch (error) {
+        console.error('Error fetching mentors:', error);
+      }
+    };
+
+    if (selectedRole === 'participant') {
+      fetchMentors();
+    }
+  }, [selectedRole]);
 
   return (
     <motion.div
@@ -112,6 +135,29 @@ const RoleSelectionModal = ({ user, onConfirm, onCancel, isProcessing }) => {
           ))}
         </div>
 
+        {selectedRole === 'participant' && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+              שייך למנטור:
+            </label>
+            <select
+              value={mentorId}
+              onChange={(e) => setMentorId(e.target.value)}
+              className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">בחר מנטור (אופציונלי)</option>
+              {mentorsList.map(mentor => (
+                <option key={mentor.id} value={mentor.id}>{mentor.name}</option>
+              ))}
+            </select>
+            {mentorsList.length === 0 && selectedRole === 'participant' && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                אין מנטורים זמינים במערכת
+              </p>
+            )}
+          </div>
+        )}
+
         <div className="flex justify-end gap-3">
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -125,7 +171,7 @@ const RoleSelectionModal = ({ user, onConfirm, onCancel, isProcessing }) => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => onConfirm(selectedRole)}
+            onClick={() => onConfirm(selectedRole, mentorId)}
             disabled={isProcessing}
             className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors"
           >
@@ -223,30 +269,44 @@ const PendingUsersModal = ({ onClose }) => {
     setRoleSelectionUser(userToAccept);
   };
 
-  const handleConfirmAccept = async (selectedRole) => {
+  const handleConfirmAccept = async (selectedRole, mentorId) => {
     if (!roleSelectionUser) return;
 
     try {
       setProcessingUserId(roleSelectionUser.id);
       
       const userRef = doc(db, 'users', roleSelectionUser.id);
-      await updateDoc(userRef, {
+      const updateData = {
         is_active: true,
         role: selectedRole,
         updatedAt: serverTimestamp()
-      });
+      };
+
+      // Add mentor assignment for participants
+      if (selectedRole === 'participant') {
+        updateData.associatedMentor = mentorId || null;
+      }
+
+      await updateDoc(userRef, updateData);
       
       // Also update the profile document if it exists
       const profileRef = doc(db, 'profiles', roleSelectionUser.id);
       const profileSnap = await getDoc(profileRef);
       if (profileSnap.exists()) {
-        await updateDoc(profileRef, {
+        const profileUpdateData = {
           role: selectedRole,
           updatedAt: serverTimestamp()
-        });
+        };
+
+        if (selectedRole === 'participant') {
+          profileUpdateData.associatedMentor = mentorId || null;
+        }
+
+        await updateDoc(profileRef, profileUpdateData);
       }
       
-      toast.success(`הבקשה של ${roleSelectionUser.displayName} אושרה בהצלחה כ${getRoleDisplay(selectedRole)}`);
+      const mentorText = mentorId ? ' עם מנטור מוקצה' : '';
+      toast.success(`הבקשה של ${roleSelectionUser.displayName} אושרה בהצלחה כ${getRoleDisplay(selectedRole)}${mentorText}`);
       setRoleSelectionUser(null);
       await loadPendingUsers();
     } catch (error) {
@@ -283,7 +343,7 @@ const PendingUsersModal = ({ onClose }) => {
       'admin': 'מנהל',
       'mentor': 'מנטור',
       'participant': 'משתתף',
-      'family': 'משפחה'
+      'staff': 'צוות',
     };
     return roleMap[role] || role;
   };
@@ -293,7 +353,7 @@ const PendingUsersModal = ({ onClose }) => {
       'admin': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
       'mentor': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
       'participant': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-      'family': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+      'staff': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
     };
     return colorMap[role] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300';
   };
