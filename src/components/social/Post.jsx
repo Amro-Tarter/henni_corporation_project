@@ -62,7 +62,7 @@ const Post = ({
   const menuRef = useRef(null);
   const commentsRef = useRef(null);
   const navigate = useNavigate();
-  
+
 
   useEffect(() => {
     const fetch = async () => {
@@ -125,9 +125,9 @@ const Post = ({
   const createdDate = createdAt?.toDate?.();
   const timeString = createdDate
     ? createdDate.toLocaleDateString('he-IL', {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      })
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    })
     : '';
 
   const isVideo = /\.(mp4|webm|ogg)$/i.test(mediaUrl);
@@ -148,9 +148,9 @@ const Post = ({
   };
 
   const cancelDelete = () => setShowConfirmDelete(false);
-    const handleSaveEdit = async () => {
-      if (!id || !onUpdate) return;
-    
+  const handleSaveEdit = async () => {
+    if (!id || !onUpdate) return;
+
     try {
       await onUpdate(id, { content: newContent, mediaFile: newMediaFile });
       setEditing(false);
@@ -177,7 +177,7 @@ const Post = ({
 
   const toggleLike = async () => {
     if (!id || !onLike || !currentUser) return;
-    
+
     try {
       const newState = !liked;
       setLiked(newState);
@@ -206,7 +206,7 @@ const Post = ({
   };
 
   const pickMedia = () => fileInputRef.current?.click();
-  
+
   const onMediaChange = async e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -221,12 +221,12 @@ const Post = ({
     // Validate file type
     const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
     const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    
+
     if (isVideo && !validVideoTypes.includes(file.type)) {
       alert('Invalid video format. Please use MP4, WebM, or OGG format.');
       return;
     }
-    
+
     if (!isVideo && !validImageTypes.includes(file.type)) {
       alert('Invalid image format. Please use JPEG, PNG, GIF, or WebP format.');
       return;
@@ -238,7 +238,7 @@ const Post = ({
         const videoBlob = URL.createObjectURL(file);
         const video = document.createElement('video');
         video.src = videoBlob;
-        
+
         await new Promise((resolve, reject) => {
           video.onloadedmetadata = () => {
             URL.revokeObjectURL(videoBlob);
@@ -313,14 +313,14 @@ const Post = ({
             <img
               src={authorProfile?.photoURL || '/default_user_pic.jpg'}
               alt={authorProfile?.username || 'משתמש'}
-              className={`w-12 h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
             />
             <div className="flex flex-col">
               <h3 className="text-lg font-bold">{authorProfile?.username || '...'}</h3>
               <p className="text-xs text-gray-500">{timeString}</p>
             </div>
           </div>
-          {isOwner &&(
+          {isOwner && (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(prev => !prev)}
@@ -329,7 +329,7 @@ const Post = ({
                 <MoreHorizontal size={20} />
               </button>
               {menuOpen && (
-                <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}> 
+                <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}>
                   <button
                     onClick={() => { setEditing(prev => !prev); setMenuOpen(false); }}
                     className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors flex items-center gap-2`}
@@ -436,11 +436,10 @@ const Post = ({
         </div>
 
         {/* Media */}
-        {mediaUrl && !showPostModal &&(
+        {mediaUrl && !showPostModal && (
           <div
-            className={`relative w-full overflow-hidden bg-${element}-soft ${
-              editing ? '' : 'cursor-pointer group'
-            }`}
+            className={`relative w-full overflow-hidden bg-${element}-soft ${editing ? '' : 'cursor-pointer group'
+              }`}
             onClick={() => {
               if (!editing && !showPostModal) setShowPostModal(true);
             }}
@@ -489,7 +488,7 @@ const Post = ({
         )}
 
         {/* Actions */}
-        <div className={`px-5 py-3 flex items-center justify-between border-t border-${element}-soft`}> 
+        <div className={`px-5 py-3 flex items-center justify-between border-t border-${element}-soft`}>
           <div className="flex items-center gap-6">
             <div className="relative">
               <button
@@ -498,11 +497,10 @@ const Post = ({
                 aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}
               >
                 <div
-                  className={`p-1.5 rounded-full transition-colors ${
-                    liked
+                  className={`p-1.5 rounded-full transition-colors ${liked
                       ? `bg-${element} text-white`
                       : `bg-${element}-soft text-${element} hover:bg-${element}-accent`
-                  }`}
+                    }`}
                 >
                   <ThumbsUp
                     size={18}
@@ -573,7 +571,9 @@ const Post = ({
                     currentUser={currentUser}
                     onReply={setReplyTo}
                     onEdit={onEditComment}
-                    onDelete={onDeleteComment}
+                    onDelete={(postId, commentId, isReply, parentCommentId) =>
+                      setCommentToDelete({ postId, commentId, isReply, parentCommentId })
+                    }
                     replyingToId={replyTo}
                     onSubmitReply={submitComment}
                     onCancelReply={() => setReplyTo(null)}
@@ -631,37 +631,37 @@ const Post = ({
           </div>
         </div>
       )}
-        <ConfirmationModal
-          open={showConfirmDelete}
-          title="מחיקת פוסט"
-          message="האם אתה בטוח שברצונך למחוק את הפוסט הזה?"
-          confirmText="מחק"
-          cancelText="ביטול"
-          onConfirm={confirmDelete}
-          onCancel={cancelDelete}
-          element={element}
-          />
+      <ConfirmationModal
+        open={showConfirmDelete}
+        title="מחיקת פוסט"
+        message="האם אתה בטוח שברצונך למחוק את הפוסט הזה?"
+        confirmText="מחק"
+        cancelText="ביטול"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        element={element}
+      />
 
-          <ConfirmationModal
-            open={!!commentToDelete}
-            title="מחיקת תגובה"
-            message="האם אתה בטוח שברצונך למחוק את התגובה הזו?"
-            confirmText="מחק"
-            cancelText="ביטול"
-            onConfirm={() => {
-              if (commentToDelete) {
-                onDeleteComment(
-                  commentToDelete.postId,
-                  commentToDelete.commentId,
-                  commentToDelete.isReply,
-                  commentToDelete.parentCommentId
-                );
-                setCommentToDelete(null);
-              }
-            }}
-            onCancel={() => setCommentToDelete(null)}
-            element={element}
-          />
+      <ConfirmationModal
+        open={!!commentToDelete}
+        title="מחיקת תגובה"
+        message="האם אתה בטוח שברצונך למחוק את התגובה הזו?"
+        confirmText="מחק"
+        cancelText="ביטול"
+        onConfirm={() => {
+          if (commentToDelete) {
+            onDeleteComment(
+              commentToDelete.postId,
+              commentToDelete.commentId,
+              commentToDelete.isReply,
+              commentToDelete.parentCommentId
+            );
+            setCommentToDelete(null);
+          }
+        }}
+        onCancel={() => setCommentToDelete(null)}
+        element={element}
+      />
     </>
   );
 };

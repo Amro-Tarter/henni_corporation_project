@@ -6,7 +6,7 @@ import { meta } from '@eslint/js';
 import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig'
-import { MapPin } from 'lucide-react';
+import { MapPin, MessageSquare} from 'lucide-react';
 
 
 const ELEMENT_ICONS = {
@@ -25,19 +25,19 @@ const ELEMENT_NAMES = {
   metal: 'מתכת',
 };
 
-const LeftSidebar = ({ element, users = [], viewerProfile, profileUser, onFollowToggle }) => {
+const LeftSidebar = ({ element, viewerElement, users = [], viewerProfile, profileUser, onFollowToggle }) => {
   const navigate = useNavigate();
   const [communityChat, setCommunityChat] = useState(null);
+  const [mentorChats, setMentorChats] = useState([]);
 
+  // Fetch community chat
   useEffect(() => {
-    // Only fetch if element is defined
-    if (!element) return;
-
+    if (!viewerElement) return;
     const fetchCommunityChat = async () => {
       const q = query(
         collection(db, 'conversations'),
         where('type', '==', 'community'),
-        where('element', '==', element)
+        where('element', '==', viewerElement)
       );
       const snap = await getDocs(q);
       if (!snap.empty) {
@@ -45,11 +45,53 @@ const LeftSidebar = ({ element, users = [], viewerProfile, profileUser, onFollow
       }
     };
     fetchCommunityChat();
-  }, [element]);
+  }, [viewerElement]);
+
+  // Mentor-specific chats fetch
+  useEffect(() => {
+    const fetchMentorChats = async () => {
+      if (!viewerProfile || viewerProfile.role !== 'mentor') {
+        setMentorChats([]);
+        return;
+      }
+
+      // 1. all_mentors_with_admin
+      const q1 = query(
+        collection(db, 'conversations'),
+        where('communityType', '==', 'all_mentors_with_admin')
+      );
+      // 2. all_mentors
+      const q2 = query(
+        collection(db, 'conversations'),
+        where('communityType', '==', 'all_mentors')
+      );
+      // 3. mentor_community (filtered by mentorId)
+      const q3 = query(
+        collection(db, 'conversations'),
+        where('communityType', '==', 'mentor_community'),
+        where('mentorId', '==', viewerProfile.uid)
+      );
+      // Fetch all in parallel
+      const [snap1, snap2, snap3] = await Promise.all([
+        getDocs(q1),
+        getDocs(q2),
+        getDocs(q3)
+      ]);
+      // Collect all mentor chats
+      const chats = [];
+      snap1.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'כל המנטורים והאדמין' }));
+      snap2.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'כל המנטורים' }));
+      snap3.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'הקהילה שלך' }));
+
+      setMentorChats(chats);
+    };
+
+    fetchMentorChats();
+  }, [viewerProfile]);
 
   const isOwnProfile =
-  viewerProfile && profileUser &&
-  String(viewerProfile.uid) === String(profileUser.uid);
+    viewerProfile && profileUser &&
+    String(viewerProfile.uid) === String(profileUser.uid);
 
   let elementSectionTitle = '';
   if (!profileUser) {
@@ -116,11 +158,10 @@ const LeftSidebar = ({ element, users = [], viewerProfile, profileUser, onFollow
                     whileTap={{ scale: 0.95 }}
                     transition={{ duration: 0.15 }}
                     onClick={() => onFollowToggle(user.id)}
-                    className={`ml-auto mr-1 shrink-0 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 ${
-                      (viewerProfile.following || []).includes(user.id)
-                        ? `bg-${element} text-white hover:bg-${element}-dark`
-                        : `border border-${element} text-${element} hover:bg-${element}-soft`
-                    }`}
+                    className={`ml-auto mr-1 shrink-0 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 ${(viewerProfile.following || []).includes(user.id)
+                      ? `bg-${element} text-white hover:bg-${element}-dark`
+                      : `border border-${element} text-${element} hover:bg-${element}-soft`
+                      }`}
                   >
                     {(viewerProfile.following || []).includes(user.id) ? 'עוקב' : 'עקוב'}
                   </motion.button>
@@ -138,22 +179,43 @@ const LeftSidebar = ({ element, users = [], viewerProfile, profileUser, onFollow
         <div className="mt-8 mb-2 text-right">
           <h2 className={`text-${element} text-lg mb-1 flex items-center gap-2`}>
             צ'אטים
+            <MessageSquare className={`w-5 h-5 text-${element}`} />
           </h2>
           <div className={`w-10 h-0.5 bg-${element} rounded-full ml-auto`} />
         </div>
+        {/* Main community chat */}
         {communityChat && (
           <motion.div
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             transition={{ duration: 0.13 }}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer bg-${element}-soft hover:bg-${element}-accent/30 mb-2`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-${element}-soft mb-2 border border-${element}-accent`}
             onClick={() => setTimeout(() => navigate(`/chat/${communityChat.id}`), 300)}
           >
             <span className={`font-semibold text-sm`}>
-              צ'אט קהילתי 
-              <span className="text-xl">{ELEMENT_ICONS[element]}</span>
+              צ'אט קהילתי
+              <span className="text-lg">{ELEMENT_ICONS[viewerElement]}</span>
             </span>
           </motion.div>
+        )}
+        {/* Mentor chats */}
+        {mentorChats.length > 0 && (
+          <div className="space-y-2">
+            {mentorChats.map(chat => (
+              <motion.div
+                key={chat.id}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.13 }}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-${element}-soft mb-2 border border-${element}-accent`}
+                onClick={() => setTimeout(() => navigate(`/chat/${chat.id}`), 300)}
+              >
+                <span className="font-semibold text-sm">
+                  {chat.label}
+                </span>
+              </motion.div>
+            ))}
+          </div>
         )}
       </div>
     </div>

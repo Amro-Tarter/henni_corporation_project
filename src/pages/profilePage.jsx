@@ -24,7 +24,7 @@ import {
   arrayRemove,
   onSnapshot,
 }
- from 'firebase/firestore';
+  from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import {
   getStorage,
@@ -35,12 +35,12 @@ import {
 import { db } from '../config/firbaseConfig.ts';
 import { useNavigate } from 'react-router-dom';
 
-import Navbar       from '../components/social/Navbar.jsx';
-import LeftSidebar  from '../components/social/LeftSideBar';
+import Navbar from '../components/social/Navbar.jsx';
+import LeftSidebar from '../components/social/LeftSideBar';
 import RightSidebar from '../components/social/Rightsidebar.jsx';
-import ProfileInfo  from '../components/social/profileInfo.jsx';
-import CreatePost   from '../components/social/createpost';
-import Post  from '../components/social/Post.jsx';
+import ProfileInfo from '../components/social/profileInfo.jsx';
+import CreatePost from '../components/social/createpost';
+import Post from '../components/social/Post.jsx';
 import CreateProject from '../components/social/CreateProject';
 import Project from '../components/social/Project.jsx';
 
@@ -50,7 +50,7 @@ const ProfilePage = () => {
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [profile, setProfile] = useState(null);
   const [viewerProfile, setViewerProfile] = useState(null);
-  const [posts, setPosts]     = useState([]);
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [postComments, setPostComments] = useState({});
   const [projects, setProjects] = useState([]);
@@ -93,24 +93,33 @@ const ProfilePage = () => {
   }, [username]);
 
 
-useEffect(() => {
-  const fetchViewerProfile = async () => {
-    const auth = getAuth();
-    const viewerUid = auth.currentUser?.uid;
-    if (!viewerUid) return;
+  useEffect(() => {
+    const fetchViewerProfile = async () => {
+      const auth = getAuth();
+      const viewerUid = auth.currentUser?.uid;
+      if (!viewerUid) return;
 
-    try {
-      const snap = await getDoc(doc(db, 'profiles', viewerUid));
-      if (snap.exists()) {
-        setViewerProfile({ uid: viewerUid, ...snap.data() });
+      try {
+        // Fetch profile
+        const profileSnap = await getDoc(doc(db, 'profiles', viewerUid));
+        let viewerProfileData = { uid: viewerUid, ...(profileSnap.exists() ? profileSnap.data() : {}) };
+
+        // Fetch user doc for role
+        const userSnap = await getDoc(doc(db, 'users', viewerUid));
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          if (userData.role) viewerProfileData.role = userData.role;
+          // You can add any other fields from 'users' as needed
+        }
+
+        setViewerProfile(viewerProfileData);
+      } catch (error) {
+        console.error('Error fetching viewer profile:', error);
       }
-    } catch (error) {
-      console.error('Error fetching viewer profile:', error);
-    }
-  };
+    };
 
-  fetchViewerProfile();
-}, []);
+    fetchViewerProfile();
+  }, []);
 
   // Fetch profile and posts
   useEffect(() => {
@@ -118,7 +127,7 @@ useEffect(() => {
 
     async function loadData() {
       // Profile
-      const profRef  = doc(db, 'profiles', uid);
+      const profRef = doc(db, 'profiles', uid);
       const profSnap = await getDoc(profRef);
 
       let profileData = profSnap.exists() ? profSnap.data() : null;
@@ -128,14 +137,14 @@ useEffect(() => {
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        if (userData.role)    profileData = { ...profileData, role: userData.role };
+        if (userData.role) profileData = { ...profileData, role: userData.role };
       }
       if (profileData) setProfile({ ...profileData, uid }); // <--- Fix: Always add UID!
 
       else console.warn('No profile for', uid);
 
       // Posts
-      const postsCol   = collection(db, 'posts');
+      const postsCol = collection(db, 'posts');
       const postsQuery = query(
         postsCol,
         where('authorId', '==', uid),
@@ -170,7 +179,7 @@ useEffect(() => {
       });
       setProjects(loadedProjects);
       setLoading(false);
-      }
+    }
     loadData();
   }, [uid, viewerProfile]);
 
@@ -215,20 +224,20 @@ useEffect(() => {
   // Set up comment listeners for each post
   useEffect(() => {
     if (!posts.length) return;
-    
+
     // Create an object to store cleanup functions
     const unsubscribes = {};
-    
+
     // Set up a listener for each post's comments
     posts.forEach(post => {
       const commentsRef = collection(db, 'posts', post.id, 'comments');
       const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
-      
+
       const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
         const fetchedComments = [];
         const topLevelComments = []; // Comments without parent
         const commentReplies = {}; // Group replies by parent ID
-        
+
         snapshot.forEach(doc => {
           const commentData = {
             id: doc.id,
@@ -236,9 +245,9 @@ useEffect(() => {
             createdAt: doc.data().createdAt?.toDate() || new Date(),
             updatedAt: doc.data().updatedAt?.toDate() || null,
           };
-          
+
           fetchedComments.push(commentData);
-          
+
           // Organize comments into a hierarchical structure
           if (commentData.parentId) {
             // This is a reply
@@ -251,7 +260,7 @@ useEffect(() => {
             topLevelComments.push(commentData);
           }
         });
-        
+
         // Process comments to add their replies
         const processedComments = topLevelComments.map(comment => {
           return {
@@ -261,17 +270,17 @@ useEffect(() => {
             )
           };
         });
-        
+
         // Update the comments state for this post
         setPostComments(prev => ({
           ...prev,
           [post.id]: processedComments
         }));
       });
-      
+
       unsubscribes[post.id] = unsubscribe;
     });
-    
+
     // Clean up listeners when component unmounts
     return () => {
       Object.values(unsubscribes).forEach(unsubscribe => unsubscribe());
@@ -394,7 +403,7 @@ useEffect(() => {
   // Update profile field
   const updateField = async (field, value) => {
     const profileRef = doc(db, 'profiles', uid);
-    const userRef    = doc(db, 'users', uid);
+    const userRef = doc(db, 'users', uid);
 
     if (field === 'username') {
       // Prevent empty or whitespace-only username
@@ -413,38 +422,38 @@ useEffect(() => {
 
       const batch = writeBatch(db);
       batch.update(profileRef, { username: value, updatedAt: serverTimestamp() });
-      batch.update(userRef,    { username: value });
+      batch.update(userRef, { username: value });
       await batch.commit();
       setProfile(prev => ({ ...prev, [field]: value }));
       navigate(`/profile/${value}`, { replace: true });
       return;
-    } 
-      else if (field === 'location') {
-        const batch = writeBatch(db);
-        batch.update(profileRef, { location: value, updatedAt: serverTimestamp() });
-        batch.update(userRef,    { location: value });
-        await batch.commit();
-      } else {
-          await updateDoc(profileRef, { [field]: value, updatedAt: serverTimestamp() });
-      }
-      setProfile(prev => ({ ...prev, [field]: value }));
+    }
+    else if (field === 'location') {
+      const batch = writeBatch(db);
+      batch.update(profileRef, { location: value, updatedAt: serverTimestamp() });
+      batch.update(userRef, { location: value });
+      await batch.commit();
+    } else {
+      await updateDoc(profileRef, { [field]: value, updatedAt: serverTimestamp() });
+    }
+    setProfile(prev => ({ ...prev, [field]: value }));
   };
 
   // Upload profile picture
   const updateProfilePic = async file => {
     const storage = getStorage();
-    const ref     = storageRef(storage, `profiles/${uid}/profile.jpg`);
+    const ref = storageRef(storage, `profiles/${uid}/profile.jpg`);
     await uploadBytes(ref, file);
-    const url     = await getDownloadURL(ref);
+    const url = await getDownloadURL(ref);
     await updateField('photoURL', url);
   };
 
   // Upload background picture
   const updateBackgroundPic = async file => {
     const storage = getStorage();
-    const ref     = storageRef(storage, `profiles/${uid}/background.jpg`);
+    const ref = storageRef(storage, `profiles/${uid}/background.jpg`);
     await uploadBytes(ref, file);
-    const url     = await getDownloadURL(ref);
+    const url = await getDownloadURL(ref);
     await updateField('backgroundURL', url);
   };
 
@@ -452,25 +461,25 @@ useEffect(() => {
   const createPost = async ({ text, mediaType, mediaFile }) => {
     let mediaUrl = '';
     if (mediaFile) {
-      const ext     = mediaFile.name.split('.').pop();
-      const name    = `${Date.now()}.${ext}`;
+      const ext = mediaFile.name.split('.').pop();
+      const name = `${Date.now()}.${ext}`;
       const storage = getStorage();
-      const ref     = storageRef(storage, `posts/${uid}/${name}`);
+      const ref = storageRef(storage, `posts/${uid}/${name}`);
       await uploadBytes(ref, mediaFile);
       mediaUrl = await getDownloadURL(ref);
     }
     const newPost = {
-      authorId:       uid,
-      authorName:     profile.username,
+      authorId: uid,
+      authorName: profile.username,
       authorPhotoURL: profile.photoURL,
-      content:        text || '',
+      content: text || '',
       mediaUrl,
       mediaType,
-      likedBy:        [],
-      likesCount:     0,
-      commentsCount:  0,
-      createdAt:      serverTimestamp(),
-      updatedAt:      serverTimestamp(),
+      likedBy: [],
+      likesCount: 0,
+      commentsCount: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
     const postRef = await addDoc(collection(db, 'posts'), newPost);
     setPosts(prev => [{ id: postRef.id, ...newPost, liked: false }, ...prev]);
@@ -501,10 +510,10 @@ useEffect(() => {
   const handleUpdate = async (id, { content, mediaFile }) => {
     let mediaUrl;
     if (mediaFile) {
-      const ext     = mediaFile.name.split('.').pop();
-      const name    = `${Date.now()}.${ext}`;
+      const ext = mediaFile.name.split('.').pop();
+      const name = `${Date.now()}.${ext}`;
       const storage = getStorage();
-      const ref     = storageRef(storage, `posts/${uid}/${name}`);
+      const ref = storageRef(storage, `posts/${uid}/${name}`);
       await uploadBytes(ref, mediaFile);
       mediaUrl = await getDownloadURL(ref);
     }
@@ -522,16 +531,18 @@ useEffect(() => {
       likedBy: liked ? arrayUnion(viewerProfile.uid) : arrayRemove(viewerProfile.uid)
     });
     setPosts(prev => prev.map(p =>
-      p.id === id ? { ...p, likesCount: p.likesCount + (liked ? 1 : -1), liked,likedBy: liked
-              ? [...(p.likedBy || []), viewerProfile.uid]
-              : (p.likedBy || []).filter(uid => uid !== viewerProfile.uid)  } : p
+      p.id === id ? {
+        ...p, likesCount: p.likesCount + (liked ? 1 : -1), liked, likedBy: liked
+          ? [...(p.likedBy || []), viewerProfile.uid]
+          : (p.likedBy || []).filter(uid => uid !== viewerProfile.uid)
+      } : p
     ));
   };
 
   // Add a new comment to a post
   const addComment = async (postId, content, parentId = null) => {
     if (!content.trim()) return;
-    
+
     try {
       const commentData = {
         authorId: viewerProfile?.uid,
@@ -540,25 +551,25 @@ useEffect(() => {
         updatedAt: serverTimestamp(),
         edited: false,
       };
-      
+
       // Add parentId if this is a reply
       if (parentId) {
         commentData.parentId = parentId;
       }
-      
+
       // Add the comment to Firestore
       const commentsRef = collection(db, 'posts', postId, 'comments');
 
       await addDoc(commentsRef, commentData);
-      
+
       // Update the post's comment count
       const postRef = doc(db, 'posts', postId);
       await updateDoc(postRef, {
         commentsCount: increment(1)
       });
-      
+
       // Update the commentsCount in the local state
-      setPosts(prev => prev.map(p => 
+      setPosts(prev => prev.map(p =>
         p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p
       ));
     } catch (error) {
@@ -591,8 +602,8 @@ useEffect(() => {
     };
     const projectRef = await addDoc(collection(db, 'personal_projects'), newProject);
     setProjects(prev => [{ id: projectRef.id, ...newProject, liked: false }, ...prev]);
-    await updateDoc(doc(db,'profiles',uid), {
-      postsCount:increment(1)
+    await updateDoc(doc(db, 'profiles', uid), {
+      postsCount: increment(1)
     })
     setProfile(prev => ({
       ...prev,
@@ -629,12 +640,12 @@ useEffect(() => {
       prev.map(p =>
         p.id === id
           ? {
-              ...p,
-              title: title !== undefined ? title : p.title,
-              description: description !== undefined ? description : p.description,
-              collaborators: collaborators !== undefined ? collaborators : p.collaborators,
-              mediaUrl: mediaUrl || p.mediaUrl,
-            }
+            ...p,
+            title: title !== undefined ? title : p.title,
+            description: description !== undefined ? description : p.description,
+            collaborators: collaborators !== undefined ? collaborators : p.collaborators,
+            mediaUrl: mediaUrl || p.mediaUrl,
+          }
           : p
       )
     );
@@ -647,7 +658,8 @@ useEffect(() => {
       likedBy: liked ? arrayUnion(viewerProfile.uid) : arrayRemove(viewerProfile.uid)
     });
     setProjects(prev => prev.map(p =>
-      p.id === id ? { ...p, likesCount: p.likesCount + (liked ? 1 : -1), liked,
+      p.id === id ? {
+        ...p, likesCount: p.likesCount + (liked ? 1 : -1), liked,
         likedBy: liked
           ? [...(p.likedBy || []), viewerProfile.uid]
           : (p.likedBy || []).filter(uid => uid !== viewerProfile.uid)
@@ -692,16 +704,49 @@ useEffect(() => {
     }
   };
 
+  // Delete a comment in a project
   const deleteProjectComment = async (projectId, commentId, isReply = false, parentId = null) => {
     try {
+      // Delete the comment document
       await deleteDoc(doc(db, 'personal_projects', projectId, 'comments', commentId));
-      // Similar logic as for posts if you support nested replies
-      // ... (see above for posts)
-      setProjects(prev => prev.map(p =>
-        p.id === projectId ? { ...p, commentsCount: Math.max((p.commentsCount || 1) - 1, 0) } : p
-      ));
+      if (!isReply) {
+        // If it's a top-level comment, delete all replies
+        const repliesQuery = query(
+          collection(db, 'personal_projects', projectId, 'comments'),
+          where('parentId', '==', commentId)
+        );
+        const repliesSnapshot = await getDocs(repliesQuery);
+
+        // Batch delete replies
+        const batch = writeBatch(db);
+        repliesSnapshot.docs.forEach(replyDoc => {
+          batch.delete(doc(db, 'personal_projects', projectId, 'comments', replyDoc.id));
+        });
+        await batch.commit();
+
+        // Decrement the project's comment count for the parent and all replies
+        const projectRef = doc(db, 'personal_projects', projectId);
+        await updateDoc(projectRef, {
+          commentsCount: increment(-(repliesSnapshot.size + 1))
+        });
+
+        // Update local project state (if you keep commentsCount in UI state)
+        setProjects(prev => prev.map(p =>
+          p.id === projectId ? { ...p, commentsCount: p.commentsCount - (repliesSnapshot.size + 1) } : p
+        ));
+      } else {
+        // Just decrement by 1 for a reply
+        const projectRef = doc(db, 'personal_projects', projectId);
+        await updateDoc(projectRef, {
+          commentsCount: increment(-1)
+        });
+
+        setProjects(prev => prev.map(p =>
+          p.id === projectId ? { ...p, commentsCount: p.commentsCount - 1 } : p
+        ));
+      }
     } catch (error) {
-      console.error('Error deleting comment:', error);
+      console.error('Error deleting project comment:', error);
     }
   };
 
@@ -711,7 +756,7 @@ useEffect(() => {
   // Edit an existing comment
   const editComment = async (postId, commentId, newContent) => {
     if (!newContent.trim()) return;
-    
+
     try {
       const commentRef = doc(db, 'posts', postId, 'comments', commentId);
       await updateDoc(commentRef, {
@@ -726,10 +771,10 @@ useEffect(() => {
 
   // Delete a comment
   const deleteComment = async (postId, commentId, isReply = false, parentId = null) => {
-    try {      
+    try {
       // Delete the comment document
       await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
-      
+
       // If it's a top-level comment, also find and delete all its replies
       if (!isReply) {
         // Get all replies to this comment
@@ -738,22 +783,22 @@ useEffect(() => {
           where('parentId', '==', commentId)
         );
         const repliesSnapshot = await getDocs(repliesQuery);
-        
+
         // Delete each reply
         const batch = writeBatch(db);
         repliesSnapshot.docs.forEach(replyDoc => {
           batch.delete(doc(db, 'posts', postId, 'comments', replyDoc.id));
         });
         await batch.commit();
-        
+
         // Decrement the post's comment count for the parent and all replies
         const postRef = doc(db, 'posts', postId);
         await updateDoc(postRef, {
           commentsCount: increment(-(repliesSnapshot.size + 1))
         });
-        
+
         // Update local post state
-        setPosts(prev => prev.map(p => 
+        setPosts(prev => prev.map(p =>
           p.id === postId ? { ...p, commentsCount: p.commentsCount - (repliesSnapshot.size + 1) } : p
         ));
       } else {
@@ -762,9 +807,9 @@ useEffect(() => {
         await updateDoc(postRef, {
           commentsCount: increment(-1)
         });
-        
+
         // Update local post state
-        setPosts(prev => prev.map(p => 
+        setPosts(prev => prev.map(p =>
           p.id === postId ? { ...p, commentsCount: p.commentsCount - 1 } : p
         ));
       }
@@ -788,9 +833,10 @@ useEffect(() => {
       <div dir="rtl" className="min-h-screen flex flex-col bg-white">
         <Navbar element={profile.element} />
         <div className="flex flex-1 pt-[56.8px]">
-          <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
+          <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200 z-20">
             <LeftSidebar
               element={profile.element}
+              viewerElement={viewerProfile?.element}
               users={sameElementUsers}
               viewerProfile={viewerProfile}
               profileUser={profile}
@@ -800,32 +846,36 @@ useEffect(() => {
 
           <main
             className={`
-              flex-1 pt-2 space-y-12 pb-4 transition-all duration-500 ease-in-out
-              lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}`}
+            flex-1 pt-2 space-y-12 sm:pb-6 pb-20 transition-all duration-500 ease-in-out
+            px-2 sm:px-0
+            lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}
+          `}
           >
             {/* Profile Info */}
-            <ProfileInfo
-              isOwner={uid === getAuth().currentUser?.uid}
-              isFollowing={isFollowing}
-              uid={uid}
-              profilePic={profile.photoURL}
-              backgroundPic={profile.backgroundURL}
-              username={profile.username}
-              location={profile.location}
-              bio={profile.bio}
-              element={profile.element}
-              role={profile.role}
-              postsCount={profile.postsCount}
-              followersCount={profile.followersCount}
-              followingCount={profile.followingCount}
-              onUpdateField={updateField}
-              onUpdateProfilePic={updateProfilePic}
-              onUpdateBackgroundPic={updateBackgroundPic}
-              onFollowToggle={handleFollowToggle}
-            />
+            <div className="w-full mx-auto mb-6">
+              <ProfileInfo
+                isOwner={uid === getAuth().currentUser?.uid}
+                isFollowing={isFollowing}
+                uid={uid}
+                profilePic={profile.photoURL}
+                backgroundPic={profile.backgroundURL}
+                username={profile.username}
+                location={profile.location}
+                bio={profile.bio}
+                element={profile.element}
+                role={profile.role}
+                postsCount={profile.postsCount}
+                followersCount={profile.followersCount}
+                followingCount={profile.followingCount}
+                onUpdateField={updateField}
+                onUpdateProfilePic={updateProfilePic}
+                onUpdateBackgroundPic={updateBackgroundPic}
+                onFollowToggle={handleFollowToggle}
+              />
+            </div>
 
             {/* Sliding Tabs */}
-            <div className="flex flex-col items-center mb-8 w-full">
+            <div className="flex flex-col items-center mb-6 w-full">
               <div className={`bg-${profile.element}-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden`}>
                 <div
                   className={`absolute bottom-[10px] h-[2px] bg-${profile.element} transition-all duration-300 ease-in-out`}
@@ -893,7 +943,7 @@ useEffect(() => {
             </div>
 
             {/* Show create form only under the right section */}
-            <section className="space-y-6">
+            <section className="space-y-6 w-full">
               {activeProfileTab === 'posts' && uid === getAuth().currentUser?.uid && (
                 <CreatePost
                   element={profile.element}
@@ -969,16 +1019,11 @@ useEffect(() => {
               )}
             </section>
           </main>
-
-          <aside className="hidden lg:block fixed top-[56.8px] bottom-0 right-0 w-16">
-            <RightSidebar
-              element={profile.element}
-              onExpandChange={setIsRightOpen}
-            />
-          </aside>
-        </div>
-      </div>
-    </ThemeProvider>
+          <RightSidebar element={profile.element} onExpandChange={setIsRightOpen} />
+          
+        </div >
+      </div >
+    </ThemeProvider >
   );
 };
 
