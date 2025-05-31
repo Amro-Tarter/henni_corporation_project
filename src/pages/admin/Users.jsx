@@ -90,15 +90,14 @@ await deleteDoc(doc(db, "conversations", uid));
   }
 
   // Delete mentorships where user is a mentor or participant
-  const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", uid));
+  const mentorQuery = query(collection(db, "users"), where("mentors", "array-contains", uid));
   const mentorSnapshot = await getDocs(mentorQuery);
-  for (const msDoc of mentorSnapshot.docs) {
-    await deleteDoc(doc(db, "mentorship", msDoc.id));
-  }
-  const participantQuery = query(collection(db, "mentorship"), where("participantId", "==", uid));
-  const participantSnapshot = await getDocs(participantQuery);
-  for (const msDoc of participantSnapshot.docs) {
-    await deleteDoc(doc(db, "mentorship", msDoc.id));
+  for (const userDoc of mentorSnapshot.docs) {
+    const userData = userDoc.data();
+    const updatedMentors = userData.mentors.filter(mentorId => mentorId !== uid);
+    await updateDoc(doc(db, "users", userDoc.id), {
+      mentors: updatedMentors
+    });
   }
 }
 

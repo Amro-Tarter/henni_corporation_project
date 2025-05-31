@@ -283,8 +283,8 @@ const PendingUsersModal = ({ onClose }) => {
       };
 
       // Add mentor assignment for participants
-      if (selectedRole === 'participant') {
-        updateData.associatedMentor = mentorId || null;
+      if (selectedRole === 'participant' && mentorId) {
+        updateData.mentors = [mentorId]; // Store as array
       }
 
       await updateDoc(userRef, updateData);
@@ -298,8 +298,8 @@ const PendingUsersModal = ({ onClose }) => {
           updatedAt: serverTimestamp()
         };
 
-        if (selectedRole === 'participant') {
-          profileUpdateData.associatedMentor = mentorId || null;
+        if (selectedRole === 'participant' && mentorId) {
+          profileUpdateData.mentors = [mentorId]; // Store as array
         }
 
         await updateDoc(profileRef, profileUpdateData);
