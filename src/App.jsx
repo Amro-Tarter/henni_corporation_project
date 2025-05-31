@@ -15,6 +15,7 @@ import MentorReportForm from './pages/Report';
 import PartnerForm from'./pages/admin/Partners'
 import DonationForm from'./pages/admin/Donations'
 import FormsPage from'./pages/admin/FormsPage'
+import Mentorship from'./pages/admin/Mentorship'
 
 
 import Index from './pages/Index';
@@ -118,6 +119,7 @@ const App = () => {
                   <Route path="/admin/Settings" element={<Settings />} />
                   <Route path="/admin/donations" element={<DonationForm/>} />
                   <Route path="/admin/forms" element={<FormsPage/>} />
+                  <Route path="/admin/Mentorship" element={<Mentorship/>} />
 
                   {/* 404 Page */}
                   <Route path="*" element={<NotFound />} />

@@ -11,6 +11,7 @@ const Sidebar = () => {
         <Link to="/admin/reports" className="block hover:text-gray-300">דוחות</Link>
         <Link to="/admin/donations" className="block hover:text-gray-300">תרומות</Link>
         <Link to="/admin/forms" className="block hover:text-gray-300">טפסים</Link>
+        <Link to="/admin/Mentorship" className="block hover:text-gray-300">מנטורים</Link>
       </nav>
     </div>
   );

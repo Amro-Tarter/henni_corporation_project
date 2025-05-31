@@ -663,7 +663,7 @@ function Users() {
                 {isAdmin && (
                   <div className="absolute top-6 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1 z-10">
                     <Link
-                      to={`/profile/${user.id}`}
+                      to={`/profile/${user.username}`}
                       className="p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
                       title="צפייה בפרופיל"
                     >
