@@ -16,9 +16,6 @@ import {
   Save,
   Eye,
   Grid,
-  Maximize2,
-  Download,
-  Filter,
   Calendar,
   User
 } from 'lucide-react';
@@ -175,6 +172,32 @@ const Gallery = () => {
     }));
   };
 
+  const generateVideoThumbnail = (videoFile) => {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.src = URL.createObjectURL(videoFile);
+      
+      video.onloadeddata = () => {
+        video.currentTime = 1; // Set to 1 second to avoid black frames
+      };
+
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert canvas to blob
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(video.src);
+          resolve(blob);
+        }, 'image/jpeg', 0.7);
+      };
+    });
+  };
+
   const handleUploadSubmit = async () => {
     if (!uploadForm.file || !uploadForm.caption) {
       toast.error('נא למלא את כל השדות החובה');
@@ -207,11 +230,20 @@ const Gallery = () => {
             // Upload completed
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
+            // Generate and upload thumbnail for videos
+            let thumbnailURL = downloadURL;
+            if (uploadForm.type === 'video') {
+              const thumbnailBlob = await generateVideoThumbnail(uploadForm.file);
+              const thumbnailRef = ref(storage, `gallery/thumbnails/${timestamp}_${uploadForm.file.name}.jpg`);
+              await uploadBytes(thumbnailRef, thumbnailBlob);
+              thumbnailURL = await getDownloadURL(thumbnailRef);
+            }
+
             // Add metadata to Firestore
             const galleryItem = {
               type: uploadForm.type,
               src: downloadURL,
-              thumbnail: downloadURL,
+              thumbnail: thumbnailURL,
               caption: uploadForm.caption,
               credit: uploadForm.credit || 'צוות העמותה',
               createdAt: new Date(),
@@ -474,17 +506,6 @@ const Gallery = () => {
                     </>
                   )}
 
-                  {/* Top Controls */}
-                  <div className="absolute top-4 left-4 flex gap-2">
-                    <button
-                      onClick={() => setIsFullscreen(true)}
-                      className="bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg hover:bg-white transition-all"
-                      title="הצגה במסך מלא"
-                    >
-                      <Maximize2 className="w-4 h-4 text-gray-700" />
-                    </button>
-                  </div>
-
                   {/* Progress Indicator */}
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                     {filteredItems.map((_, index) => (
@@ -622,13 +643,6 @@ const Gallery = () => {
                   
                   {/* Hover Actions */}
                   <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    <button
-                      onClick={() => downloadMedia(item.src, item.caption)}
-                      className="p-1.5 bg-white/90 rounded-full hover:bg-white transition-colors"
-                      title="הורד"
-                    >
-                      <Download className="w-3 h-3 text-gray-700" />
-                    </button>
                     {isAdmin && (
                       <>
                         <button
