@@ -547,15 +547,24 @@ const Home = () => {
     if (!profile?.element || !user?.uid) return;
 
     try {
+      // Get users with the same element from 'users' collection
       const othersQuery = query(
         collection(db, 'users'),
         where('element', '==', profile.element)
       );
       const othersSnap = await getDocs(othersQuery);
 
-      const others = othersSnap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(u => u.id !== user.uid); // Exclude current user
+      // For each user, fetch their profile to get the photoURL
+      const others = await Promise.all(
+        othersSnap.docs
+          .map(doc => ({ id: doc.id, ...doc.data() }))
+          .filter(u => u.id !== user.uid) // Exclude current user
+          .map(async (u) => {
+            const profileDoc = await getDoc(doc(db, 'profiles', u.id));
+            const profileData = profileDoc.exists() ? profileDoc.data() : {};
+            return { ...u, ...profileData };
+          })
+      );
 
       const shuffled = others.sort(() => 0.5 - Math.random()).slice(0, 5);
       setSameElementUsers(shuffled);
