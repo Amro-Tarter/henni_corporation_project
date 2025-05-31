@@ -143,7 +143,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
             <img
               src={profilePic}
               alt="Profile"
-              className={`w-12 h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
             />
             <textarea
               id="createpost-textarea"
