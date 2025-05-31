@@ -74,6 +74,8 @@ const Home = () => {
           fullUser.username = ud.username || 'משתמש';
           // Get element from users collection
           fullUser.element = ud.element || 'earth';
+          // Get role from users collection
+          if (ud.role) fullUser.role = ud.role;
         }
 
         // Fetch profile data from profiles collection
@@ -84,10 +86,11 @@ const Home = () => {
           fullUser.photoURL = profData.photoURL;
           fullUser.profile = profData;
           fullUser.username = profData.username || fullUser.username;
-          setProfile({ ...profData, element: fullUser.element }); // Add element to profile
+          fullUser.following = profData.following || [];
+          setProfile({ ...profData, element: fullUser.element, role: fullUser.role }); // Add element and role to profile
         } else {
-          // If no profile exists, create a minimal profile with element from users
-          setProfile({ element: fullUser.element });
+          // If no profile exists, create a minimal profile with element and role from users
+          setProfile({ element: fullUser.element, role: fullUser.role });
         }
 
         setUser(fullUser);
