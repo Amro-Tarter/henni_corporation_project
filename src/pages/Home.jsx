@@ -926,66 +926,39 @@ const Home = () => {
                   
                   {/* Posts Container with consistent margins */}
                   <div className="w-full space-y-4">
-                    {/* --- Projects Section --- */}
-                    {projects.length > 0 && (
-                      <div className="mb-10">
-                        <h2 className={`text-2xl font-bold mb-4 text-${profile.element}`}>פרויקטים</h2>
-                        <div className="space-y-8">
-                          {projects.map(project => (
-                            <Project
-                              key={project.id}
-                              project={project}
-                              element={profile.element}
-                              onDelete={handleProjectDelete}
-                              onUpdate={handleProjectUpdate}
-                              onLike={handleProjectLike}
-                              comments={projectComments[project.id] || []}
-                              currentUser={user}
-                              onAddComment={addProjectComment}
-                              onEditComment={editProjectComment}
-                              onDeleteComment={deleteProjectComment}
-                              isOwner={project.authorId === user?.uid}
-                              getUserProfile={getUserProfile}
-                              allUsers={allUsers}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {/* --- End Projects Section --- */}
-                    {activeTab === 'all' ? (
-                      <PostList
-                        posts={posts}
-                        onLike={handleLike}
-                        onDelete={handleDeletePost}
-                        onUpdate={handleUpdatePost}
-                        comments={postComments}
-                        currentUser={user}
-                        onAddComment={handleAddComment}
-                        onEditComment={handleEditComment}
-                        onDeleteComment={handleDeleteComment}
-                        element={profile.element}
-                        postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
-                        getAuthorProfile={getAuthorProfile}
-                        isLoading={isLoading}
-                      />
-                    ) : (
-                      <PostList
-                        posts={followingPosts}
-                        onLike={handleLike}
-                        onDelete={handleDeletePost}
-                        onUpdate={handleUpdatePost}
-                        comments={postComments}
-                        currentUser={user}
-                        onAddComment={handleAddComment}
-                        onEditComment={handleEditComment}
-                        onDeleteComment={handleDeleteComment}
-                        element={profile.element}
-                        postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
-                        getAuthorProfile={getAuthorProfile}
-                        isLoading={isLoading}
-                      />
-                    )}
+                    {/* --- Combined Posts & Projects Section --- */}
+                    {(() => {
+                      // Helper to get JS Date from Firestore Timestamp or Date
+                      const getDate = (item) => {
+                        if (!item.createdAt) return new Date(0);
+                        if (typeof item.createdAt === 'object' && typeof item.createdAt.toDate === 'function') {
+                          return item.createdAt.toDate();
+                        }
+                        if (item.createdAt instanceof Date) return item.createdAt;
+                        return new Date(item.createdAt);
+                      };
+                      // Combine and sort for 'all' tab
+                      const allFeed = [...posts, ...projects].sort((a, b) => getDate(b) - getDate(a));
+                      // Combine and sort for 'following' tab
+                      const followingFeed = [...followingPosts, ...followingProjects].sort((a, b) => getDate(b) - getDate(a));
+                      return (
+                        <PostList
+                          posts={activeTab === 'all' ? allFeed : followingFeed}
+                          onLike={handleLike}
+                          onDelete={handleDeletePost}
+                          onUpdate={handleUpdatePost}
+                          comments={postComments}
+                          currentUser={user}
+                          onAddComment={handleAddComment}
+                          onEditComment={handleEditComment}
+                          onDeleteComment={handleDeleteComment}
+                          element={profile.element}
+                          postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
+                          getAuthorProfile={getAuthorProfile}
+                          isLoading={isLoading}
+                        />
+                      );
+                    })()}
                   </div>
                 </>
               )}
