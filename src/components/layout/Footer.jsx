@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Flame, Mail, Phone, MessageSquare, ExternalLink, Heart, Star, Sparkles } from 'lucide-react';
-
+import { Link } from 'react-router-dom';
 const Footer = () => {
   // State for animated particles
   const [particles, setParticles] = useState([]);
@@ -120,44 +120,40 @@ const Footer = () => {
                 { path: '/accessibility', label: 'הצהרת נגישות' },
                 { path: '/privacy', label: 'הצהרת פרטיות' },
                 { path: '/terms', label: 'תנאי שימוש' },
-                { path: '/contact', label: 'צור קשר' }
               ].map((link, index) => (
-                <div
+                <Link
                   key={link.path}
-                  className="group relative overflow-hidden rounded-lg bg-gradient-to-r from-red-800/20 to-transparent hover:from-orange-800/30 hover:to-red-800/20 transition-all duration-300"
+                  to={link.path}
+                  className="block group relative overflow-hidden rounded-lg bg-gradient-to-r from-red-800/20 to-transparent hover:from-orange-800/30 hover:to-red-800/20 transition-all duration-300"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <a
-                    href={link.path}
-                    className="flex items-center p-3 text-orange-300 hover:text-orange-200 transition-all duration-300 group-hover:translate-x-1"
-                  >
+                  <div className="flex items-center p-3 text-orange-300 hover:text-orange-200 transition-all duration-300 group-hover:translate-x-1">
                     <div className="w-2 h-2 rounded-full bg-gradient-to-r from-orange-300 to-yellow-300 mr-3 group-hover:scale-125 transition-transform duration-200" />
                     <span className="font-bold">{link.label}</span>
                     <ExternalLink size={14} className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-                  </a>
+                  </div>
                   <div className="absolute inset-0 bg-gradient-to-r from-orange-400/0 via-orange-400/5 to-orange-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
+                </Link>
               ))}
             </div>
           </div>
           
           {/* Enhanced Contact Column */}
           <div className="md:col-span-2">
-          <a href="/contact">
-            <h3 className="font-gveret-levin text-xl mb-6">
-              <span className="relative inline-block p-2">
-                צרו קשר
-                <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-orange-300 to-transparent"></span>
-                <span className="absolute -bottom-2 left-2 right-2 h-px bg-gradient-to-r from-transparent via-orange-300/30 to-transparent"></span>
-              </span>
-            </h3>
-          </a>
-
+            <Link to="/contact">
+              <h3 className="font-gveret-levin text-xl mb-6">
+                <span className="relative inline-block p-2">
+                  צרו קשר
+                  <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-orange-300 to-transparent"></span>
+                  <span className="absolute -bottom-2 left-2 right-2 h-px bg-gradient-to-r from-transparent via-orange-300/30 to-transparent"></span>
+                </span>
+              </h3>
+            </Link>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* CTA Button */}
               <div className="md:col-span-2">
-                <a href="/contact">
+                <Link to="/contact">
                   <button className="group relative w-full px-8 py-4 overflow-hidden font-bold text-white rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-400 hover:via-orange-400 hover:to-red-500 transition-all duration-500 transform hover:-translate-y-1 hover:scale-[1.02] shadow-2xl hover:shadow-amber-500/25">
                     <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></span>
                     <span className="relative flex items-center justify-center">
@@ -166,8 +162,7 @@ const Footer = () => {
                       <Sparkles className="mr-2" size={20} />
                     </span>
                   </button>
-                </a>
-
+                </Link>
               </div>
               
               {/* Contact Info Card */}
