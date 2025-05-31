@@ -2,10 +2,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { meta } from '@eslint/js';
 import { useEffect, useState } from 'react';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig'
 import { MapPin, MessageSquare} from 'lucide-react';
+
 
 const ELEMENT_ICONS = {
   fire: '🔥',
@@ -27,7 +29,6 @@ const LeftSidebar = ({ element, viewerElement, users = [], viewerProfile, profil
   const navigate = useNavigate();
   const [communityChat, setCommunityChat] = useState(null);
   const [mentorChats, setMentorChats] = useState([]);
-  const [enrichedUsers, setEnrichedUsers] = useState([]);
 
   // Fetch community chat
   useEffect(() => {
@@ -46,39 +47,6 @@ const LeftSidebar = ({ element, viewerElement, users = [], viewerProfile, profil
     fetchCommunityChat();
   }, [viewerElement]);
 
-  // Enrich users with their complete profile data
-  useEffect(() => {
-    const enrichUsers = async () => {
-      if (!users.length) return;
-
-      const enrichedData = await Promise.all(users.map(async (user) => {
-        try {
-          // Fetch user doc for role and element
-          const userDoc = await getDoc(doc(db, 'users', user.id));
-          const userData = userDoc.exists() ? userDoc.data() : {};
-
-          // Fetch profile for additional data
-          const profileDoc = await getDoc(doc(db, 'profiles', user.id));
-          const profileData = profileDoc.exists() ? profileDoc.data() : {};
-
-          return {
-            ...user,
-            ...profileData,
-            role: userData.role,
-            element: userData.element,
-          };
-        } catch (error) {
-          console.error('Error enriching user data:', error);
-          return user;
-        }
-      }));
-
-      setEnrichedUsers(enrichedData);
-    };
-
-    enrichUsers();
-  }, [users]);
-
   // Mentor-specific chats fetch
   useEffect(() => {
     const fetchMentorChats = async () => {
@@ -87,20 +55,53 @@ const LeftSidebar = ({ element, viewerElement, users = [], viewerProfile, profil
         return;
       }
 
-      const q = query(
+      // 1. all_mentors_with_admin
+      const q1 = query(
         collection(db, 'conversations'),
-        where('type', '==', 'mentor_chat'),
+        where('communityType', '==', 'all_mentors_with_admin')
+      );
+      // 2. all_mentors
+      const q2 = query(
+        collection(db, 'conversations'),
+        where('communityType', '==', 'all_mentors')
+      );
+      // 3. mentor_community (filtered by mentorId)
+      const q3 = query(
+        collection(db, 'conversations'),
+        where('communityType', '==', 'mentor_community'),
         where('mentorId', '==', viewerProfile.uid)
       );
-      const snap = await getDocs(q);
-      setMentorChats(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      // Fetch all in parallel
+      const [snap1, snap2, snap3] = await Promise.all([
+        getDocs(q1),
+        getDocs(q2),
+        getDocs(q3)
+      ]);
+      // Collect all mentor chats
+      const chats = [];
+      snap1.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'כל המנטורים והאדמין' }));
+      snap2.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'כל המנטורים' }));
+      snap3.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'הקהילה שלך' }));
+
+      setMentorChats(chats);
     };
+
     fetchMentorChats();
   }, [viewerProfile]);
 
-  const elementSectionTitle = viewerProfile?.uid === profileUser?.uid
-    ? 'משתמשים מהיסוד שלך'
-    : `משתמשי ${ELEMENT_NAMES[element] || 'אדמה'}`;
+  const isOwnProfile =
+    viewerProfile && profileUser &&
+    String(viewerProfile.uid) === String(profileUser.uid);
+
+  let elementSectionTitle = '';
+  if (!profileUser) {
+    elementSectionTitle = 'עוד מהאלמנט';
+  } else if (isOwnProfile) {
+    elementSectionTitle = 'עוד מהאלמנט שלך';
+  } else {
+    // Show username, fallback to 'המשתמש הזה'
+    elementSectionTitle = `עוד מהאלמנט של ${profileUser.username || 'המשתמש הזה'}`;
+  }
 
   return (
     <div className="w-64 h-[calc(100vh-56.8px)] bg-white shadow-lg overflow-y-auto">
@@ -115,9 +116,9 @@ const LeftSidebar = ({ element, viewerElement, users = [], viewerProfile, profil
           </div>
         </div>
 
-        {enrichedUsers && enrichedUsers.length > 0 ? (
-          <div className="space-y-1">
-            {enrichedUsers.map((user) => (
+        {users && users.length > 0 ? (
+          <div className="space-y-1"> {/* Reduced spacing */}
+            {users.map((user) => (
               <motion.div
                 key={user.id}
                 whileHover={{ scale: 1.015 }}
@@ -151,25 +152,27 @@ const LeftSidebar = ({ element, viewerElement, users = [], viewerProfile, profil
                   </div>
                 </div>
 
-                {viewerProfile?.uid !== user.id && (
-                  <button
+                {viewerProfile && viewerProfile.uid !== user.id && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ duration: 0.15 }}
                     onClick={() => onFollowToggle(user.id)}
-                    className={`px-2 py-1 text-xs rounded-full transition-colors shrink-0
-                      ${viewerProfile?.following?.includes(user.id)
-                        ? `bg-${element} text-white hover:bg-${element}-dark`
-                        : `text-${element} border border-${element} hover:bg-${element}-soft`
+                    className={`ml-auto mr-1 shrink-0 px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200 ${(viewerProfile.following || []).includes(user.id)
+                      ? `bg-${element} text-white hover:bg-${element}-dark`
+                      : `border border-${element} text-${element} hover:bg-${element}-soft`
                       }`}
                   >
-                    {viewerProfile?.following?.includes(user.id) ? 'עוקב' : 'עקוב'}
-                  </button>
+                    {(viewerProfile.following || []).includes(user.id) ? 'עוקב' : 'עקוב'}
+                  </motion.button>
                 )}
               </motion.div>
             ))}
           </div>
         ) : (
-          <div className="text-center text-gray-500 py-4">
-            לא נמצאו משתמשים מהיסוד הזה
-          </div>
+          <p className="text-center text-gray-500 mt-4">
+            לא נמצאו משתמשים מאותו היסוד
+          </p>
         )}
 
         {/* Chats Section Title */}
