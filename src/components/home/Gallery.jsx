@@ -109,11 +109,6 @@ const Gallery = () => {
     setIsVideoPlaying(false);
     // Mock view increment
     const updatedItems = [...mediaItems];
-    const actualIndex = mediaItems.findIndex(item => item.id === filteredItems[index].id);
-    if (actualIndex !== -1) {
-      updatedItems[actualIndex].views += 1;
-      setMediaItems(updatedItems);
-    }
   };
 
   const handleVideoToggle = () => {
@@ -221,7 +216,6 @@ const Gallery = () => {
               credit: uploadForm.credit || 'צוות העמותה',
               createdAt: new Date(),
               createdBy: user.uid,
-              views: 0,
               tags: uploadForm.tags
             };
 
@@ -521,10 +515,7 @@ const Gallery = () => {
                           <Calendar className="w-4 h-4" />
                           {filteredItems[activeIndex]?.createdAt?.toLocaleDateString('he-IL')}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Eye className="w-4 h-4" />
-                          {filteredItems[activeIndex]?.views} צפיות
-                        </span>
+
                       </div>
                       {filteredItems[activeIndex]?.tags && (
                         <div className="flex flex-wrap gap-1">
@@ -599,9 +590,6 @@ const Gallery = () => {
                         <p className="text-xs text-white font-medium truncate">
                           {item.caption}
                         </p>
-                        <p className="text-xs text-white/80">
-                          {item.views} צפיות
-                        </p>
                       </div>
                     </motion.button>
                   ))}
@@ -669,10 +657,6 @@ const Gallery = () => {
                   <p className="text-sm text-gray-500 mb-2">{item.credit}</p>
                   <div className="flex items-center justify-between text-xs text-gray-400">
                     <span>{item.createdAt?.toLocaleDateString('he-IL')}</span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3 h-3" />
-                      {item.views}
-                    </span>
                   </div>
                 </div>
               </motion.div>
@@ -1012,10 +996,6 @@ const Gallery = () => {
                     <div className="bg-gray-50 rounded-lg p-4">
                       <h4 className="text-sm font-medium text-gray-700 mb-2">סטטיסטיקות</h4>
                       <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500">צפיות:</span>
-                          <span className="font-medium mr-2">{editingItem.views}</span>
-                        </div>
                         <div>
                           <span className="text-gray-500">תאריך יצירה:</span>
                           <span className="font-medium mr-2">
