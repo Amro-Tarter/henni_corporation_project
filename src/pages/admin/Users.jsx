@@ -14,8 +14,7 @@ import {
   faEye,
   faSave,
   faTimes,
-  faUserFriends,
-  faUsers
+  faUserFriends
 } from '@fortawesome/free-solid-svg-icons';
 import { Search, Filter, User, Star } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -74,8 +73,6 @@ await deleteDoc(doc(db, "conversations", uid));
     console.log(`Post ${postDoc.id} and its comments deleted.`);
   }
 
-  // Delete comments the user has made on other people's posts
-  // Optional, only if you want to delete all their comments everywhere
   // (slower, but cleaner)
   const allPostsQuery = query(collection(db, "posts"));
   const allPostsSnapshot = await getDocs(allPostsQuery);
@@ -532,121 +529,6 @@ const MentorManagementModal = ({ user, onClose, onSave, availableMentors }) => {
   );
 };
 
-// Mentor's Participants Modal Component
-const MentorParticipantsModal = ({ mentor, onClose }) => {
-  const [participants, setParticipants] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchParticipants = async () => {
-      try {
-        const q = query(collection(db, "users"), where("mentors", "array-contains", mentor.id));
-        const querySnapshot = await getDocs(q);
-        const participantsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setParticipants(participantsData);
-      } catch (error) {
-        console.error("Error fetching participants:", error);
-        toast.error("אירעה שגיאה בטעינת המשתתפים");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchParticipants();
-  }, [mentor.id]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl p-6"
-        dir="rtl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-            משתתפים של {mentor.username}
-          </h3>
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors"
-          >
-            <FontAwesomeIcon icon={faTimes} />
-          </button>
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        ) : participants.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
-            {participants.map((participant) => (
-              <div
-                key={participant.id}
-                className="bg-white dark:bg-slate-700 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 rounded-full overflow-hidden">
-                    <img
-                      src={participant.profile?.photoURL || "https://placehold.co/100x100/e2e8f0/64748b?text=User"}
-                      alt={participant.username}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "https://placehold.co/100x100/e2e8f0/64748b?text=User";
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-slate-900 dark:text-white">
-                      {participant.profile?.displayName || participant.username}
-                    </h4>
-                    <p className="text-sm text-slate-500 dark:text-slate-300">
-                      {participant.email}
-                    </p>
-                    {participant.location && (
-                      <p className="text-sm text-slate-500 dark:text-slate-300">
-                        {participant.location}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-slate-500 dark:text-slate-400">
-              אין משתתפים למנטור זה
-            </p>
-          </div>
-        )}
-
-        <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
-          >
-            סגור
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
 function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -661,7 +543,6 @@ function Users() {
   const { user: currentUser } = useUser();
   const [managingMentors, setManagingMentors] = useState(null);
   const [availableMentors, setAvailableMentors] = useState([]);
-  const [viewingMentorParticipants, setViewingMentorParticipants] = useState(null);
 
   const elementGradients = {
     fire: 'bg-gradient-to-r from-rose-700 via-amber-550 to-yellow-500',
@@ -935,7 +816,7 @@ function Users() {
                 {isAdmin && (
                   <div className="absolute top-6 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1 z-10">
                     <Link
-                      to={`/profile/${user.username}`}
+                      to={`/profile/${user.id}`}
                       className="p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
                       title="צפייה בפרופיל"
                     >
@@ -955,15 +836,6 @@ function Users() {
                         title="ניהול מנטורים"
                       >
                         <FontAwesomeIcon icon={faUserFriends} size="sm" />
-                      </button>
-                    )}
-                    {user.role === 'mentor' && (
-                      <button
-                        onClick={() => setViewingMentorParticipants(user)}
-                        className="p-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-colors"
-                        title="צפייה במשתתפים"
-                      >
-                        <FontAwesomeIcon icon={faUsers} size="sm" />
                       </button>
                     )}
                     <button
@@ -1067,16 +939,6 @@ function Users() {
             onClose={() => setManagingMentors(null)}
             onSave={handleSaveMentors}
             availableMentors={availableMentors}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Mentor Participants Modal */}
-      <AnimatePresence>
-        {viewingMentorParticipants && (
-          <MentorParticipantsModal
-            mentor={viewingMentorParticipants}
-            onClose={() => setViewingMentorParticipants(null)}
           />
         )}
       </AnimatePresence>

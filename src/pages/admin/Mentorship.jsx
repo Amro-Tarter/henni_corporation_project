@@ -519,7 +519,6 @@ function Mentorship() {
     const [mentorships, setMentorships] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [roleFilter, setRoleFilter] = useState(""); // New filter for role
     const [displayedUsers, setDisplayedUsers] = useState([]);
     const [assigningUser, setAssigningUser] = useState(null); // User for whom to assign/unassign mentorship
     const [assigningUserType, setAssigningUserType] = useState(null); // 'mentor' or 'participant'
@@ -613,11 +612,11 @@ function Mentorship() {
             const matchesSearch = searchTerm === "" ||
                 (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
                 (user.profile?.displayName && user.profile.displayName.toLowerCase().includes(searchTerm.toLowerCase()));
-            const matchesRole = roleFilter === "" || user.role === roleFilter;
+            const matchesRole = user.role === 'mentor'; // Only show mentors
             return matchesSearch && matchesRole;
         });
         setDisplayedUsers(filtered);
-    }, [searchTerm, roleFilter, users]);
+    }, [searchTerm, users]);
 
     const handleAssignMentorship = async (mentorId, participantId) => {
         setIsProcessingMentorship(true);
@@ -681,7 +680,6 @@ function Mentorship() {
 
     const clearFilters = () => {
         setSearchTerm("");
-        setRoleFilter("");
     };
 
     const mentors = users.filter(user => user.role === 'mentor');
@@ -702,12 +700,12 @@ function Mentorship() {
     return (
         <DashboardLayout>
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-extrabold text-gray-900">ניהול מנטורים וחניכים</h2>
+                <h2 className="text-3xl font-extrabold text-gray-900">ניהול מנטורים</h2>
             </div>
 
-            <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="flex flex-col">
-                    <label className="mb-1 text-sm font-medium text-gray-700">חיפוש משתמשים</label>
+                    <label className="mb-1 text-sm font-medium text-gray-700">חיפוש מנטורים</label>
                     <div className="relative">
                         <input
                             type="text"
@@ -718,24 +716,6 @@ function Mentorship() {
                         />
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <Search size={18} className="text-gray-400" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-col">
-                    <label className="mb-1 text-sm font-medium text-gray-700">סנן לפי תפקיד</label>
-                    <div className="relative">
-                        <select
-                            value={roleFilter}
-                            onChange={(e) => setRoleFilter(e.target.value)}
-                            className="appearance-none rounded-md w-full px-3 py-3 pr-4 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-                        >
-                            <option value="">כל התפקידים</option>
-                            <option value="mentor">מנטור</option>
-                            <option value="participant">חניך</option>
-                        </select>
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Filter size={18} className="text-gray-400" />
                         </div>
                     </div>
                 </div>
@@ -754,12 +734,8 @@ function Mentorship() {
                 <CleanElementalOrbitLoader />
             ) : displayedUsers.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {displayedUsers
-                        .filter(user => user.role === 'mentor' || user.role === 'participant')
-                        .map((user) => {
-                        const associated = getAssociatedUsers(user.id, user.role);
-                        const isMentor = user.role === 'mentor';
-                        const isParticipant = user.role === 'participant';
+                    {displayedUsers.map((user) => {
+                        const associated = getAssociatedUsers(user.id, 'mentor');
 
                         return (
                             <motion.div
@@ -773,15 +749,13 @@ function Mentorship() {
 
                                 {isAdmin && (
                                     <div className="absolute top-6 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1 z-10">
-                                        {(isMentor || isParticipant) && (
-                                            <button
-                                                onClick={() => { setAssigningUser(user); setAssigningUserType(user.role); }}
-                                                className="p-2 bg-purple-600 text-white rounded-lg shadow-lg hover:bg-purple-700 transition-colors"
-                                                title={isMentor ? "נהל חניכים" : "נהל מנטור"}
-                                            >
-                                                <FontAwesomeIcon icon={faUser} size="sm" />
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={() => { setAssigningUser(user); setAssigningUserType('mentor'); }}
+                                            className="p-2 bg-purple-600 text-white rounded-lg shadow-lg hover:bg-purple-700 transition-colors"
+                                            title="נהל חניכים"
+                                        >
+                                            <FontAwesomeIcon icon={faUser} size="sm" />
+                                        </button>
                                     </div>
                                 )}
 
@@ -802,7 +776,7 @@ function Mentorship() {
 
                                     <div className="text-center">
                                         <h3 className="text-lg font-bold text-gray-900">{user.profile?.displayName || user.username}</h3>
-                                        <p className="text-sm text-gray-600">({user.role === 'mentor' ? 'מנטור' : user.role === 'participant' ? 'חניך' : 'מנהל'})</p>
+                                        <p className="text-sm text-gray-600">מנטור</p>
                                         <div className="flex items-center justify-center gap-1 text-sm text-gray-600 mt-1">
                                             <UserIcon size={14} />
                                             <span>{user.email}</span>
@@ -827,12 +801,10 @@ function Mentorship() {
                                             <p className="text-sm text-gray-500 mt-1">{user.location}</p>
                                         )}
 
-                                        {/* Display Associated Users */}
+                                        {/* Display Associated Participants */}
                                         {associated.length > 0 && (
                                             <div className="mt-3 text-sm">
-                                                <p className="font-semibold text-gray-700">
-                                                    {isMentor ? "חניכים:" : "מנטור:"}
-                                                </p>
+                                                <p className="font-semibold text-gray-700">חניכים:</p>
                                                 <ul className="text-gray-600">
                                                     {associated.map(assocUser => (
                                                         <li key={assocUser.id}>
@@ -842,11 +814,8 @@ function Mentorship() {
                                                 </ul>
                                             </div>
                                         )}
-                                        {isMentor && associated.length === 0 && (
+                                        {associated.length === 0 && (
                                             <p className="mt-3 text-sm text-gray-500">אין חניכים משויכים.</p>
-                                        )}
-                                        {isParticipant && associated.length === 0 && (
-                                            <p className="mt-3 text-sm text-gray-500">אין מנטור משויך.</p>
                                         )}
                                     </div>
                                 </div>
@@ -857,7 +826,7 @@ function Mentorship() {
             ) : (
                 <div className="text-center py-12">
                     <div className="text-4xl mb-3">🔎</div>
-                    <h3 className="text-xl font-medium text-gray-700">לא נמצאו משתמשים</h3>
+                    <h3 className="text-xl font-medium text-gray-700">לא נמצאו מנטורים</h3>
                     <p className="text-gray-500">נסה לשנות את פרמטרי החיפוש שלך</p>
                 </div>
             )}
@@ -866,7 +835,7 @@ function Mentorship() {
             <AnimatePresence>
                 {assigningUser && isAdmin && (
                     <AssignMentorshipModal
-                        type={assigningUserType}
+                        type="mentor"
                         user={assigningUser}
                         allMentors={mentors}
                         allParticipants={participants}
