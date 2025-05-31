@@ -103,13 +103,6 @@ const Footer = () => {
               <p className="text-white/90 mb-6 leading-relaxed text-lg">
                 מיזם העצמה לנוער באמצעות יצירה, התפתחות רגשית ומנהיגות אמנותית בקהילה
               </p>
-              <div className="flex items-center text-white/90 p-3 rounded-lg bg-red-800/40">
-                <Heart size={20} className="text-red-300 mr-3 animate-pulse" />
-                <div>
-                  <p className="font-bold">מייסדת: ענת זיגרון</p>
-                  <p className="text-sm text-white/70 mt-1">עם אהבה וייעוד לקהילה</p>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -150,6 +143,7 @@ const Footer = () => {
           
           {/* Enhanced Contact Column */}
           <div className="md:col-span-2">
+          <a href="/contact">
             <h3 className="font-gveret-levin text-xl mb-6">
               <span className="relative inline-block p-2">
                 צרו קשר
@@ -157,25 +151,29 @@ const Footer = () => {
                 <span className="absolute -bottom-2 left-2 right-2 h-px bg-gradient-to-r from-transparent via-orange-300/30 to-transparent"></span>
               </span>
             </h3>
+          </a>
+
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* CTA Button */}
               <div className="md:col-span-2">
-                <button className="group relative w-full px-8 py-4 overflow-hidden font-bold text-white rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-400 hover:via-orange-400 hover:to-red-500 transition-all duration-500 transform hover:-translate-y-1 hover:scale-[1.02] shadow-2xl hover:shadow-amber-500/25">
-                  <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></span>
-                  <span className="relative flex items-center justify-center">
-                    <Sparkles className="ml-2" size={20} />
-                    צרו קשר עכשיו
-                    <Sparkles className="mr-2" size={20} />
-                  </span>
-                </button>
+                <a href="/contact">
+                  <button className="group relative w-full px-8 py-4 overflow-hidden font-bold text-white rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:from-amber-400 hover:via-orange-400 hover:to-red-500 transition-all duration-500 transform hover:-translate-y-1 hover:scale-[1.02] shadow-2xl hover:shadow-amber-500/25">
+                    <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"></span>
+                    <span className="relative flex items-center justify-center">
+                      <Sparkles className="ml-2" size={20} />
+                      צרו קשר עכשיו
+                      <Sparkles className="mr-2" size={20} />
+                    </span>
+                  </button>
+                </a>
+
               </div>
               
               {/* Contact Info Card */}
               <div className="md:col-span-2">
                 <div className="bg-gradient-to-br from-red-800/50 via-red-900/40 to-red-950/50 p-8 rounded-2xl backdrop-blur-sm border border-red-700/40 shadow-2xl hover:shadow-red-500/10 transition-all duration-300 hover:border-orange-300/50">
                   <div className="flex items-center mb-6">
-                    <Star className="text-yellow-300 mr-3" size={24} />
                     <div>
                       <p className="font-bold text-orange-300 text-lg">מייסדת ומנכ"לית העמותה</p>
                       <p className="text-white text-xl font-gveret-levin">ענת זגרון בוג'יו</p>
