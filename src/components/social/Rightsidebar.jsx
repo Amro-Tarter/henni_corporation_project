@@ -198,8 +198,51 @@ const Rightsidebar = ({ element, onExpandChange }) => {
             </div>
           )}
 
+          {/* Search Results */}
+          {searchInput && searchResults.length > 0 && isExpanded && (
+            <div className="max-h-32 overflow-y-auto border-b border-gray-100 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="px-3 py-2">
+                <h3 className="font-semibold text-xs text-gray-600 mb-2">תוצאות חיפוש</h3>
+                <div className="space-y-1">
+                  {searchResults.map((profile, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md cursor-pointer transition-all duration-150`}
+                      onClick={() => {
+                        setSearchInput('');
+                        navigate(`/profile/${profile.username}`);
+                      }}
+                    >
+                      <img
+                        src={profile.photoURL || '/images/default-avatar.png'}
+                        alt={profile.username}
+                        className="w-6 h-6 rounded-full object-cover border border-gray-200"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/images/default-avatar.png';
+                        }}
+                      />
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="text-xs text-gray-800 font-medium truncate">{profile.username}</span>
+                        {profile.name && (
+                          <span className="text-xs text-gray-500 truncate">{profile.name}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {searchInput && searchResults.length === 0 && isExpanded && (
+            <div className="px-3 py-2 text-center text-gray-500 text-xs border-b border-gray-100">
+              לא נמצאו תוצאות עבור "{searchInput}"
+            </div>
+          )}
+
           {/* Navigation */}
-          <div className="flex-1 overflow-y-auto py-3 scrollbar-hide">
+          <div className="flex-1 overflow-y-auto py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div className="space-y-1 px-2">
               {tabs.map((tab) => (
                 <motion.button
