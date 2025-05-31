@@ -390,7 +390,7 @@ const Navigation = () => {
                   onClick={item.id !== 'community' ? (e) => handleSectionClick(e, item.id) : null}
                   className="flex items-center gap-2"
                 >
-                  <FontAwesomeIcon icon={item.icon} className="text-xl" />
+                  <span className="text-xl">{item.icon}</span>
                   <span>{item.label}</span>
                 </a>
               </li>

@@ -284,33 +284,7 @@ const Contact = () => {
                   </div>
                 </div>
 
-                {/* Founder contact card */}
-                <div className="rounded-3xl shadow-xl overflow-hidden transition-all duration-500 transform hover:-translate-y-1 hover:shadow-2xl relative bg-gradient-to-br from-orange-100 via-amber-100 to-amber-50 border border-orange-200">
-                  <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-orange-200 opacity-20 group-hover:scale-110 transition-transform duration-700"></div>
-                  <div className="absolute -bottom-24 -left-24 w-48 h-48 rounded-full bg-amber-300 opacity-10 group-hover:scale-110 transition-transform duration-700"></div>
-                  <div className="p-8 relative z-10">
-                    <div className="flex items-start">
-                      <div className="mr-4 relative">
-                        <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold overflow-hidden bg-orange-200 text-orange-700">
-                          <span className="relative z-10">אז</span>
-                          <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black opacity-20"></div>
-                        </div>
-                        <div className="absolute inset-0 rounded-full bg-orange-300 animate-ping-slow opacity-30"></div>
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold mb-2 text-orange-800">צור קשר עם המייסדת</h3>
-                        <p className="text-lg font-semibold text-gray-900">ענת זגרון בוג'יו</p>
-                        <p className="text-sm text-orange-600 mt-1">מייסדת ומנכ"לית העמותה</p>
-                        <div className="mt-4">
-                          <a href="#" className="inline-flex items-center px-4 py-2 rounded-full bg-orange-600 hover:bg-orange-700 text-white transition-colors duration-300 shadow-md">
-                            <Calendar className="ml-2" size={16} />
-                            <span>קביעת פגישה</span>
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+               
 
                 {/* Response time */}
                 <div className="rounded-2xl shadow-md transition-all duration-500 transform hover:-translate-y-1 hover:shadow-lg bg-gradient-to-br from-amber-50 to-white border border-amber-100 p-6">
