@@ -8,7 +8,6 @@ import { auth, db } from '@/config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useNotifications } from './NotificationsComponent';
-import { ELEMENT_COLORS } from '../chat/utils/ELEMENT_COLORS';
 
 const tabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', route: '/home' },

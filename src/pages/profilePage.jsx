@@ -833,7 +833,7 @@ const ProfilePage = () => {
       <div dir="rtl" className="min-h-screen flex flex-col bg-white">
         <Navbar element={profile.element} />
         <div className="flex flex-1 pt-[56.8px]">
-          <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
+          <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200 z-20">
             <LeftSidebar
               element={profile.element}
               viewerElement={viewerProfile?.element}
@@ -846,32 +846,36 @@ const ProfilePage = () => {
 
           <main
             className={`
-              flex-1 pt-2 space-y-12 pb-4 transition-all duration-500 ease-in-out
-              lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}`}
+            flex-1 pt-2 space-y-12 sm:pb-6 pb-20 transition-all duration-500 ease-in-out
+            px-2 sm:px-0
+            lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}
+          `}
           >
             {/* Profile Info */}
-            <ProfileInfo
-              isOwner={uid === getAuth().currentUser?.uid}
-              isFollowing={isFollowing}
-              uid={uid}
-              profilePic={profile.photoURL}
-              backgroundPic={profile.backgroundURL}
-              username={profile.username}
-              location={profile.location}
-              bio={profile.bio}
-              element={profile.element}
-              role={profile.role}
-              postsCount={profile.postsCount}
-              followersCount={profile.followersCount}
-              followingCount={profile.followingCount}
-              onUpdateField={updateField}
-              onUpdateProfilePic={updateProfilePic}
-              onUpdateBackgroundPic={updateBackgroundPic}
-              onFollowToggle={handleFollowToggle}
-            />
+            <div className="w-full mx-auto mb-6">
+              <ProfileInfo
+                isOwner={uid === getAuth().currentUser?.uid}
+                isFollowing={isFollowing}
+                uid={uid}
+                profilePic={profile.photoURL}
+                backgroundPic={profile.backgroundURL}
+                username={profile.username}
+                location={profile.location}
+                bio={profile.bio}
+                element={profile.element}
+                role={profile.role}
+                postsCount={profile.postsCount}
+                followersCount={profile.followersCount}
+                followingCount={profile.followingCount}
+                onUpdateField={updateField}
+                onUpdateProfilePic={updateProfilePic}
+                onUpdateBackgroundPic={updateBackgroundPic}
+                onFollowToggle={handleFollowToggle}
+              />
+            </div>
 
             {/* Sliding Tabs */}
-            <div className="flex flex-col items-center mb-8 w-full">
+            <div className="flex flex-col items-center mb-6 w-full">
               <div className={`bg-${profile.element}-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden`}>
                 <div
                   className={`absolute bottom-[10px] h-[2px] bg-${profile.element} transition-all duration-300 ease-in-out`}
@@ -939,7 +943,7 @@ const ProfilePage = () => {
             </div>
 
             {/* Show create form only under the right section */}
-            <section className="space-y-6">
+            <section className="space-y-6 w-full">
               {activeProfileTab === 'posts' && uid === getAuth().currentUser?.uid && (
                 <CreatePost
                   element={profile.element}
@@ -1015,16 +1019,11 @@ const ProfilePage = () => {
               )}
             </section>
           </main>
-
-          <aside className="hidden lg:block fixed top-[56.8px] bottom-0 right-0 w-16">
-            <RightSidebar
-              element={profile.element}
-              onExpandChange={setIsRightOpen}
-            />
-          </aside>
-        </div>
-      </div>
-    </ThemeProvider>
+          <RightSidebar element={profile.element} onExpandChange={setIsRightOpen} />
+          
+        </div >
+      </div >
+    </ThemeProvider >
   );
 };
 
