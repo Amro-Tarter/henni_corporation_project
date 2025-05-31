@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from "react";
 import { db, auth } from "../config/firbaseConfig";
-import { doc, setDoc, serverTimestamp, collection, getDocs } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, getDocs, query, where } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { toast } from 'sonner';
 import { useNavigate } from "react-router-dom";
 import CleanElementalOrbitLoader from "../theme/ElementalLoader";
+import { ThemeProvider } from '../theme/ThemeProvider';
+import Navbar from '../components/social/Navbar';
+import RightSidebar from '../components/social/Rightsidebar';
+import { Bell, User, LogOut, Home as HomeIcon, MessageSquare, Settings } from 'lucide-react';
+
 function MentorReportForm() {
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const navigate = useNavigate();
 
   // State for user ID and authentication readiness
   const [currentUserId, setCurrentUserId] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  // Add mentor element state
+  const [mentorElement, setMentorElement] = useState('fire');
 
   // Form states
   const [mentorId, setMentorId] = useState(""); // This will be set from currentUserId
@@ -57,16 +65,30 @@ function MentorReportForm() {
   const [additionalNotes, setAdditionalNotes] = useState("");
 
   // Tailwind CSS input style for consistency
-  const inputStyle = "appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right";
+  const inputStyle = "appearance-none rounded-md w-full min-w-0 max-w-full px-2 py-2 sm:px-3 sm:py-3 pr-8 sm:pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-right text-ellipsis overflow-hidden";
   const textareaStyle = "appearance-none rounded-md w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right h-24";
 
   // Authentication Listener
   useEffect(() => {
     if (auth) {
-      const unsubscribe = onAuthStateChanged(auth, (user) => {
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
         if (user) {
           setCurrentUserId(user.uid);
           setMentorId(user.uid); // Automatically set mentorId to current user's UID
+          // Fetch mentor's element from users collection
+          try {
+            const userSnap = await getDocs(
+              query(collection(db, 'users'), where('associated_id', '==', user.uid))
+            );
+            if (!userSnap.empty) {
+              const ud = userSnap.docs[0].data();
+              setMentorElement(ud.element || 'fire');
+            } else {
+              setMentorElement('fire');
+            }
+          } catch (err) {
+            setMentorElement('fire');
+          }
         } else {
           console.warn("No user authenticated. MentorReportForm requires authentication.");
           // Optionally, redirect to login
@@ -203,320 +225,360 @@ function MentorReportForm() {
   // Show loading state until authentication and participants are ready
   if (!isAuthReady || loadingParticipants) {
     return (
-      <div className="min-h-screen flex items-center justify-center  py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
-        <CleanElementalOrbitLoader /> {/* Use the new loader component here */}
-      </div>
+      <ThemeProvider element={mentorElement}>
+        <div className="min-h-screen flex flex-col bg-element-bg">
+          <Navbar element={mentorElement} />
+          <div className="flex-1 flex items-center justify-center">
+            <CleanElementalOrbitLoader />
+          </div>
+        </div>
+      </ThemeProvider>
     );
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative"
-      dir="rtl"
-    >
-      <div className="w-full max-w-4xl bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
-        <div className="text-center mb-6">
-          <h2 className="text-3xl font-extrabold text-gray-900">שאלון דיווח למנטורים - עמותת תלגלות את האור</h2>
-          <p className="mt-2 text-sm text-gray-700">מלא את הפרטים הבאים כדי להגיש דיווח חדש</p>
-        </div>
-
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
-          {/* Participant Select Field */}
-          <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Mentor ID field is removed from JSX as requested, but still set in state */}
-            {/* The space will be filled by the participant select or other fields */}
-            <div className="flex flex-col">
-              <label className="mb-1 text-sm font-medium text-gray-700">בחר משתתף</label>
-              <select
-                required
-                value={participantId}
-                onChange={(e) => setParticipantId(e.target.value)}
-                className={inputStyle}
-                disabled={loadingParticipants || participantsError}
-              >
-                <option value="">{loadingParticipants ? "טוען משתתפים..." : participantsError ? "שגיאה בטעינה" : "בחר משתתף *"}</option>
-                {participants.map((participant) => (
-                  <option key={participant.id} value={participant.id}>
-                    {participant.name}
-                  </option>
-                ))}
-              </select>
-              {participantsError && <p className="text-red-500 text-xs mt-1">{participantsError}</p>}
-            </div>
-            {/* Empty div for alignment if needed, or remove if other fields fill */}
-            <div></div> 
-          </div>
-
-          {/* Report Date and Period */}
-          <div className="flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">תאריך הדיווח</label>
-            <input
-              type="date"
-              required
-              value={reportDate}
-              onChange={(e) => setReportDate(e.target.value)}
-              className={inputStyle}
-            />
-          </div>
-          <div className="flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">תקופת הדיווח</label>
-            <input
-              type="text"
-              required
-              value={reportingPeriod}
-              onChange={(e) => setReportingPeriod(e.target.value)}
-              placeholder="לדוגמא: אוגוסט 2024"
-              className={inputStyle}
-            />
-          </div>
-          <div className="flex flex-col md:col-span-2">
-            <label className="mb-1 text-sm font-medium text-gray-700">שנת תוכנית</label>
-            <input
-              type="number"
-              required
-              value={programYear}
-              onChange={(e) => setProgramYear(e.target.value)}
-              placeholder="שנת התוכנית (לדוגמא: 1)"
-              className={inputStyle}
-            />
-          </div>
-
-          {/* Question 1: Personal Progress and Skill Development */}
-          <div className="md:col-span-2 mt-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">שאלה 1: התקדמות אישית ופיתוח כישורים</h3>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                א. תארו את ההתפתחות שהילד/ה הראה בתחום האמנותי העיקרי (תיאטרון/מוזיקה/מחול/אמנות/כתיבה):
-              </label>
-              <textarea
-                required
-                value={q1ArtisticDevelopment}
-                onChange={(e) => setQ1ArtisticDevelopment(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ב. באילו כישורים חברתיים הילד/ה הראה שיפור? (תקשורת, עבודת צוות, ביטחון עצמי וכו')
-              </label>
-              <textarea
-                value={q1SocialSkillsImprovement}
-                onChange={(e) => setQ1SocialSkillsImprovement(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ג. דרגו את רמת המעורבות והמוטיבציה של הילד/ה בפעילויות:
-              </label>
-              <select
-                required
-                value={q1InvolvementMotivationRating}
-                onChange={(e) => setQ1InvolvementMotivationRating(e.target.value)}
-                className={inputStyle}
-              >
-                <option value="">בחר דירוג</option>
-                <option value="נמוכה">נמוכה</option>
-                <option value="בינונית">בינונית</option>
-                <option value="גבוהה">גבוהה</option>
-                <option value="מאוד גבוהה">מאוד גבוהה</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Question 2: Challenges and Difficulties */}
-          <div className="md:col-span-2 mt-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">שאלה 2: אתגרים וקשיים</h3>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                א. אילו אתגרים עיקריים הילד/ה מתמודד איתם? (רגשיים, חברתיים, לימודיים, משפחתיים)
-              </label>
-              <textarea
-                value={q2MainChallenges}
-                onChange={(e) => setQ2MainChallenges(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ב. כיצד התמודדתם יחד עם האתגרים הללו? פרטו על השיטות והכלים שהשתמשתם בהם:
-              </label>
-              <textarea
-                value={q2ChallengeCopingMethods}
-                onChange={(e) => setQ2ChallengeCopingMethods(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ג. האם נדרשת התערבות נוספת או תמיכה מקצועית? אם כן, מה סוג התמיכה הנדרשת?
-              </label>
-              <textarea
-                value={q2ProfessionalSupportNeeded}
-                onChange={(e) => setQ2ProfessionalSupportNeeded(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-          </div>
-
-          {/* Question 3: Goals and Objectives */}
-          <div className="md:col-span-2 mt-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">שאלה 3: יעדים ומטרות</h3>
-            <label className="mb-1 text-sm font-medium text-gray-700">
-                א. אילו יעדים הוצבו בתחילת התקופה ועד כמה הושגו?
-            </label>
-            {q3PreviousGoals.map((goal, index) => (
-              <div key={index} className="grid grid-cols-3 gap-2 mb-2">
-                <input
-                  type="text"
-                  value={goal.goal_text}
-                  onChange={(e) => handlePreviousGoalChange(index, "goal_text", e.target.value)}
-                  placeholder={`יעד ${index + 1}`}
-                  className={`${inputStyle} col-span-2`}
-                />
-                <select
-                  value={goal.status}
-                  onChange={(e) => handlePreviousGoalChange(index, "status", e.target.value)}
-                  className={inputStyle}
-                >
-                  <option value="">סטטוס</option>
-                  <option value="הושג">הושג</option>
-                  <option value="הושג חלקית">הושג חלקית</option>
-                  <option value="לא הושג">לא הושג</option>
-                </select>
+    <ThemeProvider element={mentorElement}>
+      <div className="min-h-screen flex flex-col bg-element-bg">
+        <Navbar element={mentorElement} />
+        <div className="h-4 sm:h-6" />
+        <div className="flex-1 flex flex-col lg:flex-row items-stretch justify-center w-full max-w-full">
+          {/* Main Content */}
+          <div className={`flex-1 flex items-center justify-center py-8 px-2 sm:px-4 transition-all duration-300 ${isSidebarExpanded ? 'lg:mr-64' : 'lg:mr-16'}`}>
+            <div className="w-full max-w-4xl bg-white bg-opacity-90 backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-4 sm:p-8 z-10">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-element-text">שאלון דיווח למנטורים - עמותת תלגלות את האור</h2>
+                <p className="mt-2 text-xs sm:text-sm text-gray-700">מלא את הפרטים הבאים כדי להגיש דיווח חדש</p>
               </div>
-            ))}
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ב. אילו יעדים תציבו לתקופה הבאה?
-              </label>
-              <textarea
-                value={q3NextPeriodGoalsText}
-                onChange={(e) => setQ3NextPeriodGoalsText(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ג. באילו אמצעים תשתמשו להשגת היעדים החדשים?
-              </label>
-              <textarea
-                value={q3MeansToAchieveNewGoals}
-                onChange={(e) => setQ3MeansToAchieveNewGoals(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-          </div>
 
-          {/* Question 4: Relationship with Family and Environment */}
-          <div className="md:col-span-2 mt-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">שאלה 4: הקשר עם המשפחה והסביבה</h3>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                א. כיצד משפחת הילד/ה מגיבה ותומכת בתהליך?
-              </label>
-              <textarea
-                value={q4FamilyResponseSupport}
-                onChange={(e) => setQ4FamilyResponseSupport(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ב. האם יש שיתוף פעולה עם גורמים נוספים? (בית ספר, עובד סוציאלי, פסיכולוג וכו')
-              </label>
-              <textarea
-                value={q4CooperationWithOthers}
-                onChange={(e) => setQ4CooperationWithOthers(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ג. אילו המלצות תתנו למשפחה להמשך התמיכה בבית?
-              </label>
-              <textarea
-                value={q4RecommendationsForFamily}
-                onChange={(e) => setQ4RecommendationsForFamily(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-          </div>
+              <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
+                {/* Participant Select Field */}
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Mentor ID field is removed from JSX as requested, but still set in state */}
+                  {/* The space will be filled by the participant select or other fields */}
+                  <div className="flex flex-col">
+                    <label className="mb-1 text-sm font-medium text-gray-700">בחר משתתף</label>
+                    <select
+                      required
+                      value={participantId}
+                      onChange={(e) => setParticipantId(e.target.value)}
+                      className={inputStyle}
+                      disabled={loadingParticipants || participantsError}
+                    >
+                      <option value="">{loadingParticipants ? "טוען משתתפים..." : participantsError ? "שגיאה בטעינה" : "בחר משתתף *"}</option>
+                      {participants.map((participant) => (
+                        <option key={participant.id} value={participant.id}>
+                          {participant.name}
+                        </option>
+                      ))}
+                    </select>
+                    {participantsError && <p className="text-red-500 text-xs mt-1">{participantsError}</p>}
+                  </div>
+                  {/* Empty div for alignment if needed, or remove if other fields fill */}
+                  <div></div> 
+                </div>
 
-          {/* Question 5: General Assessment and Recommendations */}
-          <div className="md:col-span-2 mt-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">שאלה 5: הערכה כללית והמלצות</h3>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                א. מהן נקודות החוזק הבולטות של הילד/ה שכדאי להמשיך לפתח?
-              </label>
-              <textarea
-                value={q5ProminentStrengths}
-                onChange={(e) => setQ5ProminentStrengths(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ב. מה הדבר הכי משמעותי שקרה עם הילד/ה בתקופה האחרונה?
-              </label>
-              <textarea
-                value={q5MostSignificantEvent}
-                onChange={(e) => setQ5MostSignificantEvent(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ג. אילו המלצות יש לכם להמשך הליווי? (שינוי בגישה, פעילויות נוספות, תדירות מפגשים וכו')
-              </label>
-              <textarea
-                value={q5RecommendationsForGuidance}
-                onChange={(e) => setQ5RecommendationsForGuidance(e.target.value)}
-                className={textareaStyle}
-              ></textarea>
-            </div>
-            <div className="flex flex-col mb-4">
-              <label className="mb-1 text-sm font-medium text-gray-700">
-                ד. דרגו את הרושם הכללי שלכם מההתקדמות:
-              </label>
-              <select
-                required
-                value={q5OverallProgressRating}
-                onChange={(e) => setQ5OverallProgressRating(e.target.value)}
-                className={inputStyle}
-              >
-                <option value="">בחר דירוג</option>
-                <option value="מתקדם מעל לציפיות">מתקדם מעל לציפיות</option>
-                <option value="מתקדם כצפוי">מתקדם כצפוי</option>
-                <option value="מתקדם לאט">מתקדם לאט</option>
-                <option value="זקוק לתשומת לב מיוחדת">זקוק לתשומת לב מיוחדת</option>
-              </select>
-            </div>
-          </div>
+                {/* Report Date and Period */}
+                <div className="flex flex-col">
+                  <label className="mb-1 text-sm font-medium text-gray-700">תאריך הדיווח</label>
+                  <input
+                    type="date"
+                    required
+                    value={reportDate}
+                    onChange={(e) => setReportDate(e.target.value)}
+                    className={inputStyle}
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label className="mb-1 text-sm font-medium text-gray-700">תקופת הדיווח</label>
+                  <input
+                    type="text"
+                    required
+                    value={reportingPeriod}
+                    onChange={(e) => setReportingPeriod(e.target.value)}
+                    placeholder="לדוגמא: אוגוסט 2024"
+                    className={inputStyle}
+                  />
+                </div>
+                <div className="flex flex-col md:col-span-2">
+                  <label className="mb-1 text-sm font-medium text-gray-700">שנת תוכנית</label>
+                  <input
+                    type="number"
+                    required
+                    value={programYear}
+                    onChange={(e) => setProgramYear(e.target.value)}
+                    placeholder="שנת התוכנית (לדוגמא: 1)"
+                    className={inputStyle}
+                  />
+                </div>
 
-          {/* Additional Notes */}
-          <div className="md:col-span-2 mt-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">הערות נוספות:</h3>
-            <textarea
-              value={additionalNotes}
-              onChange={(e) => setAdditionalNotes(e.target.value)}
-              className={textareaStyle}
-            ></textarea>
-          </div>
+                {/* Question 1: Personal Progress and Skill Development */}
+                <div className="md:col-span-2 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">שאלה 1: התקדמות אישית ופיתוח כישורים</h3>
+                  <div className="flex flex-col mb-4">
+                    <label className="mb-1 text-sm font-medium text-gray-700">
+                      א. תארו את ההתפתחות שהילד/ה הראה בתחום האמנותי העיקרי (תיאטרון/מוזיקה/מחול/אמנות/כתיבה):
+                    </label>
+                    <textarea
+                      required
+                      value={q1ArtisticDevelopment}
+                      onChange={(e) => setQ1ArtisticDevelopment(e.target.value)}
+                      className={textareaStyle}
+                    ></textarea>
+                  </div>
+                  <div className="flex flex-col mb-4">
+                    <label className="mb-1 text-sm font-medium text-gray-700">
+                      ב. באילו כישורים חברתיים הילד/ה הראה שיפור? (תקשורת, עבודת צוות, ביטחון עצמי וכו')
+                    </label>
+                    <textarea
+                      value={q1SocialSkillsImprovement}
+                      onChange={(e) => setQ1SocialSkillsImprovement(e.target.value)}
+                      className={textareaStyle}
+                    ></textarea>
+                  </div>
+                  <div className="flex flex-col mb-4">
+                    <label className="mb-1 text-sm font-medium text-gray-700">
+                      ג. דרגו את רמת המעורבות והמוטיבציה של הילד/ה בפעילויות:
+                    </label>
+                    <select
+                      required
+                      value={q1InvolvementMotivationRating}
+                      onChange={(e) => setQ1InvolvementMotivationRating(e.target.value)}
+                      className={inputStyle}
+                    >
+                      <option value="">בחר דירוג</option>
+                      <option value="נמוכה">נמוכה</option>
+                      <option value="בינונית">בינונית</option>
+                      <option value="גבוהה">גבוהה</option>
+                      <option value="מאוד גבוהה">מאוד גבוהה</option>
+                    </select>
+                  </div>
+                </div>
 
-          {/* Submit Button */}
-          <div className="col-span-1 md:col-span-2 mt-6">
-            <button
-              type="submit"
-              className="w-full py-3 px-4 rounded-md font-medium text-white text-lg bg-indigo-600 hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md"
-            >
-              שלח דיווח
-            </button>
+                {/* Question 2: Challenges and Difficulties */}
+                <div className="md:col-span-2 mt-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">שאלה 2: אתגרים וקשיים</h3>
+                  <div className="flex flex-col mb-4">
+                    <label className="mb-1 text-sm font-medium text-gray-700">
+                    א. אילו אתגרים עיקריים הילד/ה מתמודד איתם? (רגשיים, חברתיים, לימודיים, משפחתיים)
+                  </label>
+                  <textarea
+                    value={q2MainChallenges}
+                    onChange={(e) => setQ2MainChallenges(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    ב. כיצד התמודדתם יחד עם האתגרים הללו? פרטו על השיטות והכלים שהשתמשתם בהם:
+                  </label>
+                  <textarea
+                    value={q2ChallengeCopingMethods}
+                    onChange={(e) => setQ2ChallengeCopingMethods(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    ג. האם נדרשת התערבות נוספת או תמיכה מקצועית? אם כן, מה סוג התמיכה הנדרשת?
+                  </label>
+                  <textarea
+                    value={q2ProfessionalSupportNeeded}
+                    onChange={(e) => setQ2ProfessionalSupportNeeded(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+              </div>
+
+              {/* Question 3: Goals and Objectives */}
+              <div className="md:col-span-2 mt-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">שאלה 3: יעדים ומטרות</h3>
+                <label className="mb-1 text-sm font-medium text-gray-700">
+                    א. אילו יעדים הוצבו בתחילת התקופה ועד כמה הושגו?
+                </label>
+                {q3PreviousGoals.map((goal, index) => (
+                  <div key={index} className="grid grid-cols-3 gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={goal.goal_text}
+                      onChange={(e) => handlePreviousGoalChange(index, "goal_text", e.target.value)}
+                      placeholder={`יעד ${index + 1}`}
+                      className={`${inputStyle} col-span-2`}
+                    />
+                    <select
+                      value={goal.status}
+                      onChange={(e) => handlePreviousGoalChange(index, "status", e.target.value)}
+                      className={inputStyle}
+                    >
+                      <option value="">סטטוס</option>
+                      <option value="הושג">הושג</option>
+                      <option value="הושג חלקית">הושג חלקית</option>
+                      <option value="לא הושג">לא הושג</option>
+                    </select>
+                  </div>
+                ))}
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    ב. אילו יעדים תציבו לתקופה הבאה?
+                  </label>
+                  <textarea
+                    value={q3NextPeriodGoalsText}
+                    onChange={(e) => setQ3NextPeriodGoalsText(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    ג. באילו אמצעים תשתמשו להשגת היעדים החדשים?
+                  </label>
+                  <textarea
+                    value={q3MeansToAchieveNewGoals}
+                    onChange={(e) => setQ3MeansToAchieveNewGoals(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+              </div>
+
+              {/* Question 4: Relationship with Family and Environment */}
+              <div className="md:col-span-2 mt-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">שאלה 4: הקשר עם המשפחה והסביבה</h3>
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    א. כיצד משפחת הילד/ה מגיבה ותומכת בתהליך?
+                  </label>
+                  <textarea
+                    value={q4FamilyResponseSupport}
+                    onChange={(e) => setQ4FamilyResponseSupport(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    ב. האם יש שיתוף פעולה עם גורמים נוספים? (בית ספר, עובד סוציאלי, פסיכולוג וכו')
+                  </label>
+                  <textarea
+                    value={q4CooperationWithOthers}
+                    onChange={(e) => setQ4CooperationWithOthers(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    ג. אילו המלצות תתנו למשפחה להמשך התמיכה בבית?
+                  </label>
+                  <textarea
+                    value={q4RecommendationsForFamily}
+                    onChange={(e) => setQ4RecommendationsForFamily(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+              </div>
+
+              {/* Question 5: General Assessment and Recommendations */}
+              <div className="md:col-span-2 mt-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">שאלה 5: הערכה כללית והמלצות</h3>
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    א. מהן נקודות החוזק הבולטות של הילד/ה שכדאי להמשיך לפתח?
+                  </label>
+                  <textarea
+                    value={q5ProminentStrengths}
+                    onChange={(e) => setQ5ProminentStrengths(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    ב. מה הדבר הכי משמעותי שקרה עם הילד/ה בתקופה האחרונה?
+                  </label>
+                  <textarea
+                    value={q5MostSignificantEvent}
+                    onChange={(e) => setQ5MostSignificantEvent(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    ג. אילו המלצות יש לכם להמשך הליווי? (שינוי בגישה, פעילויות נוספות, תדירות מפגשים וכו')
+                  </label>
+                  <textarea
+                    value={q5RecommendationsForGuidance}
+                    onChange={(e) => setQ5RecommendationsForGuidance(e.target.value)}
+                    className={textareaStyle}
+                  ></textarea>
+                </div>
+                <div className="flex flex-col mb-4">
+                  <label className="mb-1 text-sm font-medium text-gray-700">
+                    ד. דרגו את הרושם הכללי שלכם מההתקדמות:
+                  </label>
+                  <select
+                    required
+                    value={q5OverallProgressRating}
+                    onChange={(e) => setQ5OverallProgressRating(e.target.value)}
+                    className={inputStyle}
+                  >
+                    <option value="">בחר דירוג</option>
+                    <option value="מתקדם מעל לציפיות">מתקדם מעל לציפיות</option>
+                    <option value="מתקדם כצפוי">מתקדם כצפוי</option>
+                    <option value="מתקדם לאט">מתקדם לאט</option>
+                    <option value="זקוק לתשומת לב מיוחדת">זקוק לתשומת לב מיוחדת</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Additional Notes */}
+              <div className="md:col-span-2 mt-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-2">הערות נוספות:</h3>
+                <textarea
+                  value={additionalNotes}
+                  onChange={(e) => setAdditionalNotes(e.target.value)}
+                  className={textareaStyle}
+                ></textarea>
+              </div>
+
+              {/* Submit Button */}
+              <div className="col-span-1 md:col-span-2 mt-6">
+                <button
+                  type="submit"
+                  className={`w-full py-3 px-4 rounded-md font-medium text-white text-lg bg-${mentorElement}-accent hover:bg-${mentorElement} focus:ring-2 focus:ring-${mentorElement}-accent transition duration-300 ease-in-out shadow-md`}
+                >
+                  שלח דיווח
+                </button>
+              </div>
+              </form>
+            </div>
           </div>
-        </form>
+          {/* Right Sidebar: desktop only, fixed, no extra space below */}
+          <div className="hidden lg:flex flex-col">
+            <div className={`fixed right-0 top-6 h-[calc(100vh-1.5rem)] shadow-2xl transition-all duration-300 ${isSidebarExpanded ? 'w-64' : 'w-16'} lg:shadow-lg`}>
+              <RightSidebar element={mentorElement} onExpandChange={setIsSidebarExpanded} />
+            </div>
+          </div>
+        </div>
+        {/* Mobile Bottom Bar: match Home.jsx */}
+        <nav className="fixed bottom-0 right-0 left-0 z-30 bg-white border-t border-gray-200 flex justify-around items-center py-2 lg:hidden shadow-lg">
+          <button className="relative flex flex-col items-center text-xs text-orange-600">
+            <span><HomeIcon size={20} /></span>
+            <span>דף הבית</span>
+          </button>
+          <button className="relative flex flex-col items-center text-xs text-gray-500">
+            <span><MessageSquare size={20} /></span>
+            <span>הודעות</span>
+          </button>
+          <button className="relative flex flex-col items-center text-xs text-gray-500">
+            <span><Settings size={20} /></span>
+            <span>הגדרות</span>
+          </button>
+          <button className="relative flex flex-col items-center text-xs text-gray-500">
+            <span><Bell size={20} /></span>
+            <span>התראות</span>
+          </button>
+          <button className="flex flex-col items-center text-xs text-gray-500">
+            <User size={20} />
+            <span>פרופיל</span>
+          </button>
+        </nav>
       </div>
-    </div>
+    </ThemeProvider>
   );
 }
 
