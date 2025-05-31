@@ -137,19 +137,6 @@ const Navbar = ({ element }) => {
   };
 
   const triggerSearch = async () => {
-    if (searchInput && !searchHistory.includes(searchInput)) {
-      const updatedHistory = [searchInput, ...searchHistory].slice(0, 5);
-      setSearchHistory(updatedHistory);
-
-      if (user) {
-        try {
-          const profileDocRef = doc(db, 'profiles', user.uid);
-          await updateDoc(profileDocRef, { searchHistory: updatedHistory });
-        } catch (err) {
-          console.error('Error updating search history:', err);
-        }
-      }
-    }
     handleSearch(new Event('submit'));
   };
 
@@ -184,6 +171,26 @@ const Navbar = ({ element }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const saveProfileToHistory = async (profile) => {
+    if (user) {
+      try {
+        // Filter out any existing instance of this profile
+        const filteredHistory = searchHistory.filter(p => p.username !== profile.username);
+        // Add the new profile at the beginning and limit to 5
+        const updatedHistory = [profile, ...filteredHistory].slice(0, 5);
+        
+        setSearchHistory(updatedHistory);
+        
+        const profileDocRef = doc(db, 'profiles', user.uid);
+        await updateDoc(profileDocRef, {
+          searchHistory: updatedHistory
+        });
+      } catch (err) {
+        console.error('Error updating profile history:', err);
+      }
+    }
+  };
 
   return (
     <>
@@ -244,20 +251,37 @@ const Navbar = ({ element }) => {
 
           {/* Mobile Search Results */}
           {showSearchDropdown && (searchResults.length > 0 || (showHistory && searchHistory.length > 0 && !searchInput)) && (
-            <div className="mt-2 bg-white rounded-lg shadow-lg max-h-40 overflow-y-auto">
+            <div className="mt-2 bg-white rounded-lg shadow-lg max-h-40 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {showHistory && searchHistory.length > 0 && !searchInput && (
                 <div className="p-3">
-                  <h3 className="font-semibold text-sm text-gray-800 mb-2">חיפושים אחרונים</h3>
-                  <ul className="space-y-1">
-                    {searchHistory.map((term, index) => (
-                      <li key={index} className="px-2 py-1 hover:bg-gray-100 cursor-pointer rounded text-sm">
-                        <span onMouseDown={() => {
-                          setSearchInput(term);
+                  <h3 className="font-semibold text-sm text-gray-800 mb-2">פרופילים אחרונים</h3>
+                  <div className="space-y-2">
+                    {searchHistory.map((profile, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100 cursor-pointer rounded"
+                        onMouseDown={() => {
                           setShowSearchDropdown(false);
-                        }}>{term}</span>
-                      </li>
+                          setIsMenuOpen(false);
+                          navigate(`/profile/${profile.username}`);
+                        }}
+                      >
+                        <img
+                          src={profile.photoURL || '/default-avatar.png'}
+                          alt={profile.username}
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="text-sm font-medium text-gray-800 truncate">
+                            {profile.username}
+                          </span>
+                          {profile.name && (
+                            <span className="text-xs text-gray-500 truncate">{profile.name}</span>
+                          )}
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
 
@@ -272,6 +296,8 @@ const Navbar = ({ element }) => {
                         setShowSearchDropdown(false);
                         setIsMenuOpen(false);
                         navigate(`/profile/${profile.username}`);
+                        // Save visited profile to history
+                        saveProfileToHistory(profile);
                       }}
                     >
                       <img
@@ -471,20 +497,36 @@ const Navbar = ({ element }) => {
 
                 {/* Search Results Dropdown */}
                 {showSearchDropdown && (searchResults.length > 0 || (showHistory && searchHistory.length > 0)) && (
-                  <div className="absolute top-full left-0 right-0 bg-white mt-1 border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-scroll z-50">
+                  <div className="absolute top-full left-0 right-0 bg-white mt-1 border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] z-50">
                     {showHistory && searchHistory.length > 0 && !searchInput && (
                       <div className="p-3">
-                        <h3 className="font-semibold text-sm">חיפושים אחרונים</h3>
-                        <ul className="list-none mt-2">
-                          {searchHistory.map((term, index) => (
-                            <li key={index} className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 cursor-pointer">
-                              <span className="flex-grow text-right text-sm" onMouseDown={() => {
-                                setSearchInput(term);
+                        <h3 className="font-semibold text-sm text-gray-800 mb-2">פרופילים אחרונים</h3>
+                        <div className="space-y-2">
+                          {searchHistory.map((profile, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100 cursor-pointer rounded"
+                              onMouseDown={() => {
                                 setShowSearchDropdown(false);
-                              }}>{term}</span>
-                            </li>
+                                navigate(`/profile/${profile.username}`);
+                              }}
+                            >
+                              <img
+                                src={profile.photoURL || '/default-avatar.png'}
+                                alt={profile.username}
+                                className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
+                              />
+                              <div className="flex flex-col overflow-hidden">
+                                <span className="text-sm font-medium text-gray-800 truncate">
+                                  {profile.username}
+                                </span>
+                                {profile.name && (
+                                  <span className="text-xs text-gray-500 truncate">{profile.name}</span>
+                                )}
+                              </div>
+                            </div>
                           ))}
-                        </ul>
+                        </div>
                       </div>
                     )}
 
@@ -498,6 +540,8 @@ const Navbar = ({ element }) => {
                               setSearchInput('');
                               setShowSearchDropdown(false);
                               navigate(`/profile/${profile.username}`);
+                              // Save visited profile to history
+                              saveProfileToHistory(profile);
                             }}
                           >
                             <img

@@ -34,6 +34,14 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   // Use shared notifications context
   const { showNotifications, setShowNotifications, unreadCount, messageUnreadCount, loading } = useNotifications();
 
+  // Normalize text for better Hebrew searching
+  const normalizeText = (text) => {
+    if (!text) return '';
+    // Convert to lowercase for case-insensitive matching
+    // and normalize Unicode characters for better Hebrew matching
+    return text.toLowerCase().normalize('NFKD');
+  };
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
@@ -79,19 +87,30 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         return;
       }
       try {
-        const querySnapshot = await getDocs(
-          query(
-            collection(db, 'profiles'),
-            where('username', '>=', searchInput),
-            where('username', '<=', searchInput + '\uf8ff')
-          )
-        );
-        const results = querySnapshot.docs.map((doc) => doc.data());
-        setSearchResults(results);
+        const querySnapshot = await getDocs(collection(db, 'profiles'));
+        const searchTerm = searchInput.trim();
+        const normalizedSearchTerm = normalizeText(searchTerm);
+
+        const filteredResults = querySnapshot.docs
+          .map((doc) => doc.data())
+          .filter((profile) => {
+            // Enhanced Hebrew search with normalization
+            const normalizedUsername = normalizeText(profile.username || '');
+            const normalizedName = normalizeText(profile.name || '');
+            const normalizedBio = normalizeText(profile.bio || '');
+
+            // Check if the normalized search term appears in username, name, or bio
+            return normalizedUsername.includes(normalizedSearchTerm) ||
+              normalizedName.includes(normalizedSearchTerm) ||
+              normalizedBio.includes(normalizedSearchTerm);
+          });
+
+        setSearchResults(filteredResults);
       } catch (err) {
         console.error('Error fetching profiles:', err);
       }
     };
+
     fetchSearchResults();
   }, [searchInput]);
 
@@ -177,38 +196,6 @@ const Rightsidebar = ({ element, onExpandChange }) => {
           ) : (
             <div className="flex items-center justify-center pt-16 pb-4">
               <Search size={24} className="text-gray-400" />
-            </div>
-          )}
-
-          {/* Search Results */}
-          {searchInput && searchResults.length > 0 && isExpanded && (
-            <div className="max-h-32 overflow-y-auto border-b border-gray-100">
-              <div className="px-3 py-2">
-                <h3 className="font-semibold text-xs text-gray-600 mb-2">תוצאות חיפוש</h3>
-                <div className="space-y-1">
-                  {searchResults.map((profile, index) => (
-                    <div
-                      key={index}
-                      className={`flex items-center gap-2 p-2 hover:bg-${element}-soft rounded-md cursor-pointer transition-all duration-150`}
-                      onClick={() => {
-                        setSearchInput('');
-                        navigate(`/profile/${profile.username}`);
-                      }}
-                    >
-                      <img
-                        src={profile.photoURL || '/images/default-avatar.png'}
-                        alt={profile.username}
-                        className="w-6 h-6 rounded-full object-cover border border-gray-200"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/images/default-avatar.png';
-                        }}
-                      />
-                      <span className="text-xs text-gray-800 font-medium truncate">{profile.username}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 

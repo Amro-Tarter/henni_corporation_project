@@ -29,6 +29,7 @@ import PostList from '../components/social/Postlist';
 import RightSidebar from '../components/social/Rightsidebar';
 import LeftSidebar from '../components/social/LeftSideBar';
 import ElementalLoader from '../theme/ElementalLoader';
+import Project from '../components/social/Project';
 
 const auth = getAuth();
 
@@ -37,12 +38,16 @@ const Home = () => {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [followingPosts, setFollowingPosts] = useState([]);
+  const [followingProjects, setFollowingProjects] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
   const [postComments, setPostComments] = useState({});
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isRightSidebarExpanded, setIsRightSidebarExpanded] = useState(false);
   const [sameElementUsers, setSameElementUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [projects, setProjects] = useState([]);
+  const [projectComments, setProjectComments] = useState({});
+  const [allUsers, setAllUsers] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -88,7 +93,9 @@ const Home = () => {
         setUser(fullUser);
         await Promise.all([
           fetchPosts(authUser.uid),
-          fetchFollowingPosts(authUser.uid)
+          fetchFollowingPosts(authUser.uid),
+          fetchProjects(authUser.uid),
+          fetchAllUsers()
         ]);
       } catch (error) {
         console.error('Error loading user data:', error);
@@ -130,6 +137,7 @@ const Home = () => {
       
       if (following.length === 0) {
         setFollowingPosts([]);
+        setFollowingProjects([]);
         return;
       }
 
@@ -151,10 +159,66 @@ const Home = () => {
       });
       
       setFollowingPosts(loaded);
+
+      // Fetch following projects
+      const projectSnap = await getDocs(
+        query(
+          collection(db, 'personal_projects'),
+          where('authorId', 'in', following),
+          orderBy('createdAt', 'desc')
+        )
+      );
+      const loadedProjects = projectSnap.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          liked: Array.isArray(data.likedBy) && data.likedBy.includes(userId)
+        };
+      });
+      setFollowingProjects(loadedProjects);
     } catch (err) {
       console.error('Error fetching following posts:', err);
     }
   };
+
+  // Fetch all projects
+  const fetchProjects = async (userId) => {
+    try {
+      const snap = await getDocs(
+        query(collection(db, 'personal_projects'), orderBy('createdAt', 'desc'))
+      );
+      const loaded = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          liked: Array.isArray(data.likedBy) && data.likedBy.includes(userId)
+        };
+      });
+      setProjects(loaded);
+    } catch (err) {
+      console.error('Error fetching projects:', err);
+    }
+  };
+
+  // Fetch all users for collaborators
+  const fetchAllUsers = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'profiles'));
+      setAllUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    }
+  };
+
+  // Fetch projects and users on user load
+  useEffect(() => {
+    if (user?.uid) {
+      fetchProjects(user.uid);
+      fetchAllUsers();
+    }
+  }, [user?.uid]);
 
   // Set up comment listeners for each post
   useEffect(() => {
@@ -221,6 +285,50 @@ const Home = () => {
       Object.values(unsubscribes).forEach(unsubscribe => unsubscribe());
     };
   }, [posts]);
+
+  // Set up comment listeners for each project
+  useEffect(() => {
+    if (!projects.length) return;
+    const unsubscribes = {};
+    projects.forEach(project => {
+      const commentsRef = collection(db, 'personal_projects', project.id, 'comments');
+      const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
+        const fetchedComments = [];
+        const topLevelComments = [];
+        const commentReplies = {};
+        snapshot.forEach(doc => {
+          const commentData = {
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt?.toDate() || new Date(),
+            updatedAt: doc.data().updatedAt?.toDate() || null,
+          };
+          fetchedComments.push(commentData);
+          if (commentData.parentId) {
+            if (!commentReplies[commentData.parentId]) {
+              commentReplies[commentData.parentId] = [];
+            }
+            commentReplies[commentData.parentId].push(commentData);
+          } else {
+            topLevelComments.push(commentData);
+          }
+        });
+        const processedComments = topLevelComments.map(comment => ({
+          ...comment,
+          replies: (commentReplies[comment.id] || []).sort((a, b) => b.timestamp - a.timestamp),
+        }));
+        setProjectComments(prev => ({
+          ...prev,
+          [project.id]: processedComments,
+        }));
+      });
+      unsubscribes[project.id] = unsubscribe;
+    });
+    return () => {
+      Object.values(unsubscribes).forEach(unsubscribe => unsubscribe());
+    };
+  }, [projects]);
 
   const addPost = async ({ text, mediaFile, mediaType }) => {
     if (!user) return;
@@ -497,6 +605,140 @@ const Home = () => {
     setIsRightSidebarExpanded(expanded);
   };
 
+  // Project handlers (like, comment, update, delete)
+  const handleProjectLike = async (id, liked) => {
+    if (!user) return;
+    const projectRef = doc(db, 'personal_projects', id);
+    await updateDoc(projectRef, {
+      likesCount: liked ? increment(1) : increment(-1),
+      likedBy: liked ? arrayUnion(user.uid) : arrayRemove(user.uid)
+    });
+    setProjects(prev => prev.map(p =>
+      p.id === id ? {
+        ...p, likesCount: p.likesCount + (liked ? 1 : -1), liked,
+        likedBy: liked
+          ? [...(p.likedBy || []), user.uid]
+          : (p.likedBy || []).filter(uid => uid !== user.uid)
+      } : p
+    ));
+  };
+
+  const handleProjectDelete = async id => {
+    await deleteDoc(doc(db, 'personal_projects', id));
+    setProjects(prev => prev.filter(p => p.id !== id));
+  };
+
+  const handleProjectUpdate = async (id, { title, description, collaborators, mediaFile }) => {
+    let mediaUrl;
+    if (mediaFile) {
+      const fileRef = ref(storage, `personal_projects/${user.uid}/${Date.now()}_${mediaFile.name}`);
+      await uploadBytes(fileRef, mediaFile);
+      mediaUrl = await getDownloadURL(fileRef);
+    }
+    const updates = { title, description, collaborators, updatedAt: serverTimestamp() };
+    if (mediaUrl) updates.mediaUrl = mediaUrl;
+    await updateDoc(doc(db, 'personal_projects', id), updates);
+    setProjects(prev =>
+      prev.map(p =>
+        p.id === id
+          ? {
+            ...p,
+            title: title !== undefined ? title : p.title,
+            description: description !== undefined ? description : p.description,
+            collaborators: collaborators !== undefined ? collaborators : p.collaborators,
+            mediaUrl: mediaUrl || p.mediaUrl,
+          }
+          : p
+      )
+    );
+  };
+
+  const addProjectComment = async (projectId, content, parentId = null) => {
+    if (!content.trim()) return;
+    try {
+      const commentData = {
+        authorId: user?.uid,
+        content: content.trim(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        edited: false,
+      };
+      if (parentId) commentData.parentId = parentId;
+      const commentsRef = collection(db, 'personal_projects', projectId, 'comments');
+      await addDoc(commentsRef, commentData);
+      const projectRef = doc(db, 'personal_projects', projectId);
+      await updateDoc(projectRef, { commentsCount: increment(1) });
+      setProjects(prev => prev.map(p =>
+        p.id === projectId ? { ...p, commentsCount: p.commentsCount + 1 } : p
+      ));
+    } catch (error) {
+      console.error('Error adding project comment:', error);
+    }
+  };
+
+  const editProjectComment = async (projectId, commentId, newContent) => {
+    if (!newContent.trim()) return;
+    try {
+      const commentRef = doc(db, 'personal_projects', projectId, 'comments', commentId);
+      await updateDoc(commentRef, {
+        content: newContent.trim(),
+        edited: true,
+        updatedAt: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Error editing project comment:', error);
+    }
+  };
+
+  const deleteProjectComment = async (projectId, commentId, isReply = false, parentId = null) => {
+    try {
+      await deleteDoc(doc(db, 'personal_projects', projectId, 'comments', commentId));
+      if (!isReply) {
+        const repliesQuery = query(
+          collection(db, 'personal_projects', projectId, 'comments'),
+          where('parentId', '==', commentId)
+        );
+        const repliesSnapshot = await getDocs(repliesQuery);
+        const batch = writeBatch(db);
+        repliesSnapshot.docs.forEach(replyDoc => {
+          batch.delete(doc(db, 'personal_projects', projectId, 'comments', replyDoc.id));
+        });
+        await batch.commit();
+        const projectRef = doc(db, 'personal_projects', projectId);
+        await updateDoc(projectRef, {
+          commentsCount: increment(-(repliesSnapshot.size + 1))
+        });
+        setProjects(prev => prev.map(p =>
+          p.id === projectId ? { ...p, commentsCount: p.commentsCount - (repliesSnapshot.size + 1) } : p
+        ));
+      } else {
+        const projectRef = doc(db, 'personal_projects', projectId);
+        await updateDoc(projectRef, {
+          commentsCount: increment(-1)
+        });
+        setProjects(prev => prev.map(p =>
+          p.id === projectId ? { ...p, commentsCount: p.commentsCount - 1 } : p
+        ));
+      }
+    } catch (error) {
+      console.error('Error deleting project comment:', error);
+    }
+  };
+
+  const getUserProfile = async (uid) => {
+    try {
+      const profileRef = doc(db, 'profiles', uid);
+      const profileSnap = await getDoc(profileRef);
+      if (profileSnap.exists()) {
+        return { uid: profileSnap.id, ...profileSnap.data() };
+      }
+      return null;
+    } catch (err) {
+      console.error('Error fetching user profile:', err);
+      return null;
+    }
+  };
+
   if (!profile) return (
     <ThemeProvider element="earth">
       <ElementalLoader />
@@ -517,8 +759,10 @@ const Home = () => {
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
           <LeftSidebar 
             element={profile.element}
+            viewerElement={user?.element}
             users={sameElementUsers}
             viewerProfile={user}
+            profileUser={profile}
             onFollowToggle={handleFollowToggle}
           />
         </aside>
@@ -658,18 +902,45 @@ const Home = () => {
                       <span className={`flex items-center gap-1 transition-all duration-300 ${
                         activeTab === 'all' ? `text-${profile.element} font-semibold` : ''
                       }`}>
-                        <span className="font-medium">{posts.length}</span> פוסטים כלליים
+                        <span className="font-medium">{posts.length + projects.length}</span> פוסטים כלליים
                       </span>
                       <span className={`flex items-center gap-1 transition-all duration-300 ${
                         activeTab === 'following' ? `text-${profile.element} font-semibold` : ''
                       }`}>
-                        <span className="font-medium">{followingPosts.length}</span> פוסטים מעוקבים
+                        <span className="font-medium">{followingPosts.length + followingProjects.length}</span> פוסטים מעוקבים
                       </span>
                     </div>
                   </div>
                   
                   {/* Posts Container with consistent margins */}
                   <div className="w-full space-y-4">
+                    {/* --- Projects Section --- */}
+                    {projects.length > 0 && (
+                      <div className="mb-10">
+                        <h2 className={`text-2xl font-bold mb-4 text-${profile.element}`}>פרויקטים</h2>
+                        <div className="space-y-8">
+                          {projects.map(project => (
+                            <Project
+                              key={project.id}
+                              project={project}
+                              element={profile.element}
+                              onDelete={handleProjectDelete}
+                              onUpdate={handleProjectUpdate}
+                              onLike={handleProjectLike}
+                              comments={projectComments[project.id] || []}
+                              currentUser={user}
+                              onAddComment={addProjectComment}
+                              onEditComment={editProjectComment}
+                              onDeleteComment={deleteProjectComment}
+                              isOwner={project.authorId === user?.uid}
+                              getUserProfile={getUserProfile}
+                              allUsers={allUsers}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* --- End Projects Section --- */}
                     {activeTab === 'all' ? (
                       <PostList
                         posts={posts}
