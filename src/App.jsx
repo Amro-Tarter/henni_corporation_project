@@ -58,6 +58,8 @@ const usePageTracking = () => {
     } else {
       console.warn('Google Analytics gtag not found. Make sure it is loaded in public/index.html');
     }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
   }, [location]); // This effect re-runs every time the 'location' object changes (i.e., route changes)
 };
 

@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Facebook, Instagram, MessageCircle, Phone, LogIn, LogOut, User, Heart, BarChart2 } from 'lucide-react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faLeaf,
-  faHammer,
-  faWind,
-  faWater,
-  faFire,
-} from '@fortawesome/free-solid-svg-icons';
 import { auth } from '@/config/firbaseConfig';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import Cookies from "js-cookie";
@@ -241,7 +233,7 @@ const Navigation = () => {
 
             <div className="flex items-center space-x-4 space-x-reverse pr-6">
             <div className="h-6 border-r border-white/30"></div>
-              <a href="tel:0500000000" className="text-white hover:text-green-400">
+              <a href="tel:+972502470857" className="text-white hover:text-green-400">
                 <Phone size={20} />
               </a>
               <a href="https://www.instagram.com/anatzigron" target="_blank" className="text-white hover:text-pink-300">
@@ -390,7 +382,7 @@ const Navigation = () => {
                   onClick={item.id !== 'community' ? (e) => handleSectionClick(e, item.id) : null}
                   className="flex items-center gap-2"
                 >
-                  <FontAwesomeIcon icon={item.icon} className="text-xl" />
+                  <span className="text-xl">{item.icon}</span>
                   <span>{item.label}</span>
                 </a>
               </li>
@@ -477,7 +469,7 @@ const Navigation = () => {
           </ul>
 
           <div className="border-t border-white/10 p-4 text-white flex flex-col gap-3 text-center">
-            <a href="tel:0500000000" className="hover:text-green-400">
+            <a href="tel:+972502470857" className="hover:text-green-400">
               📞 התקשרו אלינו
             </a>
             <p className="text-xs text-white/70">כל הזכויות שמורות © 2025</p>
