@@ -630,6 +630,7 @@ export default function ChatApp() {
   // Add useEffect to handle initial conversation selection based on chatId URL parameter
   useEffect(() => {
     if (!currentUser.uid) return; // Skip if user not logged in
+    if (isLoadingConversations) return; // Prevent running until conversations are loaded
     
     if (chatId) {
       const conversation = conversations.find(c => c.id === chatId);
@@ -740,7 +741,7 @@ export default function ChatApp() {
         fetchConversation();
       }
     }
-  }, [chatId, conversations, currentUser.uid, navigate, currentUser.username]);
+  }, [chatId, conversations, currentUser.uid, navigate, currentUser.username, isLoadingConversations]);
 
   // When a conversation is selected, always use the full object from conversations array
   const handleSelectConversation = (conv) => {
