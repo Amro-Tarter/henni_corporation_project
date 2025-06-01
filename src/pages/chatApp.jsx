@@ -219,6 +219,7 @@ export default function ChatApp() {
   // --- Load Conversations ---
   useEffect(() => {
     if (!currentUser.uid) return;
+
     setIsLoadingConversations(true);
     let q;
     if (currentUser.role === 'staff') {
@@ -631,18 +632,18 @@ export default function ChatApp() {
   useEffect(() => {
     if (!currentUser.uid) return; // Skip if user not logged in
     if (isLoadingConversations) return; // Prevent running until conversations are loaded
-    
+
     if (chatId) {
-      const conversation = conversations.find(c => c.id === chatId);
-      
-      // Check if we've already updated this conversation's lastRead timestamp
+      let conversation = conversations.find(c => c.id === chatId);
       const lastReadKey = `${chatId}_${currentUser.uid}`;
       const alreadyUpdated = lastReadUpdated[lastReadKey];
-      
+
       if (conversation) {
-        // Found conversation in current state
+        // Always use the full object from conversations array
         setSelectedConversation(conversation);
-        
+        navigate(`/chat/${conversation.id}`);
+        console.log('conversation', selectedConversation.id);
+
         // Only update lastRead if we haven't already done so
         if (!alreadyUpdated) {
           const conversationRef = doc(db, "conversations", conversation.id);
@@ -650,8 +651,6 @@ export default function ChatApp() {
             [`unread.${currentUser.uid}`]: 0,
             [`lastRead.${currentUser.uid}`]: serverTimestamp()
           });
-          
-          // Mark this conversation as updated
           setLastReadUpdated(prev => ({
             ...prev,
             [lastReadKey]: true
@@ -663,10 +662,8 @@ export default function ChatApp() {
           try {
             const conversationRef = doc(db, "conversations", chatId);
             const conversationDoc = await getDoc(conversationRef);
-            
             if (conversationDoc.exists()) {
               const data = conversationDoc.data();
-              // Check if user is a participant in this conversation
               if (data.participants && data.participants.includes(currentUser.uid)) {
                 // Create conversation object with necessary data
                 const conversationData = {
@@ -675,7 +672,6 @@ export default function ChatApp() {
                   lastUpdated: data.lastUpdated?.toDate(),
                   createdAt: data.createdAt?.toDate()
                 };
-                
                 // For direct chats, get partner info
                 if (data.type === "direct") {
                   const partnerUid = data.participants.find(p => p !== currentUser.uid);
@@ -692,44 +688,34 @@ export default function ChatApp() {
                     } catch (e) {
                       partnerProfilePic = null;
                     }
-                    
                     conversationData.participantNames = [
                       currentUser.username,
                       partnerDoc.exists() ? partnerDoc.data().username : "Unknown"
                     ];
                     conversationData.partnerProfilePic = partnerProfilePic;
                   }
-                }
-                // For group chats, get additional info
-                else if (data.type === "group") {
+                } else if (data.type === "group") {
                   conversationData.groupName = data.name || data.groupName;
                   conversationData.avatarURL = data.avatarURL;
                   conversationData.participantNames = data.participantNames || [];
                   conversationData.admin = data.admin;
                 }
-                
                 setSelectedConversation(conversationData);
-                
                 // Only update lastRead if we haven't already done so
                 if (!alreadyUpdated) {
-                  // Reset unread count and update lastRead timestamp
                   updateDoc(conversationRef, {
                     [`unread.${currentUser.uid}`]: 0,
                     [`lastRead.${currentUser.uid}`]: serverTimestamp()
                   });
-                  
-                  // Mark this conversation as updated
                   setLastReadUpdated(prev => ({
                     ...prev,
                     [lastReadKey]: true
                   }));
                 }
               } else {
-                // User is not a participant, redirect to main chat page
                 navigate('/chat');
               }
             } else {
-              // Conversation doesn't exist, redirect to main chat page
               navigate('/chat');
             }
           } catch (error) {
@@ -737,11 +723,13 @@ export default function ChatApp() {
             navigate('/chat');
           }
         };
-        
         fetchConversation();
       }
+    } else {
+      // If no chatId, clear selectedConversation
+      setSelectedConversation(null);
     }
-  }, [chatId, conversations, currentUser.uid, navigate, currentUser.username, isLoadingConversations]);
+  }, [chatId, conversations, currentUser.uid, currentUser.username, isLoadingConversations, lastReadUpdated, navigate]);
 
   // When a conversation is selected, always use the full object from conversations array
   const handleSelectConversation = (conv) => {
@@ -953,12 +941,6 @@ export default function ChatApp() {
           מחק את כל הצ'אטים (אדמין)
         </button>
         */} 
- <button
-          onClick={handleDeleteAllConversations}
-          className="fixed self-center justify-center z-50 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
-        >
-          מחק את כל הצ'אטים (אדמין)
-        </button>
 
       
       {((typeof window !== 'undefined' && window.innerWidth >= 768) || mobilePanel !== 'chat') && (
