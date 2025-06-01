@@ -51,7 +51,7 @@ export default function ConversationList({
   }, [visibleConversations]);
 
   return (
-    <div className="w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list mt-16 bg-white h-[calc(100dvh-4rem)] overflow-y-auto" dir="rtl" onClick={() => setSelectedConversation(null)}>
+    <div className="w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] overflow-y-auto" dir="rtl" onClick={() => setSelectedConversation(null)}>
       <div className="p-2 sm:p-4 sticky top-0 bg-white z-10 border-b border-gray-100">
         <h1 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">שיחות</h1>
         <h2 className="text-xs md:text-sm text-gray-500 mt-1">הודעות ({visibleConversations.length})</h2>

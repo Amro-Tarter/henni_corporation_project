@@ -95,6 +95,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
   
   // Helper functions
   const handleMentorCommunity = async (mentorId, mentorUsername, allUsers) => {
+    console.log('handleMentorCommunity called with:', { mentorId, mentorUsername });
     // Find all mentees for this mentor
     const myParticipants = allUsers.filter(u => 
       u.role === 'participant' && u.mentorName === mentorUsername
@@ -108,21 +109,14 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
     // Build unread object
     const unread = allIds.reduce((acc, uid) => ({ ...acc, [uid]: 0 }), {});
     
-    // Find existing mentor community
-    const mentorCommunityQuery = query(
-      collection(db, "conversations"),
-      where("type", "==", "community"),
-      where("communityType", "==", "mentor_community"),
-      where("mentorId", "==", mentorId)
-    );
-    
-    const mentorCommunitySnapshot = await getDocs(mentorCommunityQuery);
-    let communityDoc;
-    
-    if (mentorCommunitySnapshot.empty) {
+    // Use mentorId as the document ID for the mentor community
+    const mentorCommunityDocId = `mentor_community_${mentorId}`;
+    const mentorCommunityRef = doc(db, "conversations", mentorCommunityDocId);
+    const mentorCommunityDoc = await getDoc(mentorCommunityRef);
+
+    if (!mentorCommunityDoc.exists()) {
       // Create new community
-      const newCommunityRef = doc(collection(db, "conversations"));
-      await setDoc(newCommunityRef, {
+      await setDoc(mentorCommunityRef, {
         type: "community",
         communityType: "mentor_community",
         mentorId,
@@ -134,17 +128,13 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
-      communityDoc = await getDoc(newCommunityRef);
     } else {
       // Update existing community
-      communityDoc = mentorCommunitySnapshot.docs[0];
-      const currentData = communityDoc.data();
-      
+      const currentData = mentorCommunityDoc.data();
       // Check if update needed
       const needsUpdate = 
         allIds.length !== currentData.participants.length ||
         !allIds.every(id => currentData.participants.includes(id));
-      
       if (needsUpdate) {
         // Update unread status
         const newUnread = { ...currentData.unread };
@@ -152,8 +142,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         Object.keys(newUnread)
           .filter(uid => !allIds.includes(uid))
           .forEach(uid => delete newUnread[uid]);
-        
-        await updateDoc(communityDoc.ref, {
+        await updateDoc(mentorCommunityRef, {
           participants: allIds,
           participantNames: allNames,
           unread: newUnread,
