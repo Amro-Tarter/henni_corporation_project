@@ -149,8 +149,8 @@ export default function ChatApp() {
           const community = await handleElementCommunityChatMembership(user.uid, userElement);
                     // Ensure mentor community logic
           await handleMentorCommunityMembership(user.uid, userRole, userDoc.data().mentorName, userDoc.data().username);
-          if (community) setSelectedConversation(false);
           setAuthInitialized(true);
+          setSelectedConversation(null);
         } catch (error) {
           console.error("Error loading user:", error);
         }
