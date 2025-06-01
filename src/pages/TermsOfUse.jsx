@@ -141,7 +141,7 @@ const TermsOfUse = () => {
                   לשאלות נוספות בנוגע לתנאי השימוש, אנא צרו קשר עם צוות התמיכה שלנו
                 </p>
                 <p className="text-[#D73502] mt-2">
-                  info@giluy-haor.org
+                  Boggio3@gmail.com
                 </p>
               </div>
             </motion.div>

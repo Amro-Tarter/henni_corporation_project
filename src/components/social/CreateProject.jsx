@@ -3,6 +3,7 @@ import { UserPlus, Upload, X, Send, Smile } from 'lucide-react'; // Lucide icons
 import { FaPhotoVideo, FaVideo } from 'react-icons/fa';           // FontAwesome icons
 import EmojiPicker from 'emoji-picker-react';
 import { containsBadWord } from '../social/utils/containsBadWord';
+import ElementalLoader from '/src/theme/ElementalLoader.jsx';
 
 const CreateProject = ({
   profilePic,
@@ -21,10 +22,13 @@ const CreateProject = ({
   const [showEmoji, setShowEmoji] = useState(false);
   const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
   const [collabSearch, setCollabSearch] = useState('');
+  const [loading, setLoading] = useState(false);
   const textareaRef = useRef();
   const emojiBtnRef = useRef();
   const fileInputRef = useRef();
   const usersPopupRef = useRef();
+  const MAX_FIELD_LENGTH = 50;
+
 
   useEffect(() => {
     if (!showUsers) return;
@@ -100,13 +104,18 @@ const CreateProject = ({
       setTimeout(() => setWarning(''), 3500);
       return;
     }
-    await onCreateProject({
-      title,
-      description,
-      mediaFile,
-      mediaType,
-      collaborators,
-    });
+    setLoading(true); // show loader
+    try {
+      await onCreateProject({
+        title,
+        description,
+        mediaFile,
+        mediaType,
+        collaborators,
+      });
+    } finally {
+      setLoading(false); // hide loader
+    }
     setTitle('');
     setDescription('');
     setMediaFile(null);
@@ -132,6 +141,11 @@ const CreateProject = ({
 
   return (
   <>
+    {loading && (
+        <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center backdrop-blur-sm">
+          <ElementalLoader element={element} />
+        </div>
+      )}  
     {warning && (
       <div
         style={{
@@ -158,16 +172,16 @@ const CreateProject = ({
       </div>
     )}
 
-    <div className="mb-10 flex justify-center px-4" dir="rtl">
-      <div className={`w-full max-w-4xl bg-white rounded-2xl p-6 space-y-4 border border-${element}-accent`}>
+    <div className="mb-10 flex justify-center px-2 sm:px-4" dir="rtl">
+      <div className={`w-full max-w-2xl md:max-w-3xl lg:max-w-4xl bg-white rounded-2xl p-2 sm:p-4 md:p-6 space-y-4 border border-${element}-accent`}>
         <form onSubmit={handleSubmit} className="space-y-4">
 
           {/* Title */}
-          <div className="flex items-start gap-4">
+          <div className="flex flex-row items-start gap-2 sm:gap-4">
             <img
               src={profilePic}
               alt="Profile"
-              className={`w-12 h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}              
             />
             <input
               className={`
@@ -180,17 +194,21 @@ const CreateProject = ({
                 transition
               `}
               value={title}
-              onChange={e => setTitle(e.target.value)}
+              onChange={e => {setTitle(e.target.value);}}
+              maxLength={MAX_FIELD_LENGTH}
               placeholder="כותרת הפרויקט"
             />
+            <div className="text-xs text-gray-400 text-left mt-1 whitespace-nowrap">
+              {title.length} / {MAX_FIELD_LENGTH}
+            </div>
           </div>
 
           {/* Description */}
-          <div className="flex items-start gap-2">
+          <div className="flex flex-col sm:flex-row items-start gap-2">
             <textarea
               ref={textareaRef}
               className={`
-                flex-1 bg-${element}-soft
+                w-full sm:flex-1 bg-${element}-soft
                 rounded-xl px-4 py-3
                 text-sm text-${element}-dark
                 border-0
@@ -210,7 +228,7 @@ const CreateProject = ({
               ref={emojiBtnRef}
               onClick={() => setShowEmoji(val => !val)}
               className={`
-                ml-2 px-2 py-2 
+                mt-2 sm:mt-0 ml-0 sm:ml-2 px-2 py-2
                 rounded-md 
                 bg-${element}-soft
                 text-${element}
@@ -237,8 +255,8 @@ const CreateProject = ({
                   onEmojiClick={insertEmoji}
                   autoFocusSearch={false}
                   theme="light"
-                  width={350}
-                  height={400}
+                  width={320}
+                  height={380}
                 />
               </div>
             )}
@@ -246,7 +264,7 @@ const CreateProject = ({
 
           {/* Collaborators Row: Button + Chips + Search Popup */}
           <div className="relative z-20">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               {/* Add Collaborators Button */}
               <button
                 type="button"
@@ -332,7 +350,7 @@ const CreateProject = ({
           </div>
 
           {/* Media Buttons */}
-          <div className="flex flex-wrap gap-4 justify-between">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-between">
             <button
               type="button"
               onClick={() => pickMedia('image/*', 'photo')}
@@ -366,7 +384,7 @@ const CreateProject = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-end">
             <div className={`flex gap-3 transition-all duration-500 ${
               (title.trim() && description.trim()) || mediaFile ? 'opacity-100 max-h-20' : 'opacity-0 max-h-0 overflow-hidden'
             }`}>

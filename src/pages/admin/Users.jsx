@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { collection, query, getDocs, orderBy, updateDoc, doc, deleteDoc, getDoc, where } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, updateDoc, doc, deleteDoc, getDoc, where, arrayUnion, arrayRemove } from "firebase/firestore";
 
 import { db } from "../../config/firbaseConfig";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -13,7 +13,8 @@ import {
   faTrash,
   faEye,
   faSave,
-  faTimes
+  faTimes,
+  faUserFriends
 } from '@fortawesome/free-solid-svg-icons';
 import { Search, Filter, User, Star } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -34,69 +35,74 @@ const ELEMENTS = [
 
 
 async function cascadeDeleteUser(uid, db) {
-  // Delete user
-  await deleteDoc(doc(db, "users", uid));
-  console.log(`User ${uid} deleted from users collection.`);
-  // Delete profile
-  await deleteDoc(doc(db, "profiles", uid));
-  console.log(`User ${uid} deleted.`);
-    
-  // Delete all messages in the conversation
+  try {
+    // Delete user document
+    await deleteDoc(doc(db, "users", uid));
+    console.log(`User ${uid} deleted from users collection.`);
+
+    // Delete profile document
+    await deleteDoc(doc(db, "profiles", uid));
+    console.log(`Profile ${uid} deleted.`);
+
+    // Delete all messages in conversations
     const messagesRef = collection(db, "conversations", uid, "messages");
     const messagesSnap = await getDocs(messagesRef);
     for (const msgDoc of messagesSnap.docs) {
       await deleteDoc(doc(db, "conversations", uid, "messages", msgDoc.id));
-      console.log(`Message ${msgDoc.id} deleted.`);
     }
-
-    // Delete the conversation doc
     await deleteDoc(doc(db, "conversations", uid));
     console.log(`Messages for user ${uid} deleted.`);
 
-
-// Delete the conversation doc
-await deleteDoc(doc(db, "conversations", uid));
-  // Delete posts and their comments
-  const postsQuery = query(collection(db, "posts"), where("authorId", "==", uid));
-  const postsSnapshot = await getDocs(postsQuery);
-  for (const postDoc of postsSnapshot.docs) {
-    // Delete all comments for this post
-    const commentsRef = collection(db, "posts", postDoc.id, "comments");
-    const commentsSnapshot = await getDocs(commentsRef);
-    for (const commentDoc of commentsSnapshot.docs) {
-      await deleteDoc(doc(db, "posts", postDoc.id, "comments", commentDoc.id));
-      console.log(`Comment ${commentDoc.id} deleted.`);
-    }
-    // Delete the post itself
-    await deleteDoc(doc(db, "posts", postDoc.id));
-    console.log(`Post ${postDoc.id} and its comments deleted.`);
-  }
-
-  // Delete comments the user has made on other people's posts
-  // Optional, only if you want to delete all their comments everywhere
-  // (slower, but cleaner)
-  const allPostsQuery = query(collection(db, "posts"));
-  const allPostsSnapshot = await getDocs(allPostsQuery);
-  for (const postDoc of allPostsSnapshot.docs) {
-    const commentsRef = collection(db, "posts", postDoc.id, "comments");
-    const commentsSnapshot = await getDocs(commentsRef);
-    for (const commentDoc of commentsSnapshot.docs) {
-      if (commentDoc.data().authorId === uid) {
+    // Delete posts and their comments
+    const postsQuery = query(collection(db, "posts"), where("authorId", "==", uid));
+    const postsSnapshot = await getDocs(postsQuery);
+    for (const postDoc of postsSnapshot.docs) {
+      // Delete all comments for this post
+      const commentsRef = collection(db, "posts", postDoc.id, "comments");
+      const commentsSnapshot = await getDocs(commentsRef);
+      for (const commentDoc of commentsSnapshot.docs) {
         await deleteDoc(doc(db, "posts", postDoc.id, "comments", commentDoc.id));
       }
+      // Delete the post itself
+      await deleteDoc(doc(db, "posts", postDoc.id));
     }
-  }
+    console.log(`Posts and comments for user ${uid} deleted.`);
 
-  // Delete mentorships where user is a mentor or participant
-  const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", uid));
-  const mentorSnapshot = await getDocs(mentorQuery);
-  for (const msDoc of mentorSnapshot.docs) {
-    await deleteDoc(doc(db, "mentorship", msDoc.id));
-  }
-  const participantQuery = query(collection(db, "mentorship"), where("participantId", "==", uid));
-  const participantSnapshot = await getDocs(participantQuery);
-  for (const msDoc of participantSnapshot.docs) {
-    await deleteDoc(doc(db, "mentorship", msDoc.id));
+    // Delete comments by this user in other posts
+    const allPostsQuery = query(collection(db, "posts"));
+    const allPostsSnapshot = await getDocs(allPostsQuery);
+    for (const postDoc of allPostsSnapshot.docs) {
+      const commentsRef = collection(db, "posts", postDoc.id, "comments");
+      const commentsSnapshot = await getDocs(commentsRef);
+      for (const commentDoc of commentsSnapshot.docs) {
+        if (commentDoc.data().authorId === uid) {
+          await deleteDoc(doc(db, "posts", postDoc.id, "comments", commentDoc.id));
+        }
+      }
+    }
+    console.log(`Comments by user ${uid} in other posts deleted.`);
+
+    // Delete mentorship relationships
+    const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", uid));
+    const mentorSnapshot = await getDocs(mentorQuery);
+    for (const msDoc of mentorSnapshot.docs) {
+      await deleteDoc(doc(db, "mentorship", msDoc.id));
+    }
+
+    const participantQuery = query(collection(db, "mentorship"), where("participantId", "==", uid));
+    const participantSnapshot = await getDocs(participantQuery);
+    for (const msDoc of participantSnapshot.docs) {
+      await deleteDoc(doc(db, "mentorship", msDoc.id));
+    }
+    console.log(`Mentorship relationships for user ${uid} deleted.`);
+
+    // Delete any other user-related data
+    // Add more collections as needed
+
+    return true;
+  } catch (error) {
+    console.error("Error in cascadeDeleteUser:", error);
+    throw error;
   }
 }
 
@@ -436,11 +442,14 @@ function Users() {
   const [searchTerm, setSearchTerm] = useState("");
   const [elementFilter, setElementFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
   const [displayedUsers, setDisplayedUsers] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const { user: currentUser } = useUser();
+  const [managingMentors, setManagingMentors] = useState(null);
+  const [availableMentors, setAvailableMentors] = useState([]);
 
   const elementGradients = {
     fire: 'bg-gradient-to-r from-rose-700 via-amber-550 to-yellow-500',
@@ -489,24 +498,58 @@ function Users() {
 
   const fetchUsers = async () => {
     setLoading(true);
-    const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
-    const querySnapshot = await getDocs(q);
-    const usersData = [];
-    for (const userDoc of querySnapshot.docs) {
-      const userData = { id: userDoc.id, ...userDoc.data() };
-      try {
-        const profileSnap = await getDoc(doc(db, "profiles", userDoc.id));
-        if (profileSnap.exists()) {
-          userData.profile = profileSnap.data();
+    try {
+      const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+      const querySnapshot = await getDocs(q);
+      const usersData = [];
+
+      for (const userDoc of querySnapshot.docs) {
+        const userData = { id: userDoc.id, ...userDoc.data() };
+        
+        // Fetch profile data
+        try {
+          const profileSnap = await getDoc(doc(db, "profiles", userDoc.id));
+          if (profileSnap.exists()) {
+            userData.profile = profileSnap.data();
+          }
+        } catch (err) {
+          console.error("Error fetching profile:", err);
         }
-      } catch (err) {
-        console.error("Error fetching profile:", err);
+
+        // Fetch mentorship data for mentors
+        if (userData.role === 'mentor') {
+          const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", userDoc.id));
+          const mentorSnapshot = await getDocs(mentorQuery);
+          userData.mentorshipCount = mentorSnapshot.size;
+        }
+
+        // Fetch mentorship data for participants
+        if (userData.role === 'participant') {
+          const participantQuery = query(collection(db, "mentorship"), where("participantId", "==", userDoc.id));
+          const participantSnapshot = await getDocs(participantQuery);
+          if (participantSnapshot.size > 0) {
+            const mentorId = participantSnapshot.docs[0].data().mentorId;
+            const mentorDoc = await getDoc(doc(db, "users", mentorId));
+            if (mentorDoc.exists()) {
+              userData.mentor = {
+                id: mentorId,
+                ...mentorDoc.data()
+              };
+            }
+          }
+        }
+
+        usersData.push(userData);
       }
-      usersData.push(userData);
+
+      setUsers(usersData);
+      setDisplayedUsers(usersData);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("אירעה שגיאה בטעינת המשתמשים");
+    } finally {
+      setLoading(false);
     }
-    setUsers(usersData);
-    setDisplayedUsers(usersData);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -514,20 +557,22 @@ function Users() {
   }, []);
 
   useEffect(() => {
-      const filtered = users.filter(user => {
+    const filtered = users.filter(user => {
       const matchesSearch = searchTerm === "" ||
         (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (user.profile?.displayName && user.profile.displayName.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesElement = elementFilter === "" || user.element === elementFilter;
       const matchesLocation = locationFilter === "" ||
         (user.location && user.location.toLowerCase().includes(locationFilter.toLowerCase()));
-      return matchesSearch && matchesElement && matchesLocation;
+      const matchesRole = roleFilter === "" || user.role === roleFilter;
+      return matchesSearch && matchesElement && matchesLocation && matchesRole;
     });
     setDisplayedUsers(filtered);
-  }, [searchTerm, elementFilter, locationFilter, users]);
+  }, [searchTerm, elementFilter, locationFilter, roleFilter, users]);
 
    const handleSaveUser = async (userId, formData) => {
     try {
+      // First update the user document
       await updateDoc(doc(db, "users", userId), {
         username: formData.username,
         email: formData.email,
@@ -536,12 +581,38 @@ function Users() {
         role: formData.role,
         updatedAt: new Date(),
       });
+
+      // Then update the profile document
       await updateDoc(doc(db, "profiles", userId), {
         displayName: formData.displayName,
         bio: formData.bio,
         photoURL: formData.photoURL,
+        role: formData.role, // Keep role in sync
         updatedAt: new Date(),
       });
+
+      // If role changed to/from mentor, handle mentorship relationships
+      const userDoc = await getDoc(doc(db, "users", userId));
+      const oldRole = userDoc.data()?.role;
+      
+      if (oldRole !== formData.role) {
+        if (oldRole === 'mentor') {
+          // Remove all mentorship relationships where this user was a mentor
+          const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", userId));
+          const mentorSnapshot = await getDocs(mentorQuery);
+          for (const doc of mentorSnapshot.docs) {
+            await deleteDoc(doc.ref);
+          }
+        } else if (formData.role === 'mentor') {
+          // Remove any existing mentorship where this user was a participant
+          const participantQuery = query(collection(db, "mentorship"), where("participantId", "==", userId));
+          const participantSnapshot = await getDocs(participantQuery);
+          for (const doc of participantSnapshot.docs) {
+            await deleteDoc(doc.ref);
+          }
+        }
+      }
+
       toast.success("המשתמש עודכן בהצלחה");
       fetchUsers();
     } catch (error) {
@@ -570,183 +641,236 @@ function Users() {
     setSearchTerm("");
     setElementFilter("");
     setLocationFilter("");
+    setRoleFilter("");
   };
 
   const isAdmin = currentUser?.isAdmin || currentUser?.role === 'admin';
 
+  // Add this function to fetch available mentors
+  const fetchAvailableMentors = async () => {
+    const q = query(collection(db, "users"), where("role", "==", "mentor"));
+    const querySnapshot = await getDocs(q);
+    const mentors = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setAvailableMentors(mentors);
+  };
+
+  useEffect(() => {
+    fetchAvailableMentors();
+  }, []);
+
+  const handleSaveMentors = async (userId, selectedMentors) => {
+    try {
+      await updateDoc(doc(db, "users", userId), {
+        mentors: selectedMentors,
+        updatedAt: new Date(),
+      });
+      toast.success("המנטורים עודכנו בהצלחה");
+      fetchUsers(); // Refresh the users list
+    } catch (error) {
+      console.error("Error updating mentors:", error);
+      toast.error("אירעה שגיאה בעדכון המנטורים");
+      throw error;
+    }
+  };
+
   return (
     <DashboardLayout>
-        {/* Header with Pending Users Button */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-3xl font-extrabold text-gray-900">קהילת משתמשי הניני</h2>
-          {isAdmin && <PendingUsersButton />}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-extrabold text-gray-900">קהילת משתמשי הניני</h2>
+        {isAdmin && <PendingUsersButton />}
+      </div>
+
+      <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium text-gray-700">חיפוש משתמשים</label>
+          <div className="relative">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="חפש לפי שם משתמש..."
+              className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search size={18} className="text-gray-400" />
+            </div>
+          </div>
         </div>
 
-        {/* Search and Filters */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">חיפוש משתמשים</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="חפש לפי שם משתמש..."
-                className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-              />
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search size={18} className="text-gray-400" />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">סנן לפי אלמנט</label>
-            <div className="relative">
-              <select
-                value={elementFilter}
-                onChange={(e) => setElementFilter(e.target.value)}
-                className={`appearance-none rounded-md w-full px-3 py-3 pr-4 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right ${elementGradients[elementFilter] || "bg-white"}`}
-              >
-                <option value="">כל האלמנטים</option>
-                <option value="fire">אש</option>
-                <option value="water">מים</option>
-                <option value="earth">אדמה</option>
-                <option value="air">אוויר</option>
-                <option value="metal">מתכת</option>
-              </select>
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Filter size={18} className="text-gray-400" />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">סנן לפי מיקום</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={locationFilter}
-                onChange={(e) => setLocationFilter(e.target.value)}
-                placeholder="הזן מיקום..."
-                className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-col justify-end">
-            <button
-              onClick={clearFilters}
-              className="py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium text-gray-700">סנן לפי אלמנט</label>
+          <div className="relative">
+            <select
+              value={elementFilter}
+              onChange={(e) => setElementFilter(e.target.value)}
+              className={`appearance-none rounded-md w-full px-3 py-3 pr-4 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right ${elementGradients[elementFilter] || "bg-white"}`}
             >
-              נקה סינון
-            </button>
+              <option value="">כל האלמנטים</option>
+              <option value="fire">אש</option>
+              <option value="water">מים</option>
+              <option value="earth">אדמה</option>
+              <option value="air">אוויר</option>
+              <option value="metal">מתכת</option>
+            </select>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Filter size={18} className="text-gray-400" />
+            </div>
           </div>
         </div>
 
-        {/* Users Grid */}
-        {loading ? (
-          <CleanElementalOrbitLoader /> // Using the custom loader here
-        ) : displayedUsers.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {displayedUsers.map((user) => (
-              <motion.div
-                key={user.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 relative group"
-              >
-                <div className={`h-4 ${elementGradients[user.element] || "bg-gray-300"}`}></div>
-                
-                {/* Action Buttons - Only visible for admins */}
-                {isAdmin && (
-                  <div className="absolute top-6 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1 z-10">
-                    <Link
-                      to={`/profile/${user.id}`}
-                      className="p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
-                      title="צפייה בפרופיל"
-                    >
-                      <FontAwesomeIcon icon={faEye} size="sm" />
-                    </Link>
-                    <button
-                      onClick={() => setEditingUser(user)}
-                      className="p-2 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 transition-colors"
-                      title="עריכה"
-                    >
-                      <FontAwesomeIcon icon={faEdit} size="sm" />
-                    </button>
-                    <button
-                      onClick={() => setDeletingUser(user)}
-                      className="p-2 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 transition-colors"
-                      title="מחיקה"
-                    >
-                      <FontAwesomeIcon icon={faTrash} size="sm" />
-                    </button>
-                  </div>
-                )}
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium text-gray-700">סנן לפי מיקום</label>
+          <div className="relative">
+            <input
+              type="text"
+              value={locationFilter}
+              onChange={(e) => setLocationFilter(e.target.value)}
+              placeholder="הזן מיקום..."
+              className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
+            />
+          </div>
+        </div>
 
-                <div className="p-5">
-                  <div className="flex justify-center mb-4">
-                    <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
-                      <img 
-                        src={user.profile?.photoURL || "https://placehold.co/100x100/e2e8f0/64748b?text=User"} 
-                        alt={user.username} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = "https://placehold.co/100x100/e2e8f0/64748b?text=User";
-                        }}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="text-center">
-                    <h3 className="text-lg font-bold text-gray-900">{user.profile?.displayName || user.username}</h3>
-                    <div className="flex items-center justify-center gap-1 text-sm text-gray-600 mt-1">
-                      <User size={14} />
-                      <span>{user.email}</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-center gap-1 mt-2">
-                      <FontAwesomeIcon 
-                        icon={elementIcons[user.element] || faLeaf} 
-                        className={`${elementColors[user.element] || "text-gray-400"}`} 
-                      />
-                      <span className="text-sm capitalize">
-                        {user.element === "fire" && "אש"}
-                        {user.element === "water" && "מים"}
-                        {user.element === "earth" && "אדמה"}
-                        {user.element === "air" && "אוויר"}
-                        {user.element === "metal" && "מתכת"}
-                        {!user.element && "לא מוגדר"}
-                      </span>
-                    </div>
-                    
-                    {user.location && (
-                      <p className="text-sm text-gray-500 mt-1">{user.location}</p>
-                    )}
-                    
-                    {user.profile?.followersCount > 0 && (
-                      <div className="flex items-center justify-center gap-1 mt-2 text-sm text-indigo-600">
-                        <Star size={14} />
-                        <span>{user.profile.followersCount} עוקבים</span>
-                      </div>
-                    )}
+        <div className="flex flex-col">
+          <label className="mb-1 text-sm font-medium text-gray-700">סנן לפי תפקיד</label>
+          <div className="relative">
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="appearance-none rounded-md w-full px-3 py-3 pr-4 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
+            >
+              <option value="">כל התפקידים</option>
+              <option value="admin">מנהל</option>
+              <option value="mentor">מנטור</option>
+              <option value="participant">משתתף</option>
+            </select>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Filter size={18} className="text-gray-400" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-end">
+          <button
+            onClick={clearFilters}
+            className="py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            נקה סינון
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <CleanElementalOrbitLoader />
+      ) : displayedUsers.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {displayedUsers.map((user) => (
+            <motion.div
+              key={user.id}
+              layout
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 relative group"
+            >
+              <div className={`h-4 ${elementGradients[user.element] || "bg-gray-300"}`}></div>
+              
+              {isAdmin && (
+                <div className="absolute top-6 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1 z-10">
+                  <Link
+                    to={`/profile/${user.id}`}
+                    className="p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+                    title="צפייה בפרופיל"
+                  >
+                    <FontAwesomeIcon icon={faEye} size="sm" />
+                  </Link>
+                  <button
+                    onClick={() => setEditingUser(user)}
+                    className="p-2 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 transition-colors"
+                    title="עריכה"
+                  >
+                    <FontAwesomeIcon icon={faEdit} size="sm" />
+                  </button>
+                  <button
+                    onClick={() => setDeletingUser(user)}
+                    className="p-2 bg-red-600 text-white rounded-lg shadow-lg hover:bg-red-700 transition-colors"
+                    title="מחיקה"
+                  >
+                    <FontAwesomeIcon icon={faTrash} size="sm" />
+                  </button>
+                </div>
+              )}
+
+              <div className="p-5">
+                <div className="flex justify-center mb-4">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
+                    <img
+                      src={user.profile?.photoURL || "https://placehold.co/100x100/e2e8f0/64748b?text=User"}
+                      alt={user.username}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/100x100/e2e8f0/64748b?text=User";
+                      }}
+                    />
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">🔎</div>
-            <h3 className="text-xl font-medium text-gray-700">לא נמצאו משתמשים</h3>
-            <p className="text-gray-500">נסה לשנות את פרמטרי החיפוש שלך</p>
-          </div>
-        )}
 
-      {/* Edit User Modal */}
+                <div className="text-center">
+                  <h3 className="text-lg font-bold text-gray-900">{user.profile?.displayName || user.username}</h3>
+                  <p className="text-sm text-gray-600">{user.role === 'mentor' ? 'מנטור' : user.role === 'admin' ? 'מנהל' : 'משתתף'}</p>
+                  <div className="flex items-center justify-center gap-1 text-sm text-gray-600 mt-1">
+                    <User size={14} />
+                    <span>{user.email}</span>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-1 mt-2">
+                    <FontAwesomeIcon
+                      icon={elementIcons[user.element] || faLeaf}
+                      className={`${elementColors[user.element] || "text-gray-400"}`}
+                    />
+                    <span className="text-sm capitalize">
+                      {user.element === "fire" && "אש"}
+                      {user.element === "water" && "מים"}
+                      {user.element === "earth" && "אדמה"}
+                      {user.element === "air" && "אוויר"}
+                      {user.element === "metal" && "מתכת"}
+                      {!user.element && "לא מוגדר"}
+                    </span>
+                  </div>
+
+                  {user.location && (
+                    <p className="text-sm text-gray-500 mt-1">{user.location}</p>
+                  )}
+
+                  {user.role === 'mentor' && user.mentorshipCount > 0 && (
+                    <div className="mt-2 text-sm text-indigo-600">
+                      <FontAwesomeIcon icon={faUserFriends} className="ml-1" />
+                      {user.mentorshipCount} חניכים
+                    </div>
+                  )}
+
+                  {user.role === 'participant' && user.mentor && (
+                    <div className="mt-2 text-sm text-indigo-600">
+                      <FontAwesomeIcon icon={faUserFriends} className="ml-1" />
+                      מנטור: {user.mentor.profile?.displayName || user.mentor.username}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="text-4xl mb-3">🔎</div>
+          <h3 className="text-xl font-medium text-gray-700">לא נמצאו משתמשים</h3>
+          <p className="text-gray-500">נסה לשנות את פרמטרי החיפוש שלך</p>
+        </div>
+      )}
+
       <AnimatePresence>
         {editingUser && (
           <EditUserModal
@@ -757,7 +881,6 @@ function Users() {
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {deletingUser && (
           <DeleteConfirmModal

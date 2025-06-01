@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Facebook, Instagram, MessageCircle, Phone, LogIn, LogOut, User, Heart } from 'lucide-react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faLeaf,
-  faHammer,
-  faWind,
-  faWater,
-  faFire,
-} from '@fortawesome/free-solid-svg-icons';
+import { Facebook, Instagram, MessageCircle, Phone, LogIn, LogOut, User, Heart, BarChart2 } from 'lucide-react';
 import { auth } from '@/config/firbaseConfig';
 import { onAuthStateChanged, signOut, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import Cookies from "js-cookie";
@@ -20,8 +12,8 @@ import { db } from '@/config/firbaseConfig';
 const sections = [
   { id: 'about-section', label: 'אודות העמותה', icon: '🌱' },
   { id: 'leadership-program', label: 'תכנית המנהיגות', icon: '⚙️'},
-  { id: 'gallery', label: 'יצירות ופרויקטים', icon: '💨' },
-  // { id: 'events', label: 'אירועים', icon: '💧' },
+  { id: 'gallery', label: 'גלריה', icon: '💨' },
+   { id: 'projects', label: 'פרויקטים', icon: '💧' },
   { id: 'join-us', label: 'הצטרפו אלינו', icon: '🔥' },
 ];
 
@@ -29,10 +21,12 @@ const Navigation = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('');
+  const [activeTab, setActiveTab] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
   const [showAuthDropdown, setShowAuthDropdown] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [username, setUsername] = useState('');
+  const [role, setRole] = useState(null);
   const authDropdownRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,7 +47,30 @@ const Navigation = () => {
     fetchUsername();
   }, [currentUser]);
 
-  // Scroll & active section tracking + progress bar
+  // Fetch user role for dashboard access
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (currentUser) {
+        try {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            setRole(userDoc.data().role || null);
+          } else {
+            setRole(null);
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          setRole(null);
+        }
+      } else {
+        setRole(null);
+      }
+    };
+    fetchUserRole();
+  }, [currentUser]);
+
+  // Scroll & progress bar
   useEffect(() => {
     const onScroll = () => {
       // Handle nav transparency
@@ -61,12 +78,7 @@ const Navigation = () => {
 
       // Handle active section
       let found = '';
-      for (const section of sections) {
-        const el = document.getElementById(section.id);
-        if (el && el.offsetTop <= window.scrollY + 100) {
-          found = section.id;
-        }
-      }
+  
       setActiveSection(found);
 
       // Calculate scroll progress
@@ -111,6 +123,8 @@ const Navigation = () => {
       Cookies.remove("authToken");
       // close the dropdown
       setShowAuthDropdown(false);
+      // reset role state
+      setRole(null);
       // kick them back to login
       navigate("/", { replace: true });
     } catch (err) {
@@ -141,6 +155,11 @@ const Navigation = () => {
         element.scrollIntoView({ behavior: 'smooth' });
       }
     }
+  };
+
+  const handleTabClick = (tabName, path) => {
+    setActiveTab(tabName);
+    navigate(path);
   };
 
   // Check for scrollToSection in location state when component mounts or updates
@@ -184,8 +203,8 @@ const Navigation = () => {
           </a>
 
           {/* Desktop Links */}
-                <div className="hidden lg:flex items-center">
-                 <ul className="flex items-center space-x-1 space-x-reverse text-white">
+          <div className="hidden lg:flex items-center">
+            <ul className="flex items-center space-x-1 space-x-reverse text-white">
               {sections.map(item => (
                 <li key={item.id}>
                   <span
@@ -214,7 +233,7 @@ const Navigation = () => {
 
             <div className="flex items-center space-x-4 space-x-reverse pr-6">
             <div className="h-6 border-r border-white/30"></div>
-              <a href="tel:0500000000" className="text-white hover:text-green-400">
+              <a href="tel:+972502470857" className="text-white hover:text-green-400">
                 <Phone size={20} />
               </a>
               <a href="https://www.instagram.com/anatzigron" target="_blank" className="text-white hover:text-pink-300">
@@ -271,6 +290,20 @@ const Navigation = () => {
                       <a href="/publicSettings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         הגדרות
                       </a>
+                      
+                      {/* Dashboard link in auth dropdown for admin/staff */}
+                      {(role === 'admin' || role === 'staff') && (
+                        <button
+                          onClick={() => {
+                            handleTabClick('dashboard', '/admin');
+                            setShowAuthDropdown(false);
+                          }}
+                          className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          לוח בקרה
+                        </button>
+                      )}
+                      
                       <hr className="my-1 border-gray-200" />
                       <button
                         onClick={handleSignOut}
@@ -349,11 +382,27 @@ const Navigation = () => {
                   onClick={item.id !== 'community' ? (e) => handleSectionClick(e, item.id) : null}
                   className="flex items-center gap-2"
                 >
-                  <FontAwesomeIcon icon={item.icon} className="text-xl" />
+                  <span className="text-xl">{item.icon}</span>
                   <span>{item.label}</span>
                 </a>
               </li>
             ))}
+
+            {/* Dashboard option for admin/staff users in mobile menu */}
+            {(role === 'admin' || role === 'staff') && (
+              <li>
+                <button
+                  onClick={() => {
+                    handleTabClick('dashboard', '/admin');
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 w-full text-right"
+                >
+                  <BarChart2 size={20} />
+                  <span>לוח בקרה</span>
+                </button>
+              </li>
+            )}
 
             {/* Mobile Donation Button */}
             <li>
@@ -420,7 +469,7 @@ const Navigation = () => {
           </ul>
 
           <div className="border-t border-white/10 p-4 text-white flex flex-col gap-3 text-center">
-            <a href="tel:0500000000" className="hover:text-green-400">
+            <a href="tel:+972502470857" className="hover:text-green-400">
               📞 התקשרו אלינו
             </a>
             <p className="text-xs text-white/70">כל הזכויות שמורות © 2025</p>

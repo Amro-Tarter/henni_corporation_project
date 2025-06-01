@@ -139,9 +139,9 @@ const Project = ({
   const createdDate = createdAt?.toDate?.();
   const timeString = createdDate
     ? createdDate.toLocaleDateString('he-IL', {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      })
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    })
     : '';
 
   const handleDelete = () => setShowConfirmDelete(true);
@@ -218,7 +218,7 @@ const Project = ({
     if (file) setNewMediaFile(file);
   };
 
-  return (
+return (
     <>
       {warning && (
         <div
@@ -245,16 +245,20 @@ const Project = ({
           {warning}
         </div>
       )}
+
       <div
         dir="rtl"
-        className={`mb-8 max-w-4xl mx-auto rounded-xl overflow-hidden shadow-sm bg-white border border-${element}-accent hover:shadow-md transition-shadow duration-300 pb-2`}
+        className={`mb-8 max-w-4xl max-w-4xl mx-auto rounded-xl overflow-hidden shadow-sm bg-white border border-${element}-accent hover:shadow-md transition-shadow duration-300 pb-2`}
       >
         <input
           ref={fileInputRef}
           type="file"
           className="hidden"
           accept="image/*,video/*"
-          onChange={onMediaChange}
+          onChange={e => {
+            const file = e.target.files[0];
+            if (file) setNewMediaFile(file);
+          }}
         />
 
         {/* Header */}
@@ -262,18 +266,17 @@ const Project = ({
           <div className="flex items-center gap-3 cursor-pointer"
             onClick={() => navigate(`/profile/${authorProfile?.username}`)}
           >
-            {/* User profile picture */}
             <img
               src={authorProfile?.photoURL || '/default_user_pic.jpg'}
               alt={authorProfile?.username || 'משתמש'}
-              className={`w-12 h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
+              className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
             />
             <div className="flex flex-col">
-              <h3 className="text-lg font-bold">{authorProfile?.username || '...'}</h3>
-              <p className="text-xs text-gray-500">{timeString}</p>
+              <h3 className="text-lg font-bold truncate max-w-[140px]">{authorProfile?.username || '...'}</h3>
+              <p className="text-xs text-gray-500">{createdAt?.toDate?.().toLocaleDateString('he-IL', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) || ''}</p>
             </div>
           </div>
-          {isOwner &&(
+          {isOwner && (
             <div className="relative" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(prev => !prev)}
@@ -282,7 +285,7 @@ const Project = ({
                 <MoreHorizontal size={20} />
               </button>
               {menuOpen && (
-                <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}> 
+                <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}>
                   <button
                     onClick={() => { setEditing(prev => !prev); setMenuOpen(false); }}
                     className={`w-full text-right px-4 py-2 text-sm hover:bg-${element}-soft transition-colors flex items-center gap-2`}
@@ -308,36 +311,20 @@ const Project = ({
         {/* --- Edit Mode --- */}
         {editing ? (
           <>
-            <div className="px-5 pb-1 flex items-center gap-4">
+            <div className="px-3 sm:px-5 pb-1 flex flex-col sm:flex-row gap-2">
               <input
-                className={`
-                  flex-1 bg-${element}-soft
-                  rounded-xl px-4 py-3
-                  text-lg text-${element}-dark font-bold
-                  border-0
-                  focus:outline-none
-                  focus:ring-2 focus:ring-${element}-accent
-                  transition
-                `}
+                className={`flex-1 bg-${element}-soft rounded-xl px-4 py-3 text-lg text-${element}-dark font-bold border-0 focus:outline-none focus:ring-2 focus:ring-${element}-accent transition`}
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
                 placeholder="כותרת הפרויקט"
               />
             </div>
-
-            <div className="px-5 flex items-center gap-2 mt-6 mb-6 relative z-20 flex-wrap">
+            {/* Collaborators */}
+            <div className="px-3 sm:px-5 flex flex-wrap gap-2 mt-6 mb-6 relative z-20">
               <button
                 type="button"
                 onClick={() => setShowUsers(!showUsers)}
-                className={`
-                  px-3 py-2 rounded
-                  bg-${element}-accent
-                  hover:bg-${element}
-                  text-white
-                  font-semibold flex items-center gap-2
-                  border border-${element}-accent
-                  transition
-                `}
+                className={`px-3 py-2 rounded bg-${element}-accent hover:bg-${element} text-white font-semibold flex items-center gap-2 border border-${element}-accent transition`}
               >
                 <Users size={16} /> הוסף משתפי פעולה
               </button>
@@ -345,10 +332,7 @@ const Project = ({
                 const u = allUsers.find(x => x.id === uid);
                 if (!u) return null;
                 return (
-                  <div
-                    key={uid}
-                    className={`flex items-center bg-${element}-soft px-2 py-1 rounded-full text-xs gap-2 border border-${element}-accent hover:bg-${element}-soft/80 transition`}
-                  >
+                  <div key={uid} className={`flex items-center bg-${element}-soft px-2 py-1 rounded-full text-xs gap-2 border border-${element}-accent hover:bg-${element}-soft/80 transition`}>
                     <img src={u.photoURL || '/default_user_pic.jpg'} className="w-5 h-5 rounded-full mr-1" alt={u.username} />
                     <span className={`text-${element}-dark font-medium`}>{u.username}</span>
                     <button
@@ -398,14 +382,14 @@ const Project = ({
                       !newCollaborators.includes(u.id) &&
                       u.username.toLowerCase().includes(collabSearch.trim().toLowerCase())
                     ).length === 0 && (
-                      <div className="text-xs text-gray-400 px-2 py-1">לא נמצאו משתמשים</div>
-                    )}
+                        <div className="text-xs text-gray-400 px-2 py-1">לא נמצאו משתמשים</div>
+                      )}
                   </div>
                 </div>
               )}
             </div>
-
-            <div className="px-5 pb-4 mt-6">
+            {/* Description */}
+            <div className="px-3 sm:px-5 pb-4 mt-6">
               <div className="relative mb-3">
                 <textarea
                   id={`edit-textarea-${id}`}
@@ -421,15 +405,7 @@ const Project = ({
                     type="button"
                     ref={emojiBtnRef}
                     onClick={openEmojiPicker}
-                    className={`
-                      px-2 py-2 rounded-md 
-                      bg-${element}-soft 
-                      text-${element} 
-                      hover:bg-${element}-accent 
-                      hover:text-white 
-                      transition-colors
-                      flex items-center
-                    `}
+                    className={`px-2 py-2 rounded-md bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white transition-colors flex items-center`}
                     aria-label="הוסף אימוג׳י"
                     tabIndex={-1}
                     style={{ zIndex: 10 }}
@@ -477,13 +453,12 @@ const Project = ({
           </>
         ) : (
           // -------- NOT EDITING MODE: SPACING ADDED! --------
-          <div className="px-5 pb-4 flex flex-col gap-6">
+          <div className="px-3 sm:px-5 pb-4 flex flex-col gap-6">
             <div>
-              <h2 className={`font-bold text-xl text-${element}`}>{title}</h2>
+              <h2 className={`font-bold text-xl sm:text-2xl text-${element}`}>{title}</h2>
             </div>
-
             {collaboratorProfiles.length > 0 && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Users size={18} className={`text-${element}-accent`} />
                 <span className="text-sm font-medium text-gray-700">משתפי פעולה:</span>
                 {collaboratorProfiles.map((c, idx) => (
@@ -491,24 +466,18 @@ const Project = ({
                     key={c.uid || c.id || idx}
                     type="button"
                     onClick={() => navigate(`/profile/${c.username}`)}
-                    className={`flex items-center bg-${element}-soft px-2 py-1 rounded-full text-xs gap-2 border border-${element}-accent hover:bg-${element}-soft/80 hover:scale-105
-                                transition duration-130`}
+                    className={`flex items-center bg-${element}-soft px-2 py-1 rounded-full text-xs gap-2 border border-${element}-accent hover:bg-${element}-soft/80 hover:scale-105 transition duration-130`}
                     title={`לבקר את הפרופיל של ${c.username}`}
                     tabIndex={0}
                   >
-                    <img
-                      src={c.photoURL || '/default_user_pic.jpg'}
-                      alt={c.username}
-                      className="w-6 h-6 rounded-full object-cover"
-                    />
+                    <img src={c.photoURL || '/default_user_pic.jpg'} alt={c.username} className="w-6 h-6 rounded-full object-cover" />
                     <span className="font-medium">{c.username}</span>
                   </button>
                 ))}
               </div>
             )}
-
             <div>
-              <p className="text-base leading-relaxed whitespace-pre-wrap break-words overflow-hidden">{description}</p>
+              <p className="text-base leading-relaxed whitespace-pre-wrap break-words break-all overflow-hidden">{description}</p>
             </div>
           </div>
         )}
@@ -544,11 +513,10 @@ const Project = ({
                 aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}
               >
                 <div
-                  className={`p-1.5 rounded-full transition-colors ${
-                    liked
-                      ? `bg-${element} text-white`
-                      : `bg-${element}-soft text-${element} hover:bg-${element}-accent`
-                  }`}
+                  className={`p-1.5 rounded-full transition-colors ${liked
+                    ? `bg-${element} text-white`
+                    : `bg-${element}-soft text-${element} hover:bg-${element}-accent`
+                    }`}
                 >
                   <ThumbsUp
                     size={18}
@@ -578,9 +546,8 @@ const Project = ({
               <span className="text-sm font-medium transition-colors group-hover:text-${element}">{commentsCount}</span>
             </button>
           </div>
-
           {editing && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-row gap-2 w-full sm:w-auto justify-center sm:justify-end mt-2 sm:mt-0">
               <button onClick={handleDelete} className="flex items-center gap-1 px-3 py-1.5 text-xs text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors">
                 <Trash2 size={14} /> מחק
               </button>
@@ -593,7 +560,7 @@ const Project = ({
           {showComments && (
             <motion.div
               ref={commentsRef}
-              className="px-5 py-4 border-t border-gray-200"
+              className="px-3 sm:px-5 py-4 border-t border-gray-200"
               key="comments-section"
               initial={{ y: -24, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -601,7 +568,7 @@ const Project = ({
               transition={{ duration: 0.40 }}
             >
               <div>
-                <div className="flex gap-3 mb-4">
+                <div className="flex flex-row items-center gap-3 mb-4">
                   <img src={currentUser.photoURL} alt="" className="w-8 h-8 rounded-full" />
                   <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
                 </div>
@@ -614,13 +581,8 @@ const Project = ({
                       currentUser={currentUser}
                       onReply={setReplyTo}
                       onEdit={onEditComment}
-                      onDelete={() =>
-                        setCommentToDelete({
-                          projectId: id,
-                          commentId: c.id,
-                          isReply: c.parentCommentId ? true : false,
-                          parentCommentId: c.parentCommentId || null,
-                        })
+                      onDelete={(projectId, commentId, isReply, parentId) =>
+                        setCommentToDelete({ projectId, commentId, isReply, parentId })
                       }
                       replyingToId={replyTo}
                       onSubmitReply={(text, parentId) => {
@@ -664,7 +626,7 @@ const Project = ({
               commentToDelete.projectId,
               commentToDelete.commentId,
               commentToDelete.isReply,
-              commentToDelete.parentCommentId
+              commentToDelete.parentId
             );
             setCommentToDelete(null);
           }
@@ -674,6 +636,6 @@ const Project = ({
       />
     </>
   );
-
 };
+
 export default Project;

@@ -544,13 +544,14 @@ const Home = () => {
               ) : (
                 <>
                   {/* CreatePost */}
-                  <CreatePost
-                    addPost={addPost}
-                    profilePic={profile.photoURL || '/default-avatar.png'}
-                    element={profile.element}
-                    className="shadow-md bg-element-post rounded-xl p-3 sm:p-4 w-full"
-                  />
-
+                  <div className='pt-12'>
+                    <CreatePost
+                      addPost={addPost}
+                      profilePic={profile.photoURL || '/default-avatar.png'}
+                      element={profile.element}
+                      className="shadow-md bg-element-post rounded-xl p-3 sm:p-4 w-full"
+                    />
+                  </div>
                   {/* Creative Tab Navigation */}
                   <div className="flex flex-col items-center mb-6 sm:mb-8 w-full">
                     <div className="bg-element-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden">

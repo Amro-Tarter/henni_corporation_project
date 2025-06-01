@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, MessageSquare, Settings, Search, Bell, User, LogOut, LayoutDashboard, BarChart2, LogIn } from 'lucide-react';
+import { Home, MessageSquare, Settings, Search, Bell, User, LogOut, BarChart2, LogIn, FileText } from 'lucide-react';
 import { collection, getDocs, doc, updateDoc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
@@ -26,6 +26,7 @@ const Navbar = ({ element }) => {
     if (path.startsWith('/notifications')) return 'notifications';
     if (path.startsWith('/profile')) return 'profile';
     if (path.startsWith('/admin')) return 'dashboard';
+    if (path.startsWith('/report')) return 'report';
     return 'home';
   };
 
@@ -59,7 +60,7 @@ const Navbar = ({ element }) => {
           const profileDocRef = doc(db, 'profiles', user.uid);
           const profileDoc = await getDoc(profileDocRef);
           if (profileDoc.exists()) {
-            setSearchHistory(profileDoc.data().searchHistory || []); 
+            setSearchHistory(profileDoc.data().searchHistory || []);
           }
           const userDocRef = doc(db, 'users', user.uid);
           const userDoc = await getDoc(userDocRef);
@@ -89,10 +90,10 @@ const Navbar = ({ element }) => {
             // Enhanced Hebrew search with normalization
             const normalizedUsername = normalizeText(profile.username || '');
             const normalizedName = normalizeText(profile.name || '');
-            
+
             // Check if the normalized search term appears in username or name
-            return normalizedUsername.includes(normalizedSearchTerm) || 
-                   normalizedName.includes(normalizedSearchTerm);
+            return normalizedUsername.includes(normalizedSearchTerm) ||
+              normalizedName.includes(normalizedSearchTerm);
           });
 
         setSearchResults(filteredResults);
@@ -122,11 +123,11 @@ const Navbar = ({ element }) => {
           const normalizedUsername = normalizeText(profile.username || '');
           const normalizedName = normalizeText(profile.name || '');
           const normalizedBio = normalizeText(profile.bio || '');
-          
+
           // Enhanced search with multiple profile fields
-          return normalizedUsername.includes(normalizedInput) || 
-                 normalizedName.includes(normalizedInput) || 
-                 normalizedBio.includes(normalizedInput);
+          return normalizedUsername.includes(normalizedInput) ||
+            normalizedName.includes(normalizedInput) ||
+            normalizedBio.includes(normalizedInput);
         });
 
       setSearchResults(results);
@@ -197,10 +198,10 @@ const Navbar = ({ element }) => {
       {/* Mobile Menu */}
       <div
         className={cn(
-          'fixed top-0 right-0 h-full w-72 z-[100] transform transition-transform duration-300 ease-in-out flex flex-col',
+          'fixed top-0 right-0 h-full w-72 z-[100] transform transition-transform duration-300 ease-in-out flex flex-col overflow-y-auto',
           isMenuOpen ? 'translate-x-0' : 'translate-x-full'
         )}
-        style={{ 
+        style={{
           backgroundColor: '#7f1d1d', // Solid red-900 background
           opacity: 1 // Ensure full opacity
         }}
@@ -231,7 +232,7 @@ const Navbar = ({ element }) => {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') triggerSearch();
                 }}
-                className="w-full border border-white/30 rounded-full py-2 pr-4 pl-10 text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm"
+                className="w-full border border-white/30 rounded-full py-2 pr-4 pl-9 text-sm md:text-base text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm"
                 dir="rtl"
                 lang="he"
               />
@@ -316,7 +317,7 @@ const Navbar = ({ element }) => {
               </button>
             </li>
           ))}
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'staff') && (
             <li>
               <button
                 onClick={() => {
@@ -326,10 +327,26 @@ const Navbar = ({ element }) => {
                 className="flex items-center gap-2 w-full text-right"
               >
                 <BarChart2 size={20} />
-                <span>דשבורד</span>
+                <span>לוח בקרה</span>
+
               </button>
             </li>
           )}
+          {role === 'mentor' && (
+            <li>
+              <button
+                onClick={() => {
+                  handleTabClick('report', '/report');
+                  setIsMenuOpen(false);
+                }}
+                className="flex items-center gap-2 w-full text-right"
+              >
+                <FileText size={20} />
+                <span>דוחות</span>
+              </button>
+            </li>
+          )}
+
 
           {/* Notifications */}
           <li className="pt-4 border-t border-white/10">
@@ -414,7 +431,7 @@ const Navbar = ({ element }) => {
         </ul>
 
         {/* Footer Section - Like in public page */}
-        <div className="border-t border-white/10 p-4 text-white flex flex-col gap-3 text-center">
+        <div className="border-t border-white/10 p-4 text-white flex flex-col gap-3 text-center mt-auto">
           <a href="tel:0500000000" className="hover:text-green-400">
             📞 התקשרו אלינו
           </a>
@@ -424,9 +441,9 @@ const Navbar = ({ element }) => {
 
       <header dir="rtl" className={`fixed top-0 left-0 w-full bg-red-900 backdrop-blur-md shadow-md border-b border-red-800 z-50`}>
         <nav className="relative z-50 container mx-auto flex items-center justify-between px-6 py-2">
-          <a href="/Home" className="flex flex-col items-start">
-            <span className="text-white font-bold text-xl md:text-2xl">לגלות את האור – הנני</span>
-            <span className="text-white/80 text-sm hidden md:block">מנהיגות. יצירה. שייכות.</span>
+          <a href="/" className="flex flex-col items-start">
+            <span className="text-white font-semibold text-base sm:text-lg md:text-xl">עמותת לגלות את האור – הנני</span>
+            <span className="text-white/80 text-xs hidden md:block">יצירה. מנהיגות. שייכות.</span>
           </a>
 
           {/* Search Bar - Desktop */}
@@ -530,7 +547,7 @@ const Navbar = ({ element }) => {
                   </button>
                 </li>
               ))}
-              {role === 'admin' && (
+              {(role === 'admin' || role === 'staff') && (
                 <li>
                   <button
                     onClick={() => handleTabClick('dashboard', '/admin')}
@@ -540,7 +557,21 @@ const Navbar = ({ element }) => {
                     )}
                   >
                     <BarChart2 size={20} />
-                    <span>דשבורד</span>
+                    <span>לוח בקרה</span>
+                  </button>
+                </li>
+              )}
+              {role === 'mentor' && (
+                <li>
+                  <button
+                    onClick={() => handleTabClick('report', '/report')}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
+                      activeTab === 'report' && 'bg-white/20'
+                    )}
+                  >
+                    <FileText size={20} />
+                    <span>דוחות</span>
                   </button>
                 </li>
               )}

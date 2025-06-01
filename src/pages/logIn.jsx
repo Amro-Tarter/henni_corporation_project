@@ -4,13 +4,10 @@ import Cookies from "js-cookie";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import {
   doc,
-  getDoc,
+  getDoc, // Directly get the user document by UID
   updateDoc,
   serverTimestamp,
-  collection, 
-  query, 
-  where, 
-  getDocs
+  // Removed collection, query, where, getDocs as they are no longer strictly needed for user lookup
 } from "firebase/firestore";
 import { auth, db } from "../config/firbaseConfig";
 import { User, Lock, Loader } from "lucide-react";
@@ -41,11 +38,11 @@ const Login = () => {
     }
   }, []);
 
-  // Add animation styles
+  // Add animation styles (unchanged)
   useEffect(() => {
     const styleSheet = document.createElement("style");
     styleSheet.type = "text/css";
-    styleSheet.innerText = `       @keyframes float {
+    styleSheet.innerText = ` @keyframes float {
         0% { transform: translateY(0) rotate(0deg); }
         50% { transform: translateY(-20px) rotate(5deg); }
         100% { transform: translateY(0) rotate(0deg); }
@@ -114,19 +111,17 @@ const Login = () => {
       return;
     }
     
-    const user = userCredential.user;
-    const email = form.email;
+    const user = userCredential.user; // The authenticated Firebase user object
 
-    // 2. Check if user exists in Firestore
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("email", "==", email));
-
-    let querySnapshot;
+    // 2. Fetch user data from Firestore using the UID (document ID)
+    // This is now direct, efficient, and aligns with the security rules.
+    const userDocRef = doc(db, "users", user.uid);
+    let userDocSnap;
     try {
-      querySnapshot = await getDocs(q);
+      userDocSnap = await getDoc(userDocRef);
     } catch (error) {
       toast.error("שגיאה", {
-        description: "שגיאה בבדיקת הנתונים. נסה שנית."
+        description: "שגיאה בבדיקת נתוני המשתמש. נסה שנית."
       });
       
       await signOut(auth);
@@ -134,18 +129,19 @@ const Login = () => {
       return;
     }
 
-    if (querySnapshot.empty) {
+    if (!userDocSnap.exists()) {
       toast.error("שגיאה", {
-        description: "לא נמצא משתמש עם המייל הזה"
+        description: "לא נמצאו נתוני משתמש תואמים. פנה למנהל המערכת."
       });
       
-      await signOut(auth);
+      await signOut(auth); // Sign out if Firestore user data not found
       setLoading(false);
       return;
     }
 
-    const userDoc = querySnapshot.docs[0];
-    const userData = userDoc.data();
+    const userData = userDocSnap.data();
+    // No need to check `userData.associated_id === user.uid` here anymore
+    // because `userDocSnap.id` (which is `user.uid`) already matches the rule.
 
     // 3. Check if user is active
     if (!userData.is_active) {
@@ -160,12 +156,13 @@ const Login = () => {
 
     // 4. Update last_login timestamp
     try {
-      await updateDoc(userDoc.ref, {
+      await updateDoc(userDocRef, { // Use userDocRef directly
         last_login: serverTimestamp(),
       });
     } catch (error) {
+      console.error("Error updating last_login:", error); // Log for more details
       toast.error("שגיאה", {
-        description: "שגיאה בעדכון זמן כניסה. נסה שנית."
+        description: "שגיאה בעדכון זמן כניסה. נסה שנית. (בדוק הרשאות Firestore)"
       });
       
       await signOut(auth);
