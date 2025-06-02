@@ -146,8 +146,8 @@ export default function ChatApp() {
           };
           setCurrentUser(userData);
           // Ensure user is in their element community
-          const community = await handleElementCommunityChatMembership(user.uid, userElement);
-                    // Ensure mentor community logic
+          await handleElementCommunityChatMembership(user.uid, userElement);
+          // Ensure mentor community logic
           await handleMentorCommunityMembership(user.uid, userRole, userDoc.data().mentorName, userDoc.data().username);
           setAuthInitialized(true);
           
