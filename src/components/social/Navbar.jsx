@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNotifications } from './NotificationsComponent';
 import { cn } from '@/lib/utils';
+import { getAuth } from 'firebase/auth';
 
 const navTabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', href: '/Home' },
@@ -40,6 +41,7 @@ const Navbar = ({ element }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [role, setRole] = useState(null);
+  const [viewerProfile, setViewerProfile] = useState(null);
 
   const searchRef = useRef(null);
   const profileDropdownRef = useRef(null);
@@ -54,68 +56,107 @@ const Navbar = ({ element }) => {
   };
 
   useEffect(() => {
+    const fetchViewerProfile = async () => {
+      const auth = getAuth();
+      const viewerUid = auth.currentUser?.uid;
+      if (!viewerUid) return;
+
+      try {
+        console.log('Fetching viewer profile and role for:', viewerUid);
+        
+        // Get the user's username first from profiles
+        const profileSnap = await getDoc(doc(db, 'profiles', viewerUid));
+        const username = profileSnap.exists() ? profileSnap.data().username : null;
+        
+        if (username) {
+          // Fetch user role by username
+          const userQuery = query(collection(db, 'users'), where('username', '==', username));
+          const userSnapshot = await getDocs(userQuery);
+          
+          if (!userSnapshot.empty) {
+            const userData = userSnapshot.docs[0].data();
+            const userRole = userData.role || null;
+            console.log('Found user role:', userRole);
+            setRole(userRole);
+            
+            // Set viewer profile with all data
+            const viewerProfileData = {
+              uid: viewerUid,
+              ...(profileSnap.exists() ? profileSnap.data() : {}),
+              role: userRole
+            };
+            
+            console.log('Setting viewer profile with role:', viewerProfileData);
+            setViewerProfile(viewerProfileData);
+          } else {
+            console.log('No user document found for username:', username);
+            setRole(null);
+            setViewerProfile(null);
+          }
+        } else {
+          console.log('No username found in profile');
+          setRole(null);
+          setViewerProfile(null);
+        }
+      } catch (error) {
+        console.error('Error fetching viewer profile or role:', error);
+        setRole(null);
+        setViewerProfile(null);
+      }
+    };
+
+    fetchViewerProfile();
+  }, []);
+
+  useEffect(() => {
     if (user) {
       const fetchHistory = async () => {
         try {
-          console.log('Fetching search history for user:', user.uid);
           const profileDocRef = doc(db, 'profiles', user.uid);
           const profileDoc = await getDoc(profileDocRef);
-          
           if (profileDoc.exists()) {
             const history = profileDoc.data().searchHistory || [];
-            console.log('Raw search history:', history);
-            
-            if (history.length > 0) {
-              // Fetch roles for history items
-              const historyWithRoles = await Promise.all(history.map(async (profile) => {
-                if (!profile || !profile.username) {
-                  console.log('Skipping invalid profile in history:', profile);
-                  return null;
-                }
+            // Fetch roles for history items
+            const historyWithRoles = await Promise.all(history.map(async (profile) => {
+              if (!profile || !profile.username) return null;
+              try {
+                // First get the user document by username
+                const usersQuery = query(collection(db, 'users'), where('username', '==', profile.username));
+                const userSnapshot = await getDocs(usersQuery);
                 
-                try {
-                  // If we have authorId use it, otherwise try to find the user by username
-                  let userId = profile.authorId;
-                  if (!userId) {
-                    const userQuery = query(collection(db, 'profiles'), where('username', '==', profile.username));
-                    const userSnapshot = await getDocs(userQuery);
-                    if (!userSnapshot.empty) {
-                      userId = userSnapshot.docs[0].id;
-                    }
-                  }
-                  
-                  if (userId) {
-                    const userDoc = await getDoc(doc(db, 'users', userId));
-                    const role = userDoc.exists() ? userDoc.data().role : null;
-                    console.log('Processed history item:', { username: profile.username, role });
-                    return { ...profile, role, authorId: userId };
-                  }
-                  return profile;
-                } catch (error) {
-                  console.error('Error processing history item:', profile.username, error);
-                  return profile;
+                if (!userSnapshot.empty) {
+                  const userDoc = userSnapshot.docs[0];
+                  const userData = userDoc.data();
+                  console.log('Found user data for:', profile.username, userData);
+                  return { 
+                    ...profile, 
+                    role: userData.role || null,
+                    authorId: userDoc.id 
+                  };
                 }
-              }));
-              
-              const validHistory = historyWithRoles.filter(Boolean);
-              console.log('Final processed history:', validHistory);
-              setSearchHistory(validHistory);
-            } else {
-              console.log('No search history found');
-              setSearchHistory([]);
-            }
-          } else {
-            console.log('No profile document found');
-            setSearchHistory([]);
+                return profile;
+              } catch (error) {
+                console.error('Error fetching role for profile:', profile.username, error);
+                return profile;
+              }
+            }));
+            
+            console.log('History with roles:', historyWithRoles);
+            setSearchHistory(historyWithRoles.filter(Boolean));
           }
         } catch (err) {
           console.error('Error fetching search history:', err);
-          setSearchHistory([]);
         }
       };
       fetchHistory();
     }
   }, [user]);
+
+  useEffect(() => {
+    console.log('Role state changed:', role);
+  }, [role]);
+
+  console.log('Current role during render:', role);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -126,28 +167,41 @@ const Navbar = ({ element }) => {
         const searchTerm = searchInput.trim();
         const normalizedSearchTerm = normalizeText(searchTerm);
 
-        const filteredResults = await Promise.all(querySnapshot.docs.map(async (docSnapshot) => {
-          const profile = docSnapshot.data();
-          const profileId = docSnapshot.id;
-          try {
-            // Fetch user role
-            const userDoc = await getDoc(doc(db, 'users', profileId));
-            const role = userDoc.exists() ? userDoc.data().role : null;
-            console.log('Fetched profile with role:', { username: profile.username, role });
-            return { ...profile, role, authorId: profileId }; // Include authorId for future reference
-          } catch (error) {
-            console.error('Error fetching role for profile:', profile.username, error);
-            return profile;
-          }
-        })).then(profiles => profiles.filter((profile) => {
+        const profiles = querySnapshot.docs.map(doc => ({
+          ...doc.data(),
+          authorId: doc.id
+        }));
+
+        // Filter profiles first
+        const matchingProfiles = profiles.filter(profile => {
           const normalizedUsername = normalizeText(profile.username || '');
           const normalizedName = normalizeText(profile.name || '');
           return normalizedUsername.includes(normalizedSearchTerm) ||
             normalizedName.includes(normalizedSearchTerm);
+        });
+
+        // Then fetch roles for matching profiles
+        const resultsWithRoles = await Promise.all(matchingProfiles.map(async (profile) => {
+          try {
+            const userQuery = query(collection(db, 'users'), where('username', '==', profile.username));
+            const userSnapshot = await getDocs(userQuery);
+            
+            if (!userSnapshot.empty) {
+              const userData = userSnapshot.docs[0].data();
+              return {
+                ...profile,
+                role: userData.role || null
+              };
+            }
+            return profile;
+          } catch (error) {
+            console.error('Error fetching role for search result:', profile.username, error);
+            return profile;
+          }
         }));
 
-        console.log('Filtered search results:', filteredResults);
-        setSearchResults(filteredResults);
+        console.log('Search results with roles:', resultsWithRoles);
+        setSearchResults(resultsWithRoles);
       } catch (err) {
         console.error('Error fetching profiles:', err);
       }
@@ -291,6 +345,53 @@ const Navbar = ({ element }) => {
       lang="he"
     />
   );
+
+  const RoleBasedNavItems = () => {
+    const isAdmin = role === 'admin';
+    const isStaff = role === 'staff';
+    const isMentor = role === 'mentor';
+    
+    console.log('RoleBasedNavItems rendering with:', { isAdmin, isStaff, isMentor, role });
+    
+    return (
+      <>
+        {(isAdmin || isStaff) && (
+          <li>
+            <button
+              onClick={() => {
+                handleTabClick('dashboard', '/admin');
+                setIsMenuOpen(false);
+              }}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
+                activeTab === 'dashboard' && 'bg-white/20'
+              )}
+            >
+              <BarChart2 size={20} />
+              <span>לוח בקרה</span>
+            </button>
+          </li>
+        )}
+        {isMentor && (
+          <li>
+            <button
+              onClick={() => {
+                handleTabClick('report', '/report');
+                setIsMenuOpen(false);
+              }}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
+                activeTab === 'report' && 'bg-white/20'
+              )}
+            >
+              <FileText size={20} />
+              <span>דוחות</span>
+            </button>
+          </li>
+        )}
+      </>
+    );
+  };
 
   return (
     <>
@@ -464,36 +565,7 @@ const Navbar = ({ element }) => {
               </button>
             </li>
           ))}
-          {(role === 'admin' || role === 'staff') && (
-            <li>
-              <button
-                onClick={() => {
-                  handleTabClick('dashboard', '/admin');
-                  setIsMenuOpen(false);
-                }}
-                className="flex items-center gap-2 w-full text-right"
-              >
-                <BarChart2 size={20} />
-                <span>לוח בקרה</span>
-
-              </button>
-            </li>
-          )}
-          {role === 'mentor' && (
-            <li>
-              <button
-                onClick={() => {
-                  handleTabClick('report', '/report');
-                  setIsMenuOpen(false);
-                }}
-                className="flex items-center gap-2 w-full text-right"
-              >
-                <FileText size={20} />
-                <span>דוחות</span>
-              </button>
-            </li>
-          )}
-
+          <RoleBasedNavItems />
 
           {/* Notifications */}
           <li className="pt-4 border-t border-white/10">
@@ -729,34 +801,7 @@ const Navbar = ({ element }) => {
                   </button>
                 </li>
               ))}
-              {(role === 'admin' || role === 'staff') && (
-                <li>
-                  <button
-                    onClick={() => handleTabClick('dashboard', '/admin')}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
-                      activeTab === 'dashboard' && 'bg-white/20'
-                    )}
-                  >
-                    <BarChart2 size={20} />
-                    <span>לוח בקרה</span>
-                  </button>
-                </li>
-              )}
-              {role === 'mentor' && (
-                <li>
-                  <button
-                    onClick={() => handleTabClick('report', '/report')}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
-                      activeTab === 'report' && 'bg-white/20'
-                    )}
-                  >
-                    <FileText size={20} />
-                    <span>דוחות</span>
-                  </button>
-                </li>
-              )}
+              <RoleBasedNavItems />
             </ul>
 
             {/* Notifications & Profile */}
