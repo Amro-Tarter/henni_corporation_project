@@ -1,6 +1,13 @@
 import { db } from '@/config/firbaseConfig';
 import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
 
+const COMMUNITY_DESCRIPTIONS = {
+  element: 'קהילה זו מיועדת לכל חברי היסוד שלך. כאן תוכלו לשתף, לשאול ולהתחבר עם חברים מהיסוד.',
+  mentor_community: 'קהילה זו כוללת את המנטור שלך ואת כל המשתתפים שמלווים על ידו. כאן אפשר להתייעץ, לשאול ולשתף.',
+  all_mentors: 'קהילה זו מאגדת את כל המנטורים בתכנית. כאן ניתן להחליף רעיונות, לשתף ידע ולתמוך זה בזה.',
+  all_mentors_with_admin: 'קהילה זו כוללת את כל המנטורים והמנהלים. כאן מתקיימים עדכונים, שיתופים ודיונים מקצועיים.'
+};
+
 export const handleElementCommunityChatMembership = async (userId, userElement) => {
     try {
       const normalizedElement = userElement;  
@@ -53,12 +60,12 @@ export const handleElementCommunityChatMembership = async (userId, userElement) 
           type: "community",
           element: normalizedElement,
           communityType: "element",
-          lastMessage: "קהילה נוצרה! ברוכים הבאים!",
+          lastMessage: COMMUNITY_DESCRIPTIONS.element,
           lastUpdated: serverTimestamp(),
           createdAt: serverTimestamp(),
         });
         await addDoc(collection(db, "conversations", newCommunityRef.id, "messages"), {
-          text: "קהילה נוצרה! ברוכים הבאים!",
+          text: COMMUNITY_DESCRIPTIONS.element,
           type: "system",
           createdAt: serverTimestamp(),
         });
