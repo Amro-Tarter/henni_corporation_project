@@ -76,7 +76,7 @@ const ChatInput = memo(({
   }, [setNewMessage]);
 
   return (
-    <div className="p-2 border-t border-gray-200 bg-white absolute bottom-0 left-0 w-full lg:w-9/12 md:w-8/12 sm:w-11/12">
+    <div className="p-2 border-t border-gray-200 bg-white bottom-0 left-0 w-full relative">
       {/* Image Preview */}
       {preview && (
         <div className="relative mb-2 sm:mb-3 border rounded p-2 bg-gray-50 overflow-x-auto max-w-full">
@@ -165,6 +165,30 @@ const ChatInput = memo(({
             )}
           </div>
         )}
+        {/* Send Button */}
+        <button
+          type="submit"
+          className="text-white px-2 py-2 rounded-full transition duration-200 opacity-85 disabled:opacity-50 hover:opacity-100 hover:scale-90 min-w-[48px] min-h-[48px] flex-shrink-0 w-auto"
+          style={{ backgroundColor: elementColors.primary }}
+          ref={sendButtonRef}
+          onClick={handleSend}
+          aria-label="שלח הודעה"
+          disabled={
+            isRecording || 
+            isUploadingVoice || 
+            ((!newMessage.trim() && !file && !audioBlob) || 
+             (newMessage.trim() && (file || audioBlob)) || 
+             isUploading)
+          }
+        >
+          {isUploading ? (
+            <span className="animate-pulse">מעלה... {Math.round(uploadProgress)}%</span>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6 mx-auto">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10.96l15.2-6.53a1 1 0 011.32 1.32l-6.53 15.2a1 1 0 01-1.82.06l-2.1-4.2a1 1 0 00-.45-.45l-4.2-2.1a1 1 0 01.06-1.82z" />
+            </svg>
+          )}
+        </button>
 
         {/* Input with Emoji Button Inside */}
         {!preview && (
@@ -172,7 +196,7 @@ const ChatInput = memo(({
             <input
               ref={inputRef}
               type="text"
-              className="w-full p-2 pr-10 border border-gray-300 rounded-full focus:outline-none focus:ring bg-wat placeholder:text-right text-xs sm:text-sm min-h-[40px]"
+              className="w-full p-2 pr-10 border border-gray-300 rounded-full focus:outline-none focus:ring bg-white placeholder:text-right text-xs sm:text-sm min-h-[40px]"
               style={{ borderColor: 'rgb(209, 213, 219)' }}
               placeholder={isRecording || isUploadingVoice ? disabledPlaceholder : "...הקלד הודעה"}
               value={newMessage}
@@ -206,30 +230,7 @@ const ChatInput = memo(({
           </div>
         )}
 
-        {/* Send Button */}
-        <button
-          type="submit"
-          className="text-white px-2 py-2 rounded-full transition duration-200 opacity-85 disabled:opacity-50 hover:opacity-100 hover:scale-90 min-w-[48px] min-h-[48px] flex-shrink-0 w-auto"
-          style={{ backgroundColor: elementColors.primary }}
-          ref={sendButtonRef}
-          onClick={handleSend}
-          aria-label="שלח הודעה"
-          disabled={
-            isRecording || 
-            isUploadingVoice || 
-            ((!newMessage.trim() && !file && !audioBlob) || 
-             (newMessage.trim() && (file || audioBlob)) || 
-             isUploading)
-          }
-        >
-          {isUploading ? (
-            <span className="animate-pulse">מעלה... {Math.round(uploadProgress)}%</span>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6 mx-auto">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10.96l15.2-6.53a1 1 0 011.32 1.32l-6.53 15.2a1 1 0 01-1.82.06l-2.1-4.2a1 1 0 00-.45-.45l-4.2-2.1a1 1 0 01.06-1.82z" />
-            </svg>
-          )}
-        </button>
+        
       </form>
     </div>
   );

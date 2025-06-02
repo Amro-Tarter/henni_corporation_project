@@ -1,5 +1,12 @@
 import { db } from '@/config/firbaseConfig';
-import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs, updateDoc, arrayUnion, addDoc } from 'firebase/firestore';
+
+const COMMUNITY_DESCRIPTIONS = {
+  element: 'קהילה זו מיועדת לכל חברי היסוד שלך. כאן תוכלו לשתף, לשאול ולהתחבר עם חברים מהיסוד.',
+  mentor_community: 'קהילה זו כוללת את המנטור שלך ואת כל המשתתפים שמלווים על ידו. כאן אפשר להתייעץ, לשאול ולשתף.',
+  all_mentors: 'קהילה זו מאגדת את כל המנטורים בתכנית. כאן ניתן להחליף רעיונות, לשתף ידע ולתמוך זה בזה.',
+  all_mentors_with_admin: 'קהילה זו כוללת את כל המנטורים והמנהלים. כאן מתקיימים עדכונים, שיתופים ודיונים מקצועיים.'
+};
 
 export const handleMentorCommunityMembership = async (userId, userRole, mentorName, username) => {
     try {
@@ -95,6 +102,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
   
   // Helper functions
   const handleMentorCommunity = async (mentorId, mentorUsername, allUsers) => {
+    console.log('handleMentorCommunity called with:', { mentorId, mentorUsername });
     // Find all mentees for this mentor
     const myParticipants = allUsers.filter(u => 
       u.role === 'participant' && u.mentorName === mentorUsername
@@ -108,21 +116,14 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
     // Build unread object
     const unread = allIds.reduce((acc, uid) => ({ ...acc, [uid]: 0 }), {});
     
-    // Find existing mentor community
-    const mentorCommunityQuery = query(
-      collection(db, "conversations"),
-      where("type", "==", "community"),
-      where("communityType", "==", "mentor_community"),
-      where("mentorId", "==", mentorId)
-    );
-    
-    const mentorCommunitySnapshot = await getDocs(mentorCommunityQuery);
-    let communityDoc;
-    
-    if (mentorCommunitySnapshot.empty) {
+    // Use mentorId as the document ID for the mentor community
+    const mentorCommunityDocId = `mentor_community_${mentorId}`;
+    const mentorCommunityRef = doc(db, "conversations", mentorCommunityDocId);
+    const mentorCommunityDoc = await getDoc(mentorCommunityRef);
+
+    if (!mentorCommunityDoc.exists()) {
       // Create new community
-      const newCommunityRef = doc(collection(db, "conversations"));
-      await setDoc(newCommunityRef, {
+      await setDoc(mentorCommunityRef, {
         type: "community",
         communityType: "mentor_community",
         mentorId,
@@ -130,21 +131,22 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         participants: allIds,
         participantNames: allNames,
         unread,
-        lastMessage: "קהילת המנטור נוצרה!",
+        lastMessage: COMMUNITY_DESCRIPTIONS.mentor_community,
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
-      communityDoc = await getDoc(newCommunityRef);
+      await addDoc(collection(db, "conversations", mentorCommunityDocId, "messages"), {
+        text: COMMUNITY_DESCRIPTIONS.mentor_community,
+        type: "system",
+        createdAt: serverTimestamp(),
+      });
     } else {
       // Update existing community
-      communityDoc = mentorCommunitySnapshot.docs[0];
-      const currentData = communityDoc.data();
-      
+      const currentData = mentorCommunityDoc.data();
       // Check if update needed
       const needsUpdate = 
         allIds.length !== currentData.participants.length ||
         !allIds.every(id => currentData.participants.includes(id));
-      
       if (needsUpdate) {
         // Update unread status
         const newUnread = { ...currentData.unread };
@@ -152,8 +154,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         Object.keys(newUnread)
           .filter(uid => !allIds.includes(uid))
           .forEach(uid => delete newUnread[uid]);
-        
-        await updateDoc(communityDoc.ref, {
+        await updateDoc(mentorCommunityRef, {
           participants: allIds,
           participantNames: allNames,
           unread: newUnread,
@@ -231,8 +232,13 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         communityType: "all_mentors",
         participants: mentorIds,
         participantNames: mentorNames,
-        lastMessage: "קהילת כל המנטורים נוצרה!",
+        lastMessage: COMMUNITY_DESCRIPTIONS.all_mentors,
         lastUpdated: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      });
+      await addDoc(collection(db, "conversations", newRef.id, "messages"), {
+        text: COMMUNITY_DESCRIPTIONS.all_mentors,
+        type: "system",
         createdAt: serverTimestamp(),
       });
     } else {
@@ -256,45 +262,44 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
   const handleAllMentorsWithAdminCommunity = async (allUsers) => {
     const allMentors = allUsers.filter(u => u.role === 'mentor');
     const allAdmins = allUsers.filter(u => u.role === 'admin');
-    
+
     const mentorAdminIds = [
       ...allMentors.map(u => u.id),
       ...allAdmins.map(u => u.id)
     ];
-    
+
     const mentorAdminNames = [
       ...allMentors.map(u => u.username),
       ...allAdmins.map(u => u.username)
     ];
-    
-    const queryRef = query(
-      collection(db, "conversations"),
-      where("type", "==", "community"),
-      where("communityType", "==", "all_mentors_with_admin")
-    );
-    
-    const snapshot = await getDocs(queryRef);
-    
-    if (snapshot.empty) {
+
+    // Use a fixed document ID for the all_mentors_with_admin community
+    const docRef = doc(db, "conversations", "all_mentors_with_admin");
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
       // Create new community
-      const newRef = doc(collection(db, "conversations"));
-      await setDoc(newRef, {
+      await setDoc(docRef, {
         type: "community",
         communityType: "all_mentors_with_admin",
         participants: mentorAdminIds,
         participantNames: mentorAdminNames,
-        lastMessage: "קהילת כל המנטורים והמנהלים נוצרה!",
+        lastMessage: COMMUNITY_DESCRIPTIONS.all_mentors_with_admin,
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
+      await addDoc(collection(db, "conversations", "all_mentors_with_admin", "messages"), {
+        text: COMMUNITY_DESCRIPTIONS.all_mentors_with_admin,
+        type: "system",
+        createdAt: serverTimestamp(),
+      });
     } else {
-      // Update existing community
-      const docRef = snapshot.docs[0].ref;
-      const data = snapshot.docs[0].data();
-      
+      const data = docSnap.data();
       // Check if update needed
-      if (mentorAdminIds.length !== data.participants.length ||
-          !mentorAdminIds.every(id => data.participants.includes(id))) {
+      if (
+        mentorAdminIds.length !== data.participants.length ||
+        !mentorAdminIds.every(id => data.participants.includes(id))
+      ) {
         await updateDoc(docRef, {
           participants: mentorAdminIds,
           participantNames: mentorAdminNames,

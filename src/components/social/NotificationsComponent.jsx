@@ -217,7 +217,15 @@ export const NotificationsProvider = ({ children }) => {
                 } else if (conversation.type === 'group') {
                   conversationName = conversation.groupName || conversation.name || 'קבוצה';
                 } else if (conversation.type === 'community') {
-                  conversationName = conversation.element || 'קהילה';
+                  if (conversation.communityType === "mentor_community") {
+                    conversationName = conversation.mentorName ? `קהילה של ${conversation.mentorName}` : 'קהילת מנטור';
+                  } else if (conversation.communityType === "element") {
+                    conversationName = conversation.element ? `קהילת ${ELEMENT_COLORS[conversation.element]?.label}` : 'קהילה';
+                  } else if (conversation.communityType === "all_mentors") {
+                    conversationName = 'קהילת כל המנטורים';
+                  } else if (conversation.communityType === "all_mentors_with_admin") {
+                    conversationName = 'קהילת מנטורים ומנהלים';
+                  }
                 }
 
                 // Get all messages for analysis

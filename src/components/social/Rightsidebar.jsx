@@ -33,6 +33,14 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   // Use shared notifications context
   const { showNotifications, setShowNotifications, unreadCount, messageUnreadCount, loading } = useNotifications();
 
+  // Normalize text for better Hebrew searching
+  const normalizeText = (text) => {
+    if (!text) return '';
+    // Convert to lowercase for case-insensitive matching
+    // and normalize Unicode characters for better Hebrew matching
+    return text.toLowerCase().normalize('NFKD');
+  };
+
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (user) {
@@ -78,19 +86,30 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         return;
       }
       try {
-        const querySnapshot = await getDocs(
-          query(
-            collection(db, 'profiles'),
-            where('username', '>=', searchInput),
-            where('username', '<=', searchInput + '\uf8ff')
-          )
-        );
-        const results = querySnapshot.docs.map((doc) => doc.data());
-        setSearchResults(results);
+        const querySnapshot = await getDocs(collection(db, 'profiles'));
+        const searchTerm = searchInput.trim();
+        const normalizedSearchTerm = normalizeText(searchTerm);
+
+        const filteredResults = querySnapshot.docs
+          .map((doc) => doc.data())
+          .filter((profile) => {
+            // Enhanced Hebrew search with normalization
+            const normalizedUsername = normalizeText(profile.username || '');
+            const normalizedName = normalizeText(profile.name || '');
+            const normalizedBio = normalizeText(profile.bio || '');
+
+            // Check if the normalized search term appears in username, name, or bio
+            return normalizedUsername.includes(normalizedSearchTerm) ||
+              normalizedName.includes(normalizedSearchTerm) ||
+              normalizedBio.includes(normalizedSearchTerm);
+          });
+
+        setSearchResults(filteredResults);
       } catch (err) {
         console.error('Error fetching profiles:', err);
       }
     };
+
     fetchSearchResults();
   }, [searchInput]);
 
@@ -181,14 +200,14 @@ const Rightsidebar = ({ element, onExpandChange }) => {
 
           {/* Search Results */}
           {searchInput && searchResults.length > 0 && isExpanded && (
-            <div className="max-h-32 overflow-y-auto border-b border-gray-100">
+            <div className="max-h-32 overflow-y-auto border-b border-gray-100 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <div className="px-3 py-2">
                 <h3 className="font-semibold text-xs text-gray-600 mb-2">תוצאות חיפוש</h3>
                 <div className="space-y-1">
                   {searchResults.map((profile, index) => (
                     <div
                       key={index}
-                      className={`flex items-center gap-2 p-2 hover:bg-${element}-soft rounded-md cursor-pointer transition-all duration-150`}
+                      className={`flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md cursor-pointer transition-all duration-150`}
                       onClick={() => {
                         setSearchInput('');
                         navigate(`/profile/${profile.username}`);
@@ -203,7 +222,12 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                           e.target.src = '/images/default-avatar.png';
                         }}
                       />
-                      <span className="text-xs text-gray-800 font-medium truncate">{profile.username}</span>
+                      <div className="flex flex-col overflow-hidden">
+                        <span className="text-xs text-gray-800 font-medium truncate">{profile.username}</span>
+                        {profile.name && (
+                          <span className="text-xs text-gray-500 truncate">{profile.name}</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -211,8 +235,14 @@ const Rightsidebar = ({ element, onExpandChange }) => {
             </div>
           )}
 
+          {searchInput && searchResults.length === 0 && isExpanded && (
+            <div className="px-3 py-2 text-center text-gray-500 text-xs border-b border-gray-100">
+              לא נמצאו תוצאות עבור "{searchInput}"
+            </div>
+          )}
+
           {/* Navigation */}
-          <div className="flex-1 overflow-y-auto py-3 scrollbar-hide">
+          <div className="flex-1 overflow-y-auto py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <div className="space-y-1 px-2">
               {tabs.map((tab) => (
                 <motion.button

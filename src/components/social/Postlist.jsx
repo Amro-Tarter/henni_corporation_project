@@ -1,6 +1,7 @@
 // components/social/Postlist.jsx
 import React, { memo } from 'react';
 import Post from './Post';
+import Project from './Project';
 
 const PostList = memo(({
   posts,
@@ -44,23 +45,47 @@ const PostList = memo(({
 
   return (
     <div className="space-y-6">
-      {posts.map(post => (
-        <Post
-          key={post.id}
-          post={post}
-          element={element}
-          onDelete={onDelete}
-          onUpdate={onUpdate}
-          onLike={onLike}
-          comments={comments[post.id] || []}
-          currentUser={currentUser}
-          onAddComment={onAddComment}
-          onEditComment={onEditComment}
-          onDeleteComment={onDeleteComment}
-          isOwner={post.authorId === currentUser?.uid}
-          getAuthorProfile={getAuthorProfile}
-        />
-      ))}
+      {posts.map(item => {
+        // If item has a 'title', treat as project; else as post
+        if (item.title) {
+          return (
+            <Project
+              key={item.id}
+              project={item}
+              element={element}
+              onDelete={onDelete}
+              onUpdate={onUpdate}
+              onLike={onLike}
+              comments={comments[item.id] || []}
+              currentUser={currentUser}
+              onAddComment={onAddComment}
+              onEditComment={onEditComment}
+              onDeleteComment={onDeleteComment}
+              isOwner={item.authorId === currentUser?.uid}
+              getUserProfile={getAuthorProfile}
+              allUsers={currentUser?.allUsers || []}
+            />
+          );
+        } else {
+          return (
+            <Post
+              key={item.id}
+              post={item}
+              element={element}
+              onDelete={onDelete}
+              onUpdate={onUpdate}
+              onLike={onLike}
+              comments={comments[item.id] || []}
+              currentUser={currentUser}
+              onAddComment={onAddComment}
+              onEditComment={onEditComment}
+              onDeleteComment={onDeleteComment}
+              isOwner={item.authorId === currentUser?.uid}
+              getAuthorProfile={getAuthorProfile}
+            />
+          );
+        }
+      })}
     </div>
   );
 });

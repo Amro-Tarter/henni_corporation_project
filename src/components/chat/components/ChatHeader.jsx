@@ -40,7 +40,7 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
   }
 
   return (
-    <div className="p-2 sm:p-3 z-30 shadow-xl lg:mt-16 border-gray-200 text-right flex items-center gap-2 sm:gap-3 relative bg-white">
+    <div className="p-2 sm:p-3 z-30 shadow-xl border-gray-200 text-right flex items-center gap-2 sm:gap-3 relative bg-white">
       {/* Mobile back arrow button */}
       {onBack && (
         <button
