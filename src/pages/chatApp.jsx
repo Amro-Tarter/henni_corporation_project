@@ -11,15 +11,12 @@ import {
   where, 
   getDocs, 
   writeBatch,
-  setDoc,
   getDoc,
-  arrayUnion,
-  limit,
   deleteDoc,
   increment
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { ref, uploadBytesResumable, getDownloadURL, getStorage, ref as storageRef } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, ref as storageRef } from "firebase/storage";
 import { auth, db, storage } from "../config/firbaseConfig";
 import ConversationList from "../components/chat/ConversationList";
 import ChatArea from "../components/chat/ChatArea";
@@ -35,14 +32,7 @@ import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
 import notificationSound from '../assets/notification.mp3';
 import { handleMentorCommunityMembership } from "../components/chat/utils/handleMentorCommunityMembership";
 import { handleElementCommunityChatMembership } from "../components/chat/utils/handleElementCommunityMembership";
-import { FaComments, FaCommentDots } from 'react-icons/fa';
 
-const COMMUNITY_DESCRIPTIONS = {
-  element: 'קהילה זו מיועדת לכל חברי היסוד שלך. כאן תוכלו לשתף, לשאול ולהתחבר עם חברים מהיסוד.',
-  mentor_community: 'קהילה זו כוללת את המנטור שלך ואת כל המשתתפים שמלווים על ידו. כאן אפשר להתייעץ, לשאול ולשתף.',
-  all_mentors: 'קהילה זו מאגדת את כל המנטורים בתכנית. כאן ניתן להחליף רעיונות, לשתף ידע ולתמוך זה בזה.',
-  all_mentors_with_admin: 'קהילה זו כוללת את כל המנטורים והמנהלים. כאן מתקיימים עדכונים, שיתופים ודיונים מקצועיים.'
-};
 
 export default function ChatApp() {
   const { chatId } = useParams();
@@ -676,15 +666,12 @@ export default function ChatApp() {
               setSelectedConversation(conversationData);
               navigate(`/chat/${convId}`);
             } else {
-              setSelectedConversation(null);
               navigate('/chat');
             }
           } else {
-            setSelectedConversation(null);
             navigate('/chat');
           }
         } catch (error) {
-          setSelectedConversation(null);
           navigate('/chat');
         }
       };
@@ -733,7 +720,7 @@ export default function ChatApp() {
       }
     } else {
       // Only clear if there is a selectedConversation and conversations are loaded
-      if (selectedConversation !== null && !isLoadingConversations) {
+      if (selectedConversation !== null) {
         setSelectedConversation(null);
       }
     }

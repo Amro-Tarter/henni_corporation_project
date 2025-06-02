@@ -1,6 +1,8 @@
 import React from 'react';
 import { ELEMENT_COLORS } from '../utils/ELEMENT_COLORS';
-
+import { Mentor_icon } from '../utils/icons_library';
+import { All_mentors_icon } from '../utils/icons_library';
+import { All_mentors_with_admin_icon } from '../utils/icons_library';
 /**
  * ChatHeader displays the name of the chat partner or community.
  */
@@ -14,6 +16,8 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
   const partnerName = type === 'direct'
     ? participantNames?.find(name => name !== currentUser.username)
     : chatTitle;
+  
+    
 
   // Determine what name to show in header
   let displayName;
@@ -23,17 +27,17 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
   } else if (type === 'community') {
     if (communityType === 'mentor_community') {
       displayName = mentorName ? `קהילה של ${mentorName}` : 'קהילת מנטור';
-      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫</span>;
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl"><Mentor_icon color='#7f1d1d' width={28} height={28}/></span>;
     } else if (communityType === 'element') {
       const elementLabel = element ? ELEMENT_COLORS[element]?.label : '';
       displayName = elementLabel ? `קהילת ${elementLabel} ` : chatTitle || 'קהילה';
       displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">{icon}</span>;
     } else if (communityType === 'all_mentors') {
       displayName = 'קהילת כל המנטורים';
-      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫</span>;
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl"><All_mentors_icon color='#7f1d1d' width={28} height={28}/></span>;
     } else if (communityType === 'all_mentors_with_admin') {
       displayName = 'קהילת כל המנטורים והמנהלים';
-      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫👨‍🏫</span>;
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl"><All_mentors_with_admin_icon color='#7f1d1d' width={28} height={28}/></span>;
     }
   } else {
     displayName = chatTitle;

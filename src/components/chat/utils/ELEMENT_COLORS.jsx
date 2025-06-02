@@ -30,7 +30,7 @@ export const ELEMENT_COLORS = {
       light: '#f5f5f5',
       darkHover: '#808080',
       background: '#fafafa',
-      icon: <MetalIcon style={{color: '#c0c0c0'}} />
+      icon: <MetalIcon style={{color: '#808080'}} />
     },
     water: {
       label: 'מים',

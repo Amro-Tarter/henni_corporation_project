@@ -1,6 +1,8 @@
 import { useMemo, useEffect, useState } from "react";
 import { db } from '@/config/firbaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
+import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
+
 
 /**
  * ConversationList displays the list of conversations.
@@ -88,19 +90,19 @@ export default function ConversationList({
             } else if (conv.type === 'community' && conv.communityType === 'mentor_community') {
               avatar = (
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
-                  👨‍🏫
+                  <Mentor_icon color='#7f1d1d' width={28} height={28}/>
                 </div>
               );
             } else if (conv.type === 'community' && conv.communityType === 'all_mentors') {
               avatar = (
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
-                  👨‍🏫
+                  <All_mentors_icon color='#7f1d1d' width={28} height={28}/>
                 </div>
               );
             } else if (conv.type === 'community' && conv.communityType === 'all_mentors_with_admin') {
               avatar = (
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
-                  👨‍🏫
+                  <All_mentors_with_admin_icon color='#7f1d1d' width={28} height={28}/>
                 </div>
               );
             }

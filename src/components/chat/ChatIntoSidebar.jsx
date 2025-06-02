@@ -3,6 +3,7 @@ import { doc, getDoc, query, getDocs, collection, where, addDoc, serverTimestamp
 import { db } from '@/config/firbaseConfig';
 import { ELEMENT_COLORS } from './utils/ELEMENT_COLORS';
 import { useNavigate } from "react-router-dom";
+import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
 
 export default function ChatInfoSidebar({ open, onClose, conversation, currentUser, messages, elementColors, setSelectedConversation }) {
   const [showAllImages, setShowAllImages] = useState(false);
@@ -277,13 +278,13 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     let displayName = conversation.displayName;
     let displayIcon;
     if (communityType === 'mentor_community') {
-      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-2xl">👨‍🏫</span>;
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100 text-2xl"><Mentor_icon color='#7f1d1d' width={28} height={28}/></span>;
     } else if (communityType === 'element') {
       displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">{icon}</span>;
     } else if (communityType === 'all_mentors') {
-      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫</span>;
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl"><All_mentors_icon color='#7f1d1d' width={28} height={28}/></span>;
     } else if (communityType === 'all_mentors_with_admin') {
-      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">👨‍🏫👨‍🏫</span>;
+      displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl"><All_mentors_with_admin_icon color='#7f1d1d' width={28} height={28}/></span>;
     }
     return (
       <div
