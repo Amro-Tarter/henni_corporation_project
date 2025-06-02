@@ -21,7 +21,6 @@ import { auth, db, storage } from "../config/firbaseConfig";
 import ConversationList from "../components/chat/ConversationList";
 import ChatArea from "../components/chat/ChatArea";
 import Navbar from '../components/social/Navbar';
-import Sidebar from "../components/chat/sidebar";
 import ElementalLoader from '../theme/ElementalLoader';
 import { getChatPartner } from "../components/chat/utils/chatHelpers";
 import { useFileUpload } from "../components/chat/hooks/useFileUpload";
@@ -32,7 +31,7 @@ import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
 import notificationSound from '../assets/notification.mp3';
 import { handleMentorCommunityMembership } from "../components/chat/utils/handleMentorCommunityMembership";
 import { handleElementCommunityChatMembership } from "../components/chat/utils/handleElementCommunityMembership";
-
+import Rightsidebar from "../components/social/Rightsidebar";
 
 export default function ChatApp() {
   const { chatId } = useParams();
@@ -68,7 +67,7 @@ export default function ChatApp() {
   const [groupAvatarFile, setGroupAvatarFile] = useState(null);
   const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
   const [mobilePanel, setMobilePanel] = useState('conversations'); // 'conversations' | 'chat'
-
+  const [isRightOpen, setIsRightOpen] = useState(false);
   // File upload state/logic (moved to hook)
   const {
     file,
@@ -77,6 +76,7 @@ export default function ChatApp() {
     removeFile
   } = useFileUpload();
 
+  console.log("activeTab in chatApp:", activeTab);
 
   // --- User Search (for new chat dialog) ---
   const searchUsers = async (searchTerm) => {
@@ -129,7 +129,7 @@ export default function ChatApp() {
           const userData = {
             uid: user.uid,
             username: userDoc.data().username,
-            element: userElement || "staff",
+            element: userElement || "staff_mentor_admin",
             role: userRole,
             associated_id,
             mentorName: userDoc.data().mentorName,
@@ -865,8 +865,10 @@ export default function ChatApp() {
     <div className="h-screen w-full flex flex-col overflow-hidden bg-gray-50">
     <ThemeProvider element={userElement}>
         <Navbar element={userElement} className="hidden md:block"/>
+        <Rightsidebar element={userElement} onExpandChange={setIsRightOpen}/>
       </ThemeProvider>
     <div className="h-[calc(100vh-4rem)] mt-16 w-full flex flex-row overflow-hidden bg-gray-50">
+
       {/* TEMP: Admin-only delete all conversations button 
       <button
           onClick={handleDeleteAllConversations}
@@ -877,19 +879,10 @@ export default function ChatApp() {
         */} 
 
       
-      {((typeof window !== 'undefined' && window.innerWidth >= 768) || mobilePanel !== 'chat') && (
-        <Sidebar 
-          elementColors={elementColors}
-          userElement={userElement}
-          onTabChange={setActiveTab}
-          activeTab={activeTab}
-          className="hidden md:block h-full"
-        />
-      )}
       {/* Main Panels */}
       {/* Conversation List Panel */}
       <div
-        className={`flex-1 md:max-w-xs md:block ${mobilePanel === 'conversations' ? 'block' : 'hidden'} md:block h-full`}
+        className={`flex-1 md:max-w-xs md:block ${mobilePanel === 'conversations' ? 'block' : 'hidden'} md:block h-full duration-500 ease-in-out ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}`}
         style={{ minWidth: 0 }}
       >
         <ConversationList
@@ -906,6 +899,7 @@ export default function ChatApp() {
           getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
           elementColorsMap={ELEMENT_COLORS}
           activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
       </div>
       {/* Chat Area Panel */}
