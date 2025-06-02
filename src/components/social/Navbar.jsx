@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNotifications } from './NotificationsComponent';
 import { cn } from '@/lib/utils';
+import { getAuth } from 'firebase/auth';
 
 const navTabs = [
   { id: 'home', icon: <Home size={20} />, label: 'דף הבית', href: '/Home' },
@@ -40,6 +41,7 @@ const Navbar = ({ element }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [role, setRole] = useState(null);
+  const [viewerProfile, setViewerProfile] = useState(null);
 
   const searchRef = useRef(null);
   const profileDropdownRef = useRef(null);
@@ -54,18 +56,93 @@ const Navbar = ({ element }) => {
   };
 
   useEffect(() => {
+    const fetchViewerProfile = async () => {
+      const auth = getAuth();
+      const viewerUid = auth.currentUser?.uid;
+      if (!viewerUid) return;
+
+      try {
+        console.log('Fetching viewer profile and role for:', viewerUid);
+        
+        // Get the user's username first from profiles
+        const profileSnap = await getDoc(doc(db, 'profiles', viewerUid));
+        const username = profileSnap.exists() ? profileSnap.data().username : null;
+        
+        if (username) {
+          // Fetch user role by username
+          const userQuery = query(collection(db, 'users'), where('username', '==', username));
+          const userSnapshot = await getDocs(userQuery);
+          
+          if (!userSnapshot.empty) {
+            const userData = userSnapshot.docs[0].data();
+            const userRole = userData.role || null;
+            console.log('Found user role:', userRole);
+            setRole(userRole);
+            
+            // Set viewer profile with all data
+            const viewerProfileData = {
+              uid: viewerUid,
+              ...(profileSnap.exists() ? profileSnap.data() : {}),
+              role: userRole
+            };
+            
+            console.log('Setting viewer profile with role:', viewerProfileData);
+            setViewerProfile(viewerProfileData);
+          } else {
+            console.log('No user document found for username:', username);
+            setRole(null);
+            setViewerProfile(null);
+          }
+        } else {
+          console.log('No username found in profile');
+          setRole(null);
+          setViewerProfile(null);
+        }
+      } catch (error) {
+        console.error('Error fetching viewer profile or role:', error);
+        setRole(null);
+        setViewerProfile(null);
+      }
+    };
+
+    fetchViewerProfile();
+  }, []);
+
+  useEffect(() => {
     if (user) {
       const fetchHistory = async () => {
         try {
           const profileDocRef = doc(db, 'profiles', user.uid);
           const profileDoc = await getDoc(profileDocRef);
           if (profileDoc.exists()) {
-            setSearchHistory(profileDoc.data().searchHistory || []);
-          }
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-          if (userDoc.exists()) {
-            setRole(userDoc.data().role || null);
+            const history = profileDoc.data().searchHistory || [];
+            // Fetch roles for history items
+            const historyWithRoles = await Promise.all(history.map(async (profile) => {
+              if (!profile || !profile.username) return null;
+              try {
+                // First get the user document by username
+                const usersQuery = query(collection(db, 'users'), where('username', '==', profile.username));
+                const userSnapshot = await getDocs(usersQuery);
+                
+                if (!userSnapshot.empty) {
+                  const userDoc = userSnapshot.docs[0];
+                  const userData = userDoc.data();
+                  console.log('Found user data for:', profile.username, userData);
+                  return { 
+                    ...profile, 
+                    role: userData.role || null,
+                    authorId: userDoc.id 
+                  };
+                }
+                return profile;
+              } catch (error) {
+                console.error('Error fetching role for profile:', profile.username, error);
+                return profile;
+              }
+            }));
+            
+            console.log('History with roles:', historyWithRoles);
+            setSearchHistory(historyWithRoles.filter(Boolean));
           }
         } catch (err) {
           console.error('Error fetching search history:', err);
@@ -76,6 +153,12 @@ const Navbar = ({ element }) => {
   }, [user]);
 
   useEffect(() => {
+    console.log('Role state changed:', role);
+  }, [role]);
+
+  console.log('Current role during render:', role);
+
+  useEffect(() => {
     const fetchSuggestions = async () => {
       if (!searchInput) return setSearchResults([]);
 
@@ -84,19 +167,41 @@ const Navbar = ({ element }) => {
         const searchTerm = searchInput.trim();
         const normalizedSearchTerm = normalizeText(searchTerm);
 
-        const filteredResults = querySnapshot.docs
-          .map((doc) => doc.data())
-          .filter((profile) => {
-            // Enhanced Hebrew search with normalization
-            const normalizedUsername = normalizeText(profile.username || '');
-            const normalizedName = normalizeText(profile.name || '');
+        const profiles = querySnapshot.docs.map(doc => ({
+          ...doc.data(),
+          authorId: doc.id
+        }));
 
-            // Check if the normalized search term appears in username or name
-            return normalizedUsername.includes(normalizedSearchTerm) ||
-              normalizedName.includes(normalizedSearchTerm);
-          });
+        // Filter profiles first
+        const matchingProfiles = profiles.filter(profile => {
+          const normalizedUsername = normalizeText(profile.username || '');
+          const normalizedName = normalizeText(profile.name || '');
+          return normalizedUsername.includes(normalizedSearchTerm) ||
+            normalizedName.includes(normalizedSearchTerm);
+        });
 
-        setSearchResults(filteredResults);
+        // Then fetch roles for matching profiles
+        const resultsWithRoles = await Promise.all(matchingProfiles.map(async (profile) => {
+          try {
+            const userQuery = query(collection(db, 'users'), where('username', '==', profile.username));
+            const userSnapshot = await getDocs(userQuery);
+            
+            if (!userSnapshot.empty) {
+              const userData = userSnapshot.docs[0].data();
+              return {
+                ...profile,
+                role: userData.role || null
+              };
+            }
+            return profile;
+          } catch (error) {
+            console.error('Error fetching role for search result:', profile.username, error);
+            return profile;
+          }
+        }));
+
+        console.log('Search results with roles:', resultsWithRoles);
+        setSearchResults(resultsWithRoles);
       } catch (err) {
         console.error('Error fetching profiles:', err);
       }
@@ -161,7 +266,8 @@ const Navbar = ({ element }) => {
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setShowSearchPopUp(false);
+        setShowSearchDropdown(false);
+        setShowHistory(false);
       }
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
         setShowProfileDropdown(false);
@@ -173,23 +279,118 @@ const Navbar = ({ element }) => {
   }, []);
 
   const saveProfileToHistory = async (profile) => {
-    if (user) {
-      try {
-        // Filter out any existing instance of this profile
-        const filteredHistory = searchHistory.filter(p => p.username !== profile.username);
-        // Add the new profile at the beginning and limit to 5
-        const updatedHistory = [profile, ...filteredHistory].slice(0, 5);
-        
-        setSearchHistory(updatedHistory);
-        
-        const profileDocRef = doc(db, 'profiles', user.uid);
-        await updateDoc(profileDocRef, {
-          searchHistory: updatedHistory
-        });
-      } catch (err) {
-        console.error('Error updating profile history:', err);
+    if (!user || !profile) return;
+    
+    try {
+      console.log('Saving profile to history:', profile);
+      
+      // Ensure we have all required fields
+      if (!profile.username) {
+        console.error('Cannot save profile without username:', profile);
+        return;
       }
+
+      // Create a clean version of the profile to save
+      const profileToSave = {
+        username: profile.username,
+        name: profile.name || null,
+        photoURL: profile.photoURL || null,
+        authorId: profile.authorId || null,
+        role: profile.role || null
+      };
+
+      // Remove any existing instance of this profile from history
+      const filteredHistory = searchHistory.filter(p => p.username !== profile.username);
+      
+      // Add the new profile at the beginning and limit to 5
+      const updatedHistory = [profileToSave, ...filteredHistory].slice(0, 5);
+      
+      console.log('Updating search history:', updatedHistory);
+      
+      // Update local state
+      setSearchHistory(updatedHistory);
+      
+      // Update in Firestore
+      const profileDocRef = doc(db, 'profiles', user.uid);
+      await updateDoc(profileDocRef, {
+        searchHistory: updatedHistory
+      });
+      
+      console.log('Successfully saved to history');
+    } catch (err) {
+      console.error('Error saving to search history:', err);
     }
+  };
+
+  // Add this function to handle search bar focus
+  const handleSearchFocus = () => {
+    console.log('Search bar focused, showing dropdown');
+    setShowSearchDropdown(true);
+    setShowHistory(true);
+  };
+
+  const SearchInput = ({ isMobile = false }) => (
+    <input
+      ref={isMobile ? null : searchRef}
+      type="text"
+      placeholder="חפש פרופילים..."
+      value={searchInput}
+      onChange={(e) => setSearchInput(e.target.value)}
+      onFocus={handleSearchFocus}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') triggerSearch();
+      }}
+      className={`w-full border border-white/30 rounded-full py-2 pr-4 ${isMobile ? 'pl-9 text-sm md:text-base' : 'pl-10'} text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm`}
+      dir="rtl"
+      lang="he"
+    />
+  );
+
+  const RoleBasedNavItems = () => {
+    const isAdmin = role === 'admin';
+    const isStaff = role === 'staff';
+    const isMentor = role === 'mentor';
+    
+    console.log('RoleBasedNavItems rendering with:', { isAdmin, isStaff, isMentor, role });
+    
+    return (
+      <>
+        {(isAdmin || isStaff) && (
+          <li>
+            <button
+              onClick={() => {
+                handleTabClick('dashboard', '/admin');
+                setIsMenuOpen(false);
+              }}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
+                activeTab === 'dashboard' && 'bg-white/20'
+              )}
+            >
+              <BarChart2 size={20} />
+              <span>לוח בקרה</span>
+            </button>
+          </li>
+        )}
+        {isMentor && (
+          <li>
+            <button
+              onClick={() => {
+                handleTabClick('report', '/report');
+                setIsMenuOpen(false);
+              }}
+              className={cn(
+                'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
+                activeTab === 'report' && 'bg-white/20'
+              )}
+            >
+              <FileText size={20} />
+              <span>דוחות</span>
+            </button>
+          </li>
+        )}
+      </>
+    );
   };
 
   return (
@@ -229,20 +430,7 @@ const Navbar = ({ element }) => {
         <div className="p-4">
           <form onSubmit={handleSearch} className="w-full" dir="rtl">
             <div className="relative">
-              <input
-                type="text"
-                placeholder="חפש פרופילים..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onFocus={() => setShowSearchDropdown(true)}
-                onBlur={() => setTimeout(() => setShowSearchDropdown(false), 300)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') triggerSearch();
-                }}
-                className="w-full border border-white/30 rounded-full py-2 pr-4 pl-9 text-sm md:text-base text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm"
-                dir="rtl"
-                lang="he"
-              />
+              <SearchInput isMobile={true} />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70">
                 <Search size={18} />
               </span>
@@ -272,9 +460,26 @@ const Navbar = ({ element }) => {
                           className="w-6 h-6 rounded-full object-cover"
                         />
                         <div className="flex flex-col overflow-hidden">
-                          <span className="text-sm font-medium text-gray-800 truncate">
-                            {profile.username}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-800 truncate">
+                              {profile.username}
+                            </span>
+                            {profile.role === 'admin' && (
+                              <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full">
+                                מנהל
+                              </span>
+                            )}
+                            {profile.role === 'staff' && (
+                              <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
+                                צוות
+                              </span>
+                            )}
+                            {profile.role === 'mentor' && (
+                              <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
+                                מנטור
+                              </span>
+                            )}
+                          </div>
                           {profile.name && (
                             <span className="text-xs text-gray-500 truncate">{profile.name}</span>
                           )}
@@ -306,9 +511,26 @@ const Navbar = ({ element }) => {
                         className="w-6 h-6 rounded-full object-cover"
                       />
                       <div className="flex flex-col overflow-hidden">
-                        <span className="text-sm font-medium text-gray-800 truncate">
-                          {profile.username}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-800 truncate">
+                            {profile.username}
+                          </span>
+                          {profile.role === 'admin' && (
+                            <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full">
+                              מנהל
+                            </span>
+                          )}
+                          {profile.role === 'staff' && (
+                            <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
+                              צוות
+                            </span>
+                          )}
+                          {profile.role === 'mentor' && (
+                            <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
+                              מנטור
+                            </span>
+                          )}
+                        </div>
                         {profile.name && (
                           <span className="text-xs text-gray-500 truncate">{profile.name}</span>
                         )}
@@ -343,36 +565,7 @@ const Navbar = ({ element }) => {
               </button>
             </li>
           ))}
-          {(role === 'admin' || role === 'staff') && (
-            <li>
-              <button
-                onClick={() => {
-                  handleTabClick('dashboard', '/admin');
-                  setIsMenuOpen(false);
-                }}
-                className="flex items-center gap-2 w-full text-right"
-              >
-                <BarChart2 size={20} />
-                <span>לוח בקרה</span>
-
-              </button>
-            </li>
-          )}
-          {role === 'mentor' && (
-            <li>
-              <button
-                onClick={() => {
-                  handleTabClick('report', '/report');
-                  setIsMenuOpen(false);
-                }}
-                className="flex items-center gap-2 w-full text-right"
-              >
-                <FileText size={20} />
-                <span>דוחות</span>
-              </button>
-            </li>
-          )}
-
+          <RoleBasedNavItems />
 
           {/* Notifications */}
           <li className="pt-4 border-t border-white/10">
@@ -476,24 +669,7 @@ const Navbar = ({ element }) => {
           <div className="hidden lg:flex flex-1 max-w-md mx-8">
             <form onSubmit={handleSearch} className="w-full" dir="rtl">
               <div className="relative">
-                <input
-                  ref={searchRef}
-                  type="text"
-                  placeholder="חפש פרופילים..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onFocus={() => setShowSearchDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowSearchDropdown(false), 300)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') triggerSearch();
-                  }}
-                  className="w-full border border-white/30 rounded-full py-2 pr-4 pl-10 text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm"
-                  dir="rtl"
-                  lang="he"
-                />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70">
-                  <Search size={18} />
-                </span>
+                <SearchInput />
 
                 {/* Search Results Dropdown */}
                 {showSearchDropdown && (searchResults.length > 0 || (showHistory && searchHistory.length > 0)) && (
@@ -517,9 +693,26 @@ const Navbar = ({ element }) => {
                                 className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
                               />
                               <div className="flex flex-col overflow-hidden">
-                                <span className="text-sm font-medium text-gray-800 truncate">
-                                  {profile.username}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-800 truncate">
+                                    {profile.username}
+                                  </span>
+                                  {profile.role === 'admin' && (
+                                    <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full">
+                                      מנהל
+                                    </span>
+                                  )}
+                                  {profile.role === 'staff' && (
+                                    <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
+                                      צוות
+                                    </span>
+                                  )}
+                                  {profile.role === 'mentor' && (
+                                    <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
+                                      מנטור
+                                    </span>
+                                  )}
+                                </div>
                                 {profile.name && (
                                   <span className="text-xs text-gray-500 truncate">{profile.name}</span>
                                 )}
@@ -550,9 +743,26 @@ const Navbar = ({ element }) => {
                               className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
                             />
                             <div className="flex flex-col overflow-hidden">
-                              <span className="text-sm font-medium text-gray-800 truncate">
-                                {profile.username}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-800 truncate">
+                                  {profile.username}
+                                </span>
+                                {profile.role === 'admin' && (
+                                  <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full">
+                                    מנהל
+                                  </span>
+                                )}
+                                {profile.role === 'staff' && (
+                                  <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
+                                    צוות
+                                  </span>
+                                )}
+                                {profile.role === 'mentor' && (
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
+                                    מנטור
+                                  </span>
+                                )}
+                              </div>
                               {profile.name && (
                                 <span className="text-xs text-gray-500 truncate">{profile.name}</span>
                               )}
@@ -591,34 +801,7 @@ const Navbar = ({ element }) => {
                   </button>
                 </li>
               ))}
-              {(role === 'admin' || role === 'staff') && (
-                <li>
-                  <button
-                    onClick={() => handleTabClick('dashboard', '/admin')}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
-                      activeTab === 'dashboard' && 'bg-white/20'
-                    )}
-                  >
-                    <BarChart2 size={20} />
-                    <span>לוח בקרה</span>
-                  </button>
-                </li>
-              )}
-              {role === 'mentor' && (
-                <li>
-                  <button
-                    onClick={() => handleTabClick('report', '/report')}
-                    className={cn(
-                      'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/10',
-                      activeTab === 'report' && 'bg-white/20'
-                    )}
-                  >
-                    <FileText size={20} />
-                    <span>דוחות</span>
-                  </button>
-                </li>
-              )}
+              <RoleBasedNavItems />
             </ul>
 
             {/* Notifications & Profile */}
