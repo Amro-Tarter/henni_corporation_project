@@ -817,6 +817,10 @@ const ProfilePage = () => {
       console.error('Error deleting comment:', error);
     }
   };
+  const isPrivilegedRole = ['mentor', 'staff', 'admin'].includes(profile?.role);
+  const element = isPrivilegedRole || !profile?.element ? 'red' : profile.element;
+  const isViewerPrivileged = ['mentor', 'staff', 'admin'].includes(viewerProfile?.role);
+  const viewerElement = isViewerPrivileged || !viewerProfile?.element ? 'red' : viewerProfile?.element;
 
   if (loading) {
     // you can pass the current element if your loader adapts to it:
@@ -829,14 +833,14 @@ const ProfilePage = () => {
   if (!profile) return <div>לא נמצא פרופיל עבור UID={uid}</div>;
 
   return (
-    <ThemeProvider element={profile.element}>
+    <ThemeProvider element={element}>
       <div dir="rtl" className="min-h-screen flex flex-col bg-white">
-        <Navbar element={profile.element} />
+        <Navbar element={element} />
         <div className="flex flex-1 pt-[56.8px]">
           <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200 z-20">
             <LeftSidebar
-              element={profile.element}
-              viewerElement={viewerProfile?.element}
+              element={element}
+              viewerElement={viewerElement}
               users={sameElementUsers}
               viewerProfile={viewerProfile}
               profileUser={profile}
@@ -862,7 +866,7 @@ const ProfilePage = () => {
                 username={profile.username}
                 location={profile.location}
                 bio={profile.bio}
-                element={profile.element}
+                element={element}
                 role={profile.role}
                 postsCount={profile.postsCount}
                 followersCount={profile.followersCount}
@@ -876,9 +880,9 @@ const ProfilePage = () => {
 
             {/* Sliding Tabs */}
             <div className="flex flex-col items-center mb-6 w-full">
-              <div className={`bg-${profile.element}-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden`}>
+              <div className={`bg-${element}-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden`}>
                 <div
-                  className={`absolute bottom-[10px] h-[2px] bg-${profile.element} transition-all duration-300 ease-in-out`}
+                  className={`absolute bottom-[10px] h-[2px] bg-${element} transition-all duration-300 ease-in-out`}
                   style={{
                     left: '0',
                     width: '47%',
@@ -892,7 +896,7 @@ const ProfilePage = () => {
                     onClick={() => setActiveProfileTab('posts')}
                     className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
                       ${activeProfileTab === 'posts'
-                        ? `text-${profile.element} font-bold`
+                        ? `text-${element} font-bold`
                         : 'text-element-text'
                       }
                       hover:bg-element-hover/10
@@ -902,10 +906,10 @@ const ProfilePage = () => {
                   >
                     <div className="flex items-center justify-center gap-2">
                       {/* Posts Icon */}
-                      <svg xmlns="http://www.w3.org/2000/svg" className={`w-5 h-5 ${activeProfileTab === 'posts' ? `text-${profile.element}` : 'opacity-70 group-hover:opacity-100'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg xmlns="http://www.w3.org/2000/svg" className={`w-5 h-5 ${activeProfileTab === 'posts' ? `text-${element}` : 'opacity-70 group-hover:opacity-100'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                       </svg>
-                      <span className={`text-sm sm:text-base transition-colors duration-300 ${activeProfileTab === 'posts' ? `text-${profile.element}` : 'group-hover:text-element-accent'}`}>
+                      <span className={`text-sm sm:text-base transition-colors duration-300 ${activeProfileTab === 'posts' ? `text-${element}` : 'group-hover:text-element-accent'}`}>
                         פוסטים
                       </span>
                     </div>
@@ -920,7 +924,7 @@ const ProfilePage = () => {
                     onClick={() => setActiveProfileTab('projects')}
                     className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
                       ${activeProfileTab === 'projects'
-                        ? `text-${profile.element} font-bold`
+                        ? `text-${element} font-bold`
                         : 'text-element-text'
                       }
                       hover:bg-element-hover/10
@@ -931,9 +935,9 @@ const ProfilePage = () => {
                     <div className="flex items-center justify-center gap-2">
                       <LightbulbIcon
                         size={20}
-                        className={`${activeProfileTab === 'projects' ? `text-${profile.element}` : 'opacity-70 group-hover:opacity-100'}`}
+                        className={`${activeProfileTab === 'projects' ? `text-${element}` : 'opacity-70 group-hover:opacity-100'}`}
                       />
-                      <span className={`text-sm sm:text-base transition-colors duration-300 ${activeProfileTab === 'projects' ? `text-${profile.element}` : 'group-hover:text-element-accent'}`}>
+                      <span className={`text-sm sm:text-base transition-colors duration-300 ${activeProfileTab === 'projects' ? `text-${element}` : 'group-hover:text-element-accent'}`}>
                         פרויקטים
                       </span>
                     </div>
@@ -946,7 +950,7 @@ const ProfilePage = () => {
             <section className="space-y-6 w-full">
               {activeProfileTab === 'posts' && uid === getAuth().currentUser?.uid && (
                 <CreatePost
-                  element={profile.element}
+                  element={element}
                   addPost={createPost}
                   profilePic={profile.photoURL}
                   className="mb-3 w-full"
@@ -957,7 +961,7 @@ const ProfilePage = () => {
                   posts.map(p => (
                     <Post
                       key={p.id}
-                      element={profile.element}
+                      element={element}
                       post={p}
                       onDelete={handleDelete}
                       onUpdate={handleUpdate}
@@ -982,7 +986,7 @@ const ProfilePage = () => {
 
               {activeProfileTab === 'projects' && uid === getAuth().currentUser?.uid && (
                 <CreateProject
-                  element={profile.element}
+                  element={element}
                   profilePic={profile.photoURL}
                   allUsers={allUsers}
                   onCreateProject={createProject}
@@ -995,7 +999,7 @@ const ProfilePage = () => {
                     <Project
                       key={project.id}
                       project={project}
-                      element={profile.element}
+                      element={element}
                       onDelete={handleProjectDelete}
                       onUpdate={handleProjectUpdate}
                       onLike={handleProjectLike}
@@ -1019,8 +1023,8 @@ const ProfilePage = () => {
               )}
             </section>
           </main>
-          <RightSidebar element={profile.element} onExpandChange={setIsRightOpen} />
-          
+          <RightSidebar element={element} onExpandChange={setIsRightOpen} />
+
         </div >
       </div >
     </ThemeProvider >
