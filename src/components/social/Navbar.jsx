@@ -57,18 +57,60 @@ const Navbar = ({ element }) => {
     if (user) {
       const fetchHistory = async () => {
         try {
+          console.log('Fetching search history for user:', user.uid);
           const profileDocRef = doc(db, 'profiles', user.uid);
           const profileDoc = await getDoc(profileDocRef);
+          
           if (profileDoc.exists()) {
-            setSearchHistory(profileDoc.data().searchHistory || []);
-          }
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userDocRef);
-          if (userDoc.exists()) {
-            setRole(userDoc.data().role || null);
+            const history = profileDoc.data().searchHistory || [];
+            console.log('Raw search history:', history);
+            
+            if (history.length > 0) {
+              // Fetch roles for history items
+              const historyWithRoles = await Promise.all(history.map(async (profile) => {
+                if (!profile || !profile.username) {
+                  console.log('Skipping invalid profile in history:', profile);
+                  return null;
+                }
+                
+                try {
+                  // If we have authorId use it, otherwise try to find the user by username
+                  let userId = profile.authorId;
+                  if (!userId) {
+                    const userQuery = query(collection(db, 'profiles'), where('username', '==', profile.username));
+                    const userSnapshot = await getDocs(userQuery);
+                    if (!userSnapshot.empty) {
+                      userId = userSnapshot.docs[0].id;
+                    }
+                  }
+                  
+                  if (userId) {
+                    const userDoc = await getDoc(doc(db, 'users', userId));
+                    const role = userDoc.exists() ? userDoc.data().role : null;
+                    console.log('Processed history item:', { username: profile.username, role });
+                    return { ...profile, role, authorId: userId };
+                  }
+                  return profile;
+                } catch (error) {
+                  console.error('Error processing history item:', profile.username, error);
+                  return profile;
+                }
+              }));
+              
+              const validHistory = historyWithRoles.filter(Boolean);
+              console.log('Final processed history:', validHistory);
+              setSearchHistory(validHistory);
+            } else {
+              console.log('No search history found');
+              setSearchHistory([]);
+            }
+          } else {
+            console.log('No profile document found');
+            setSearchHistory([]);
           }
         } catch (err) {
           console.error('Error fetching search history:', err);
+          setSearchHistory([]);
         }
       };
       fetchHistory();
@@ -84,18 +126,27 @@ const Navbar = ({ element }) => {
         const searchTerm = searchInput.trim();
         const normalizedSearchTerm = normalizeText(searchTerm);
 
-        const filteredResults = querySnapshot.docs
-          .map((doc) => doc.data())
-          .filter((profile) => {
-            // Enhanced Hebrew search with normalization
-            const normalizedUsername = normalizeText(profile.username || '');
-            const normalizedName = normalizeText(profile.name || '');
+        const filteredResults = await Promise.all(querySnapshot.docs.map(async (docSnapshot) => {
+          const profile = docSnapshot.data();
+          const profileId = docSnapshot.id;
+          try {
+            // Fetch user role
+            const userDoc = await getDoc(doc(db, 'users', profileId));
+            const role = userDoc.exists() ? userDoc.data().role : null;
+            console.log('Fetched profile with role:', { username: profile.username, role });
+            return { ...profile, role, authorId: profileId }; // Include authorId for future reference
+          } catch (error) {
+            console.error('Error fetching role for profile:', profile.username, error);
+            return profile;
+          }
+        })).then(profiles => profiles.filter((profile) => {
+          const normalizedUsername = normalizeText(profile.username || '');
+          const normalizedName = normalizeText(profile.name || '');
+          return normalizedUsername.includes(normalizedSearchTerm) ||
+            normalizedName.includes(normalizedSearchTerm);
+        }));
 
-            // Check if the normalized search term appears in username or name
-            return normalizedUsername.includes(normalizedSearchTerm) ||
-              normalizedName.includes(normalizedSearchTerm);
-          });
-
+        console.log('Filtered search results:', filteredResults);
         setSearchResults(filteredResults);
       } catch (err) {
         console.error('Error fetching profiles:', err);
@@ -161,7 +212,8 @@ const Navbar = ({ element }) => {
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
-        setShowSearchPopUp(false);
+        setShowSearchDropdown(false);
+        setShowHistory(false);
       }
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
         setShowProfileDropdown(false);
@@ -173,24 +225,72 @@ const Navbar = ({ element }) => {
   }, []);
 
   const saveProfileToHistory = async (profile) => {
-    if (user) {
-      try {
-        // Filter out any existing instance of this profile
-        const filteredHistory = searchHistory.filter(p => p.username !== profile.username);
-        // Add the new profile at the beginning and limit to 5
-        const updatedHistory = [profile, ...filteredHistory].slice(0, 5);
-        
-        setSearchHistory(updatedHistory);
-        
-        const profileDocRef = doc(db, 'profiles', user.uid);
-        await updateDoc(profileDocRef, {
-          searchHistory: updatedHistory
-        });
-      } catch (err) {
-        console.error('Error updating profile history:', err);
+    if (!user || !profile) return;
+    
+    try {
+      console.log('Saving profile to history:', profile);
+      
+      // Ensure we have all required fields
+      if (!profile.username) {
+        console.error('Cannot save profile without username:', profile);
+        return;
       }
+
+      // Create a clean version of the profile to save
+      const profileToSave = {
+        username: profile.username,
+        name: profile.name || null,
+        photoURL: profile.photoURL || null,
+        authorId: profile.authorId || null,
+        role: profile.role || null
+      };
+
+      // Remove any existing instance of this profile from history
+      const filteredHistory = searchHistory.filter(p => p.username !== profile.username);
+      
+      // Add the new profile at the beginning and limit to 5
+      const updatedHistory = [profileToSave, ...filteredHistory].slice(0, 5);
+      
+      console.log('Updating search history:', updatedHistory);
+      
+      // Update local state
+      setSearchHistory(updatedHistory);
+      
+      // Update in Firestore
+      const profileDocRef = doc(db, 'profiles', user.uid);
+      await updateDoc(profileDocRef, {
+        searchHistory: updatedHistory
+      });
+      
+      console.log('Successfully saved to history');
+    } catch (err) {
+      console.error('Error saving to search history:', err);
     }
   };
+
+  // Add this function to handle search bar focus
+  const handleSearchFocus = () => {
+    console.log('Search bar focused, showing dropdown');
+    setShowSearchDropdown(true);
+    setShowHistory(true);
+  };
+
+  const SearchInput = ({ isMobile = false }) => (
+    <input
+      ref={isMobile ? null : searchRef}
+      type="text"
+      placeholder="חפש פרופילים..."
+      value={searchInput}
+      onChange={(e) => setSearchInput(e.target.value)}
+      onFocus={handleSearchFocus}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') triggerSearch();
+      }}
+      className={`w-full border border-white/30 rounded-full py-2 pr-4 ${isMobile ? 'pl-9 text-sm md:text-base' : 'pl-10'} text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm`}
+      dir="rtl"
+      lang="he"
+    />
+  );
 
   return (
     <>
@@ -229,20 +329,7 @@ const Navbar = ({ element }) => {
         <div className="p-4">
           <form onSubmit={handleSearch} className="w-full" dir="rtl">
             <div className="relative">
-              <input
-                type="text"
-                placeholder="חפש פרופילים..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onFocus={() => setShowSearchDropdown(true)}
-                onBlur={() => setTimeout(() => setShowSearchDropdown(false), 300)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') triggerSearch();
-                }}
-                className="w-full border border-white/30 rounded-full py-2 pr-4 pl-9 text-sm md:text-base text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm"
-                dir="rtl"
-                lang="he"
-              />
+              <SearchInput isMobile={true} />
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70">
                 <Search size={18} />
               </span>
@@ -272,9 +359,26 @@ const Navbar = ({ element }) => {
                           className="w-6 h-6 rounded-full object-cover"
                         />
                         <div className="flex flex-col overflow-hidden">
-                          <span className="text-sm font-medium text-gray-800 truncate">
-                            {profile.username}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-800 truncate">
+                              {profile.username}
+                            </span>
+                            {profile.role === 'admin' && (
+                              <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full">
+                                מנהל
+                              </span>
+                            )}
+                            {profile.role === 'staff' && (
+                              <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
+                                צוות
+                              </span>
+                            )}
+                            {profile.role === 'mentor' && (
+                              <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
+                                מנטור
+                              </span>
+                            )}
+                          </div>
                           {profile.name && (
                             <span className="text-xs text-gray-500 truncate">{profile.name}</span>
                           )}
@@ -306,9 +410,26 @@ const Navbar = ({ element }) => {
                         className="w-6 h-6 rounded-full object-cover"
                       />
                       <div className="flex flex-col overflow-hidden">
-                        <span className="text-sm font-medium text-gray-800 truncate">
-                          {profile.username}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-800 truncate">
+                            {profile.username}
+                          </span>
+                          {profile.role === 'admin' && (
+                            <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full">
+                              מנהל
+                            </span>
+                          )}
+                          {profile.role === 'staff' && (
+                            <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
+                              צוות
+                            </span>
+                          )}
+                          {profile.role === 'mentor' && (
+                            <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
+                              מנטור
+                            </span>
+                          )}
+                        </div>
                         {profile.name && (
                           <span className="text-xs text-gray-500 truncate">{profile.name}</span>
                         )}
@@ -476,24 +597,7 @@ const Navbar = ({ element }) => {
           <div className="hidden lg:flex flex-1 max-w-md mx-8">
             <form onSubmit={handleSearch} className="w-full" dir="rtl">
               <div className="relative">
-                <input
-                  ref={searchRef}
-                  type="text"
-                  placeholder="חפש פרופילים..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onFocus={() => setShowSearchDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowSearchDropdown(false), 300)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') triggerSearch();
-                  }}
-                  className="w-full border border-white/30 rounded-full py-2 pr-4 pl-10 text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm"
-                  dir="rtl"
-                  lang="he"
-                />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70">
-                  <Search size={18} />
-                </span>
+                <SearchInput />
 
                 {/* Search Results Dropdown */}
                 {showSearchDropdown && (searchResults.length > 0 || (showHistory && searchHistory.length > 0)) && (
@@ -517,9 +621,26 @@ const Navbar = ({ element }) => {
                                 className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
                               />
                               <div className="flex flex-col overflow-hidden">
-                                <span className="text-sm font-medium text-gray-800 truncate">
-                                  {profile.username}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-gray-800 truncate">
+                                    {profile.username}
+                                  </span>
+                                  {profile.role === 'admin' && (
+                                    <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full">
+                                      מנהל
+                                    </span>
+                                  )}
+                                  {profile.role === 'staff' && (
+                                    <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
+                                      צוות
+                                    </span>
+                                  )}
+                                  {profile.role === 'mentor' && (
+                                    <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
+                                      מנטור
+                                    </span>
+                                  )}
+                                </div>
                                 {profile.name && (
                                   <span className="text-xs text-gray-500 truncate">{profile.name}</span>
                                 )}
@@ -550,9 +671,26 @@ const Navbar = ({ element }) => {
                               className="w-8 h-8 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
                             />
                             <div className="flex flex-col overflow-hidden">
-                              <span className="text-sm font-medium text-gray-800 truncate">
-                                {profile.username}
-                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-800 truncate">
+                                  {profile.username}
+                                </span>
+                                {profile.role === 'admin' && (
+                                  <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full">
+                                    מנהל
+                                  </span>
+                                )}
+                                {profile.role === 'staff' && (
+                                  <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
+                                    צוות
+                                  </span>
+                                )}
+                                {profile.role === 'mentor' && (
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
+                                    מנטור
+                                  </span>
+                                )}
+                              </div>
                               {profile.name && (
                                 <span className="text-xs text-gray-500 truncate">{profile.name}</span>
                               )}
