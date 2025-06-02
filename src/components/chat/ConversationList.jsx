@@ -1,7 +1,8 @@
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { db } from '@/config/firbaseConfig';
 import { doc, getDoc } from 'firebase/firestore';
 import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
+import { HiOutlineChatBubbleBottomCenterText, HiUserGroup, HiMiniUsers, HiMiniHome } from "react-icons/hi2";
 
 
 /**
@@ -19,9 +20,20 @@ export default function ConversationList({
   getChatPartner,
   elementColorsMap,
   activeTab,
-  currentUser
+  currentUser,
+  onTabChange
 }) {
   const [usernames, setUsernames] = useState({});
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Define filter items
+  const filterItems = [
+    { icon: HiMiniHome, label: "הכל", type: "all" },
+    { icon: HiOutlineChatBubbleBottomCenterText, label: "פרטי", type: "direct" },
+    { icon: HiMiniUsers, label: "קבוצות", type: "group" },
+    { icon: HiUserGroup, label: `קהילות`, type: "community" }
+  ];
 
   const visibleConversations = useMemo(() =>
     filteredConversations.filter((conv) => {
@@ -52,6 +64,29 @@ export default function ConversationList({
     });
   }, [visibleConversations]);
 
+  // Handle filter button click
+  const handleFilterClick = (filterType) => {
+    onTabChange(filterType);
+    setIsDropdownOpen(false);
+  };
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
   return (
     <div className="w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] overflow-y-auto" dir="rtl" onClick={() => setSelectedConversation(null)}>
       <div className="p-2 sm:p-4 sticky top-0 bg-white z-10 border-b border-gray-100">
@@ -67,8 +102,49 @@ export default function ConversationList({
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <svg className="absolute right-2 top-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0z" />
           </svg>
+        </div>
+        {/* Filter Dropdown */}
+        <div className="mt-3 relative" ref={dropdownRef}>
+          <button
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 bg-gray-100 hover:bg-gray-200 text-gray-700 w-1/2 justify-between"
+            onClick={e => { e.stopPropagation(); setIsDropdownOpen(v => !v); }}
+            style={{ border: '1px solid #e5e7eb' }}
+          >
+            <span className="flex items-center gap-2 w-1/2">
+              {(() => {
+                const activeItem = filterItems.find(item => item.type === activeTab);
+                if (!activeItem) return null;
+                const Icon = activeItem.icon;
+                return <Icon className="text-base" />;
+              })()}
+              <span>{filterItems.find(item => item.type === activeTab)?.label || ''}</span>
+            </span>
+            <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {isDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-1/2 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+              {filterItems.map((item, idx) => {
+                const isActive = activeTab === item.type;
+                const elementColors = elementColorsMap[currentUser?.element];
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={idx}
+                    className={`flex items-center gap-2 px-3 py-2 w-full text-right rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 ${isActive ? 'bg-blue-100 font-bold text-black' : 'hover:bg-gray-100 text-gray-700'}`}
+                    onClick={() => handleFilterClick(item.type)}
+                    style={{ backgroundColor: isActive ? (elementColors?.light || '#e0e7ff') : undefined }}
+                  >
+                    <Icon className="text-base" />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
       <div className="flex-1 overflow-y-auto max-h-[calc(100dvh-4rem)] px-1 sm:px-2">
@@ -202,10 +278,10 @@ export default function ConversationList({
         )}
       </div>
       {activeTab === "direct" && currentUser.role !== 'staff' && (
-        <div className="p-2.5 border-t border-gray-200">
+        <div className="p-2.5 border-t  border-gray-200">
           <button
             onClick={() => setShowNewChatDialog(true)}
-            className="w-full text-white py-2 rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+            className="w-full text-white py-2 rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2 lg:mb-0 md:mb-12 mb-12"
             style={{ backgroundColor: elementColorsMap[currentUser?.element]?.primary || '#888' }}
           >
             <span className="text-xl">+</span>
@@ -214,10 +290,10 @@ export default function ConversationList({
         </div>
       )}
       {activeTab === "group" && currentUser.role !== 'staff' && (
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-2.5 border-t border-gray-200">
           <button
             onClick={() => setShowNewGroupDialog(true)}
-            className="w-full text-white py-2 rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2"
+            className="w-full text-white py-2 rounded-lg hover:opacity-90 transition-colors flex items-center justify-center gap-2 lg:mb-0 md:mb-12 mb-12"
             style={{ backgroundColor: elementColorsMap[currentUser?.element]?.primary || '#888' }}
           >
             <span className="text-xl">+</span>
