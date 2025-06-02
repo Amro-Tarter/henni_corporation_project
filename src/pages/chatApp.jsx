@@ -150,7 +150,7 @@ export default function ChatApp() {
                     // Ensure mentor community logic
           await handleMentorCommunityMembership(user.uid, userRole, userDoc.data().mentorName, userDoc.data().username);
           setAuthInitialized(true);
-          setSelectedConversation(null);
+          
         } catch (error) {
           console.error("Error loading user:", error);
         }
@@ -628,116 +628,13 @@ export default function ChatApp() {
     }
   };
 
-  // Add useEffect to handle initial conversation selection based on chatId URL parameter
-  useEffect(() => {
-    if (!currentUser.uid) return; // Skip if user not logged in
-    if (isLoadingConversations) return; // Prevent running until conversations are loaded
-
-    if (chatId) {
-      let conversation = conversations.find(c => c.id === chatId);
-      const lastReadKey = `${chatId}_${currentUser.uid}`;
-      const alreadyUpdated = lastReadUpdated[lastReadKey];
-
-      if (conversation) {
-        // Always use the full object from conversations array
-        setSelectedConversation(conversation);
-        navigate(`/chat/${conversation.id}`);
-        console.log('conversation', selectedConversation.id);
-
-        // Only update lastRead if we haven't already done so
-        if (!alreadyUpdated) {
-          const conversationRef = doc(db, "conversations", conversation.id);
-          updateDoc(conversationRef, {
-            [`unread.${currentUser.uid}`]: 0,
-            [`lastRead.${currentUser.uid}`]: serverTimestamp()
-          });
-          setLastReadUpdated(prev => ({
-            ...prev,
-            [lastReadKey]: true
-          }));
-        }
-      } else {
-        // If conversation not found in current state, fetch it directly
-        const fetchConversation = async () => {
-          try {
-            const conversationRef = doc(db, "conversations", chatId);
-            const conversationDoc = await getDoc(conversationRef);
-            if (conversationDoc.exists()) {
-              const data = conversationDoc.data();
-              if (data.participants && data.participants.includes(currentUser.uid)) {
-                // Create conversation object with necessary data
-                const conversationData = {
-                  id: chatId,
-                  ...data,
-                  lastUpdated: data.lastUpdated?.toDate(),
-                  createdAt: data.createdAt?.toDate()
-                };
-                // For direct chats, get partner info
-                if (data.type === "direct") {
-                  const partnerUid = data.participants.find(p => p !== currentUser.uid);
-                  if (partnerUid) {
-                    const userDocRef = doc(db, "users", partnerUid);
-                    const partnerDoc = await getDoc(userDocRef);
-                    let partnerProfilePic = null;
-                    try {
-                      const profileDocRef = doc(db, "profiles", partnerUid);
-                      const profileDoc = await getDoc(profileDocRef);
-                      if (profileDoc.exists()) {
-                        partnerProfilePic = profileDoc.data().photoURL || null;
-                      }
-                    } catch (e) {
-                      partnerProfilePic = null;
-                    }
-                    conversationData.participantNames = [
-                      currentUser.username,
-                      partnerDoc.exists() ? partnerDoc.data().username : "Unknown"
-                    ];
-                    conversationData.partnerProfilePic = partnerProfilePic;
-                  }
-                } else if (data.type === "group") {
-                  conversationData.groupName = data.name || data.groupName;
-                  conversationData.avatarURL = data.avatarURL;
-                  conversationData.participantNames = data.participantNames || [];
-                  conversationData.admin = data.admin;
-                }
-                setSelectedConversation(conversationData);
-                // Only update lastRead if we haven't already done so
-                if (!alreadyUpdated) {
-                  updateDoc(conversationRef, {
-                    [`unread.${currentUser.uid}`]: 0,
-                    [`lastRead.${currentUser.uid}`]: serverTimestamp()
-                  });
-                  setLastReadUpdated(prev => ({
-                    ...prev,
-                    [lastReadKey]: true
-                  }));
-                }
-              } else {
-                navigate('/chat');
-              }
-            } else {
-              navigate('/chat');
-            }
-          } catch (error) {
-            console.error("Error fetching conversation:", error);
-            navigate('/chat');
-          }
-        };
-        fetchConversation();
-      }
-    } else {
-      // If no chatId, clear selectedConversation
-      setSelectedConversation(null);
-    }
-  }, [chatId, conversations, currentUser.uid, currentUser.username, isLoadingConversations, lastReadUpdated, navigate]);
-
   // When a conversation is selected, always use the full object from conversations array
   const handleSelectConversation = (conv) => {
     if (!conv) {
       setSelectedConversation(null);
       navigate(`/chat`);
       // On mobile, go back to conversations
-      if (window.innerWidth < 768) setMobilePanel('conversations');
+      if (typeof window !== 'undefined' && window.innerWidth < 768) setMobilePanel('conversations');
       return;
     }
     // If conv is an ID, or partial, find the full object
@@ -749,7 +646,7 @@ export default function ChatApp() {
       setSelectedConversation(fullConv);
       navigate(`/chat/${fullConv.id}`);
       // On mobile, switch to chat area
-      if (window.innerWidth < 768) setMobilePanel('chat');
+      if (typeof window !== 'undefined' && window.innerWidth < 768) setMobilePanel('chat');
       // --- Reset unread count for current user and update lastRead timestamp ---
       const conversationRef = doc(db, "conversations", fullConv.id);
       updateDoc(conversationRef, {
@@ -762,15 +659,89 @@ export default function ChatApp() {
         [lastReadKey]: true
       }));
     } else {
-      setSelectedConversation(conv);
-      navigate(`/chat/${convId}`);
-      if (window.innerWidth < 768) setMobilePanel('chat');
+      // If not found, try to fetch directly and set
+      const fetchAndSet = async () => {
+        try {
+          const conversationRef = doc(db, "conversations", convId);
+          const conversationDoc = await getDoc(conversationRef);
+          if (conversationDoc.exists()) {
+            const data = conversationDoc.data();
+            if (data.participants && data.participants.includes(currentUser.uid)) {
+              const conversationData = {
+                id: convId,
+                ...data,
+                lastUpdated: data.lastUpdated?.toDate(),
+                createdAt: data.createdAt?.toDate()
+              };
+              setSelectedConversation(conversationData);
+              navigate(`/chat/${convId}`);
+            } else {
+              setSelectedConversation(null);
+              navigate('/chat');
+            }
+          } else {
+            setSelectedConversation(null);
+            navigate('/chat');
+          }
+        } catch (error) {
+          setSelectedConversation(null);
+          navigate('/chat');
+        }
+      };
+      fetchAndSet();
     }
   };
 
+  // Refactor: Only update selectedConversation when chatId changes and conversation is found
+  useEffect(() => {
+    if (!currentUser.uid || isLoadingConversations) return;
+    if (chatId) {
+      const conversation = conversations.find(c => c.id === chatId);
+      if (conversation) {
+        setSelectedConversation(conversation);
+        // Navigation is handled in handleSelectConversation
+      } else {
+        // Try to fetch directly if not found
+        const fetchConversation = async () => {
+          try {
+            const conversationRef = doc(db, "conversations", chatId);
+            const conversationDoc = await getDoc(conversationRef);
+            if (conversationDoc.exists()) {
+              const data = conversationDoc.data();
+              if (data.participants && data.participants.includes(currentUser.uid)) {
+                const conversationData = {
+                  id: chatId,
+                  ...data,
+                  lastUpdated: data.lastUpdated?.toDate(),
+                  createdAt: data.createdAt?.toDate()
+                };
+                setSelectedConversation(conversationData);
+              } else {
+                setSelectedConversation(null);
+                navigate('/chat');
+              }
+            } else {
+              setSelectedConversation(null);
+              navigate('/chat');
+            }
+          } catch (error) {
+            setSelectedConversation(null);
+            navigate('/chat');
+          }
+        };
+        fetchConversation();
+      }
+    } else {
+      // Only clear if there is a selectedConversation and conversations are loaded
+      if (selectedConversation !== null && !isLoadingConversations) {
+        setSelectedConversation(null);
+      }
+    }
+  }, [chatId, conversations, currentUser.uid, isLoadingConversations, navigate]);
+
   // On mobile, if chat is closed, go back to conversations
   useEffect(() => {
-    if (window.innerWidth < 768 && !selectedConversation) {
+    if (typeof window !== 'undefined' && window.innerWidth < 768 && selectedConversation === null) {
       setMobilePanel('conversations');
     }
   }, [selectedConversation]);
@@ -790,7 +761,7 @@ export default function ChatApp() {
   // Reset to /chat if no conversation is selected (e.g., after reload)
   useEffect(() => {
     // Only auto-redirect to main chat if no chatId in URL and nothing is selected
-    if (!chatId && selectedConversation === null) {
+    if (!chatId && window.location.pathname.startsWith('/chat') && selectedConversation === null) {
       navigate('/chat');
     }
     // Don't auto-redirect away if chatId exists, allow time to fetch & select conversation
@@ -894,30 +865,6 @@ export default function ChatApp() {
     });
     return () => unsubscribe();
   }, [selectedConversation?.id]);
-
-  // Add a useEffect after selectedConversation changes, to insert the description as a system message if not present
-  useEffect(() => {
-    async function ensureCommunityDescriptionMessage() {
-      if (!selectedConversation || selectedConversation.type !== 'community') return;
-      const descKey = selectedConversation.communityType || 'element';
-      const description = COMMUNITY_DESCRIPTIONS[descKey];
-      if (!description) return;
-      // Check if the first message is the description
-      const messagesRef = collection(db, 'conversations', selectedConversation.id, 'messages');
-      const q = query(messagesRef, orderBy('createdAt'), limit(1));
-      const snapshot = await getDocs(q);
-      const firstMsg = snapshot.docs[0]?.data();
-      if (!firstMsg || firstMsg.text !== description) {
-        // Insert the description as the first system message
-        await addDoc(messagesRef, {
-          text: description,
-          type: 'system',
-          createdAt: serverTimestamp(),
-        });
-      }
-    }
-    ensureCommunityDescriptionMessage();
-  }, [selectedConversation?.id, selectedConversation?.type, selectedConversation?.communityType]);
 
   if (!authInitialized) {
     return <ElementalLoader />;
