@@ -42,32 +42,34 @@ const Rightsidebar = ({ element, onExpandChange }) => {
   };
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (user) {
-        // Fetch profile data
-        const profileRef = firestoreDoc(db, 'profiles', user.uid);
-        const profileSnap = await getDoc(profileRef);
-        if (profileSnap.exists()) {
-          const userData = profileSnap.data();
-          setUserPhotoURL(userData.photoURL);
-          setUserProfile(userData);
-        }
+    if (!user) return;
+    const profileRef = firestoreDoc(db, 'profiles', user.uid);
+    // Listen to profile changes in real-time:
+    const unsubscribe = onSnapshot(profileRef, (profileSnap) => {
+      if (profileSnap.exists()) {
+        const userData = profileSnap.data();
+        setUserPhotoURL(userData.photoURL);
+        setUserProfile(userData);
+      }
+    });
 
-        // Fetch element from 'users' collection (like in profile page)
-        const userRef = firestoreDoc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          if (userData.element) {
-            // Handle both string and array formats
-            const elementValue = Array.isArray(userData.element) ? userData.element[0] : userData.element;
-            setUserElement(elementValue || 'fire');
-          }
+    // Also fetch element from 'users' collection once (optional, or add a separate listener if needed)
+    const fetchUserElement = async () => {
+      const userRef = firestoreDoc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        if (userData.element) {
+          const elementValue = Array.isArray(userData.element) ? userData.element[0] : userData.element;
+          setUserElement(elementValue || 'fire');
         }
       }
     };
-    fetchUserProfile();
-  }, []);
+    fetchUserElement();
+
+    return () => unsubscribe();
+  }, [user]);
+
 
   useEffect(() => {
     const path = window.location.pathname;
