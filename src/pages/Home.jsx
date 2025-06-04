@@ -63,7 +63,7 @@ const Home = () => {
       try {
         setIsLoading(true);
         const fullUser = { uid: authUser.uid, email: authUser.email };
-        
+
         // Fetch user data from users collection to get element
         const userSnap = await getDocs(
           query(collection(db, 'users'), where('associated_id', '==', authUser.uid))
@@ -133,11 +133,11 @@ const Home = () => {
     try {
       const userProfileRef = doc(db, 'profiles', userId);
       const userProfileSnap = await getDoc(userProfileRef);
-      
+
       if (!userProfileSnap.exists()) return;
-      
+
       const following = userProfileSnap.data().following || [];
-      
+
       if (following.length === 0) {
         setFollowingPosts([]);
         setFollowingProjects([]);
@@ -160,7 +160,7 @@ const Home = () => {
           liked: Array.isArray(data.likedBy) && data.likedBy.includes(userId)
         };
       });
-      
+
       setFollowingPosts(loaded);
 
       // Fetch following projects
@@ -226,20 +226,20 @@ const Home = () => {
   // Set up comment listeners for each post
   useEffect(() => {
     if (!posts.length) return;
-    
+
     // Create an object to store cleanup functions
     const unsubscribes = {};
-    
+
     // Set up a listener for each post's comments
     posts.forEach(post => {
       const commentsRef = collection(db, 'posts', post.id, 'comments');
       const commentsQuery = query(commentsRef, orderBy('createdAt', 'desc'));
-      
+
       const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
         const fetchedComments = [];
         const topLevelComments = []; // Comments without parent
         const commentReplies = {}; // Group replies by parent ID
-        
+
         snapshot.forEach(doc => {
           const commentData = {
             id: doc.id,
@@ -247,9 +247,9 @@ const Home = () => {
             createdAt: doc.data().createdAt?.toDate() || new Date(),
             updatedAt: doc.data().updatedAt?.toDate() || null,
           };
-          
+
           fetchedComments.push(commentData);
-          
+
           // Organize comments into a hierarchical structure
           if (commentData.parentId) {
             // This is a reply
@@ -262,7 +262,7 @@ const Home = () => {
             topLevelComments.push(commentData);
           }
         });
-        
+
         // Process comments to add their replies
         const processedComments = topLevelComments.map(comment => {
           return {
@@ -272,17 +272,17 @@ const Home = () => {
             )
           };
         });
-        
+
         // Update the comments state for this post
         setPostComments(prev => ({
           ...prev,
           [post.id]: processedComments
         }));
       });
-      
+
       unsubscribes[post.id] = unsubscribe;
     });
-    
+
     // Clean up listeners when component unmounts
     return () => {
       Object.values(unsubscribes).forEach(unsubscribe => unsubscribe());
@@ -359,7 +359,7 @@ const Home = () => {
 
     const docRef = await addDoc(collection(db, 'posts'), newPost);
     setPosts(prev => [{ id: docRef.id, ...newPost, liked: false }, ...prev]);
-    
+
     // Update the user's profile postsCount
     await updateDoc(doc(db, 'profiles', user.uid), {
       postsCount: increment(1)
@@ -391,10 +391,10 @@ const Home = () => {
     try {
       // Get the post to check if it belongs to the current user
       const postToDelete = posts.find(p => p.id === postId);
-      
+
       await deleteDoc(doc(db, 'posts', postId));
       setPosts(prev => prev.filter(p => p.id !== postId));
-      
+
       // Update the post author's profile postsCount (only if it's the current user's post)
       if (postToDelete && postToDelete.authorId === user.uid) {
         await updateDoc(doc(db, 'profiles', user.uid), {
@@ -429,7 +429,7 @@ const Home = () => {
 
   const handleAddComment = async (postId, text, parentId = null) => {
     if (!text.trim()) return;
-    
+
     try {
       const commentData = {
         authorId: user?.uid,
@@ -452,7 +452,7 @@ const Home = () => {
         commentsCount: increment(1)
       });
 
-      setPosts(prev => prev.map(p => 
+      setPosts(prev => prev.map(p =>
         p.id === postId ? { ...p, commentsCount: p.commentsCount + 1 } : p
       ));
     } catch (error) {
@@ -482,10 +482,10 @@ const Home = () => {
       if (!window.confirm('האם אתה בטוח שברצונך למחוק את התגובה?')) {
         return;
       }
-      
+
       // Delete the comment document
       await deleteDoc(doc(db, 'posts', postId, 'comments', commentId));
-      
+
       // If it's a top-level comment, also find and delete all its replies
       if (!isReply) {
         // Get all replies to this comment
@@ -494,22 +494,22 @@ const Home = () => {
           where('parentId', '==', commentId)
         );
         const repliesSnapshot = await getDocs(repliesQuery);
-        
+
         // Delete each reply
         const batch = writeBatch(db);
         repliesSnapshot.docs.forEach(replyDoc => {
           batch.delete(doc(db, 'posts', postId, 'comments', replyDoc.id));
         });
         await batch.commit();
-        
+
         // Decrement the post's comment count for the parent and all replies
         const postRef = doc(db, 'posts', postId);
         await updateDoc(postRef, {
           commentsCount: increment(-(repliesSnapshot.size + 1))
         });
-        
+
         // Update local post state
-        setPosts(prev => prev.map(p => 
+        setPosts(prev => prev.map(p =>
           p.id === postId ? { ...p, commentsCount: p.commentsCount - (repliesSnapshot.size + 1) } : p
         ));
       } else {
@@ -518,9 +518,9 @@ const Home = () => {
         await updateDoc(postRef, {
           commentsCount: increment(-1)
         });
-        
+
         // Update local post state
-        setPosts(prev => prev.map(p => 
+        setPosts(prev => prev.map(p =>
           p.id === postId ? { ...p, commentsCount: p.commentsCount - 1 } : p
         ));
       }
@@ -751,6 +751,9 @@ const Home = () => {
     }
   };
 
+  const isPrivilegedRole = ['mentor', 'staff', 'admin'].includes(profile?.role);
+  const element = isPrivilegedRole || !profile?.element ? 'red' : profile.element;
+
   if (!profile) return (
     <ThemeProvider element="earth">
       <ElementalLoader />
@@ -759,18 +762,18 @@ const Home = () => {
 
   if (isLoading) {
     return (
-      <ThemeProvider element={profile.element}>
+      <ThemeProvider element={element}>
         <ElementalLoader />
       </ThemeProvider>
     );
   }
 
   return (
-    <ThemeProvider element={profile.element}>
+    <ThemeProvider element={element}>
       <div className="flex min-h-screen bg-element-base">
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
-          <LeftSidebar 
-            element={profile.element}
+          <LeftSidebar
+            element={element}
             viewerElement={user?.element}
             users={sameElementUsers}
             viewerProfile={user}
@@ -781,17 +784,15 @@ const Home = () => {
 
         <div className={`flex-1 transition-all duration-300 lg:ml-64 ${isRightSidebarExpanded ? 'lg:mr-64' : 'lg:mr-16'}`}>
           <Navbar
-            element={profile.element}
+            element={element}
             isLeftSidebarOpen={isLeftSidebarOpen}
             setIsLeftSidebarOpen={setIsLeftSidebarOpen}
             className="shadow-lg bg-element-navbar"
           />
-          
-          <div className={`mt-12 px-2 sm:px-4 flex justify-center transition-all duration-300 ${
-            isLeftSidebarOpen ? 'lg:pl-50' : 'lg:pl-0'
-          } ${
-            isRightSidebarExpanded ? 'lg:pr-50' : 'lg:pr-0'
-          }`}>
+
+          <div className={`mt-12 px-2 sm:px-4 flex justify-center transition-all duration-300 ${isLeftSidebarOpen ? 'lg:pl-50' : 'lg:pl-0'
+            } ${isRightSidebarExpanded ? 'lg:pr-50' : 'lg:pr-0'
+            }`}>
             <div className="w-full max-w-4xl space-y-4 sm:space-y-6 mx-auto px-2 sm:px-4 lg:px-8 mb-16 lg:mb-0">
               {isLoading ? (
                 <div className="flex items-center justify-center h-64">
@@ -804,7 +805,7 @@ const Home = () => {
                     <CreatePost
                       addPost={addPost}
                       profilePic={profile.photoURL || '/default-avatar.png'}
-                      element={profile.element}
+                      element={element}
                       className="shadow-md bg-element-post rounded-xl p-3 sm:p-4 w-full"
                     />
                   </div>
@@ -812,22 +813,22 @@ const Home = () => {
                   <div className="flex flex-col items-center mb-6 sm:mb-8 w-full">
                     <div className="bg-element-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden">
                       {/* Sliding Underline */}
-                      <div 
-                        className={`absolute bottom-[10px] h-[2px] bg-${profile.element} transition-all duration-300 ease-in-out`}
+                      <div
+                        className={`absolute bottom-[10px] h-[2px] bg-${element} transition-all duration-300 ease-in-out`}
                         style={{
                           left: '0',
                           width: '47%',
                           transform: activeTab === 'all' ? 'translateX(113%)' : 'translateX(3%)'
                         }}
                       />
-                      
+
                       {/* All Posts Button */}
                       <div className="flex-1">
                         <button
                           onClick={() => setActiveTab('all')}
                           className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
                             ${activeTab === 'all'
-                              ? `text-${profile.element} font-bold`
+                              ? `text-${element} font-bold`
                               : 'text-element-text'
                             }
                             hover:bg-element-hover/10
@@ -836,29 +837,27 @@ const Home = () => {
                             `}
                         >
                           <div className="flex items-center justify-center gap-2">
-                            <svg 
-                              xmlns="http://www.w3.org/2000/svg" 
-                              className={`w-5 h-5 transition-colors duration-300 ${
-                                activeTab === 'all' 
-                                  ? `text-${profile.element}` 
-                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${profile.element}`
-                              }`}
-                              fill="none" 
-                              viewBox="0 0 24 24" 
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className={`w-5 h-5 transition-colors duration-300 ${activeTab === 'all'
+                                  ? `text-${element}`
+                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${element}`
+                                }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
                               stroke="currentColor"
                             >
-                              <path 
-                                strokeLinecap="round" 
-                                strokeLinejoin="round" 
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" 
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
                               />
                             </svg>
-                            <span className={`text-sm sm:text-base transition-colors duration-300 ${
-                              activeTab === 'all' 
-                                ? `text-${profile.element}` 
-                                : `group-hover:text-${profile.element}`
-                            }`}>כל הפוסטים</span>
+                            <span className={`text-sm sm:text-base transition-colors duration-300 ${activeTab === 'all'
+                                ? `text-${element}`
+                                : `group-hover:text-${element}`
+                              }`}>כל הפוסטים</span>
                           </div>
                         </button>
                       </div>
@@ -872,7 +871,7 @@ const Home = () => {
                           onClick={() => setActiveTab('following')}
                           className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
                             ${activeTab === 'following'
-                              ? `text-${profile.element} font-bold`
+                              ? `text-${element} font-bold`
                               : 'text-element-text'
                             }
                             hover:bg-element-hover/10
@@ -881,29 +880,27 @@ const Home = () => {
                             `}
                         >
                           <div className="flex items-center justify-center gap-2">
-                            <svg 
-                              xmlns="http://www.w3.org/2000/svg" 
-                              className={`w-5 h-5 transition-colors duration-300 ${
-                                activeTab === 'following' 
-                                  ? `text-${profile.element}` 
-                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${profile.element}`
-                              }`}
-                              fill="none" 
-                              viewBox="0 0 24 24" 
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className={`w-5 h-5 transition-colors duration-300 ${activeTab === 'following'
+                                  ? `text-${element}`
+                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${element}`
+                                }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
                               stroke="currentColor"
                             >
-                              <path 
-                                strokeLinecap="round" 
-                                strokeLinejoin="round" 
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" 
+                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
                               />
                             </svg>
-                            <span className={`text-sm sm:text-base transition-colors duration-300 ${
-                              activeTab === 'following' 
-                                ? `text-${profile.element}` 
-                                : `group-hover:text-${profile.element}`
-                            }`}>עוקב אחרי</span>
+                            <span className={`text-sm sm:text-base transition-colors duration-300 ${activeTab === 'following'
+                                ? `text-${element}`
+                                : `group-hover:text-${element}`
+                              }`}>עוקב אחרי</span>
                           </div>
                         </button>
                       </div>
@@ -911,19 +908,17 @@ const Home = () => {
 
                     {/* Posts Count Indicator */}
                     <div className="mt-4 flex gap-4 sm:gap-8 text-sm text-element-text opacity-75 flex-wrap justify-center">
-                      <span className={`flex items-center gap-1 transition-all duration-300 ${
-                        activeTab === 'all' ? `text-${profile.element} font-semibold` : ''
-                      }`}>
+                      <span className={`flex items-center gap-1 transition-all duration-300 ${activeTab === 'all' ? `text-${element} font-semibold` : ''
+                        }`}>
                         <span className="font-medium">{posts.length + projects.length}</span> פוסטים כלליים
                       </span>
-                      <span className={`flex items-center gap-1 transition-all duration-300 ${
-                        activeTab === 'following' ? `text-${profile.element} font-semibold` : ''
-                      }`}>
+                      <span className={`flex items-center gap-1 transition-all duration-300 ${activeTab === 'following' ? `text-${element} font-semibold` : ''
+                        }`}>
                         <span className="font-medium">{followingPosts.length + followingProjects.length}</span> פוסטים מעוקבים
                       </span>
                     </div>
                   </div>
-                  
+
                   {/* Posts Container with consistent margins */}
                   <div className="w-full space-y-4">
                     {/* --- Combined Posts & Projects Section --- */}
@@ -952,7 +947,7 @@ const Home = () => {
                           onAddComment={handleAddComment}
                           onEditComment={handleEditComment}
                           onDeleteComment={handleDeleteComment}
-                          element={profile.element}
+                          element={element}
                           postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
                           getAuthorProfile={getAuthorProfile}
                           isLoading={isLoading}
@@ -968,20 +963,19 @@ const Home = () => {
 
         {/* Right Sidebar with adjusted margin - only render on desktop */}
         <div className="hidden lg:block">
-          <div className={`fixed right-0 top-6 h-[calc(100vh-1.5rem)] shadow-2xl transition-all duration-300 ${
-            isRightSidebarExpanded ? 'w-64' : 'w-16'
-          } lg:shadow-lg`}>
-            <RightSidebar 
-              element={profile.element} 
-              className="h-full" 
+          <div className={`fixed right-0 top-6 h-[calc(100vh-1.5rem)] shadow-2xl transition-all duration-300 ${isRightSidebarExpanded ? 'w-64' : 'w-16'
+            } lg:shadow-lg`}>
+            <RightSidebar
+              element={element}
+              className="h-full"
               onExpandChange={handleRightSidebarExpandChange}
             />
           </div>
         </div>
         {/* Always render Rightsidebar for mobile bottom bar, but do not pass onExpandChange */}
         <div className="lg:hidden">
-          <RightSidebar 
-            element={profile.element} 
+          <RightSidebar
+            element={element}
           />
         </div>
       </div>

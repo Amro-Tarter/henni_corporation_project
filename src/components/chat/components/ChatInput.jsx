@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, memo } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import getDirection from '../utils/identifyLang';
 import '../animations/ChatInput.css';
+
 /**
  * ChatInput handles message input, emoji picker, and file upload.
  */
@@ -18,7 +19,6 @@ const ChatInput = memo(({
   elementColors,
   showEmojiPicker,
   setShowEmojiPicker,
-  onEmojiClick,
   emojiPickerRef,
   sendButtonRef,
   // Voice recording props:
@@ -29,7 +29,6 @@ const ChatInput = memo(({
   audioURL,
   audioBlob,
   resetRecording,
-  onSendVoiceMessage,
   isUploadingVoice
 }) => {
   const [showFileButton, setShowFileButton] = useState(true);

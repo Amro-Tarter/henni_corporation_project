@@ -274,7 +274,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                 `}>
                     {tab.label}
                     {isExpanded && tab.id === 'messenger' && messageUnreadCount > 0 && (
-                      <span className="ml-2 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-xs">
+                      <span className="mr-20 px-1.5 rounded-full bg-red-500 text-white text-xs">
                         {messageUnreadCount > 99 ? '99+' : messageUnreadCount}
                       </span>
                     )}
@@ -315,7 +315,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
             `}>
                 התראות
                 {isExpanded && unreadCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 rounded-full bg-red-500 text-white text-xs">
+                  <span className="mr-20 px-1.5  rounded-full bg-red-500 text-white text-xs">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}

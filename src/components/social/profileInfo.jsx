@@ -192,18 +192,6 @@ const ProfileInfo = ({
             ) : (
               <div className={`flex items-center gap-2 sm:gap-3 text-${element}`}>
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">{username}</h1>
-                {role === 'mentor' && (
-                  <span
-                    style={{ alignSelf: 'center' }}
-                    className={`ml-2 px-2 py-0.5 border border-${element}-accent text-${element} text-xs rounded-full
-                             bg-${element}-soft font-semibold flex items-center gap-1`}
-                    title="מנחה"
-                  >
-                    <svg className={`w-3 h-3 text-${element}-accent`} fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M10 1.5l2.47 5.26 5.81.5c.46.04.64.6.31.93l-4.38 3.94 1.35 5.72c.1.43-.37.77-.76.54L10 15.18l-4.8 2.15c-.39.17-.86-.12-.76-.54l1.35-5.72-4.38-3.94c-.33-.33-.15-.89.31-.93l5.81-.5L10 1.5z" /></svg>
-                    מנחה
-                  </span>
-                )}
                 {isOwner && (
                   <Tooltip text="ערוך שם משתמש">
                     <Pencil
@@ -216,18 +204,37 @@ const ProfileInfo = ({
             )}
 
             {/* Element Display (READ ONLY) */}
-            <Tooltip text={isOwner ? "האלמנט שלך" : "האלמנט של המשתמש הזה"}>
-              <div
-                className={`
-            relative inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-${element}-soft text-${element}
-            shadow-md ring-1 ring-${element}-accent
-          `}
-                style={{ pointerEvents: "none", userSelect: "none" }}
-              >
-                <span className="text-xl sm:text-2xl">{findOption(element).icon}</span>
-                <span className="text-base sm:text-lg font-medium">{findOption(element).label}</span>
-              </div>
-            </Tooltip>
+            {['mentor', 'staff', 'admin'].includes(role) ? (
+              <Tooltip text="תפקיד המשתמש">
+                <div className={`
+        relative inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-${element}-soft text-${element}
+        shadow-md ring-1 ring-${element}-accent
+      `}
+                  style={{ pointerEvents: "none", userSelect: "none" }}>
+                  <span className="text-xl sm:text-2xl">
+                    {role === 'mentor' && '🧑‍🏫'}
+                    {role === 'staff' && '🛠️'}
+                    {role === 'admin' && '⭐'}
+                  </span>
+                  <span className="text-base sm:text-lg font-medium">
+                    {role === 'mentor' ? 'מנחה' : role === 'staff' ? 'צוות' : 'מנהל'}
+                  </span>
+                </div>
+              </Tooltip>
+            ) : (
+              <Tooltip text={isOwner ? "האלמנט שלך" : "האלמנט של המשתמש הזה"}>
+                <div
+                  className={`
+        relative inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-${element}-soft text-${element}
+        shadow-md ring-1 ring-${element}-accent
+      `}
+                  style={{ pointerEvents: "none", userSelect: "none" }}
+                >
+                  <span className="text-xl sm:text-2xl">{findOption(element).icon}</span>
+                  <span className="text-base sm:text-lg font-medium">{findOption(element).label}</span>
+                </div>
+              </Tooltip>
+            )}
           </div>
           {/* Location*/}
           <div className={`mt-4 flex flex-wrap items-center gap-2 text-base text-${element}`}>

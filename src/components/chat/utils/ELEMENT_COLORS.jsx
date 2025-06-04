@@ -1,8 +1,5 @@
 import AirIcon from '@mui/icons-material/Air';
-import WaterIcon from '@mui/icons-material/WaterDrop';
-import FireIcon from '@mui/icons-material/Whatshot';
-import EarthIcon from '@mui/icons-material/Nature';
-import MetalIcon from '@mui/icons-material/Build';
+
 
 export const ELEMENT_COLORS = {
     fire: {
@@ -12,50 +9,50 @@ export const ELEMENT_COLORS = {
       light: '#fff0e6',
       darkHover: '#b33000',
       background: '#fff7f2',
-      icon: <FireIcon style={{color: '#ff4500'}} />
+      icon: '🔥'
     },
     earth: {
       label: 'אדמה',
       primary: '#228B22',
       hover: '#1e7a1e',
       light: '#f5ede6',
-      darkHover: '#5e2f0d',
+      darkHover: '#175c17',
       background: '#fcf8f3',
-      icon: <EarthIcon style={{color: '#228B22'}} />
+      icon: '🌱'
     },
     metal: {
       label: 'מתכת',
-      primary: '#c0c0c0',
-      hover: '#a8a8a8',
-      light: '#f5f5f5',
-      darkHover: '#808080',
-      background: '#fafafa',
-      icon: <MetalIcon style={{color: '#808080'}} />
+      primary: '#666666',
+      hover: '#404040',
+      light: '#e6e6e6',
+      darkHover: '#333333',
+      background: '#f0f0f0',
+      icon: '⚒️'
     },
     water: {
       label: 'מים',
-      primary: '#1e90ff',
-      hover: '#187bdb',
-      light: '#e6f2ff',
-      darkHover: '#0066cc',
-      background: '#f3f8ff',
-      icon: <WaterIcon style={{color: '#1e90ff'}} />
+      primary: '#3b82f6',
+      hover: '#6366f1',
+      light: '#eef2ff',
+      darkHover: '#265eb5',
+      background: '#f5f8ff',
+      icon: '💧'
     },
     air: {
       label: 'אוויר',
-      primary: '#87ceeb',
-      hover: '#76bede',
-      light: '#eaf8ff',
-      darkHover: '#5ca8c4',
-      background: '#f7fcff',
-      icon: <AirIcon style={{color: '#87ceeb'}} />
+      primary: '#0ea5e9',
+      hover: '#0284c7',
+      light: '#ccf2ff',
+      darkHover: '#026899',
+      background: '#e6f9ff',
+      icon: <AirIcon style={{color: '#0ea5e9'}} />
     },
-    staff: {
+    staff_mentor_admin: {
       primary: '#a83232',      // Rich warm red (less saturated than #7f1d1d)
       hover: '#922b21',        // Darker, deeper hover red
       light: '#fdecea',        // Very light red-tinted background
       darkHover: '#7f1d1d',    // The reference color (darkest tone)
       background: '#fff6f6',   // Soft light red background
-      icon: <FireIcon style={{ color: '#a83232' }} />, // Match primary
+      icon: '🔥'
     }
   };
