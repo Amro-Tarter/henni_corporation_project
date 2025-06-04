@@ -13,23 +13,23 @@ import {
 } from '@fortawesome/free-solid-svg-icons'; 
 import { useNavigate } from 'react-router-dom';
 
-// Custom Loader Component (provided by user)
+// Custom Loader Component
 const ELEMENTS = [
   { key: 'earth', emoji: '🌱', color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
   { key: 'metal', emoji: '⚒️', color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
-  { key: 'air',   emoji: '💨', color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
+  { key: 'air', emoji: '💨', color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
   { key: 'water', emoji: '💧', color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
-  { key: 'fire',  emoji: '🔥', color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
+  { key: 'fire', emoji: '🔥', color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
 ];
 
 function CleanElementalOrbitLoader() {
   const [activeElement, setActiveElement] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
-  
+
   useEffect(() => {
     setIsVisible(true);
   }, []);
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       setActiveElement(a => (a + 1) % ELEMENTS.length);
@@ -38,28 +38,29 @@ function CleanElementalOrbitLoader() {
   }, []);
 
   const current = ELEMENTS[activeElement];
-  const orbitDuration = 12; 
-  
+  const orbitDuration = 12;
+
   return (
-    <div 
-      className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4"
+    <div
+      // Added 'fixed inset-0 z-50' to make it a full-screen overlay
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4"
       role="status"
       aria-label="Loading elements"
     >
-      <div 
+      <div
         className={`relative w-64 h-64 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       >
         <div className="absolute inset-0 rounded-full border border-gray-200 opacity-30"></div>
-        
-        <div 
+
+        <div
           className={`absolute inset-0 m-auto w-24 h-24 rounded-full flex items-center justify-center shadow transition-all duration-700 ${current.bgColor}`}
         >
           <span className="text-4xl">{current.emoji}</span>
         </div>
-        
+
         {ELEMENTS.map((el, i) => {
           const isActive = activeElement === i;
-          
+
           return (
             <div
               key={el.key}
@@ -77,8 +78,8 @@ function CleanElementalOrbitLoader() {
 
         <div className="absolute inset-0">
           {[...Array(20)].map((_, i) => (
-            <div 
-              key={`particle-${i}`} 
+            <div
+              key={`particle-${i}`}
               className="absolute top-1/2 left-1/2 w-1 h-1 rounded-full bg-gray-300 opacity-40"
               style={{
                 animation: `orbitAnimation ${orbitDuration}s linear infinite`,
@@ -97,7 +98,7 @@ function CleanElementalOrbitLoader() {
               transform: translate(-50%, -50%) rotate(360deg) translateX(112px) rotate(-360deg);
             }
           }
-          
+
           @media (max-width: 640px) {
             .text-4xl {
               font-size: 1.5rem;
@@ -111,7 +112,6 @@ function CleanElementalOrbitLoader() {
     </div>
   );
 }
-
 
 const DashboardHome = () => {
   const navigate = useNavigate();

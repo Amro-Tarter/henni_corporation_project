@@ -229,7 +229,7 @@ if (!querySnapshot.empty) {
 
     {/* Heading */}
     <div className="text-center mb-6">
-      <h2 className="text-3xl font-extrabold text-gray-900"> עמותת לגלות את האור הנני</h2>
+      <h2 className="text-3xl font-extrabold text-gray-900"> לגלות את האור הניני</h2>
       <p className="mt-2 text-sm text-gray-700">צור חשבון חדש</p>
     </div>
 
@@ -361,6 +361,74 @@ if (!querySnapshot.empty) {
       className={inputStyle}
     />
   </div>
+
+  {/* Element */}
+  <div className=" shine-button col-span md:col-span-2 mt-2 flex flex-col items-center ">
+  <label className="mb-2 text-center ">אלמנט</label>
+  <select
+  required
+  value={element}
+  onChange={(e) => setElement(e.target.value)}
+  style={{ outline: 'none', boxShadow: 'none' }}
+
+  className={` 
+     mb-2 text-center focus:ring-0 focus:border-gray-300		 border border-gray-300 ${inputStyle} ${elementGradients[element] || "bg-white"}`}
+ 
+ >
+  <option
+    value=""
+    className="mb-2 text-center 	"
+  >
+     
+
+    בחר אלמנט
+  </option>
+  <option
+    value="fire"
+    className="mb-2 text-center  "
+  >
+    אש
+  </option>
+  <option
+    value="water"
+    className="mb-2 text-center"
+  >
+    מים
+  </option>
+  <option
+    value="earth"
+    className="mb-2 text-center"
+  >
+    אדמה
+  </option>
+  <option
+    value="air"
+    className="mb-2 text-center"
+  >
+    אוויר
+  </option>
+  <option
+    value="metal"
+    className="mb-2 text-center"
+  >
+    מתכת
+  </option>
+</select>
+<span className="shine"></span>
+
+</div>
+  {/* Submit Button */}
+  <div className="col-span-1 md:col-span-2 ">
+  <button
+    type="submit"
+    className={`relative overflow-hidden z-10 w-full py-3 px-4 rounded-md font-medium text-black text-lg
+      transition hover:opacity-95 
+      ${elementGradients[element] || "bg-gray-300"} shine-button`}
+  >
+    הרשם
+    <span className="shine" />
+  </button>
+</div>
 
   {/* Login Link */}
   <div className="col-span-1 md:col-span-2 text-center text-sm">
