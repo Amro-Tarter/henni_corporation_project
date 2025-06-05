@@ -55,7 +55,7 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
           <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
         </button>
       )}
-      {currentUser.role !== 'staff' && (
+      {currentUser.role !== 'admin' && (
         type === 'community' ? (
           displayIcon
         ) : avatar ? (
@@ -65,7 +65,7 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
         )
       )}
       
-      {currentUser.role === 'staff' && type === 'direct' && (
+      {currentUser.role === 'admin' && type === 'direct' && (
         <div className="text-gray-900 font-bold text-lg">
           {participantNames.join(' - ')}
         </div>
@@ -75,7 +75,7 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
         <div className="text-gray-900 font-bold text-lg flex items-center gap-2">
           {displayName}
         </div>
-      ) : currentUser.role !== 'staff' && (
+      ) : currentUser.role !== 'admin' && (
         <div className="text-gray-900 font-bold text-lg">
           {displayName}
         </div>

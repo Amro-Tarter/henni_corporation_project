@@ -315,7 +315,7 @@ export default function ChatArea({
                   ))}
                   <MessageLoadingState type="image" isOwnMessage={true} elementColors={elementColors} />
                 </>
-              ) : filteredMessages.length === 0 && currentUser.role !== 'staff' ? (
+              ) : filteredMessages.length === 0 && currentUser.role !== 'admin' ? (
                 <div className="text-center text-gray-500 py-8">אין הודעות עדיין. התחל את השיחה!</div>
               ) : (
                 <>
@@ -336,7 +336,7 @@ export default function ChatArea({
               <div ref={messagesEndRef} />
             </div>
             {/* ChatInput always at the bottom */}
-            {currentUser.role !== 'staff' && (
+            {currentUser.role !== 'admin' && (
               <ChatInput
                 newMessage={newMessage}
                 setNewMessage={setNewMessage}

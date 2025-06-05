@@ -35,6 +35,11 @@ export default function ConversationList({
     { icon: HiUserGroup, label: `קהילות`, type: "community" }
   ];
 
+  if (currentUser.role === 'admin') {
+    filterItems.push({ icon: HiOutlineChatBubbleBottomCenterText, label: "פניות", type: "admin_chats" });
+  }
+
+
   const visibleConversations = useMemo(() =>
     filteredConversations.filter((conv) => {
       if (activeTab === "all") return true;
@@ -106,7 +111,7 @@ export default function ConversationList({
           </svg>
         </div>
         {/* Filter Dropdown */}
-        <div className="mt-3 relative" ref={dropdownRef}>
+        <div className="mt-3 relative flex flex-row gap-2" ref={dropdownRef}>
           <button
             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 bg-gray-100 hover:bg-gray-200 text-gray-700 w-1/2 justify-between"
             onClick={e => { e.stopPropagation(); setIsDropdownOpen(v => !v); }}
@@ -145,7 +150,16 @@ export default function ConversationList({
               })}
             </div>
           )}
+          {currentUser.role !== 'admin' && (
+            <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 bg-gray-100 hover:bg-gray-200 text-gray-700 w-1/2"
+             style={{ border: '1px solid #e5e7eb' }}
+             >
+              <HiOutlineChatBubbleBottomCenterText className="text-base" />
+              <span>פנה אל המהל</span>
+            </button>
+          )}
         </div>
+        
       </div>
       <div className="flex-1 overflow-y-auto max-h-[calc(100dvh-4rem)] px-1 sm:px-2">
         <div className="text-xs font-medium text-gray-500 px-2 sm:px-4 py-2 text-right">כל ההודעות</div>
@@ -191,11 +205,11 @@ export default function ConversationList({
                   <span role="img" aria-label="avatar">👤</span>
                 </div>
               );
-            } else if (conv.partnerProfilePic && currentUser.role !== 'staff') {
+            } else if (conv.partnerProfilePic && currentUser.role !== 'admin') {
               avatar = (
                 <img src={conv.partnerProfilePic} alt="avatar" className="w-10 h-10 object-cover rounded-full" />
               );
-            } else if (currentUser.role === 'staff' && conv.type === 'direct') {
+            } else if (currentUser.role === 'admin' && conv.type === 'direct') {
               avatar = (
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-4xl text-gray-900">
                   <svg
@@ -221,7 +235,7 @@ export default function ConversationList({
             let partnerName;
             if (conv.displayName) {
               partnerName = conv.displayName;
-            } else if (currentUser.role === 'staff' && conv.type === 'direct') {
+            } else if (currentUser.role === 'admin' && conv.type === 'direct') {
               partnerName = Array.isArray(conv.participants)
                 ? conv.participants.map(uid => usernames[uid] || uid).join(' - ')
                 : 'Unknown';
@@ -277,7 +291,7 @@ export default function ConversationList({
           })
         )}
       </div>
-      {activeTab === "direct" && currentUser.role !== 'staff' && (
+      {activeTab === "direct" && currentUser.role !== 'admin' && (
         <div className="p-2.5 border-t  border-gray-200">
           <button
             onClick={() => setShowNewChatDialog(true)}
@@ -289,7 +303,7 @@ export default function ConversationList({
           </button>
         </div>
       )}
-      {activeTab === "group" && currentUser.role !== 'staff' && (
+      {activeTab === "group" && currentUser.role !== 'admin' && (
         <div className="p-2.5 border-t border-gray-200">
           <button
             onClick={() => setShowNewGroupDialog(true)}

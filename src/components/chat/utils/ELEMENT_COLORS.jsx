@@ -47,7 +47,7 @@ export const ELEMENT_COLORS = {
       background: '#e6f9ff',
       icon: <AirIcon style={{color: '#0ea5e9'}} />
     },
-    staff_mentor_admin: {
+    admin_mentor: {
       primary: '#a83232',      // Rich warm red (less saturated than #7f1d1d)
       hover: '#922b21',        // Darker, deeper hover red
       light: '#fdecea',        // Very light red-tinted background

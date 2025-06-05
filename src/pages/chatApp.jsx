@@ -94,7 +94,7 @@ export default function ChatApp() {
           const username = doc.data().username || '';
           return doc.id !== currentUser.uid && 
                  username.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                  doc.data().role !== 'staff'; // Exclude staff users
+                  doc.data().role !== 'admin'; // Exclude admin users
         })
         .map(doc => ({
           id: doc.id,
@@ -129,7 +129,7 @@ export default function ChatApp() {
           const userData = {
             uid: user.uid,
             username: userDoc.data().username,
-            element: userElement || "staff_mentor_admin",
+            element: userElement || "admin_mentor",
             role: userRole,
             associated_id,
             mentorName: userDoc.data().mentorName,
@@ -174,8 +174,8 @@ export default function ChatApp() {
 
   // --- Conversation Filtering ---
   const filteredConversations = useMemo(() => {
-    if (currentUser.role === 'staff') {
-      // Staff sees all conversations
+    if (currentUser.role === 'admin') {
+      // admin sees all conversations
       return conversations;
     }
     let filtered = conversations;
@@ -212,8 +212,8 @@ export default function ChatApp() {
 
     setIsLoadingConversations(true);
     let q;
-    if (currentUser.role === 'staff') {
-      // Staff: get all conversations
+    if (currentUser.role === 'admin') {
+      // admin: get all conversations
       q = query(
         collection(db, "conversations"),
         orderBy("lastUpdated", "desc")
@@ -428,7 +428,7 @@ export default function ChatApp() {
 
   // --- Send Message (handles text and file/image/voice) ---
   const sendMessage = async (opts = {}) => {
-    if (currentUser.role === 'staff') return; // Staff cannot send
+    if (currentUser.role === 'admin') return; // admin cannot send
     // Support: opts.fileOverride, opts.mediaTypeOverride
     const fileToSend = opts.fileOverride || file;
     const mediaTypeOverride = opts.mediaTypeOverride;
@@ -806,7 +806,7 @@ export default function ChatApp() {
       selectedConversation.type === 'group' &&
       Array.isArray(selectedConversation.participants) &&
       !selectedConversation.participants.includes(currentUser.uid)
-      && currentUser.role !== 'staff' // Only auto-close for non-staff
+      && currentUser.role !== 'admin' // Only auto-close for non-admin
     ) {
       // Check for a personal removal message
       const lastPersonalRemovalMsg = messages
@@ -894,8 +894,8 @@ export default function ChatApp() {
           setSearchQuery={setSearchQuery}
           filteredConversations={filteredConversations}
           isLoadingConversations={isLoadingConversations}
-          setShowNewChatDialog={currentUser.role === 'staff' ? undefined : setShowNewChatDialog}
-          setShowNewGroupDialog={currentUser.role === 'staff' ? undefined : setShowNewGroupDialog}
+          setShowNewChatDialog={currentUser.role === 'admin' ? undefined : setShowNewChatDialog}
+          setShowNewGroupDialog={currentUser.role === 'admin' ? undefined : setShowNewGroupDialog}
           getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
           elementColorsMap={ELEMENT_COLORS}
           activeTab={activeTab}
@@ -922,22 +922,22 @@ export default function ChatApp() {
             currentUser={currentUser}
             messages={messages}
             newMessage={newMessage}
-            setNewMessage={currentUser.role === 'staff' ? () => {} : setNewMessage}
+            setNewMessage={currentUser.role === 'admin' ? () => {} : setNewMessage}
             sendMessage={sendMessage}
             isSending={isSending}
             isLoadingMessages={isLoadingMessages}
-            setShowNewChatDialog={currentUser.role === 'staff' ? undefined : setShowNewChatDialog}
+            setShowNewChatDialog={currentUser.role === 'admin' ? undefined : setShowNewChatDialog}
             getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
             file={file}
             preview={preview}
             isUploading={isUploading}
             uploadProgress={uploadProgress}
-            handleFileChange={currentUser.role === 'staff' ? () => {} : handleFileChange}
-            removeFile={currentUser.role === 'staff' ? () => {} : removeFile}
+            handleFileChange={currentUser.role === 'admin' ? () => {} : handleFileChange}
+            removeFile={currentUser.role === 'admin' ? () => {} : removeFile}
             elementColors={elementColors}
             userAvatars={userAvatars}
             activeTab={activeTab}
-            setShowNewGroupDialog={currentUser.role === 'staff' ? undefined : setShowNewGroupDialog}
+            setShowNewGroupDialog={currentUser.role === 'admin' ? undefined : setShowNewGroupDialog}
             conversations={conversations}
             setSelectedConversation={handleSelectConversation}
             setMobilePanel={setMobilePanel}
@@ -1064,7 +1064,7 @@ export default function ChatApp() {
                       return doc.id !== currentUser.uid && 
                              !selectedGroupUsers.some(u => u.id === doc.id) &&
                              username.toLowerCase().includes(e.target.value.toLowerCase()) &&
-                             doc.data().role !== 'staff'; // Exclude staff users
+                             doc.data().role !== 'admin'; // Exclude admin users
                     })
                     .map(doc => ({
                       id: doc.id,

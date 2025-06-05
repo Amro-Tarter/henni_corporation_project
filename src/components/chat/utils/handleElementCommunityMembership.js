@@ -14,8 +14,8 @@ export const handleElementCommunityChatMembership = async (userId, userElement) 
       const userDoc = await getDoc(doc(db, "users", userId));
       const username = userDoc.data().username;
       const userRole = userDoc.data().role;
-      if (userRole === 'staff') {
-        // Staff members do not join community chats
+      if (userRole === 'admin') {
+        // admin members do not join community chats
         return null;
       }
       // 1. Find all element community conversations the user is currently in

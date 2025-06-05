@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { doc, getDoc, query, getDocs, collection, where, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { ELEMENT_COLORS } from './utils/ELEMENT_COLORS';
@@ -24,6 +25,9 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   const [liveAvatarURL, setLiveAvatarURL] = useState(null);
   const [userAvatars, setUserAvatars] = useState({});
   const [usernamesLoading, setUsernamesLoading] = useState(false);
+  // Add state for image modal and fullscreen image
+  const [showImagesModal, setShowImagesModal] = useState(null);
+  const [fullscreenImage, setFullscreenImage] = useState(null);
 
   useEffect(() => {
     if (open) {
@@ -362,7 +366,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
                             </svg>
                           </a>
-                          {currentUser.role !== 'staff' && (
+                          {currentUser.role !== 'admin' && (
                            <button
                            className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
                            title="פתח צ'אט"
@@ -394,19 +398,20 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           ) : (
             <>
               <div className="grid grid-cols-3 gap-2">
-                {imagesToShow.map(img => (
+                {images.slice(0, 6).map(img => (
                   <a
                     key={img.id}
                     href={img.mediaURL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block"
+                    onClick={e => { e.preventDefault(); setFullscreenImage(img.mediaURL); }}
                   >
                     <img
                       src={img.mediaURL}
                       alt="תמונה בצ'אט"
-                      className="w-full h-20 object-cover rounded shadow"
-                      loading="lazy"
+                      className="w-full h-20 object-contain rounded shadow bg-gray-100 hover:scale-105 transition-transform"
+                      style={{ display: 'block' }}
                     />
                   </a>
                 ))}
@@ -414,15 +419,73 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
               {images.length > 6 && (
                 <button
                   className="mt-2 hover:underline text-sm"
-                  onClick={() => setShowAllImages(v => !v)}
+                  onClick={() => setShowImagesModal({ images, senderName: null })}
                   style={{ color: elementColors.primary }}
                 >
-                  {showAllImages ? '<< הצג פחות' : 'הצג עוד >>'}
+                  הצג עוד {'>'}{'>'}
                 </button>
               )}
             </>
           )}
         </div>
+        {/* Images Modal for all users */}
+        {showImagesModal && (
+          ReactDOM.createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-70">
+              <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto relative">
+                <button
+                  className="absolute top-2 left-2 text-2xl font-bold text-gray-700 hover:text-red-600"
+                  onClick={() => setShowImagesModal(null)}
+                  aria-label="סגור גלריה"
+                >✕</button>
+                <div className="font-bold text-lg mb-4 text-center" style={{ color: elementColors.primary }}>
+                  כל התמונות שנשלחו {showImagesModal.senderName ? `על ידי ${showImagesModal.senderName}` : ''}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {showImagesModal.images.map(img => (
+                    <div key={img.id} className="cursor-pointer" onClick={() => setFullscreenImage(img.mediaURL)}>
+                      <img
+                        src={img.mediaURL}
+                        alt="תמונה בצ'אט"
+                        className="w-full h-32 object-contain rounded shadow bg-gray-100 hover:scale-105 transition-transform"
+                        style={{ display: 'block' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        )}
+        {/* Fullscreen Image Modal rendered as a portal */}
+        {fullscreenImage && ReactDOM.createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black bg-opacity-90">
+            <button
+              className="absolute top-4 left-4 text-3xl text-white font-bold hover:text-red-400"
+              onClick={() => setFullscreenImage(null)}
+              aria-label="סגור תמונה"
+              style={{ zIndex: 100000 }}
+            >✕</button>
+            <div className="flex flex-col items-center w-full h-full justify-center">
+              <img
+                src={fullscreenImage}
+                alt="תמונה בצ'אט"
+                className="max-h-[90vh] max-w-[98vw] rounded shadow-lg mb-4 bg-white"
+                style={{ margin: '0 auto' }}
+              />
+              <a
+                href={fullscreenImage}
+                download
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-bold"
+                style={{ textAlign: 'center' }}
+              >
+                הורד תמונה
+              </a>
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
     );
   }
@@ -754,7 +817,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                               <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 20.25v-1.5A2.25 2.25 0 016.75 16.5h10.5a2.25 2.25 0 012.25 2.25v1.5" />
                             </svg>
                           </button>
-                          {currentUser.role !== 'staff' && (
+                          {currentUser.role !== 'admin' && (
                             <button
                               className="p-1 rounded-full hover:bg-green-100 transition text-green-600"
                               title="פתח צ'אט"
@@ -816,19 +879,20 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           ) : (
             <>
               <div className="grid grid-cols-3 gap-2">
-                {imagesToShow.map(img => (
+                {images.slice(0, 6).map(img => (
                   <a
                     key={img.id}
                     href={img.mediaURL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block"
+                    onClick={e => { e.preventDefault(); setFullscreenImage(img.mediaURL); }}
                   >
                     <img
                       src={img.mediaURL}
                       alt="תמונה בצ'אט"
-                      className="w-full h-20 object-cover rounded shadow"
-                      loading="lazy"
+                      className="w-full h-20 object-contain rounded shadow bg-gray-100 hover:scale-105 transition-transform"
+                      style={{ display: 'block' }}
                     />
                   </a>
                 ))}
@@ -836,16 +900,73 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
               {images.length > 6 && (
                 <button
                   className="mt-2 hover:underline text-sm"
-                  onClick={() => setShowAllImages(v => !v)}
+                  onClick={() => setShowImagesModal({ images, senderName: null })}
                   style={{ color: elementColors.primary }}
                 >
-                  {showAllImages ? '<< הצג פחות' : 'הצג עוד >>'}
+                  הצג עוד {'>'}{'>'}
                 </button>
               )}
             </>
           )}
         </div>
-        
+        {/* Images Modal for all users */}
+        {showImagesModal && (
+          ReactDOM.createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-70">
+              <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto relative">
+                <button
+                  className="absolute top-2 left-2 text-2xl font-bold text-gray-700 hover:text-red-600"
+                  onClick={() => setShowImagesModal(null)}
+                  aria-label="סגור גלריה"
+                >✕</button>
+                <div className="font-bold text-lg mb-4 text-center" style={{ color: elementColors.primary }}>
+                  כל התמונות שנשלחו {showImagesModal.senderName ? `על ידי ${showImagesModal.senderName}` : ''}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {showImagesModal.images.map(img => (
+                    <div key={img.id} className="cursor-pointer" onClick={() => setFullscreenImage(img.mediaURL)}>
+                      <img
+                        src={img.mediaURL}
+                        alt="תמונה בצ'אט"
+                        className="w-full h-32 object-contain rounded shadow bg-gray-100 hover:scale-105 transition-transform"
+                        style={{ display: 'block' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        )}
+        {/* Fullscreen Image Modal rendered as a portal */}
+        {fullscreenImage && ReactDOM.createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black bg-opacity-90">
+            <button
+              className="absolute top-4 left-4 text-3xl text-white font-bold hover:text-red-400"
+              onClick={() => setFullscreenImage(null)}
+              aria-label="סגור תמונה"
+              style={{ zIndex: 100000 }}
+            >✕</button>
+            <div className="flex flex-col items-center w-full h-full justify-center">
+              <img
+                src={fullscreenImage}
+                alt="תמונה בצ'אט"
+                className="max-h-[90vh] max-w-[98vw] rounded shadow-lg mb-4 bg-white"
+                style={{ margin: '0 auto' }}
+              />
+              <a
+                href={fullscreenImage}
+                download
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-bold"
+                style={{ textAlign: 'center' }}
+              >
+                הורד תמונה
+              </a>
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
     );
   }
@@ -857,10 +978,10 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   const partnerName = partnerNames[0] || partnerUids[0] || 'משתמש לא מזוהה';
   // All images sent in the conversation
   const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
-  const imagesToShow = showAllImages ? images : images.slice(0, 6);
+  const imagesToShow = showAllImages ? images : images.slice(0, 3);
 
-  // STAFF: Direct chat - show both sides info and images sent by each
-  if (currentUser.role === 'staff' && conversation.type === 'direct') {    // Get both user infos with their correct images
+  // admin: Direct chat - show both sides info and images sent by each
+  if (currentUser.role === 'admin' && conversation.type === 'direct') {    // Get both user infos with their correct images
     const userInfos = conversation.participants.map((uid, idx) => {
       const name = conversation.participantNames?.[idx] || uid;
       // Get the correct profile picture for each user
@@ -874,7 +995,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       const userImages = messages.filter(m => 
         m.mediaType === 'image' && 
         m.mediaURL && 
-        m.sender !== uid
+        m.sender === uid
       );
       return { uid, name, profilePic, userImages };
     });
@@ -914,52 +1035,111 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                 מעבר לפרופיל
               </a>
               {/* Images Gallery */}
-                <div className="mt-2 font-semibold text-gray-700 mb-2">תמונות שנשלחו על ידי {user.name}:</div>
-                {user.userImages.length === 0 ? (
-                  <div className="text-gray-400 text-sm">לא נשלחו תמונות בצ'אט זה.</div>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-3 gap-2">
-                      {imagesToShow.map(img => (
-                        <a
-                          key={img.id}
-                          href={img.mediaURL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block"
-                        >
-                          <img
-                            src={img.mediaURL}
-                            alt="תמונה בצ'אט"
-                            className="w-full h-20 object-cover rounded shadow"
-                            loading="lazy"
-                          />
-                        </a>
-                      ))}
-                    </div>
-                    {images.length > 6 && (
-                      <button
-                        className="mt-2 hover:underline text-sm"
-                        onClick={() => setShowAllImages(v => !v)}
-                        style={{ color: elementColors.primary }}
+              <div className="mt-2 font-semibold text-gray-700 mb-2">תמונות שנשלחו על ידי {user.name}:</div>
+              {user.userImages.length === 0 ? (
+                <div className="text-gray-400 text-sm">לא נשלחו תמונות בצ'אט זה.</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2">
+                    {user.userImages.slice(0, 3).map(img => (
+                      <a
+                        key={img.id}
+                        href={img.mediaURL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block"
+                        onClick={e => { e.preventDefault(); setFullscreenImage(img.mediaURL); }}
                       >
-                        {showAllImages ? '<< הצג פחות' : 'הצג עוד >>'}
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
+                        <img
+                          src={img.mediaURL}
+                          alt="תמונה בצ'אט"
+                          className="w-full h-20 object-contain rounded shadow bg-gray-100 hover:scale-105 transition-transform"
+                          style={{ display: 'block' }}
+                        />
+                      </a>
+                    ))}
+                  </div>
+                  {user.userImages.length > 3 && (
+                    <button
+                      className="mt-2 hover:underline text-sm"
+                      onClick={() => setShowImagesModal({ images: user.userImages, senderName: user.name })}
+                      style={{ color: elementColors.primary }}
+                    >
+                      הצג עוד {'>'}{'>'}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
           ))}
         </div>
+        {/* Images Modal for all users */}
+        {showImagesModal && (
+          ReactDOM.createPortal(
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-70">
+              <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto relative">
+                <button
+                  className="absolute top-2 left-2 text-2xl font-bold text-gray-700 hover:text-red-600"
+                  onClick={() => setShowImagesModal(null)}
+                  aria-label="סגור גלריה"
+                >✕</button>
+                <div className="font-bold text-lg mb-4 text-center" style={{ color: elementColors.primary }}>
+                  כל התמונות שנשלחו {showImagesModal.senderName ? `על ידי ${showImagesModal.senderName}` : ''}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {showImagesModal.images.map(img => (
+                    <div key={img.id} className="cursor-pointer" onClick={() => setFullscreenImage(img.mediaURL)}>
+                      <img
+                        src={img.mediaURL}
+                        alt="תמונה בצ'אט"
+                        className="w-full h-32 object-contain rounded shadow bg-gray-100 hover:scale-105 transition-transform"
+                        style={{ display: 'block' }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        )}
+        {/* Fullscreen Image Modal rendered as a portal */}
+        {fullscreenImage && ReactDOM.createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black bg-opacity-90">
+            <button
+              className="absolute top-4 left-4 text-3xl text-white font-bold hover:text-red-400"
+              onClick={() => setFullscreenImage(null)}
+              aria-label="סגור תמונה"
+              style={{ zIndex: 100000 }}
+            >✕</button>
+            <div className="flex flex-col items-center w-full h-full justify-center">
+              <img
+                src={fullscreenImage}
+                alt="תמונה בצ'אט"
+                className="max-h-[90vh] max-w-[98vw] rounded shadow-lg mb-4 bg-white"
+                style={{ margin: '0 auto' }}
+              />
+              <a
+                href={fullscreenImage}
+                download
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-bold"
+                style={{ textAlign: 'center' }}
+              >
+                הורד תמונה
+              </a>
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
     );
   }
 
-  // For staff: hide chat navigation button in community/group
-  // Find the section with the chat navigation button and only render it if currentUser.role !== 'staff'
+  // For admin: hide chat navigation button in community/group
+  // Find the section with the chat navigation button and only render it if currentUser.role !== 'admin'
   // (In community: the button with href={`/profile/${partnerName}`})
   // (In group: the button with onClick={() => handleOpenDirectChat(uid)})
-  // So, in the JSX for those, wrap with {currentUser.role !== 'staff' && (...button...)}
+  // So, in the JSX for those, wrap with {currentUser.role !== 'admin' && (...button...)}
 
   return (
     <div 
@@ -1013,19 +1193,20 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         ) : (
           <>
             <div className="grid grid-cols-3 gap-2">
-              {imagesToShow.map(img => (
+              {images.slice(0, 6).map(img => (
                 <a
                   key={img.id}
                   href={img.mediaURL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block"
+                  onClick={e => { e.preventDefault(); setFullscreenImage(img.mediaURL); }}
                 >
                   <img
                     src={img.mediaURL}
                     alt="תמונה בצ'אט"
-                    className="w-full h-20 object-cover rounded shadow"
-                    loading="lazy"
+                    className="w-full h-20 object-contain rounded shadow bg-gray-100 hover:scale-105 transition-transform"
+                    style={{ display: 'block' }}
                   />
                 </a>
               ))}
@@ -1033,15 +1214,73 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
             {images.length > 6 && (
               <button
                 className="mt-2 hover:underline text-sm"
-                onClick={() => setShowAllImages(v => !v)}
+                onClick={() => setShowImagesModal({ images, senderName: null })}
                 style={{ color: elementColors.primary }}
               >
-                {showAllImages ? '<< הצג פחות' : 'הצג עוד >>'}
+                הצג עוד {'>'}{'>'}
               </button>
             )}
           </>
         )}
       </div>
+      {/* Images Modal for all users */}
+      {showImagesModal && (
+        ReactDOM.createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-70">
+            <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[80vh] overflow-y-auto relative">
+              <button
+                className="absolute top-2 left-2 text-2xl font-bold text-gray-700 hover:text-red-600"
+                onClick={() => setShowImagesModal(null)}
+                aria-label="סגור גלריה"
+              >✕</button>
+              <div className="font-bold text-lg mb-4 text-center" style={{ color: elementColors.primary }}>
+                כל התמונות שנשלחו {showImagesModal.senderName ? `על ידי ${showImagesModal.senderName}` : ''}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {showImagesModal.images.map(img => (
+                  <div key={img.id} className="cursor-pointer" onClick={() => setFullscreenImage(img.mediaURL)}>
+                    <img
+                      src={img.mediaURL}
+                      alt="תמונה בצ'אט"
+                      className="w-full h-32 object-contain rounded shadow bg-gray-100 hover:scale-105 transition-transform"
+                      style={{ display: 'block' }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      )}
+      {/* Fullscreen Image Modal rendered as a portal */}
+      {fullscreenImage && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black bg-opacity-90">
+          <button
+            className="absolute top-4 left-4 text-3xl text-white font-bold hover:text-red-400"
+            onClick={() => setFullscreenImage(null)}
+            aria-label="סגור תמונה"
+            style={{ zIndex: 100000 }}
+          >✕</button>
+          <div className="flex flex-col items-center w-full h-full justify-center">
+            <img
+              src={fullscreenImage}
+              alt="תמונה בצ'אט"
+              className="max-h-[90vh] max-w-[98vw] rounded shadow-lg mb-4 bg-white"
+              style={{ margin: '0 auto' }}
+            />
+            <a
+              href={fullscreenImage}
+              download
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-bold"
+              style={{ textAlign: 'center' }}
+            >
+              הורד תמונה
+            </a>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
