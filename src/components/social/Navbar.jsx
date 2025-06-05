@@ -15,6 +15,28 @@ const navTabs = [
   { id: 'settings', icon: <Settings size={20} />, label: 'הגדרות', href: '/settings' },
 ];
 
+// Define SearchInput outside of Navbar to prevent re-creation on every render
+const SearchInput = ({ isMobile = false, value, onChange, onFocus, inputRef }) => (
+  <div className="relative">
+    <input
+      ref={inputRef}
+      type="text"
+      placeholder="חפש פרופילים..."
+      value={value}
+      onChange={onChange}
+      onFocus={onFocus}
+      className={`w-full border border-white/30 rounded-full py-2 pr-4 ${
+        isMobile ? 'pl-9 text-sm md:text-base' : 'pl-10'
+      } text-white placeholder-white/70 bg-white/10 hover:bg-white/20 focus:bg-white/20 focus:border-white focus:outline-none transition-all duration-200`}
+      dir="rtl"
+      lang="he"
+    />
+    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70">
+      <Search size={18} />
+    </div>
+  </div>
+);
+
 const Navbar = ({ element }) => {
   const navigate = useNavigate();
   const { showNotifications, setShowNotifications, unreadCount, messageUnreadCount, postUnreadCount, commentUnreadCount, loading } = useNotifications();
@@ -46,6 +68,7 @@ const Navbar = ({ element }) => {
   const searchRef = useRef(null);
   const profileDropdownRef = useRef(null);
   const user = auth.currentUser;
+  const searchContainerRef = useRef(null);
 
   // Normalize text for better Hebrew searching
   const normalizeText = (text) => {
@@ -263,13 +286,16 @@ const Navbar = ({ element }) => {
     setShowProfileDropdown(!showProfileDropdown);
   };
 
+  // Handle click outside for both search and profile dropdowns
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (searchRef.current && !searchRef.current.contains(e.target)) {
+    const handleClickOutside = (event) => {
+      // Handle search dropdown
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
         setShowSearchDropdown(false);
         setShowHistory(false);
       }
-      if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+      // Handle profile dropdown
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target)) {
         setShowProfileDropdown(false);
       }
     };
@@ -328,23 +354,6 @@ const Navbar = ({ element }) => {
     setShowSearchDropdown(true);
     setShowHistory(true);
   };
-
-  const SearchInput = ({ isMobile = false }) => (
-    <input
-      ref={isMobile ? null : searchRef}
-      type="text"
-      placeholder="חפש פרופילים..."
-      value={searchInput}
-      onChange={(e) => setSearchInput(e.target.value)}
-      onFocus={handleSearchFocus}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') triggerSearch();
-      }}
-      className={`w-full border border-white/30 rounded-full py-2 pr-4 ${isMobile ? 'pl-9 text-sm md:text-base' : 'pl-10'} text-white placeholder-white/70 bg-white/10 focus:bg-white/20 focus:border-white focus:outline-none transition backdrop-blur-sm`}
-      dir="rtl"
-      lang="he"
-    />
-  );
 
   const RoleBasedNavItems = () => {
     const isAdmin = role === 'admin';
@@ -428,13 +437,14 @@ const Navbar = ({ element }) => {
 
         {/* Mobile Search */}
         <div className="p-4">
-          <form onSubmit={handleSearch} className="w-full" dir="rtl">
-            <div className="relative">
-              <SearchInput isMobile={true} />
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70">
-                <Search size={18} />
-              </span>
-            </div>
+          <form onSubmit={handleSearch} className="w-full" dir="rtl" ref={searchContainerRef}>
+            <SearchInput 
+              isMobile={true}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onFocus={handleSearchFocus}
+              inputRef={searchRef}
+            />
           </form>
 
           {/* Mobile Search Results */}
@@ -667,9 +677,14 @@ const Navbar = ({ element }) => {
 
           {/* Search Bar - Desktop */}
           <div className="hidden lg:flex flex-1 max-w-md mx-8">
-            <form onSubmit={handleSearch} className="w-full" dir="rtl">
+            <form onSubmit={handleSearch} className="w-full" dir="rtl" ref={searchContainerRef}>
               <div className="relative">
-                <SearchInput />
+                <SearchInput 
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onFocus={handleSearchFocus}
+                  inputRef={searchRef}
+                />
 
                 {/* Search Results Dropdown */}
                 {showSearchDropdown && (searchResults.length > 0 || (showHistory && searchHistory.length > 0)) && (
