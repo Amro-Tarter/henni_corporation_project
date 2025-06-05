@@ -776,7 +776,7 @@ const Home = () => {
     // Set up interval for periodic refresh (every 30 seconds)
     const intervalId = setInterval(() => {
       refreshData();
-    }, 30000); // 30 seconds
+    }, 10000); // 30 seconds
 
     // Cleanup interval on unmount
     return () => clearInterval(intervalId);
