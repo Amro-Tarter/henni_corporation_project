@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState, useRef } from "react";
 import { db } from '@/config/firbaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query as firestoreQuery, where, getDocs, orderBy } from 'firebase/firestore';
 import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
 import { HiOutlineChatBubbleBottomCenterText, HiUserGroup, HiMiniUsers, HiMiniHome } from "react-icons/hi2";
 
@@ -21,11 +21,19 @@ export default function ConversationList({
   elementColorsMap,
   activeTab,
   currentUser,
-  onTabChange
+  onTabChange,
+  showSystemCalls = false,
+  onShowSystemCalls = () => {},
+  onHideSystemCalls = () => {},
+  selectedInquiry = null,
+  setSelectedInquiry = () => {},
 }) {
   const [usernames, setUsernames] = useState({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [inquiries, setInquiries] = useState([]);
+  const [loadingInquiries, setLoadingInquiries] = useState(false);
+  const [inquiriesError, setInquiriesError] = useState('');
 
   // Define filter items
   const filterItems = [
@@ -35,9 +43,7 @@ export default function ConversationList({
     { icon: HiUserGroup, label: `קהילות`, type: "community" }
   ];
 
-  if (currentUser.role === 'admin') {
-    filterItems.push({ icon: HiOutlineChatBubbleBottomCenterText, label: "פניות", type: "admin_chats" });
-  }
+
 
 
   const visibleConversations = useMemo(() =>
@@ -69,6 +75,54 @@ export default function ConversationList({
     });
   }, [visibleConversations]);
 
+  useEffect(() => {
+    if (showSystemCalls) {
+      setLoadingInquiries(true);
+      setInquiriesError('');
+      const fetchInquiries = async () => {
+        try {
+          let q = firestoreQuery(
+            collection(db, 'system_of_inquiries'),
+            where('recipient', '==', currentUser.uid),
+            orderBy('createdAt', 'desc')
+          );
+          let snapshot;
+          let usedFallback = false;
+          try {
+            snapshot = await getDocs(q);
+          } catch (err) {
+            // If orderBy fails (e.g. missing createdAt), try without orderBy
+            console.error('Error with orderBy(createdAt):', err);
+            setInquiriesError('שגיאה בטעינת פניות (מיון לפי תאריך נכשל). מנסה ללא מיון...');
+            q = firestoreQuery(
+              collection(db, 'system_of_inquiries'),
+              where('recipient', '==', currentUser.uid)
+            );
+            snapshot = await getDocs(q);
+            usedFallback = true;
+          }
+          let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          if (usedFallback) {
+            // Sort by createdAt descending in JS, missing createdAt last
+            docs = docs.sort((a, b) => {
+              if (!a.createdAt && !b.createdAt) return 0;
+              if (!a.createdAt) return 1;
+              if (!b.createdAt) return -1;
+              return b.createdAt.toDate() - a.createdAt.toDate();
+            });
+          }
+          setInquiries(docs);
+        } catch (err) {
+          setInquiriesError('שגיאה בטעינת פניות: ' + err.message);
+          setInquiries([]);
+          console.error('Error fetching inquiries:', err);
+        }
+        setLoadingInquiries(false);
+      };
+      fetchInquiries();
+    }
+  }, [showSystemCalls, currentUser.uid]);
+
   // Handle filter button click
   const handleFilterClick = (filterType) => {
     onTabChange(filterType);
@@ -96,7 +150,7 @@ export default function ConversationList({
     <div className="w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] overflow-y-auto" dir="rtl" onClick={() => setSelectedConversation(null)}>
       <div className="p-2 sm:p-4 sticky top-0 bg-white z-10 border-b border-gray-100">
         <h1 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">שיחות</h1>
-        <h2 className="text-xs md:text-sm text-gray-500 mt-1">הודעות ({visibleConversations.length})</h2>
+        <h2 className="text-xs md:text-sm text-gray-500 mt-1">{showSystemCalls ? 'פניות שהתקבלו' : `הודעות (${visibleConversations.length})`}</h2>
         <div className="mt-2 sm:mt-4 relative">
           <input
             type="text"
@@ -105,6 +159,7 @@ export default function ConversationList({
             style={{ borderColor: "transparent", outlineColor: elementColorsMap[currentUser?.element]?.primary || '#ccc' }}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            disabled={showSystemCalls}
           />
           <svg className="absolute right-2 top-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0z" />
@@ -113,16 +168,20 @@ export default function ConversationList({
         {/* Filter Dropdown */}
         <div className="mt-3 relative flex flex-row gap-2" ref={dropdownRef}>
           <button
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 bg-gray-100 hover:bg-gray-200 text-gray-700 w-1/2 justify-between"
-            onClick={e => { e.stopPropagation(); setIsDropdownOpen(v => !v); }}
-            style={{ border: '1px solid #e5e7eb' }}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:bg-gray-200 w-1/2 justify-between ${!showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+            style={{
+              border: '1px solid #e5e7eb',
+              background: !showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
+            }}
+            onClick={e => { e.stopPropagation(); setIsDropdownOpen(v => !v); onHideSystemCalls(); }}
+
           >
-            <span className="flex items-center gap-2 w-1/2">
+            <span className="flex items-center gap-2 w-full">
               {(() => {
                 const activeItem = filterItems.find(item => item.type === activeTab);
                 if (!activeItem) return null;
                 const Icon = activeItem.icon;
-                return <Icon className="text-base" />;
+                <Icon className="text-base" />
               })()}
               <span>{filterItems.find(item => item.type === activeTab)?.label || ''}</span>
             </span>
@@ -150,145 +209,188 @@ export default function ConversationList({
               })}
             </div>
           )}
-          {currentUser.role !== 'admin' && (
-            <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 bg-gray-100 hover:bg-gray-200 text-gray-700 w-1/2"
-             style={{ border: '1px solid #e5e7eb' }}
-             >
+            <button
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 w-1/2 ${showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+              style={{
+                border: '1px solid #e5e7eb',
+                background: showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
+              }}
+              onClick={e => { e.stopPropagation(); onShowSystemCalls(); setIsDropdownOpen(false); }}
+            >
               <HiOutlineChatBubbleBottomCenterText className="text-base" />
-              <span>פנה אל המהל</span>
+              <span>מערכת פניות</span>
             </button>
-          )}
         </div>
         
       </div>
       <div className="flex-1 overflow-y-auto max-h-[calc(100dvh-4rem)] px-1 sm:px-2">
-        <div className="text-xs font-medium text-gray-500 px-2 sm:px-4 py-2 text-right">כל ההודעות</div>
-        {isLoadingConversations ? (
-          <div className="p-4 text-center text-gray-500">טוען צ'אטים...</div>
+        {showSystemCalls ? (
+          loadingInquiries ? (
+            <div className="p-4 text-center text-gray-500">טוען פניות...</div>
+          ) : inquiriesError ? (
+            <div className="p-4 text-center text-red-500">{inquiriesError}</div>
+          ) : inquiries.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">לא התקבלו פניות.</div>
+          ) : (
+            inquiries.map(inquiry => {
+              const isSelected = selectedInquiry?.id === inquiry.id;
+              const elementColor = elementColorsMap[currentUser?.element]?.primary || '#2563eb';
+              const lightColor = elementColorsMap[currentUser?.element]?.light || '#f5f5f5';
+              const statusColor = inquiry.status === 'closed' ? 'bg-gray-400 text-white' : '';
+              return (
+                <div
+                  key={inquiry.id}
+                  onClick={() => setSelectedInquiry(inquiry)}
+                  className={`p-3 rounded-xl border cursor-pointer flex flex-col gap-2 mb-4 shadow-sm transition-all duration-200 ${isSelected ? 'ring-2 ring-offset-2' : ''}`}
+                  style={{
+                    background: isSelected ? lightColor : '#fff',
+                    borderColor: isSelected ? elementColor : '#e5e7eb',
+                    boxShadow: isSelected ? `0 2px 8px 0 ${elementColor}22` : '0 1px 4px 0 #0001',
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-lg font-bold" style={{ color: elementColor }}>{inquiry.subject}</span>
+                    <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${inquiry.status === 'closed' ? 'bg-gray-400 text-white' : ''}`} style={inquiry.status !== 'closed' ? { background: elementColor, color: '#fff' } : {}}>
+                      {inquiry.status === 'closed' ? 'סגור' : 'פתוח'}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-600">מאת: {inquiry.senderName || inquiry.sender} {inquiry.senderRole === 'admin' && <span className="text-gray-500">(מנהל)</span>}</div>
+                  <div className="text-xs text-gray-500">{inquiry.createdAt?.toDate ? inquiry.createdAt.toDate().toLocaleString() : ''}</div>
+                </div>
+              );
+            })
+          )
         ) : (
-          visibleConversations.map((conv) => {
-            const isSelected = selectedConversation?.id === conv.id;
-            const mentorName = currentUser.mentorName;
-            let avatar = null;
-            if (conv.type === 'community' && conv.communityType === 'element') {
-              const icon = elementColorsMap[conv.element]?.icon;
-              avatar = (
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
-                  {icon}
-                </div>
-              );
-            } else if (conv.type === 'community' && conv.communityType === 'mentor_community') {
-              avatar = (
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
-                  <Mentor_icon color='#7f1d1d' width={28} height={28}/>
-                </div>
-              );
-            } else if (conv.type === 'community' && conv.communityType === 'all_mentors') {
-              avatar = (
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
-                  <All_mentors_icon color='#7f1d1d' width={28} height={28}/>
-                </div>
-              );
-            } else if (conv.type === 'community' && conv.communityType === 'all_mentors_with_admin') {
-              avatar = (
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
-                  <All_mentors_with_admin_icon color='#7f1d1d' width={28} height={28}/>
-                </div>
-              );
-            }
-            
-            else if (conv.type === 'group') {
-              avatar = conv.avatarURL ? (
-                <img src={conv.avatarURL} alt="group avatar" className="w-10 h-10 object-cover rounded-full" />
-              ) : (
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-xl text-gray-400">
-                  <span role="img" aria-label="avatar">👤</span>
-                </div>
-              );
-            } else if (conv.partnerProfilePic && currentUser.role !== 'admin') {
-              avatar = (
-                <img src={conv.partnerProfilePic} alt="avatar" className="w-10 h-10 object-cover rounded-full" />
-              );
-            } else if (currentUser.role === 'admin' && conv.type === 'direct') {
-              avatar = (
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-4xl text-gray-900">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 512 512"
-                    fill="currentColor"
-                    className="w-6 h-6"
-                  >
-                    <path d="M256.064 32C132.288 32 32 125.248 32 241.6c0 66.016 34.816 123.36 89.216 160.192V480l81.312-44.608c17.472 4.736 35.84 7.296 53.536 7.296 123.744 0 223.936-93.248 223.936-209.6S379.808 32 256.064 32zm29.056 257.728l-54.4-58.88-111.936 58.88 132.736-141.632 54.4 58.88 111.936-58.88-132.736 141.632z"/>
-                  </svg>
-                </div>
-              );
-            }
-            
-            else {
-              avatar = (
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-xl text-gray-400">
-                  <span role="img" aria-label="avatar">👤</span>
-                </div>
-              );
-            }
-            const bgColorStyle = isSelected ? { backgroundColor: elementColorsMap[currentUser?.element]?.light || '#f5f5f5' } : {};
-            let partnerName;
-            if (conv.displayName) {
-              partnerName = conv.displayName;
-            } else if (currentUser.role === 'admin' && conv.type === 'direct') {
-              partnerName = Array.isArray(conv.participants)
-                ? conv.participants.map(uid => usernames[uid] || uid).join(' - ')
-                : 'Unknown';
-            } else if (conv.type === 'direct' && Array.isArray(conv.participants)) {
-              partnerName = getChatPartner(
-                conv.participants,
-                conv.type,
-                conv.element,
-                currentUser,
-                undefined,
-                conv.type === 'group' ? conv.groupName : undefined,
-                conv.participantNames
-              );
-            } else if (conv.type === 'community') {
-              partnerName = conv.displayName;
-            } else {
-              partnerName = conv.groupName;
-            }
-            return (
-              <div
-                key={conv.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedConversation(conv);
-                }}
-                className={`p-3 rounded-md border-b border-gray-100 cursor-pointer hover:bg-gray-50 text-right mx-auto mb-2 w-full max-w-full flex items-center gap-3`}
-                style={bgColorStyle}
-              >
-                {avatar}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 truncate flex items-center gap-2">
-                    {partnerName}
-                    {partnerName === mentorName && (
-                      <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
-                    )}
-                    {/* Unread badge */}
-                    {conv.unread?.[currentUser.uid] > 0 && (
-                      <span
-                        className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white shadow"
-                        aria-label={`יש ${conv.unread[currentUser.uid]} הודעות שלא נקראו`}
-                        title={`יש ${conv.unread[currentUser.uid]} הודעות שלא נקראו`}
+          <>
+            <div className="text-xs font-medium text-gray-500 px-2 sm:px-4 py-2 text-right">כל ההודעות</div>
+            {isLoadingConversations ? (
+              <div className="p-4 text-center text-gray-500">טוען צ'אטים...</div>
+            ) : (
+              visibleConversations.map((conv) => {
+                const isSelected = selectedConversation?.id === conv.id;
+                const mentorName = currentUser.mentorName;
+                let avatar = null;
+                if (conv.type === 'community' && conv.communityType === 'element') {
+                  const icon = elementColorsMap[conv.element]?.icon;
+                  avatar = (
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
+                      {icon}
+                    </div>
+                  );
+                } else if (conv.type === 'community' && conv.communityType === 'mentor_community') {
+                  avatar = (
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
+                      <Mentor_icon color='#7f1d1d' width={28} height={28}/>
+                    </div>
+                  );
+                } else if (conv.type === 'community' && conv.communityType === 'all_mentors') {
+                  avatar = (
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
+                      <All_mentors_icon color='#7f1d1d' width={28} height={28}/>
+                    </div>
+                  );
+                } else if (conv.type === 'community' && conv.communityType === 'all_mentors_with_admin') {
+                  avatar = (
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">
+                      <All_mentors_with_admin_icon color='#7f1d1d' width={28} height={28}/>
+                    </div>
+                  );
+                }
+                
+                else if (conv.type === 'group') {
+                  avatar = conv.avatarURL ? (
+                    <img src={conv.avatarURL} alt="group avatar" className="w-10 h-10 object-cover rounded-full" />
+                  ) : (
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-xl text-gray-400">
+                      <span role="img" aria-label="avatar">👤</span>
+                    </div>
+                  );
+                } else if (conv.partnerProfilePic && currentUser.role !== 'admin') {
+                  avatar = (
+                    <img src={conv.partnerProfilePic} alt="avatar" className="w-10 h-10 object-cover rounded-full" />
+                  );
+                } else if (currentUser.role === 'admin' && conv.type === 'direct') {
+                  avatar = (
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-4xl text-gray-900">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 512 512"
+                        fill="currentColor"
+                        className="w-6 h-6"
                       >
-                        {conv.unread[currentUser.uid]}
-                      </span>
-                    )}
+                        <path d="M256.064 32C132.288 32 32 125.248 32 241.6c0 66.016 34.816 123.36 89.216 160.192V480l81.312-44.608c17.472 4.736 35.84 7.296 53.536 7.296 123.744 0 223.936-93.248 223.936-209.6S379.808 32 256.064 32zm29.056 257.728l-54.4-58.88-111.936 58.88 132.736-141.632 54.4 58.88 111.936-58.88-132.736 141.632z"/>
+                      </svg>
+                    </div>
+                  );
+                }
+                
+                else {
+                  avatar = (
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-xl text-gray-400">
+                      <span role="img" aria-label="avatar">👤</span>
+                    </div>
+                  );
+                }
+                const bgColorStyle = isSelected ? { backgroundColor: elementColorsMap[currentUser?.element]?.light || '#f5f5f5' } : {};
+                let partnerName;
+                if (conv.displayName) {
+                  partnerName = conv.displayName;
+                } else if (currentUser.role === 'admin' && conv.type === 'direct') {
+                  partnerName = Array.isArray(conv.participants)
+                    ? conv.participants.map(uid => usernames[uid] || uid).join(' - ')
+                    : 'Unknown';
+                } else if (conv.type === 'direct' && Array.isArray(conv.participants)) {
+                  partnerName = getChatPartner(
+                    conv.participants,
+                    conv.type,
+                    conv.element,
+                    currentUser,
+                    undefined,
+                    conv.type === 'group' ? conv.groupName : undefined,
+                    conv.participantNames
+                  );
+                } else if (conv.type === 'community') {
+                  partnerName = conv.displayName;
+                } else {
+                  partnerName = conv.groupName;
+                }
+                return (
+                  <div
+                    key={conv.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedConversation(conv);
+                    }}
+                    className={`p-3 rounded-md border-b border-gray-100 cursor-pointer hover:bg-gray-50 text-right mx-auto mb-2 w-full max-w-full flex items-center gap-3`}
+                    style={bgColorStyle}
+                  >
+                    {avatar}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate flex items-center gap-2">
+                        {partnerName}
+                        {partnerName === mentorName && (
+                          <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
+                        )}
+                        {/* Unread badge */}
+                        {conv.unread?.[currentUser.uid] > 0 && (
+                          <span
+                            className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white shadow"
+                            aria-label={`יש ${conv.unread[currentUser.uid]} הודעות שלא נקראו`}
+                            title={`יש ${conv.unread[currentUser.uid]} הודעות שלא נקראו`}
+                          >
+                            {conv.unread[currentUser.uid]}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-500 truncate">
+                        {conv.lastMessage || "אין הודעות עדיין"}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500 truncate">
-                    {conv.lastMessage || "אין הודעות עדיין"}
-                  </div>
-                </div>
-              </div>
-            );
-          })
+                );
+              })
+            )}
+          </>
         )}
       </div>
       {activeTab === "direct" && currentUser.role !== 'admin' && (
@@ -314,6 +416,16 @@ export default function ConversationList({
             <span>קבוצה חדשה</span>
           </button>
         </div>
+      )}
+      {/* Floating create inquiry button for small screens */}
+      {showSystemCalls && (
+        <button
+          className="fixed bottom-6 right-6 z-50 bg-blue-600 text-white rounded-full shadow-lg px-6 py-3 text-lg font-bold md:hidden hover:bg-blue-700 transition-all"
+          style={{ background: elementColorsMap[currentUser?.element]?.primary || '#2563eb' }}
+          onClick={onShowSystemCalls}
+        >
+          פנייה חדשה
+        </button>
       )}
     </div>
   );

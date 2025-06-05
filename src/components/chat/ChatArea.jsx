@@ -11,6 +11,7 @@ import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs
 import { db } from '@/config/firbaseConfig';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useNavigate } from "react-router-dom";
+import SystemCalls from './components/systemCalls';
 
 /**
  * ChatArea is the main chat window, displaying messages and input.
@@ -35,6 +36,11 @@ export default function ChatArea({
   conversations,
   setSelectedConversation,
   setMobilePanel,
+  showSystemCalls = false,
+  onHideSystemCalls = () => {},
+  selectedInquiry = null,
+  setSelectedInquiry = () => {},
+  onShowSystemCalls = () => {},
   ...props
 }) {
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
@@ -55,6 +61,7 @@ export default function ChatArea({
   } = useVoiceRecorder();
   const navigate = useNavigate();
   const [isCreatingMentorChat, setIsCreatingMentorChat] = useState(false);
+
 
   // Show scroll-to-bottom button if user scrolls up too far
   useEffect(() => {
@@ -242,6 +249,99 @@ export default function ChatArea({
     if (window.innerWidth < 768 && setMobilePanel) setMobilePanel('conversations');
   };
 
+  // Determine possible recipients
+  let possibleRecipients = [];
+  if (currentUser.role === "admin") {
+    possibleRecipients = conversations
+      .filter(c => c.type === "direct")
+      .flatMap(c => c.participants)
+      .filter(uid => uid !== currentUser.uid);
+  } else {
+    // mentor or participant can only send to admin
+    possibleRecipients = conversations
+      .filter(c => c.type === "direct")
+      .flatMap(c => c.participants)
+      .filter(uid => uid !== currentUser.uid && (conversations.find(conv => conv.type === 'direct' && conv.participants.includes(uid))?.participantNames?.some(name => name.toLowerCase().includes('admin'))));
+  }
+  possibleRecipients = Array.from(new Set(possibleRecipients));
+
+
+
+  if (showSystemCalls) {
+    if (selectedInquiry) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
+          <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8" style={{ border: `2px solid ${elementColors.primary}` }}>
+            <button
+              className="mb-4 text-blue-700 font-bold text-sm hover:underline"
+              style={{ color: elementColors.primary }}
+              onClick={() => setSelectedInquiry(null)}
+            >
+              ← חזרה לרשימת פניות
+            </button>
+            <h2 className="text-2xl font-bold mb-4" style={{ color: elementColors.primary }}>{selectedInquiry.subject}</h2>
+            <div className="mb-2 text-sm text-gray-700">
+              <span className="font-semibold">מאת: </span>
+              {selectedInquiry.senderName || selectedInquiry.sender}
+              {selectedInquiry.senderRole === 'admin' && <span className="text-gray-500"> (מנהל)</span>}
+            </div>
+            <div className="mb-2 text-xs text-gray-500">
+              {selectedInquiry.createdAt?.toDate ? selectedInquiry.createdAt.toDate().toLocaleString() : ''}
+            </div>
+            <div className="mb-4 text-gray-800 whitespace-pre-line border rounded p-3 bg-gray-50">
+              {selectedInquiry.content}
+            </div>
+            {selectedInquiry.fileUrl && (
+              <div className="mb-4">
+                <a
+                  href={selectedInquiry.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-700 underline font-semibold"
+                >
+                  הורד קובץ מצורף
+                </a>
+                <div className="text-xs text-gray-500 mt-1">
+                  {selectedInquiry.fileName} ({Math.round((selectedInquiry.fileSize || 0) / 1024)} KB)
+                </div>
+              </div>
+            )}
+            <div className="mt-6 text-xs text-gray-400">סטטוס: {'פתוח'}</div>
+          </div>
+        </div>
+      );
+    }
+    if (showSystemCalls && !selectedInquiry) {
+      return (  
+        <SystemCalls
+          currentUser={currentUser}
+          elementColors={elementColors}
+          onHideSystemCalls={onHideSystemCalls}
+          setSelectedInquiry={setSelectedInquiry}
+        />
+      );
+    }
+    // No inquiry selected: show instructions
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
+        <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8 flex flex-col items-center justify-center text-center" style={{ border: `2px solid ${elementColors.primary}` }}>
+          <h2 className="text-xl font-bold mb-4" style={{ color: elementColors.primary }}>בחר פנייה כדי להציג את פרטיה</h2>
+          <p className="text-gray-500 mb-4">לחץ על פנייה מהרשימה כדי לראות את כל הפרטים כאן.</p>
+          <button
+            className="mt-2 px-6 py-2 rounded-lg font-bold text-white text-base shadow hover:opacity-90 transition-all"
+            style={{ background: elementColors.primary }}
+            onClick={() => {
+              setSelectedInquiry(null);
+              if (typeof onShowSystemCalls === 'function') onShowSystemCalls();
+            }}
+          >
+            פנייה חדשה
+          </button>
+       </div>
+      </div>
+    );
+  }
+
   return (
     <div className='flex-1 flex flex-col bg-white h-full max-h-full' dir="rtl">
       {selectedConversation ? (
@@ -274,6 +374,7 @@ export default function ChatArea({
             communityType={selectedConversation.communityType}
             element={selectedConversation.element}
             onBack={window.innerWidth < 768 ? handleBack : undefined}
+            conversation={selectedConversation}
           />
           <ChatInfoSidebar
             open={showInfoSidebar}
@@ -416,13 +517,13 @@ export default function ChatArea({
         </>
       ) : (
         (currentUser.role === 'participant' || currentUser.role === 'mentor') ? (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צ'אט או התחל שיחה חדשה</h3>
-              <p className="text-gray-500">או לחץ על הכפתור </p>
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
+            <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8 flex flex-col items-center justify-center text-center" style={{ border: `2px solid ${elementColors.primary}` }}>
+              <h2 className="text-xl font-bold mb-4" style={{ color: elementColors.primary }}>בחר צ'אט או התחל שיחה חדשה</h2>
+              <p className="text-gray-500 mb-4">בחר צ'אט מהרשימה או לחץ על הכפתור כדי להתחיל שיחה חדשה.</p>
               {currentUser?.role === "participant" ? (
                 <button
-                  className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300"
+                  className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300 font-bold text-base"
                   style={{ backgroundColor: elementColors.primary }}
                   onClick={handleGoToMentorChat}
                   disabled={isCreatingMentorChat}
@@ -433,10 +534,10 @@ export default function ChatArea({
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">בחר צאט והתחל לדווח</h3>
-              <p className="text-gray-500">אנא בחר צ'אט מהתפריט ובדוק אותו .</p>
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
+            <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8 flex flex-col items-center justify-center text-center" style={{ border: `2px solid ${elementColors.primary}` }}>
+              <h2 className="text-xl font-bold mb-4" style={{ color: elementColors.primary }}>בחר צ'אט כדי להציג את פרטיו</h2>
+              <p className="text-gray-500">אנא בחר צ'אט מהתפריט כדי לראות את כל הפרטים כאן.</p>
             </div>
           </div>
         )

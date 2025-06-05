@@ -219,35 +219,6 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     setIsUploadingAvatar(false);
   };
 
-  // Handler to delete all messages in a direct conversation
-  const handleDeleteAllMessages = async () => {
-    if (!window.confirm('האם אתה בטוח שברצונך למחוק את כל ההודעות בצ׳אט זה? פעולה זו אינה הפיכה!')) return;
-    try {
-      const messagesRef = collection(db, 'conversations', conversation.id, 'messages');
-      const snapshot = await getDocs(messagesRef);
-      const batchSize = 500;
-      let batch = [];
-      for (const docSnap of snapshot.docs) {
-        batch.push(docSnap.ref);
-        if (batch.length === batchSize) {
-          await Promise.all(batch.map(ref => deleteDoc(ref)));
-          batch = [];
-        }
-      }
-      if (batch.length > 0) {
-        await Promise.all(batch.map(ref => deleteDoc(ref)));
-      }
-      // Reset lastMessage and lastUpdated in the conversation document
-      await updateDoc(doc(db, 'conversations', conversation.id), {
-        lastMessage: null,
-        lastUpdated: serverTimestamp(),
-      });
-      window.toast && window.toast.success && window.toast.success('כל ההודעות נמחקו בהצלחה!');
-      alert('כל ההודעות נמחקו בהצלחה!');
-    } catch (e) {
-      alert('שגיאה במחיקת הודעות: ' + e.message);
-    }
-  };
 
   useEffect(() => {
     // Fetch usernames for all participants in direct, group, or community
@@ -477,8 +448,8 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
               <a
                 href={fullscreenImage}
                 download
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-bold"
-                style={{ textAlign: 'center' }}
+                className="px-6 py-2 text-white rounded-lg shadow transition font-bold hover:scale-95"
+                style={{ textAlign: 'center', backgroundColor: elementColors.primary }}
               >
                 הורד תמונה
               </a>
@@ -958,8 +929,8 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
               <a
                 href={fullscreenImage}
                 download
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-bold"
-                style={{ textAlign: 'center' }}
+                className="px-6 py-2 text-white rounded-lg shadow transition font-bold hover:scale-95"
+                style={{ textAlign: 'center', backgroundColor: elementColors.primary }}
               >
                 הורד תמונה
               </a>
@@ -1122,8 +1093,8 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
               <a
                 href={fullscreenImage}
                 download
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-bold"
-                style={{ textAlign: 'center' }}
+                className="px-6 py-2 text-white rounded-lg shadow transition font-bold hover:scale-95"
+                style={{ textAlign: 'center', backgroundColor: elementColors.primary }}
               >
                 הורד תמונה
               </a>
@@ -1272,8 +1243,8 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
             <a
               href={fullscreenImage}
               download
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition font-bold"
-              style={{ textAlign: 'center' }}
+              className="px-6 py-2 text-white rounded-lg shadow transition font-bold hover:scale-95"
+              style={{ textAlign: 'center', backgroundColor: elementColors.primary }}
             >
               הורד תמונה
             </a>

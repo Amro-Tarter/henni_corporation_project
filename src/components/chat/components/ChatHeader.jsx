@@ -3,13 +3,51 @@ import { ELEMENT_COLORS } from '../utils/ELEMENT_COLORS';
 import { Mentor_icon } from '../utils/icons_library';
 import { All_mentors_icon } from '../utils/icons_library';
 import { All_mentors_with_admin_icon } from '../utils/icons_library';
+import { db } from '../../../config/firbaseConfig';
+import { collection, getDocs, deleteDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+
+
 /**
  * ChatHeader displays the name of the chat partner or community.
  */
-const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, currentUser, participantNames, communityType, element, onBack }) => {
+
+// Handler to delete all messages in a direct conversation
+
+
+const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, currentUser, participantNames, communityType, element, onBack, conversation }) => {
   const handleVideoCall = () => {
     // Open Zoom meeting link in a new tab
     window.open('https://zoom.us/start', '_blank');
+  };
+
+  // Handler to delete all messages in a direct conversation
+  const handleDeleteAllMessages = async () => {
+    if (!window.confirm('האם אתה בטוח שברצונך למחוק את כל ההודעות בצ׳אט זה? פעולה זו אינה הפיכה!')) return;
+    try {
+      const messagesRef = collection(db, 'conversations', conversation.id, 'messages');
+      const snapshot = await getDocs(messagesRef);
+      const batchSize = 500;
+      let batch = [];
+      for (const docSnap of snapshot.docs) {
+        batch.push(docSnap.ref);
+        if (batch.length === batchSize) {
+          await Promise.all(batch.map(ref => deleteDoc(ref)));
+          batch = [];
+        }
+      }
+      if (batch.length > 0) {
+        await Promise.all(batch.map(ref => deleteDoc(ref)));
+      }
+      // Reset lastMessage and lastUpdated in the conversation document
+      await updateDoc(doc(db, 'conversations', conversation.id), {
+        lastMessage: null,
+        lastUpdated: serverTimestamp(),
+      });
+      window.toast && window.toast.success && window.toast.success('כל ההודעות נמחקו בהצלחה!');
+      alert('כל ההודעות נמחקו בהצלחה!');
+    } catch (e) {
+      alert('שגיאה במחיקת הודעות: ' + e.message);
+    }
   };
 
   // For direct chats, get partner name from participantNames
@@ -95,6 +133,16 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
           </svg>
         </button>
       )}
+      {currentUser.role === 'admin' && (
+        <button
+          onClick={handleDeleteAllMessages}
+          className="ml-14 sm:ml-14 p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 absolute left-4 sm:left-4 top-1/2 -translate-y-1/2"
+          aria-label="מחק את כל ההודעות"
+        >
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="feather feather-trash-2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><rect x="10" y="11" width="4" height="10"/><path d="M12 8h4"/></svg>
+        </button>
+      )}
+      
       <button
         onClick={onInfoClick}
         className="ml-1 sm:ml-2 p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 absolute left-2 sm:left-4 top-1/2 -translate-y-1/2"

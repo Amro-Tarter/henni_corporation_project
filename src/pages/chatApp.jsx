@@ -68,6 +68,8 @@ export default function ChatApp() {
   const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
   const [mobilePanel, setMobilePanel] = useState('conversations'); // 'conversations' | 'chat'
   const [isRightOpen, setIsRightOpen] = useState(false);
+  const [showSystemCalls, setShowSystemCalls] = useState(false);
+  const [selectedInquiry, setSelectedInquiry] = useState(null);
   // File upload state/logic (moved to hook)
   const {
     file,
@@ -892,7 +894,7 @@ export default function ChatApp() {
           setSelectedConversation={handleSelectConversation}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
-          filteredConversations={filteredConversations}
+          filteredConversations={showSystemCalls ? conversations.filter(c => c.type === 'system_call') : filteredConversations}
           isLoadingConversations={isLoadingConversations}
           setShowNewChatDialog={currentUser.role === 'admin' ? undefined : setShowNewChatDialog}
           setShowNewGroupDialog={currentUser.role === 'admin' ? undefined : setShowNewGroupDialog}
@@ -900,6 +902,11 @@ export default function ChatApp() {
           elementColorsMap={ELEMENT_COLORS}
           activeTab={activeTab}
           onTabChange={setActiveTab}
+          showSystemCalls={showSystemCalls}
+          onShowSystemCalls={() => setShowSystemCalls(true)}
+          onHideSystemCalls={() => setShowSystemCalls(false)}
+          selectedInquiry={selectedInquiry}
+          setSelectedInquiry={setSelectedInquiry}
         />
       </div>
       {/* Chat Area Panel */}
@@ -941,6 +948,10 @@ export default function ChatApp() {
             conversations={conversations}
             setSelectedConversation={handleSelectConversation}
             setMobilePanel={setMobilePanel}
+            showSystemCalls={showSystemCalls}
+            onHideSystemCalls={() => setShowSystemCalls(false)}
+            selectedInquiry={selectedInquiry}
+            setSelectedInquiry={setSelectedInquiry}
           />
         </div>
       </div>
