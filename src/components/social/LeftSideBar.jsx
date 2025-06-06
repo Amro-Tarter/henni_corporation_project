@@ -7,14 +7,15 @@ import { useEffect, useState } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig'
 import { MapPin, MessageSquare} from 'lucide-react';
+import AirIcon from '@mui/icons-material/Air';
 
 
 const ELEMENT_ICONS = {
   fire: '🔥',
   water: '💧',
   earth: '🌱',
-  air: '💨',
-  metal: '⚙️',
+  air: <AirIcon style={{color: '#87ceeb'}} />,
+  metal: '⚒️',
 };
 
 const ELEMENT_NAMES = {

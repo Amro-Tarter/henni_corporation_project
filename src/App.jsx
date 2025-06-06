@@ -33,6 +33,7 @@ import ProfilePage from './pages/profilePage';
 import PostPage from './pages/PostPage';
 import Contact from './pages/Contact';
 import ChatApp from './pages/chatApp';
+import PrivateSettings from './pages/Settings';
 import ElementalProjects from './pages/ElementalProjects';
 import PublicSettings from './pages/PublicSettings';
 import CommunityPage from './pages/CommunityPage';
@@ -111,6 +112,7 @@ const App = () => {
                   <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
                   <Route path="/chat/:chatId" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
                   <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><PrivateSettings /></ProtectedRoute>} />
 
                   {/* Mentor Report Form */}
                   <Route path="/report" element={<MentorReportForm />} />
