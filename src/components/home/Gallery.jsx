@@ -19,7 +19,7 @@ import {
   Calendar,
   User
 } from 'lucide-react';
-import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 import { db, storage } from '../../config/firbaseConfig';
 import { useUser } from '../../hooks/useUser';
@@ -80,7 +80,7 @@ const Gallery = () => {
         const items = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate() || new Date()
+          createdAt: doc.data().createdAt?.toDate() || new Date(0)
         }));
         
         setMediaItems(items);
@@ -246,7 +246,7 @@ const Gallery = () => {
               thumbnail: thumbnailURL,
               caption: uploadForm.caption,
               credit: uploadForm.credit || 'צוות העמותה',
-              createdAt: new Date(),
+              createdAt: serverTimestamp(),
               createdBy: user.uid,
               tags: uploadForm.tags
             };
