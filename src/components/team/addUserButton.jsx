@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaUserClock, FaTimes, FaCheck, FaMapMarkerAlt, FaUser, FaEnvelope, FaPhone, FaCalendarAlt, FaSearch, FaUsers } from 'react-icons/fa';
-import { doc, getDocs, collection, updateDoc, serverTimestamp, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDocs, collection, updateDoc, serverTimestamp, getDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../config/firbaseConfig';
 import { useUser } from '../../hooks/useUser';
 import { toast } from 'sonner';
@@ -289,28 +289,44 @@ const PendingUsersModal = ({ onClose }) => {
 
       await updateDoc(userRef, updateData);
       
-      // Also update the profile document if it exists
       const profileRef = doc(db, 'profiles', roleSelectionUser.id);
       const profileSnap = await getDoc(profileRef);
-      
-      if (profileSnap.exists()) {
+
         if (selectedRole === 'staff') {
-          // Delete profile if the user is promoted to staff
+      // Always delete profile if role is staff
+        if (profileSnap.exists()) {
           await deleteDoc(profileRef);
-        } else {
-          // Otherwise, update the profile
-          const profileUpdateData = {
-            role: selectedRole,
-            updatedAt: serverTimestamp()
-          };
-
-          if (selectedRole === 'participant') {
-            profileUpdateData.associatedMentor = mentorId || null;
-          }
-
-          await updateDoc(profileRef, profileUpdateData);
+          console.log('Profile deleted for user:', roleSelectionUser.id);
         }
+      } else {
+      if (!profileSnap.exists()) {
+        await setDoc(profileRef, {
+          associated_id: roleSelectionUser.id,
+          displayName: roleSelectionUser.displayName || "",
+          username: roleSelectionUser.username || "",
+          bio: "",
+          location: roleSelectionUser.location || "",
+          followersCount: 0,
+          followingCount: 0,
+          postsCount: 0,
+          createdAt: serverTimestamp(),
+          photoURL: roleSelectionUser.photoURL || "",
+          role: selectedRole,
+          ...(selectedRole === "participant" && { associatedMentor: mentorId || null }),
+        });
+        console.log('Profile created for user:', roleSelectionUser.id);
+      } else {
+        const profileUpdateData = {
+          role: selectedRole,
+          updatedAt: serverTimestamp(),
+        };
+        if (selectedRole === 'participant') {
+          profileUpdateData.associatedMentor = mentorId || null;
+        }
+        await updateDoc(profileRef, profileUpdateData);
+      }
     }
+
       
       const mentorText = mentorId ? ' עם מנטור מוקצה' : '';
       toast.success(`הבקשה של ${roleSelectionUser.displayName} אושרה בהצלחה כ${getRoleDisplay(selectedRole)}${mentorText}`);

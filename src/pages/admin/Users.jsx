@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { collection, query, getDocs, orderBy, updateDoc, doc, deleteDoc, getDoc, where, arrayUnion, arrayRemove } from "firebase/firestore";
-
 import { db } from "../../config/firbaseConfig";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -573,7 +572,7 @@ function Users() {
 
    const handleSaveUser = async (userId, formData) => {
     try {
-      // First update the user document
+      // Update the main user document
       await updateDoc(doc(db, "users", userId), {
         username: formData.username,
         email: formData.email,
@@ -583,29 +582,48 @@ function Users() {
         updatedAt: new Date(),
       });
 
-      // Then update the profile document
-      await updateDoc(doc(db, "profiles", userId), {
-        displayName: formData.displayName,
-        bio: formData.bio,
-        photoURL: formData.photoURL,
-        role: formData.role, // Keep role in sync
-        updatedAt: new Date(),
-      });
+      const profileRef = doc(db, "profiles", userId);
+      const profileSnap = await getDoc(profileRef);
 
-      // If role changed to/from mentor, handle mentorship relationships
-      const userDoc = await getDoc(doc(db, "users", userId));
-      const oldRole = userDoc.data()?.role;
-      
+      // Handle profile logic based on role
+      if (formData.role === "staff") {
+        // Delete profile if it exists
+        if (profileSnap.exists()) {
+          await deleteDoc(profileRef);
+          console.log(`Deleted profile for staff user ${userId}`);
+        }
+      } else {
+        // Create or update profile
+        const profileData = {
+          displayName: formData.displayName,
+          bio: formData.bio,
+          photoURL: formData.photoURL,
+          role: formData.role,
+          updatedAt: new Date(),
+        };
+
+        if (profileSnap.exists()) {
+          await updateDoc(profileRef, profileData);
+        } else {
+          await setDoc(profileRef, {
+            ...profileData,
+            createdAt: new Date(),
+          });
+        }
+      }
+
+      // If role changed to/from mentor, clean up mentorships
+      const oldUserDoc = await getDoc(doc(db, "users", userId));
+      const oldRole = oldUserDoc.data()?.role;
+
       if (oldRole !== formData.role) {
         if (oldRole === 'mentor') {
-          // Remove all mentorship relationships where this user was a mentor
           const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", userId));
           const mentorSnapshot = await getDocs(mentorQuery);
           for (const doc of mentorSnapshot.docs) {
             await deleteDoc(doc.ref);
           }
         } else if (formData.role === 'mentor') {
-          // Remove any existing mentorship where this user was a participant
           const participantQuery = query(collection(db, "mentorship"), where("participantId", "==", userId));
           const participantSnapshot = await getDocs(participantQuery);
           for (const doc of participantSnapshot.docs) {
@@ -616,12 +634,14 @@ function Users() {
 
       toast.success("המשתמש עודכן בהצלחה");
       fetchUsers();
+
     } catch (error) {
       console.error("Error updating user:", error);
       toast.error("אירעה שגיאה בעדכון המשתמש");
       throw error;
     }
   };
+
 
   const handleDeleteUser = async (userId) => {
     setIsDeleting(true);
