@@ -289,41 +289,39 @@ const PendingUsersModal = ({ onClose }) => {
 
       await updateDoc(userRef, updateData);
       
-      await setDoc(doc(db, "profiles",  roleSelectionUser.id), {
-        associated_id: roleSelectionUser.id,
-        displayName,
-        username,
-        bio:"",
-        location,
-        followersCount: 0,
-        followingCount: 0,
-        postsCount: 0,
-        createdAt: serverTimestamp(),
-        photoURL:"https://firebasestorage.googleapis.com/v0/b/henini-prj.firebasestorage.app/o/profiles%2F123laith%2Fprofile.jpg?alt=media&token=3a72889a-42f8-490d-8968-bb2a3da06f98",
-      });
-
-      // Also update the profile document if it exists
       const profileRef = doc(db, 'profiles', roleSelectionUser.id);
       const profileSnap = await getDoc(profileRef);
-      
-      if (profileSnap.exists()) {
+
+      if (!profileSnap.exists()) {
+        await setDoc(profileRef, {
+          associated_id: roleSelectionUser.id,
+          displayName: roleSelectionUser.displayName || "",
+          username: roleSelectionUser.username || "",
+          bio: "",
+          location: roleSelectionUser.location || "",
+          followersCount: 0,
+          followingCount: 0,
+          postsCount: 0,
+          createdAt: serverTimestamp(),
+          photoURL: "https://firebasestorage.googleapis.com/v0/b/henini-prj.firebasestorage.app/o/profiles%2F123laith%2Fprofile.jpg?alt=media&token=3a72889a-42f8-490d-8968-bb2a3da06f98",
+          role: selectedRole,
+          ...(selectedRole === "participant" && { associatedMentor: mentorId || null }),
+        });
+      } else {
         if (selectedRole === 'staff') {
-          // Delete profile if the user is promoted to staff
           await deleteDoc(profileRef);
         } else {
-          // Otherwise, update the profile
           const profileUpdateData = {
             role: selectedRole,
-            updatedAt: serverTimestamp()
+            updatedAt: serverTimestamp(),
           };
-
           if (selectedRole === 'participant') {
             profileUpdateData.associatedMentor = mentorId || null;
           }
-
           await updateDoc(profileRef, profileUpdateData);
         }
-    }
+      }
+
       
       const mentorText = mentorId ? ' עם מנטור מוקצה' : '';
       toast.success(`הבקשה של ${roleSelectionUser.displayName} אושרה בהצלחה כ${getRoleDisplay(selectedRole)}${mentorText}`);
