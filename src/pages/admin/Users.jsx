@@ -223,6 +223,7 @@ const EditUserModal = ({ user, onClose, onSave }) => {
     { value: 'admin', label: 'מנהל' },
     { value: 'mentor', label: 'מנטור' },
     { value: 'participant', label: 'משתתף' },
+    { value: 'staff', label: 'צוות' }
   ];
 
   const handleSubmit = async (e) => {
@@ -746,6 +747,7 @@ function Users() {
               <option value="admin">מנהל</option>
               <option value="mentor">מנטור</option>
               <option value="participant">משתתף</option>
+              <option value="staff">צוות</option>
             </select>
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Filter size={18} className="text-gray-400" />
