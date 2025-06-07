@@ -289,8 +289,8 @@ const PendingUsersModal = ({ onClose }) => {
 
       await updateDoc(userRef, updateData);
       
-      await setDoc(doc(db, "profiles", res.user.uid), {
-        associated_id: res.user.uid,
+      await setDoc(doc(db, "profiles",  roleSelectionUser.id), {
+        associated_id: roleSelectionUser.id,
         displayName,
         username,
         bio:"",
