@@ -4,13 +4,14 @@ import { MapPin, Pencil, Camera, MessageSquare, Users, Image } from 'lucide-reac
 import { motion } from 'framer-motion';
 import { useToast } from '/src/hooks/use-toast.jsx';
 import { containsBadWord } from './utils/containsBadWord';
+import AirIcon from '@mui/icons-material/Air';
 
 const elementOptions = [
   { value: 'fire', label: 'אש', icon: '🔥' },
   { value: 'water', label: 'מים', icon: '💧' },
-  { value: 'air', label: 'אוויר', icon: '💨' },
+  { value: 'air', label: 'אוויר', icon: <AirIcon style={{color: '#87ceeb'}} /> },
   { value: 'earth', label: 'אדמה', icon: '🌱' },
-  { value: 'metal', label: 'מתכת', icon: '⚙️' },
+  { value: 'metal', label: 'מתכת', icon: '⚒️' },
 ];
 const MAX_FIELD_LENGTH = 50;
 const findOption = v => elementOptions.find(o => o.value === v) || { icon: '', label: '' };

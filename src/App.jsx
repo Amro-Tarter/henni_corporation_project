@@ -14,8 +14,10 @@ import Settings from './pages/admin/Settings';
 import MentorReportForm from './pages/Report';
 import PartnerForm from'./pages/admin/Partners'
 import DonationForm from'./pages/admin/Donations'
-import FormsPage from'./pages/admin/FormsPage'
 import Mentorship from'./pages/admin/Mentorship'
+import AdminFormManager from './pages/admin/AdminFormManager'
+import SubmissionViewer from './pages/admin/SubmissionViewer'
+import PublicForm from './pages/admin/PublicForm'
 
 
 import Index from './pages/Index';
@@ -31,6 +33,7 @@ import ProfilePage from './pages/profilePage';
 import PostPage from './pages/PostPage';
 import Contact from './pages/Contact';
 import ChatApp from './pages/chatApp';
+import PrivateSettings from './pages/Settings';
 import ElementalProjects from './pages/ElementalProjects';
 import PublicSettings from './pages/PublicSettings';
 import CommunityPage from './pages/CommunityPage';
@@ -109,6 +112,7 @@ const App = () => {
                   <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
                   <Route path="/chat/:chatId" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
                   <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><PrivateSettings /></ProtectedRoute>} />
 
                   {/* Mentor Report Form */}
                   <Route path="/report" element={<MentorReportForm />} />
@@ -120,9 +124,11 @@ const App = () => {
                   <Route path="/admin/Reports" element={<Reports />} />
                   <Route path="/admin/Settings" element={<Settings />} />
                   <Route path="/admin/donations" element={<DonationForm/>} />
-                  <Route path="/admin/forms" element={<FormsPage/>} />
                   <Route path="/admin/Mentorship" element={<Mentorship/>} />
-
+                  <Route path="/admin/forms" element={<AdminFormManager />} />
+                  <Route path="/admin/submissions" element={<SubmissionViewer />} />
+                  <Route path="/form/:formId" element={<PublicForm />} />
+                  
                   {/* 404 Page */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>

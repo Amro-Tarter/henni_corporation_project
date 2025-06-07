@@ -43,17 +43,17 @@ function CleanElementalOrbitLoader() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveElement(a => (a + 1) % ELEMENTS.length); // ELEMENTS is now defined
+      setActiveElement(a => (a + 1) % ELEMENTS.length);
     }, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  const current = ELEMENTS[activeElement]; // ELEMENTS is now defined
+  const current = ELEMENTS[activeElement];
   const orbitDuration = 12;
 
   return (
     <div
-      className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4" // Added fixed, inset-0, z-50
       role="status"
       aria-label="Loading elements"
     >
@@ -68,7 +68,7 @@ function CleanElementalOrbitLoader() {
           <span className="text-4xl">{current.emoji}</span>
         </div>
 
-        {ELEMENTS.map((el, i) => { // ELEMENTS is now defined
+        {ELEMENTS.map((el, i) => {
           const isActive = activeElement === i;
 
           return (
@@ -122,6 +122,7 @@ function CleanElementalOrbitLoader() {
     </div>
   );
 }
+
 // Re-using the EditUserModal from your provided code (make sure it's accessible or copy-pasted)
 const EditUserModal = ({ user, onClose, onSave }) => {
     const [formData, setFormData] = useState({
