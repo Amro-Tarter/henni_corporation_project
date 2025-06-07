@@ -817,9 +817,9 @@ const ProfilePage = () => {
       console.error('Error deleting comment:', error);
     }
   };
-  const isPrivilegedRole = ['mentor', 'staff', 'admin'].includes(profile?.role);
+  const isPrivilegedRole = ['mentor', 'admin'].includes(profile?.role);
   const element = isPrivilegedRole || !profile?.element ? 'red' : profile.element;
-  const isViewerPrivileged = ['mentor', 'staff', 'admin'].includes(viewerProfile?.role);
+  const isViewerPrivileged = ['mentor', 'admin'].includes(viewerProfile?.role);
   const viewerElement = isViewerPrivileged || !viewerProfile?.element ? 'red' : viewerProfile?.element;
 
   if (loading) {
@@ -830,7 +830,11 @@ const ProfilePage = () => {
       </ThemeProvider>
     );
   }
-  if (!profile) return <div>לא נמצא פרופיל עבור UID={uid}</div>;
+
+  if (!profile) {
+    navigate('/notfound', { replace: true });
+    return null;
+  }
 
   return (
     <ThemeProvider element={element}>
@@ -971,6 +975,7 @@ const ProfilePage = () => {
                         uid: viewerProfile?.uid,
                         photoURL: viewerProfile?.photoURL || '',
                         username: viewerProfile?.username || '',
+                        role: viewerProfile?.role || '',
                       }}
                       onAddComment={addComment}
                       onEditComment={editComment}
@@ -1008,6 +1013,7 @@ const ProfilePage = () => {
                         uid: viewerProfile?.uid,
                         photoURL: viewerProfile?.photoURL || '',
                         username: viewerProfile?.username || '',
+                        role: viewerProfile?.role || '',
                       }}
                       onAddComment={addProjectComment}
                       onEditComment={editProjectComment}
@@ -1018,7 +1024,7 @@ const ProfilePage = () => {
                     />
                   ))
                 ) : (
-                  <div className="text-center text-gray-400 py-10">אין פרויקטים עדיין.</div>
+                  <div className="text-center text-gray-400 py-10">לא נמצאו פרויקטים</div>
                 )
               )}
             </section>

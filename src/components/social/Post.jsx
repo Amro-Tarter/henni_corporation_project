@@ -4,12 +4,11 @@ import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check, X, Smil
 import { Comment, CommentInput } from './comments';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useToast } from '/src/hooks/use-toast.jsx';
+import { toast } from '../ui/sonner';
 import PostModalContent from './PostModalContent';
 import ConfirmationModal from './ConfirmationModal';
 import { containsBadWord } from './utils/containsBadWord';
 import EmojiPicker from 'emoji-picker-react';
-
 
 const Post = ({
   post,
@@ -57,7 +56,6 @@ const Post = ({
   const emojiBtnRef = useRef();
   const emojiPickerRef = useRef();
   const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
-  const { toast } = useToast();
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const commentsRef = useRef(null);
@@ -138,26 +136,34 @@ const Post = ({
     if (!id || !onDelete) return;
     try {
       await onDelete(id);
+      toast.success('הפוסט נמחק בהצלחה');
       setMenuOpen(false);
       setShowConfirmDelete(false);
     } catch (err) {
       console.error('Error deleting post:', err);
-      setError('מחיקת הפוסט נכשלה. נסה שוב.');
+      toast.error('מחיקת הפוסט נכשלה. נסה שוב.');
       setShowConfirmDelete(false);
     }
   };
 
   const cancelDelete = () => setShowConfirmDelete(false);
+
   const handleSaveEdit = async () => {
     if (!id || !onUpdate) return;
 
+    if (containsBadWord(newContent)) {
+      setWarning('התוכן מכיל מילים לא ראויות!');
+      setTimeout(() => setWarning(''), 3500);
+      return;
+    }
     try {
       await onUpdate(id, { content: newContent, mediaFile: newMediaFile });
+      toast.success('הפוסט עודכן בהצלחה');
       setEditing(false);
       setNewMediaFile(null);
     } catch (err) {
       console.error('Error updating post:', err);
-      alert('Failed to update post. Please try again.');
+      toast.error('שגיאה בעדכון הפוסט. נסה שוב.');
     }
   }
   const insertEmoji = (emojiObject) => {
@@ -176,7 +182,7 @@ const Post = ({
   };
 
   const toggleLike = async () => {
-    if (!id || !onLike || !currentUser) return;
+    if (currentUser?.role === 'staff' || !id || !onLike || !currentUser) return;
 
     try {
       const newState = !liked;
@@ -186,10 +192,9 @@ const Post = ({
       setTimeout(() => setFloatLike(false), 600);
     } catch (err) {
       console.error('Error toggling like:', err);
-      alert('Failed to update like. Please try again.');
+      toast.error('שגיאה בעדכון הלייק');
     }
   };
-
 
   const toggleCommentsSection = () => {
     setShowComments(prev => !prev);
@@ -197,6 +202,8 @@ const Post = ({
   };
 
   const submitComment = text => {
+    if (currentUser?.role === 'staff') return;
+
     if (replyTo) {
       onAddComment(id, text, replyTo);
       setReplyTo(null);
@@ -214,7 +221,7 @@ const Post = ({
     // Validate file size (max 100MB for videos, 10MB for images)
     const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert(`File too large. Max ${isVideo ? '100MB' : '10MB'} allowed`);
+      toast.error(`הקובץ גדול מדי. הגודל המקסימלי הוא ${isVideo ? '100MB' : '10MB'}`);
       return;
     }
 
@@ -491,24 +498,33 @@ const Post = ({
         <div className={`px-5 py-3 flex items-center justify-between border-t border-${element}-soft`}>
           <div className="flex items-center gap-6">
             <div className="relative">
-              <button
-                onClick={toggleLike}
-                className="flex items-center gap-2 group"
-                aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}
-              >
-                <div
-                  className={`p-1.5 rounded-full transition-colors ${liked
+              {currentUser.role !== 'staff' ? (
+                <button
+                  onClick={toggleLike}
+                  className="flex items-center gap-2 group"
+                  aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}
+                >
+                  <div
+                    className={`p-1.5 rounded-full transition-colors ${liked
                       ? `bg-${element} text-white`
                       : `bg-${element}-soft text-${element} hover:bg-${element}-accent`
-                    }`}
-                >
-                  <ThumbsUp
-                    size={18}
-                    className={liked ? 'fill-white' : `group-hover:fill-${element}-accent`}
-                  />
+                      }`}
+                  >
+                    <ThumbsUp
+                      size={18}
+                      className={liked ? 'fill-white' : `group-hover:fill-${element}-accent`}
+                    />
+                  </div>
+                  <span className="text-sm font-medium transition-colors">{likesCount}</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 cursor-default opacity-70">
+                  <div className={`p-1.5 rounded-full bg-${element}-soft text-${element}`}>
+                    <ThumbsUp size={18} />
+                  </div>
+                  <span className="text-sm font-medium">{likesCount}</span>
                 </div>
-                <span className="text-sm font-medium transition-colors">{likesCount}</span>
-              </button>
+              )}
 
               {/* Floating Icon Animation */}
               <AnimatePresence>
@@ -556,11 +572,13 @@ const Post = ({
               exit={{ y: -24, opacity: 0 }}
               transition={{ duration: 0.40 }}
             >
-              {currentUser && (
+              {currentUser && currentUser.role !== 'staff' ? (
                 <div className="flex gap-3 mb-4">
                   <img src={currentUser.photoURL || '/default_user_pic.jpg'} alt="" className="w-8 h-8 rounded-full" />
                   <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
                 </div>
+              ) : (
+                <p className="text-center text-sm text-gray-500 mb-4">אנשי צוות לא יכולים להגיב.</p>
               )}
               {comments.length > 0 ? (
                 comments.map(c => (
@@ -569,7 +587,7 @@ const Post = ({
                     comment={c}
                     element={element}
                     currentUser={currentUser}
-                    onReply={setReplyTo}
+                    onReply={currentUser?.role === 'staff' ? undefined : setReplyTo}
                     onEdit={onEditComment}
                     onDelete={(postId, commentId, isReply, parentCommentId) =>
                       setCommentToDelete({ postId, commentId, isReply, parentCommentId })
