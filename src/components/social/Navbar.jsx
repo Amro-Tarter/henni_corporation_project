@@ -26,7 +26,7 @@ const SearchInput = ({ isMobile = false, value, onChange, onFocus, inputRef }) =
       onChange={onChange}
       onFocus={onFocus}
       className={`w-full border border-white/30 rounded-full py-2 pr-4 ${
-        isMobile ? 'pl-9 text-sm md:text-base' : 'pl-10'
+        isMobile ? 'pl-16 text-sm md:text-base' : 'pl-16'
       } text-white placeholder-white/70 bg-white/10 hover:bg-white/20 focus:bg-white/20 focus:border-white focus:outline-none transition-all duration-200`}
       dir="rtl"
       lang="he"
@@ -34,6 +34,19 @@ const SearchInput = ({ isMobile = false, value, onChange, onFocus, inputRef }) =
     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/70">
       <Search size={18} />
     </div>
+    {value && (
+      <button
+        type="button"
+        onClick={() => onChange({ target: { value: '' } })}
+        className="absolute left-10 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors p-1"
+        aria-label="נקה חיפוש"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    )}
   </div>
 );
 
