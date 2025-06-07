@@ -292,18 +292,25 @@ const PendingUsersModal = ({ onClose }) => {
       // Also update the profile document if it exists
       const profileRef = doc(db, 'profiles', roleSelectionUser.id);
       const profileSnap = await getDoc(profileRef);
+      
       if (profileSnap.exists()) {
-        const profileUpdateData = {
-          role: selectedRole,
-          updatedAt: serverTimestamp()
-        };
+        if (selectedRole === 'staff') {
+          // Delete profile if the user is promoted to staff
+          await deleteDoc(profileRef);
+        } else {
+          // Otherwise, update the profile
+          const profileUpdateData = {
+            role: selectedRole,
+            updatedAt: serverTimestamp()
+          };
 
-        if (selectedRole === 'participant') {
-          profileUpdateData.associatedMentor = mentorId || null;
+          if (selectedRole === 'participant') {
+            profileUpdateData.associatedMentor = mentorId || null;
+          }
+
+          await updateDoc(profileRef, profileUpdateData);
         }
-
-        await updateDoc(profileRef, profileUpdateData);
-      }
+    }
       
       const mentorText = mentorId ? ' עם מנטור מוקצה' : '';
       toast.success(`הבקשה של ${roleSelectionUser.displayName} אושרה בהצלחה כ${getRoleDisplay(selectedRole)}${mentorText}`);
