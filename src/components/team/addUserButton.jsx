@@ -289,6 +289,19 @@ const PendingUsersModal = ({ onClose }) => {
 
       await updateDoc(userRef, updateData);
       
+      await setDoc(doc(db, "profiles", res.user.uid), {
+        associated_id: res.user.uid,
+        displayName,
+        username,
+        bio:"",
+        location,
+        followersCount: 0,
+        followingCount: 0,
+        postsCount: 0,
+        createdAt: serverTimestamp(),
+        photoURL:"https://firebasestorage.googleapis.com/v0/b/henini-prj.firebasestorage.app/o/profiles%2F123laith%2Fprofile.jpg?alt=media&token=3a72889a-42f8-490d-8968-bb2a3da06f98",
+      });
+
       // Also update the profile document if it exists
       const profileRef = doc(db, 'profiles', roleSelectionUser.id);
       const profileSnap = await getDoc(profileRef);
