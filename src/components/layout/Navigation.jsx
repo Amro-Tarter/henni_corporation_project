@@ -322,7 +322,7 @@ const Navigation = () => {
                         <LogIn size={16} className="ml-2" />
                         <span>התחבר</span>
                       </button>
-                      <a href="/register" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <a href="/signUp" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         הרשמה
                       </a>
                       <a href="/forgot-password" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
