@@ -3,7 +3,7 @@ import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check, X, Smil
 import { Comment, CommentInput } from '../social/comments';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useToast } from '/src/hooks/use-toast.jsx';
+import { toast } from '../ui/sonner';
 import ConfirmationModal from '../social/ConfirmationModal';
 import EmojiPicker from 'emoji-picker-react';
 import { containsBadWord } from '../social/utils/containsBadWord';
@@ -59,7 +59,6 @@ const Project = ({
   const [showUsers, setShowUsers] = useState(false);
   const [collabSearch, setCollabSearch] = useState('');
   const usersPopupRef = useRef();
-  const { toast } = useToast();
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const commentsRef = useRef(null);
@@ -146,11 +145,17 @@ const Project = ({
 
   const handleDelete = () => setShowConfirmDelete(true);
 
-  const confirmDelete = () => {
-    onDelete(id);
+  const confirmDelete = async () => {
+    try {
+      await onDelete(id);
+      toast.success('הפרויקט נמחק בהצלחה');
+    } catch (err) {
+      toast.error('שגיאה במחיקת הפרויקט');
+    }
     setShowConfirmDelete(false);
     setMenuOpen(false);
   };
+
 
   const cancelDelete = () => setShowConfirmDelete(false);
 
@@ -165,11 +170,7 @@ const Project = ({
       description: newDescription,
       collaborators: newCollaborators
     });
-    toast({
-      title: 'הצלחה',
-      description: 'הפרויקט עודכן בהצלחה 🎉',
-      variant: 'success',
-    });
+    toast.success('הפרויקט עודכן בהצלחה 🎉');
     setEditing(false);
   };
 
@@ -190,6 +191,7 @@ const Project = ({
   };
 
   const toggleLike = () => {
+    if (currentUser.role === 'staff') return;
     const newState = !liked;
     setLiked(newState);
     setFloatLike(true);
@@ -197,13 +199,13 @@ const Project = ({
     setTimeout(() => setFloatLike(false), 600);
   };
 
-
   const toggleCommentsSection = () => {
     setShowComments(prev => !prev);
     if (showComments) setReplyTo(null);
   };
 
   const submitComment = text => {
+    if (currentUser.role === 'staff') return;
     if (replyTo) {
       onAddComment(id, text, replyTo);
       setReplyTo(null);
@@ -215,10 +217,22 @@ const Project = ({
   const pickMedia = () => fileInputRef.current?.click();
   const onMediaChange = e => {
     const file = e.target.files[0];
-    if (file) setNewMediaFile(file);
+    if (!file) return;
+
+    const isVideo = file.type.startsWith('video/');
+    const maxSize = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+      toast.error(
+        `הקובץ גדול מדי. הגודל המקסימלי הוא ${isVideo ? '100MB' : '10MB'}`
+      );
+      return;
+    }
+
+    setNewMediaFile(file);
   };
 
-return (
+  return (
     <>
       {warning && (
         <div
@@ -255,10 +269,7 @@ return (
           type="file"
           className="hidden"
           accept="image/*,video/*"
-          onChange={e => {
-            const file = e.target.files[0];
-            if (file) setNewMediaFile(file);
-          }}
+          onChange={onMediaChange}
         />
 
         {/* Header */}
@@ -273,7 +284,7 @@ return (
             />
             <div className="flex flex-col">
               <h3 className="text-lg font-bold truncate max-w-[140px]">{authorProfile?.username || '...'}</h3>
-              <p className="text-xs text-gray-500">{createdAt?.toDate?.().toLocaleDateString('he-IL', {year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'}) || ''}</p>
+              <p className="text-xs text-gray-500">{createdAt?.toDate?.().toLocaleDateString('he-IL', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) || ''}</p>
             </div>
           </div>
           {isOwner && (
@@ -324,7 +335,7 @@ return (
               <button
                 type="button"
                 onClick={() => setShowUsers(!showUsers)}
-                className={`px-3 py-2 rounded bg-${element}-accent hover:bg-${element} text-white font-semibold flex items-center gap-2 border border-${element}-accent transition`}
+                className={`px-3 py-2 rounded bg-${element} hover:bg-${element}-accent text-white font-semibold flex items-center gap-2 border border-${element}-accent transition`}
               >
                 <Users size={16} /> הוסף משתפי פעולה
               </button>
@@ -349,26 +360,28 @@ return (
               {showUsers && (
                 <div
                   ref={usersPopupRef}
-                  className="absolute mt-12 right-0 bg-white shadow-xl rounded-xl border border-gray-200 p-4 z-50 min-w-[240px]"
+                  className={`absolute mt-12 right-0 bg-white shadow-xl rounded-xl border border-${element} p-4 z-50 min-w-[240px]`}
                 >
                   <input
                     type="text"
                     value={collabSearch}
                     onChange={e => setCollabSearch(e.target.value)}
                     placeholder="חפש משתמש לפי שם..."
-                    className="w-full px-3 py-2 mb-3 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-300 text-sm"
+                    className={`w-full px-3 py-2 mb-3 rounded border border-${element} focus:outline-none focus:ring-2 focus:ring-${element}-300 text-sm`}
                     autoFocus
                   />
                   <div className="max-h-48 overflow-y-auto space-y-1">
                     {allUsers
                       .filter(u =>
+                        u &&
+                        u.username &&
                         !newCollaborators.includes(u.id) &&
                         u.username.toLowerCase().includes(collabSearch.trim().toLowerCase())
                       )
                       .map(user => (
                         <div
                           key={user.id}
-                          className={`flex items-center bg-${element}-soft px-2 py-1 rounded-full text-xs gap-2 border border-${element}-accent hover:bg-${element}-soft/80 transition`}
+                          className="flex items-center gap-2 py-1 px-2 cursor-pointer hover:bg-gray-100 rounded transition"
                           onClick={() => {
                             setNewCollaborators([...newCollaborators, user.id]);
                             setCollabSearch('');
@@ -379,6 +392,8 @@ return (
                         </div>
                       ))}
                     {allUsers.filter(u =>
+                      u &&
+                      u.username &&
                       !newCollaborators.includes(u.id) &&
                       u.username.toLowerCase().includes(collabSearch.trim().toLowerCase())
                     ).length === 0 && (
@@ -507,24 +522,33 @@ return (
         <div className={`px-5 py-3 flex items-center justify-between border-t border-${element}-soft`}>
           <div className="flex items-center gap-6">
             <div className="relative">
-              <button
-                onClick={toggleLike}
-                className="flex items-center gap-2 group"
-                aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}
-              >
-                <div
-                  className={`p-1.5 rounded-full transition-colors ${liked
-                    ? `bg-${element} text-white`
-                    : `bg-${element}-soft text-${element} hover:bg-${element}-accent`
-                    }`}
+              {currentUser.role !== 'staff' ? (
+                <button
+                  onClick={toggleLike}
+                  className="flex items-center gap-2 group"
+                  aria-label={liked ? 'הסר לייק' : 'הוסף לייק'}
                 >
-                  <ThumbsUp
-                    size={18}
-                    className={liked ? 'fill-white' : `group-hover:fill-${element}-accent`}
-                  />
+                  <div
+                    className={`p-1.5 rounded-full transition-colors ${liked
+                      ? `bg-${element} text-white`
+                      : `bg-${element}-soft text-${element} hover:bg-${element}-accent`
+                      }`}
+                  >
+                    <ThumbsUp
+                      size={18}
+                      className={liked ? 'fill-white' : `group-hover:fill-${element}-accent`}
+                    />
+                  </div>
+                  <span className="text-sm font-medium transition-colors">{likesCount}</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 cursor-default opacity-70">
+                  <div className={`p-1.5 rounded-full bg-${element}-soft text-${element}`}>
+                    <ThumbsUp size={18} />
+                  </div>
+                  <span className="text-sm font-medium">{likesCount}</span>
                 </div>
-                <span className="text-sm font-medium transition-colors">{likesCount}</span>
-              </button>
+              )}
               <AnimatePresence>
                 {floatLike && (
                   <motion.div
@@ -568,10 +592,16 @@ return (
               transition={{ duration: 0.40 }}
             >
               <div>
-                <div className="flex flex-row items-center gap-3 mb-4">
-                  <img src={currentUser.photoURL} alt="" className="w-8 h-8 rounded-full" />
-                  <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
-                </div>
+                {currentUser.role !== 'staff' ? (
+                  <div className="flex flex-row items-center gap-3 mb-4">
+                    <img src={currentUser.photoURL} alt="" className="w-8 h-8 rounded-full" />
+                    <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
+                  </div>
+                ) : (
+                  <p className="text-center text-sm text-gray-500 mb-4">
+                    אנשי צוות לא יכולים להגיב.
+                  </p>
+                )}
                 {comments.length > 0 ? (
                   comments.map(c => (
                     <Comment
@@ -579,7 +609,7 @@ return (
                       comment={c}
                       element={element}
                       currentUser={currentUser}
-                      onReply={setReplyTo}
+                      onReply={currentUser.role === 'staff' ? undefined : setReplyTo}
                       onEdit={onEditComment}
                       onDelete={(projectId, commentId, isReply, parentId) =>
                         setCommentToDelete({ projectId, commentId, isReply, parentId })
