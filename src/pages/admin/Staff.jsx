@@ -240,7 +240,7 @@ function Staff() {
             className="text-center"
           >
             <div className="flex items-center justify-center gap-3 mb-2">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent leading-[1.5]">
                 נהל צוות העמותה
               </h1>
               {isAdmin && <Shield className="text-blue-600" size={24} />}

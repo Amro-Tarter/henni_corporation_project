@@ -185,7 +185,7 @@ const Navigation = () => {
     <>
       <header
         className={cn(
-          'fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-red-900 py-2 shadow-md'
+          'fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-red-900 py-3 shadow-md'
         )}
         dir="rtl"
       >
@@ -355,7 +355,7 @@ const Navigation = () => {
 
         {/* Progress Bar */}
         <div
-          className="blog_progress_bar absolute bottom-0 left-0 h-1 bg-orange-400 transition-all duration-200"
+          className="blog_progress_bar absolute bottom-0 left-0 h-2 bg-orange-400 transition-all duration-200"
           style={{ width: `${scrollProgress}%`, opacity: scrollProgress > 0 ? 1 : 0, willChange: 'width, height, opacity' }}
           aria-hidden="true"
         />
