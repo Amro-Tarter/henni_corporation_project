@@ -129,25 +129,8 @@ export default function Team() {
   const [showLoader, setShowLoader] = useState(true)
   const [sectionInView, setSectionInView] = useState(null)
   const element = useElement()
-
-  const {
-    regions = [],
-    expertises = [],
-    locations = [],
-    filters = {},
-    setFilters = () => {}
-  } = useTeamData(searchQuery)
-
   const { ceoData, staffData, loading: loadingStaff } = useStaffMembers(searchQuery)
   const { mentors, loading: loadingMentors } = useMentors(searchQuery)
-
-  // Stats
-  const ceoCount = ceoData.length
-  const staffCount = staffData.length
-  const mentorCount = mentors.length
-
-  const isLoading = loadingStaff || loadingMentors 
-
   // Loader staged
   useEffect(() => {
     const timer = setTimeout(() => setShowLoader(false), 900)
@@ -206,46 +189,24 @@ export default function Team() {
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-10 text-center space-y-2"
+              className="mb-10 text-right space-y-2"
             >
-              <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-700 to-purple-500 bg-clip-text text-transparent drop-shadow-md tracking-tight mb-2">
-                הצוות שלנו
-              </h1>
+             <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-700 to-purple-500 bg-clip-text text-transparent mb-2 leading-[1.5]">
+              הצוות שלנו
+            </h1>
+
               <p className="text-xl text-gray-700">
-                הכירו את הצוות המקצועי, הניהול, המנטורים והסטודנטים שמובילים את הקהילה שלנו.
+                הכירו את הצוות המקצועי, הניהול, המנטורים שמובילים את הקהילה שלנו.
               </p>
             </motion.div>
 
-            {/* Filters and Search */}
-            <div className="sticky top-0 z-20 bg-white/70 backdrop-blur-lg rounded-2xl shadow-lg p-4 border border-element/10 mb-8 flex flex-col md:flex-row gap-6 items-center">
-              <TeamSearch
-                value={searchQuery}
-                onChange={setSearchQuery}
-                className="w-full md:w-2/5"
-                placeholder="חפש לפי שם, תפקיד, מנטור או תיאור..."
-              />
-              <TeamFilters
-                regions={regions}
-                expertises={expertises}
-                locations={locations}
-                filters={filters}
-                onChange={setFilters}
-                className="w-full md:flex-1"
-              />
-            </div>
-
             {/* CEO Section */}
             <motion.section ref={ceoRef} id="ceo" className="mb-20 scroll-mt-24">
-              <motion.div className="flex items-center justify-center gap-3 mb-8">
+              <motion.div className="flex items-center justify-right gap-3 mb-8">
                 <Crown className="w-8 h-8 text-amber-500" />
-                <h2 className="text-3xl font-bold text-gray-800 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-                  מנהל
+                <h2 className="px-4 text-3xl font-bold text-gray-800 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent leading-[1.5]">
+                  המנהל
                 </h2>
-                {ceoCount > 0 && (
-                  <span className="bg-amber-100 text-amber-800 text-sm px-3 py-1 rounded-full font-medium">
-                    {ceoCount}
-                  </span>
-                )}
               </motion.div>
               {loadingStaff ? (
                 <ElementalLoader />
@@ -270,7 +231,7 @@ export default function Team() {
                   }))}
                   sectionInView={sectionInView}
                   cardProps={{
-                    className: "bg-gradient-to-br from-amber-50/80 to-orange-50/80 backdrop-blur-lg border border-amber-200/60 hover:border-amber-300/80"
+                    className: "bg-gradient-to-br from-amber-50/80 to-orange-50/80 backdrop-blur-lg border border-amber-200/60 hover:border-amber-300/80 "
                   }}
                 />
               )}
@@ -278,16 +239,11 @@ export default function Team() {
 
             {/* Staff Section */}
             <motion.section ref={staffRef} id="staff" className="mb-20 scroll-mt-24">
-              <motion.div className="flex items-center justify-center gap-3 mb-8">
+              <motion.div className="flex items-center justify-right gap-3 mb-8">
                 <Users2 className="w-8 h-8 text-blue-500" />
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-purple-600 bg-clip-text text-transparent">
-                  צוות מקצועי
+                <h2 className="px-4 text-3xl font-bold bg-gradient-to-r from-blue-700 to-purple-600 bg-clip-text text-transparent leading-[1.5]">
+                  הצוות שלנו
                 </h2>
-                {staffCount > 0 && (
-                  <span className="bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full font-medium">
-                    {staffCount}
-                  </span>
-                )}
               </motion.div>
               {loadingStaff ? (
                 <ElementalLoader />
@@ -319,16 +275,11 @@ export default function Team() {
 
             {/* Mentors Section */}
             <motion.section ref={mentorRef} id="mentors" className="mb-20 scroll-mt-24">
-              <motion.div className="flex items-center justify-center gap-3 mb-8">
+              <motion.div className="flex items-center justify-right gap-3 mb-8">
                 <UserCheck className="w-8 h-8 text-emerald-500" />
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                  מנטורים
+                <h2 className="px-4 text-3xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent leading-[1.5]">
+                 המנטורים
                 </h2>
-                {mentorCount > 0 && (
-                  <span className="bg-emerald-100 text-emerald-800 text-sm px-3 py-1 rounded-full font-medium">
-                    {mentorCount}
-                  </span>
-                )}
               </motion.div>
               {loadingMentors ? (
                 <ElementalLoader />
@@ -350,7 +301,7 @@ export default function Team() {
                   }))}
                   sectionInView={sectionInView}
                   cardProps={{
-                    className: "bg-gradient-to-br from-emerald-50/80 to-green-50/80 backdrop-blur-lg border border-emerald-200/60 hover:border-emerald-300/80"
+                    className: "bg-white/80 backdrop-blur-lg border border-blue-100/60 hover:border-blue-200/80"
                   }}
                 />
               )}

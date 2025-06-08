@@ -121,8 +121,8 @@ const AboutSection = ({ currentUser }) => {
       setLoading(true);
       try {
         const adminQuery = query(
-          collection(db, 'users'),
-          where('role', '==', 'admin')
+          collection(db, 'staff'),
+          where('in_role', 'in', ['ceo', 'staff'])
         );
         const querySnapshot = await getDocs(adminQuery);
         const admins = [];
@@ -137,24 +137,34 @@ const AboutSection = ({ currentUser }) => {
           const admin = {
             id: userDoc.id,
             associated_id: associatedId,
-            displayName:
-              profileData.displayName ||
-              userData.displayName ||
+            username:
+              profileData.username ||
+              userData.username ||
               userData.email?.split('@')[0] ||
               'מנהל',
             role: userData.role,
-            title: userData.title || profileData.title || 'מנהל מערכת',
+            in_role: userData.in_role, // Keep the in_role field for sorting
+            title: userData.title || profileData.title || (userData.in_role === 'ceo' ? 'מנכ"ל' : userData.in_role),
             photoURL: profileData.photoURL || userData.photoURL || DEFAULT_IMAGE,
             bio:
               profileData.bio ||
               userData.bio ||
-              'מנהל מערכת מנוסה המוביל את פעילות העמותה ומחויב לחזון ולמטרות שלנו.',
+              (userData.in_role === 'ceo'
+                ? 'מנכ"ל העמותה, מוביל את החזון והפעילות למען בני הנוער בישראל.'
+                : 'מנהל מערכת מנוסה המוביל את פעילות העמותה ומחויב לחזון ולמטרות שלנו.'),
             email: userData.email,
             is_active: userData.is_active !== false,
           };
           if (admin.is_active) admins.push(admin);
         }
-        admins.sort((a, b) => a.displayName.localeCompare(b.displayName));
+        
+        // Sort: CEO first, then staff members by name
+        admins.sort((a, b) => {
+          if (a.in_role === 'ceo' && b.in_role !== 'ceo') return -1;
+          if (b.in_role === 'ceo' && a.in_role !== 'ceo') return 1;
+          return a.username.localeCompare(b.username);
+        });
+        
         if (active) setTeamMembers(admins);
       } catch (error) {
         setTeamMembers([]);
@@ -228,7 +238,7 @@ const AboutSection = ({ currentUser }) => {
   };
 
   const handleEditChange = e => {
-    setEditData(ed => ({ ...ed, [e.target.name]: e.target.value }));
+    setEditData(ed => ({ ...ed, [e.target.username]: e.target.value }));
   };
 
   const saveEdit = async () => {
@@ -371,9 +381,9 @@ const AboutSection = ({ currentUser }) => {
                     }}
                   >
                     <div className="relative w-20 h-20 mx-auto rounded-full overflow-hidden bg-orange-100 mb-3">
-                      <AvatarImg src={member.photoURL} alt={member.displayName} />
+                      <AvatarImg src={member.photoURL} alt={member.username} />
                     </div>
-                    <h4 className="text-base font-bold text-gray-900">{member.displayName}</h4>
+                    <h4 className="text-base font-bold text-gray-900">{member.username}</h4>
                     <p className="text-orange-500 text-sm">{member.title}</p>
                   </div>
                 ))}
@@ -509,18 +519,22 @@ const AboutSection = ({ currentUser }) => {
             </div>
           ) : (
             <>
-              {/* Team Grid (first 3) */}
+              {/* Team Grid - CEO first, then 2 staff members */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 {teamMembers.slice(0, 3).map((member, idx) => (
                   <div
                     key={member.id}
                     onClick={() => openMemberModal(idx)}
-                    className="bg-white/60 rounded-xl p-4 shadow-md cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-orange-100"
+                    className={`bg-white/60 rounded-xl p-4 shadow-md cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border ${
+                      member.in_role === 'ceo' 
+                        ? 'border-orange-300 bg-gradient-to-br from-orange-50 to-orange-100' 
+                        : 'border-orange-100'
+                    }`}
                   >
                     <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full mx-auto mb-3 overflow-hidden bg-orange-100">
-                      <AvatarImg src={member.photoURL} alt={member.displayName} />
+                      <AvatarImg src={member.photoURL} alt={member. username} />
                     </div>
-                    <h4 className="text-sm md:text-base font-bold text-gray-900 mb-1">{member.displayName}</h4>
+                    <h4 className="text-sm md:text-base font-bold text-gray-900 mb-1">{member.username}</h4>
                     <p className="text-gray-600 text-xs md:text-sm mb-1">{member.title}</p>
                     <p className="text-orange-500 text-xs">לחץ לפרטים נוספים</p>
                   </div>
@@ -539,6 +553,7 @@ const AboutSection = ({ currentUser }) => {
           )}
         </div>
       </div>
+
 
       {/* Member modal */}
       <AnimatePresence>
@@ -563,11 +578,11 @@ const AboutSection = ({ currentUser }) => {
               {teamMembers[selectedMember] && (
                 <div className="p-6 flex flex-col md:flex-row gap-6 items-center md:items-start text-right">
                   <div className="w-32 h-32 rounded-full overflow-hidden flex-shrink-0 border-4 border-orange-200 shadow-lg">
-                    <AvatarImg src={teamMembers[selectedMember].photoURL} alt={teamMembers[selectedMember].displayName} />
+                    <AvatarImg src={teamMembers[selectedMember].photoURL} alt={teamMembers[selectedMember].username} />
                   </div>
                   <div className="flex-1 text-center md:text-right">
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                      {teamMembers[selectedMember].displayName}
+                      {teamMembers[selectedMember].username}
                     </h3>
                     {!editMode ? (
                       <>
@@ -597,14 +612,14 @@ const AboutSection = ({ currentUser }) => {
                     ) : (
                       <>
                         <input
-                          name="title"
+                          username="title"
                           className="border rounded-lg px-4 py-2 w-full my-2 text-right"
                           value={editData.title || ''}
                           onChange={handleEditChange}
                           placeholder="תפקיד"
                         />
                         <textarea
-                          name="bio"
+                          username="bio"
                           className="border rounded-lg px-4 py-2 w-full my-2 text-right"
                           value={editData.bio || ''}
                           onChange={handleEditChange}
