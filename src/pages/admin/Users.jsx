@@ -12,10 +12,11 @@ import {
   faTrash,
   faEye,
   faUserFriends,
-  faSpinner,
+  faTimes,
   faUsers,
   faFilter,
-  faSearch
+  faSave,
+  faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 import { Search, Filter, User, Users as UsersIcon, Shield, Zap, MapPin, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -49,6 +50,277 @@ const ELEMENT_ICONS = {
   air: faWind,
   metal: faHammer
 };
+
+
+const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
+  const [formData, setFormData] = useState({
+    username: user.username || '',
+    email: user.email || '',
+    element: user.element || '',
+    location: user.location || '',
+    role: user.role || 'participant',
+    displayName: user.profile?.displayName || '',
+    bio: user.profile?.bio || '',
+    photoURL: user.profile?.photoURL || ''
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const elementOptions = [
+    { value: 'fire', label: 'אש' },
+    { value: 'water', label: 'מים' },
+    { value: 'earth', label: 'אדמה' },
+    { value: 'air', label: 'אוויר' },
+    { value: 'metal', label: 'מתכת' }
+  ];
+
+  const roleOptions = [
+    { value: 'admin', label: 'מנהל' },
+    { value: 'mentor', label: 'מנטור' },
+    { value: 'participant', label: 'משתתף' },
+    { value: 'staff', label: 'צוות' }
+  ];
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await onSave(user.id, formData);
+      onClose();
+    } catch (error) {
+      console.error('Error saving user:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+ return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-3xl p-8 max-h-[90vh] overflow-y-auto border border-slate-200"
+        dir="rtl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <FontAwesomeIcon icon={faEdit} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-white">
+                עריכת משתמש
+              </h3>
+              <p className="text-slate-500">{user.username}</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all duration-200"
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">שם משתמש</label>
+              <input
+                type="text"
+                value={formData.username}
+                onChange={(e) => setFormData({...formData, username: e.target.value})}
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">שם תצוגה</label>
+              <input
+                type="text"
+                value={formData.displayName}
+                onChange={(e) => setFormData({...formData, displayName: e.target.value})}
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">אימייל</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">אלמנט</label>
+              <select
+                value={formData.element}
+                onChange={(e) => setFormData({...formData, element: e.target.value})}
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
+              >
+                <option value="">בחר אלמנט</option>
+                {elementOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.icon} {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">תפקיד</label>
+              <select
+                value={formData.role}
+                onChange={(e) => setFormData({...formData, role: e.target.value})}
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
+              >
+                {roleOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.icon} {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">מיקום</label>
+            <input
+              type="text"
+              value={formData.location}
+              onChange={(e) => setFormData({...formData, location: e.target.value})}
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
+            />
+          </div>
+
+          {formData.role === 'participant' && (
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">מנטורים</label>
+              <select
+                multiple
+                value={formData.mentors || []}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, opt => opt.value);
+                  setFormData({ ...formData, mentors: selected });
+                }}
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white min-h-[120px]"
+              >
+                {availableMentors.map(mentor => (
+                  <option key={mentor.id} value={mentor.id} className="py-2">
+                    {mentor.profile?.displayName || mentor.username}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">ביו</label>
+            <textarea
+              value={formData.bio}
+              onChange={(e) => setFormData({...formData, bio: e.target.value})}
+              rows={4}
+              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white resize-none"
+              placeholder="ספר על עצמך..."
+            />
+          </div>
+
+          <div className="flex justify-end gap-4 pt-6 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all duration-200 font-medium"
+            >
+              ביטול
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              {isLoading ? (
+                <FontAwesomeIcon icon={faSpinner} className="animate-spin ml-2" />
+              ) : (
+                <FontAwesomeIcon icon={faSave} className="ml-2" />
+              )}
+              שמור שינויים
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// Delete Confirmation Modal
+const DeleteConfirmModal = ({ user, onConfirm, onCancel, isLoading }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.9, opacity: 0, y: 20 }}
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-red-200"
+        dir="rtl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center mb-4">
+          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center ml-4">
+            <FontAwesomeIcon icon={faTrash} className="text-red-600" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+            אישור מחיקה
+          </h3>
+        </div>
+        <p className="text-slate-600 dark:text-slate-300 mb-6">
+          האם אתה בטוח שברצונך למחוק את המשתמש <strong className="text-red-600">{user.username}</strong>?
+          <br />
+          <span className="text-sm text-red-500 font-medium">פעולה זו לא ניתנת לביטול ותמחק את כל הנתונים המשויכים.</span>
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onCancel}
+            disabled={isLoading}
+            className="px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            ביטול
+          </button>
+          <button
+            onClick={() => onConfirm(user.id)}
+            disabled={isLoading}
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            {isLoading ? (
+              <FontAwesomeIcon icon={faSpinner} className="animate-spin ml-2" />
+            ) : (
+              <FontAwesomeIcon icon={faTrash} className="ml-2" />
+            )}
+            מחק סופית
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
 
 async function cascadeDeleteUser(uid, db) {
   try {
@@ -131,7 +403,7 @@ const getRoleConfig = (role) => {
   return ROLE_OPTIONS.find(opt => opt.value === role) || ROLE_OPTIONS[2];
 };
 
-// Enhanced User Card Component
+// User Card Component
 const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
   const elementConfig = getElementConfig(user.element);
   const roleConfig = getRoleConfig(user.role);
@@ -283,7 +555,7 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
 
 UserCard.displayName = 'UserCard';
 
-// Enhanced Filter Component
+// Filter Component
 const FilterPanel = React.memo(({ 
   searchTerm, 
   setSearchTerm, 
@@ -396,7 +668,7 @@ const FilterPanel = React.memo(({
 
 FilterPanel.displayName = 'FilterPanel';
 
-// Enhanced Empty State Component
+// Empty State Component
 const EmptyState = React.memo(({ hasFilters, onClearFilters }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -537,9 +809,9 @@ function Users() {
       const q = query(collection(db, "users"), where("role", "==", "mentor"));
       const querySnapshot = await getDocs(q);
       const mentors = await Promise.all(
-        querySnapshot.docs.map(async (doc) => {
-          const userData = { id: doc.id, ...doc.data() };
-          const profileSnap = await getDoc(doc(db, "profiles", doc.id));
+        querySnapshot.docs.map(async (mentorDoc) => {
+          const userData = { id: mentorDoc.id, ...mentorDoc.data() };
+          const profileSnap = await getDoc(doc(db, "profiles", mentorDoc.id));
           if (profileSnap.exists()) {
             userData.profile = profileSnap.data();
           }

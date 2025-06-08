@@ -422,7 +422,7 @@ const AboutSection = ({ currentUser }) => {
 
       
         {/* Newsletter/CTA */}
-        <div className="text-center mb-12 bg-gradient-to-br from-white/80 to-orange-50/80 backdrop-blur-sm rounded-2xl p-8 mx-auto max-w-3xl shadow-xl hover:shadow-2xl transition-all duration-300 border border-orange-100">
+        <div className="text-center mb-12 rounded-2xl p-8 mx-auto max-w-3xl transition-all duration-300 border border-orange-100">
           <div className="inline-flex items-center gap-3 mb-4 bg-green-50 px-4 py-2 rounded-full">
             <TreePine className="h-6 w-6 text-green-600 animate-pulse" />
             <span className="text-green-700 font-semibold">חדש! הניוזלטר שלנו</span>
