@@ -144,7 +144,7 @@ const AboutSection = ({ currentUser }) => {
               'מנהל',
             role: userData.role,
             in_role: userData.in_role, // Keep the in_role field for sorting
-            title: userData.title || profileData.title || (userData.in_role === 'ceo' ? 'מנכ"ל' : userData.in_role),
+            title: userData.title || profileData.title || (userData.in_role === 'ceo' ? 'מייסדת ומנכ"לית' : userData.in_role),
             photoURL: profileData.photoURL || userData.photoURL || DEFAULT_IMAGE,
             bio:
               profileData.bio ||

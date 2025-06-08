@@ -22,11 +22,12 @@ import {
 } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db } from '../config/firbaseConfig';
+import AirIcon from '@mui/icons-material/Air';
 
 const ELEMENTS = [
   { key: 'earth', emoji: '🌱', title: 'פרויקטי אדמה', description: 'פעילויות המקדמות יציבות, חיבור לאדמה ולעבודה עם חומרים טבעיים.', color: 'from-green-600 to-emerald-500', lightColor: 'bg-green-100', sound: '/sounds/earth.mp3' },
-  { key: 'metal', emoji: '⚙️', title: 'פרויקטי מתכת', description: 'עיסוק בטכניקות מדויקות, פיתוח מיומנויות ועבודת ידיים.', color: 'from-gray-600 to-slate-500', lightColor: 'bg-gray-100', sound: '/sounds/metal.mp3' },
-  { key: 'air', emoji: '💨', title: 'פרויקטי אוויר', description: 'תכנים המעודדים חשיבה יצירתית, מדיטציה ותודעה.', color: 'from-sky-400 to-blue-50', lightColor: 'bg-blue-100', sound: '/sounds/air.mp3' },
+  { key: 'metal', emoji: '⚒️', title: 'פרויקטי מתכת', description: 'עיסוק בטכניקות מדויקות, פיתוח מיומנויות ועבודת ידיים.', color: 'from-gray-600 to-slate-500', lightColor: 'bg-gray-100', sound: '/sounds/metal.mp3' },
+  { key: 'air', emoji: <AirIcon style={{color: '#87ceeb'}} />, title: 'פרויקטי אוויר', description: 'תכנים המעודדים חשיבה יצירתית, מדיטציה ותודעה.', color: 'from-sky-400 to-blue-50', lightColor: 'bg-blue-100', sound: '/sounds/air.mp3' },
   { key: 'water', emoji: '💧', title: 'פרויקטי מים', description: 'תכנים העוסקים ברגש, ביטוי אישי וזרימה פנימית.', color: 'from-blue-500 to-cyan-400', lightColor: 'bg-cyan-100', sound: '/sounds/water.mp3' },
   { key: 'fire', emoji: '🔥', title: 'פרויקטי אש', description: 'פעילויות עם אנרגיה גבוהה, יצירה נלהבת ומוטיבציה.', color: 'from-red-600 to-orange-500', lightColor: 'bg-red-100', sound: '/sounds/fire.mp3' },
 ];

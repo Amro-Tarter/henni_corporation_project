@@ -7,12 +7,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import CommunityPage from '../../pages/CommunityPage';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
+import AirIcon from '@mui/icons-material/Air';
 
 
 const sections = [
   { id: 'about-section', label: 'אודות העמותה', icon: '🌱' },
-  { id: 'leadership-program', label: 'תכנית המנהיגות', icon: '⚙️'},
-  { id: 'gallery', label: 'גלריה', icon: '💨' },
+  { id: 'leadership-program', label: 'תכנית המנהיגות', icon: '⚒️'},
+  { id: 'gallery', label: 'גלריה', icon: <AirIcon style={{color: '#87ceeb'}} /> },
    { id: 'projects', label: 'פרויקטים', icon: '💧' },
   { id: 'join-us', label: 'הצטרפו אלינו', icon: '🔥' },
 ];
