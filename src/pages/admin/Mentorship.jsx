@@ -130,12 +130,13 @@ const AssignMentorshipModal = ({ type, user, allMentors, allParticipants, onClos
         isMentor ? allParticipants.find(p => p.id === id) : allMentors.find(m => m.id === id)
     ).filter(Boolean);
 
-    const availableUsers = isMentor
-         ? allParticipants.filter(p => 
-            !associatedUserIds.includes(p.id) && // not already assigned
-            !(p.mentors && p.mentors.length > 0) && // has no mentor yet
-            (p.element === user.element) && // *** ELEMENT MATCH ONLY ***
-            (p.profile?.displayName || p.username).toLowerCase().includes(searchTerm.toLowerCase())
+     const availableUsers = isMentor
+        ? allParticipants.filter(p => 
+           !associatedUserIds.includes(p.id) &&      // not already assigned
+           !(p.mentors && p.mentors.length > 0) &&   // has no mentor yet
+          (p.profile?.displayName || p.username)
+               .toLowerCase()
+               .includes(searchTerm.toLowerCase())
         )
         : allMentors.filter(m => 
             !associatedUserIds.includes(m.id) && 
@@ -468,11 +469,6 @@ function Mentorship() {
                 toast.error("החניך כבר משויך למנטור אחר.");
                 return;
             }
-            if (mentorData.element !== participantData.element) {
-                toast.error("אפשר לשייך רק חניך עם אותו אלמנט של המנטור.");
-                return;
-            }
-
             if (mentorData.participants && mentorData.participants.length >= 5) {
                 toast.error("למנטור זה כבר יש 5 חניכים משויכים.");
                 return;
