@@ -131,11 +131,12 @@ const AssignMentorshipModal = ({ type, user, allMentors, allParticipants, onClos
     ).filter(Boolean);
 
     const availableUsers = isMentor
-        ? allParticipants.filter(p => 
-            !associatedUserIds.includes(p.id) && 
-            !(p.mentors && p.mentors.length > 0) &&
+         ? allParticipants.filter(p => 
+            !associatedUserIds.includes(p.id) && // not already assigned
+            !(p.mentors && p.mentors.length > 0) && // has no mentor yet
+            (p.element === user.element) && // *** ELEMENT MATCH ONLY ***
             (p.profile?.displayName || p.username).toLowerCase().includes(searchTerm.toLowerCase())
-          )
+        )
         : allMentors.filter(m => 
             !associatedUserIds.includes(m.id) && 
             (!m.participants || m.participants.length < 5) &&
@@ -461,9 +462,14 @@ function Mentorship() {
             const mentorData = mentorSnap.data();
             const participantData = participantSnap.data();
 
-            // Check constraints
+
+             // Check constraints
             if (participantData.mentors && participantData.mentors.length > 0) {
                 toast.error("החניך כבר משויך למנטור אחר.");
+                return;
+            }
+            if (mentorData.element !== participantData.element) {
+                toast.error("אפשר לשייך רק חניך עם אותו אלמנט של המנטור.");
                 return;
             }
 
