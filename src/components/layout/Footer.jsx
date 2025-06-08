@@ -37,7 +37,7 @@ const Footer = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Enhanced animated background with multiple layers */}
-      <div className="absolute inset-0 bg-gradient-to-br from-red-900 via-red-950 to-black opacity-95" />
+      <div className="absolute inset-0 bg-red-900 opacity-95" />
       
       {/* Dynamic gradient overlay that follows mouse */}
       <div 
