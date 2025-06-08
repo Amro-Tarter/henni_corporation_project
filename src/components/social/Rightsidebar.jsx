@@ -92,21 +92,43 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         const searchTerm = searchInput.trim();
         const normalizedSearchTerm = normalizeText(searchTerm);
 
-        const filteredResults = querySnapshot.docs
-          .map((doc) => doc.data())
-          .filter((profile) => {
-            // Enhanced Hebrew search with normalization
-            const normalizedUsername = normalizeText(profile.username || '');
-            const normalizedName = normalizeText(profile.name || '');
-            const normalizedBio = normalizeText(profile.bio || '');
+        const profiles = querySnapshot.docs.map((doc) => ({
+          ...doc.data(),
+          uid: doc.id
+        }));
 
-            // Check if the normalized search term appears in username, name, or bio
-            return normalizedUsername.includes(normalizedSearchTerm) ||
-              normalizedName.includes(normalizedSearchTerm) ||
-              normalizedBio.includes(normalizedSearchTerm);
-          });
+        // Get all matching profiles first
+        const matchingProfiles = profiles.filter((profile) => {
+          const normalizedUsername = normalizeText(profile.username || '');
+          const normalizedName = normalizeText(profile.name || '');
+          const normalizedBio = normalizeText(profile.bio || '');
 
-        setSearchResults(filteredResults);
+          return normalizedUsername.includes(normalizedSearchTerm) ||
+            normalizedName.includes(normalizedSearchTerm) ||
+            normalizedBio.includes(normalizedSearchTerm);
+        });
+
+        // Fetch roles for matching profiles
+        const resultsWithRoles = await Promise.all(matchingProfiles.map(async (profile) => {
+          try {
+            const userQuery = query(collection(db, 'users'), where('username', '==', profile.username));
+            const userSnapshot = await getDocs(userQuery);
+            
+            if (!userSnapshot.empty) {
+              const userData = userSnapshot.docs[0].data();
+              return {
+                ...profile,
+                role: userData.role || null
+              };
+            }
+            return profile;
+          } catch (error) {
+            console.error('Error fetching role for search result:', profile.username, error);
+            return profile;
+          }
+        }));
+
+        setSearchResults(resultsWithRoles);
       } catch (err) {
         console.error('Error fetching profiles:', err);
       }
@@ -225,7 +247,26 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                         }}
                       />
                       <div className="flex flex-col overflow-hidden">
-                        <span className="text-xs text-gray-800 font-medium truncate">{profile.username}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-800 font-medium truncate">
+                            {profile.username}
+                          </span>
+                          {profile.role === 'admin' && (
+                            <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full">
+                              מנהל
+                            </span>
+                          )}
+                          {profile.role === 'staff' && (
+                            <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
+                              צוות
+                            </span>
+                          )}
+                          {profile.role === 'mentor' && (
+                            <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
+                              מנטור
+                            </span>
+                          )}
+                        </div>
                         {profile.name && (
                           <span className="text-xs text-gray-500 truncate">{profile.name}</span>
                         )}

@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firbaseConfig'; // <-- Make sure path is correct
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music, Volume2, FastForward, Rewind, Pause, Play, SkipForward, SkipBack } from 'lucide-react';
+import { Music, Volume2, Pause } from 'lucide-react';
 
 const MusicPlayer = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -11,13 +13,38 @@ const MusicPlayer = () => {
   const [previousVolume, setPreviousVolume] = useState(0.5);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null); // <-- The Firestore audio URL
   const audioRef = useRef(null);
   const [notes, setNotes] = useState([]);
   const [showControls, setShowControls] = useState(false);
 
-  // Initialize audio
+  // Fetch audio URL from Firestore on mount
   useEffect(() => {
-    const audio = new Audio('/sounds/guitar-ambient.mp3');
+    // Listen for real-time changes in the music document
+    const trackRef = doc(db, 'music', 'currentTrack');
+    const unsubscribe = onSnapshot(trackRef, (docSnap) => {
+      if (docSnap.exists() && docSnap.data().url) {
+        setAudioUrl(docSnap.data().url);
+        setError(null);
+        setIsLoading(true); // re-trigger audio loading logic
+      } else {
+        setError('לא נמצא קובץ מוזיקה');
+        setAudioUrl(null);
+      }
+    }, (err) => {
+      setError('בעיה בטעינת קובץ המוזיקה');
+      setAudioUrl(null);
+    });
+    return unsubscribe;
+  }, []);
+
+  // Initialize audio when URL is loaded
+  useEffect(() => {
+    if (!audioUrl) return;
+    setIsLoading(true);
+    setError(null);
+
+    const audio = new Audio(audioUrl);
     audioRef.current = audio;
 
     const handleLoadedData = () => {
@@ -46,8 +73,6 @@ const MusicPlayer = () => {
     audio.addEventListener('ended', handleEnded);
     audio.volume = volume;
     audio.loop = true;
-
-    // Load the audio
     audio.load();
 
     return () => {
@@ -57,7 +82,9 @@ const MusicPlayer = () => {
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('ended', handleEnded);
     };
-  }, []);
+    // Only run this effect when audioUrl changes
+    // eslint-disable-next-line
+  }, [audioUrl]);
 
   // Handle volume changes
   useEffect(() => {
@@ -69,9 +96,7 @@ const MusicPlayer = () => {
   // Handle play/pause
   useEffect(() => {
     if (!audioRef.current || isLoading) return;
-
     const playPromise = isPlaying ? audioRef.current.play() : audioRef.current.pause();
-
     if (playPromise !== undefined) {
       playPromise.catch(error => {
         console.error('Playback error:', error);
@@ -83,7 +108,6 @@ const MusicPlayer = () => {
   // Handle note animations
   useEffect(() => {
     if (!isPlaying) return;
-
     const interval = setInterval(() => {
       setNotes(prev => [
         ...prev.slice(-5),
@@ -95,7 +119,6 @@ const MusicPlayer = () => {
         }
       ]);
     }, 500);
-
     return () => clearInterval(interval);
   }, [isPlaying]);
 
@@ -139,7 +162,7 @@ const MusicPlayer = () => {
   if (error) {
     return (
       <div className="fixed bottom-4 left-4 z-50 p-3 bg-red-500/20 backdrop-blur-lg rounded-full text-white text-sm">
-        Failed to load audio
+        {error}
       </div>
     );
   }

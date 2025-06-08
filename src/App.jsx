@@ -41,6 +41,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Team from './pages/Team';
 import NewsletterPage from './pages/NewsletterPage';
 import ArtSkillsPage from './pages/ArtSkillsPage';
+import Staff from './pages/admin/Staff';  
 
 const queryClient = new QueryClient();
 
@@ -128,6 +129,8 @@ const App = () => {
                   <Route path="/admin/forms" element={<AdminFormManager />} />
                   <Route path="/admin/submissions" element={<SubmissionViewer />} />
                   <Route path="/form/:formId" element={<PublicForm />} />
+                  <Route path="/admin/staff" element={<Staff />} />
+
                   
                   {/* 404 Page */}
                   <Route path="*" element={<NotFound />} />

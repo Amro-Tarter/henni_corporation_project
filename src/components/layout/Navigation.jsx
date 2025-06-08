@@ -196,10 +196,14 @@ const Navigation = () => {
           />
         )}
 
-        <nav className="relative z-50 container mx-auto flex items-end justify-around px-3">
-          <a href="/" className="flex flex-col leading-tight items-start ">
-            <span className="text-white font-semibold text-lg md:text-xl"> עמותת לגלות את האור – הנני </span>
-            <span className="text-orange-100 text-xs md:text-sm hidden md:block"> יצירה. מנהיגות. שייכות.</span>
+       <nav className="relative z-50 container mx-auto flex items-end justify-around px-3">
+          <a href="/" className="flex items-center gap-2">
+            <img
+              src="/logoo.svg"
+              alt="לגלות את האור - הנני"
+              className="h-10 md:h-12 w-auto"
+              style={{ display: 'block' }}
+            />
           </a>
 
           {/* Desktop Links */}
@@ -322,7 +326,7 @@ const Navigation = () => {
                         <LogIn size={16} className="ml-2" />
                         <span>התחבר</span>
                       </button>
-                      <a href="/register" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                      <a href="/signUp" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                         הרשמה
                       </a>
                       <a href="/forgot-password" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">

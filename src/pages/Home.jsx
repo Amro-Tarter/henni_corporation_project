@@ -754,6 +754,34 @@ const Home = () => {
   const isPrivilegedRole = ['mentor', 'staff', 'admin'].includes(profile?.role);
   const element = isPrivilegedRole || !profile?.element ? 'red' : profile.element;
 
+  // Add refreshData function to handle data fetching
+  const refreshData = async () => {
+    if (!user?.uid) return;
+    try {
+      await Promise.all([
+        fetchPosts(user.uid),
+        fetchFollowingPosts(user.uid),
+        fetchProjects(user.uid),
+        fetchAllUsers()
+      ]);
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    }
+  };
+
+  // Add auto-refresh effect
+  useEffect(() => {
+    if (!user?.uid) return;
+    
+    // Set up interval for periodic refresh (every 30 seconds)
+    const intervalId = setInterval(() => {
+      refreshData();
+    }, 10000); // 30 seconds
+
+    // Cleanup interval on unmount
+    return () => clearInterval(intervalId);
+  }, [user?.uid]); // Only re-run if user ID changes
+
   if (!profile) return (
     <ThemeProvider element="earth">
       <ElementalLoader />

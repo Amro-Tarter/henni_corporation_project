@@ -1,19 +1,18 @@
 //ProfileInfo.jsx
 import React, { useState } from 'react';
-import { MapPin, Pencil, Camera, MessageSquare, Users, Image } from 'lucide-react';
+import { MapPin, Camera, MessageSquare, Users, Image, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useToast } from '/src/hooks/use-toast.jsx';
-import { containsBadWord } from './utils/containsBadWord';
+import { toast } from '../ui/sonner';
 import AirIcon from '@mui/icons-material/Air';
 
 const elementOptions = [
   { value: 'fire', label: 'אש', icon: '🔥' },
   { value: 'water', label: 'מים', icon: '💧' },
-  { value: 'air', label: 'אוויר', icon: <AirIcon style={{color: '#87ceeb'}} /> },
+  { value: 'air', label: 'אוויר', icon: <AirIcon style={{ color: '#87ceeb' }} /> },
   { value: 'earth', label: 'אדמה', icon: '🌱' },
   { value: 'metal', label: 'מתכת', icon: '⚒️' },
 ];
-const MAX_FIELD_LENGTH = 50;
+
 const findOption = v => elementOptions.find(o => o.value === v) || { icon: '', label: '' };
 
 const Stat = ({ icon, count, label, element }) => (
@@ -41,26 +40,16 @@ const ProfileInfo = ({
   bio,
   element,
   role,
+  onUpdateProfilePic,
+  onUpdateBackgroundPic,
   postsCount,
   followersCount,
   followingCount,
-  onUpdateField,
-  onUpdateProfilePic,
-  onUpdateBackgroundPic,
   isOwner,
   isFollowing,
   uid,
   onFollowToggle
 }) => {
-  const [editing, setEditing] = useState(null);
-  const [tempValue, setTempValue] = useState('');
-  const [warning, setWarning] = useState('');
-  const { toast } = useToast();
-
-  const startEditing = (field, value) => {
-    setEditing(field);
-    setTempValue(value);
-  };
 
   const followersLabel = isOwner
     ? "העוקבים שלי"
@@ -71,58 +60,32 @@ const ProfileInfo = ({
     : `העוקב אחרי ${username}`;
 
 
-  const saveEditing = () => {
-    if (containsBadWord(tempValue)) {
-      setWarning('השדה מכיל מילים לא ראויות!');
-      setTimeout(() => setWarning(''), 3500);
-      return;
+  const handlePicChange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      await onUpdateProfilePic(file);
+      toast.success('תמונת הפרופיל עודכנה בהצלחה 🎉');
+    } catch (err) {
+      toast.error('שגיאה בעת עדכון תמונת הפרופיל');
+      console.error(err);
     }
-    onUpdateField(editing, tempValue);
-    toast({
-      title: 'הצלחה',
-      description: 'השינויים נשמרו בהצלחה 🎉',
-    });
-    setEditing(null);
   };
 
-  const cancelEditing = () => setEditing(null);
-
-  const handlePicChange = e => {
+  const handleBackgroundChange = async e => {
     const file = e.target.files[0];
-    if (file) onUpdateProfilePic(file);
-  };
-  const handleBackgroundChange = e => {
-    const file = e.target.files[0];
-    if (file) onUpdateBackgroundPic(file);
+    if (!file) return;
+    try {
+      await onUpdateBackgroundPic(file);
+      toast.success('תמונת הרקע עודכנה בהצלחה 🎉');
+    } catch (err) {
+      toast.error('שגיאה בעת עדכון תמונת הרקע');
+      console.error(err);
+    }
   };
 
   return (
     <>
-      {warning && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '28px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 9999,
-            minWidth: 300,
-            maxWidth: 400,
-            background: '#fee2e2',
-            color: '#b91c1c',
-            border: '1px solid #ef4444',
-            borderRadius: 8,
-            padding: '14px 22px',
-            fontWeight: 500,
-            textAlign: 'center',
-            boxShadow: '0 2px 16px rgba(0,0,0,0.13)',
-            fontSize: '1rem',
-            pointerEvents: 'none'
-          }}
-        >
-          {warning}
-        </div>
-      )}
       <section className="w-full overflow-visible">
         {/* Background image and profile pic */}
         <div className={`relative w-full h-36 sm:h-48 md:h-64 bg-${element}-soft overflow-visible`}>
@@ -172,40 +135,18 @@ const ProfileInfo = ({
         <div className="px-4 sm:px-10 md:px-20 pt-16 sm:pt-14 mt-4 sm:mt-6 overflow-visible text-right">
           {/* Username/role/element */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
-            {/* Username and pencil */}
-            {editing === 'username' ? (
-              <div className="flex flex-col sm:flex-row justify-end items-end sm:items-center gap-2 sm:gap-3 w-full">
-                <input
-                  type="text"
-                  value={tempValue}
-                  onChange={e => setTempValue(e.target.value)}
-                  maxLength={MAX_FIELD_LENGTH}
-                  className={`border-b-2 border-${element}-soft focus:border-${element}-accent focus:outline-none text-2xl sm:text-3xl md:text-4xl font-bold text-${element} w-full sm:w-auto`}
-                  dir="rtl"
-                />
-                <div className="text-xs text-gray-400 text-left mt-1 sm:mt-0">
-                  {tempValue.length} / {MAX_FIELD_LENGTH}
-                </div>
-                <div className="flex gap-2">
-                  {/* ...motion buttons */}
-                </div>
-              </div>
-            ) : (
-              <div className={`flex items-center gap-2 sm:gap-3 text-${element}`}>
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">{username}</h1>
-                {isOwner && (
-                  <Tooltip text="ערוך שם משתמש">
-                    <Pencil
-                      onClick={() => startEditing('username', username)}
-                      className="text-gray-400 hover:text-gray-600 cursor-pointer w-5 h-5 transition-colors"
-                    />
-                  </Tooltip>
-                )}
-              </div>
-            )}
+            <div className="flex items-center gap-2 sm:gap-3 text-${element}">
+              <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 text-${element}`}>{username}</h1>
+
+              {isOwner && (
+                <Tooltip text="באפשרותך לערוך את הפרטים שלך דרך עמוד ההגדרות">
+                  <Info className="text-gray-500 hover:text-gray-600 w-4 h-4 cursor-pointer transition-colors" />
+                </Tooltip>
+              )}
+            </div>
 
             {/* Element Display (READ ONLY) */}
-            {['mentor', 'staff', 'admin'].includes(role) ? (
+            {['mentor', 'admin'].includes(role) ? (
               <Tooltip text="תפקיד המשתמש">
                 <div className={`
         relative inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-${element}-soft text-${element}
@@ -214,11 +155,10 @@ const ProfileInfo = ({
                   style={{ pointerEvents: "none", userSelect: "none" }}>
                   <span className="text-xl sm:text-2xl">
                     {role === 'mentor' && '🧑‍🏫'}
-                    {role === 'staff' && '🛠️'}
                     {role === 'admin' && '⭐'}
                   </span>
                   <span className="text-base sm:text-lg font-medium">
-                    {role === 'mentor' ? 'מנחה' : role === 'staff' ? 'צוות' : 'מנהל'}
+                    {role === 'mentor' ? 'מנחה' : 'מנהל'}
                   </span>
                 </div>
               </Tooltip>
@@ -240,94 +180,15 @@ const ProfileInfo = ({
           {/* Location*/}
           <div className={`mt-4 flex flex-wrap items-center gap-2 text-base text-${element}`}>
             <MapPin className="w-5 h-5 ml-1" />
-            {editing === 'location' ? (
-              <>
-                <input type="text" value={tempValue} onChange={e => { setTempValue(e.target.value); }}
-                  maxLength={MAX_FIELD_LENGTH}
-                  className={`flex-1 border-b-2 border-${element}-soft focus:border-${element}-accent focus:outline-none text-base text-${element}`} dir="rtl" />
-                <div className="text-xs text-gray-400 text-left mt-1">
-                  {tempValue.length} / {MAX_FIELD_LENGTH}
-                </div>
-                <div className="flex gap-2">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    onClick={saveEditing}
-                    className={`px-3 py-1 bg-${element} text-white rounded-full text-sm`}
-                  >
-                    שמור
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    onClick={cancelEditing}
-                    className={`px-3 py-1 bg-${element}-soft text-${element}-accent rounded-full text-sm`}
-                  >
-                    ביטול
-                  </motion.button>
-                </div>
-              </>
-            ) : (
-              <>
-                <span>{location}</span>
-                {isOwner && (
-                  <Tooltip text="ערוך מיקום">
-                    <div className="ml-2 cursor-pointer" onClick={() => startEditing('location', location)}>
-                      <Pencil className="text-gray-400 hover:text-gray-600 w-4 h-4 transition-colors" />
-                    </div>
-                  </Tooltip>
-                )}
-              </>
-            )}
+            <span>{location}</span>
           </div>
-          {/* Bio */}
-          <div className={`mt-4 flex flex-col sm:flex-row items-start justify-between text-base leading-relaxed text-${element}`}>
-            {editing === 'bio' ? (
-              <div className="flex flex-col gap-2 w-full">
-                <textarea value={tempValue} onChange={e => setTempValue(e.target.value)} rows={3} className={`w-full border border-${element}-soft focus:border-${element}-accent focus:ring-2 focus:ring-${element}-accent rounded-lg p-3 resize-none text-base`} dir="rtl" />
-                <div className="flex justify-end gap-2">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    onClick={saveEditing}
-                    className={`px-3 py-1 bg-${element} text-white rounded-full text-sm`}
-                  >
-                    שמור
-                  </motion.button>
 
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    onClick={cancelEditing}
-                    className={`px-3 py-1 bg-${element}-soft text-${element}-accent rounded-full text-sm`}
-                  >
-                    ביטול
-                  </motion.button>
-                </div>
-              </div>
+          {/* Bio */}
+          <div className={`mt-4 text-base leading-relaxed text-${element}`}>
+            {bio ? (
+              <p className={`text-${element} break-words break-all whitespace-pre-line`}>{bio}</p>
             ) : (
-              <>
-                {bio ? (
-                  <p className={`text-${element} break-words break-all whitespace-pre-line`}>{bio}</p>
-                ) : isOwner ? (
-                  <p className="text-gray-400 italic">הוסף תיאור קצר על עצמך...</p>
-                ) : null}
-                {isOwner && (
-                  <Tooltip text="ערוך ביוגרפיה">
-                    <div className="ml-2">
-                      <Pencil
-                        onClick={() => startEditing('bio', bio)}
-                        className="text-gray-400 hover:text-gray-600 w-4 h-4 cursor-pointer transition-colors"
-                      />
-                    </div>
-                  </Tooltip>
-                )}
-              </>
+              <p className="text-gray-400 italic">אין ביוגרפיה זמינה.</p>
             )}
           </div>
 

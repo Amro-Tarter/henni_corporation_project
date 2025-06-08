@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { collection, query, getDocs, orderBy, updateDoc, doc, getDoc, where, addDoc, deleteDoc } from "firebase/firestore";
+import { collection, query, getDocs, orderBy, updateDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "../../config/firbaseConfig";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -8,310 +8,57 @@ import {
   faWind,
   faWater,
   faFire,
-  faEdit,
+  faSearch,
   faTrash,
-  faEye,
+  faCheck,
   faSave,
   faTimes,
   faPlus,
   faMinus,
   faUser,
+  faChartLine,
+  faFilter,
+  faSortAmountDown,
+  faUsers,
+  faCrown,
+  faMapMarkerAlt,
+  faEnvelope,
+  faUserGraduate
 } from '@fortawesome/free-solid-svg-icons';
-import { Search, Filter, User as UserIcon, Star } from "lucide-react";
+import { Search, Filter, User as UserIcon, Star, TrendingUp, Award, MapPin, Mail, Users, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import { useUser } from "../../hooks/useUser"; // Assuming this hook provides current user info including role
-// Corrected CleanElementalOrbitLoader Component
-function CleanElementalOrbitLoader() {
-  // Move ELEMENTS declaration to the top of the component function
-  const ELEMENTS = [
-    { key: 'earth', emoji: '🌱', color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
-    { key: 'metal', emoji: '⚒️', color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
-    { key: 'air', emoji: '💨', color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
-    { key: 'water', emoji: '💧', color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
-    { key: 'fire', emoji: '🔥', color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
-  ];
+import { useUser } from "../../hooks/useUser";
+import ElementalLoader from "@/theme/ElementalLoader"
 
-  const [activeElement, setActiveElement] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    setIsVisible(true);
-  }, []);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveElement(a => (a + 1) % ELEMENTS.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const current = ELEMENTS[activeElement];
-  const orbitDuration = 12;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4" // Added fixed, inset-0, z-50
-      role="status"
-      aria-label="Loading elements"
-    >
-      <div
-        className={`relative w-64 h-64 transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
-      >
-        <div className="absolute inset-0 rounded-full border border-gray-200 opacity-30"></div>
-
-        <div
-          className={`absolute inset-0 m-auto w-24 h-24 rounded-full flex items-center justify-center shadow transition-all duration-700 ${current.bgColor}`}
-        >
-          <span className="text-4xl">{current.emoji}</span>
-        </div>
-
-        {ELEMENTS.map((el, i) => {
-          const isActive = activeElement === i;
-
-          return (
-            <div
-              key={el.key}
-              className={`absolute top-1/2 left-1/2 w-12 h-12 rounded-full flex items-center justify-center shadow transition-all duration-500 bg-white ${isActive ? 'z-20' : 'z-10'}`}
-              style={{
-                transform: isActive ? 'translate(-50%, -50%) scale(1.1)' : 'translate(-50%, -50%) scale(1)',
-                animation: `orbitAnimation ${orbitDuration}s linear infinite`,
-                animationDelay: `-${(i * orbitDuration) / ELEMENTS.length}s`,
-              }}
-            >
-              <span className="text-lg">{el.emoji}</span>
-            </div>
-          );
-        })}
-
-        <div className="absolute inset-0">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={`particle-${i}`}
-              className="absolute top-1/2 left-1/2 w-1 h-1 rounded-full bg-gray-300 opacity-40"
-              style={{
-                animation: `orbitAnimation ${orbitDuration}s linear infinite`,
-                animationDelay: `-${(i * orbitDuration) / 20}s`,
-              }}
-            ></div>
-          ))}
-        </div>
-
-        <style>{`
-          @keyframes orbitAnimation {
-            0% {
-              transform: translate(-50%, -50%) rotate(0deg) translateX(112px) rotate(0deg);
-            }
-            100% {
-              transform: translate(-50%, -50%) rotate(360deg) translateX(112px) rotate(-360deg);
-            }
-          }
-
-          @media (max-width: 640px) {
-            .text-4xl {
-              font-size: 1.5rem;
-            }
-            .text-2xl {
-              font-size: 1.25rem;
-            }
-          }
-        `}</style>
+// Enhanced Statistics Cards
+const StatsCard = ({ title, value, icon, gradient, trend }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className={`bg-gradient-to-br ${gradient} rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1`}
+  >
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-white/80 text-sm font-medium">{title}</p>
+        <p className="text-3xl font-bold mt-1">{value}</p>
+        {trend && (
+          <div className="flex items-center mt-2 text-white/90">
+            <TrendingUp size={16} className="ml-1" />
+            <span className="text-sm">{trend}</span>
+          </div>
+        )}
+      </div>
+      <div className="bg-white/20 rounded-full p-3">
+        <FontAwesomeIcon icon={icon} className="text-2xl" />
       </div>
     </div>
-  );
-}
+  </motion.div>
+);
 
-// Re-using the EditUserModal from your provided code (make sure it's accessible or copy-pasted)
-const EditUserModal = ({ user, onClose, onSave }) => {
-    const [formData, setFormData] = useState({
-        username: user.username || '',
-        email: user.email || '',
-        element: user.element || '',
-        location: user.location || '',
-        role: user.role || 'participant',
-        displayName: user.profile?.displayName || '',
-        bio: user.profile?.bio || '',
-        photoURL: user.profile?.photoURL || ''
-    });
-    const [isLoading, setIsLoading] = useState(false);
-
-    const elementOptions = [
-        { value: 'fire', label: 'אש' },
-        { value: 'water', label: 'מים' },
-        { value: 'earth', label: 'אדמה' },
-        { value: 'air', label: 'אוויר' },
-        { value: 'metal', label: 'מתכת' }
-    ];
-
-    const roleOptions = [
-        { value: 'mentor', label: 'מנטור' },
-        { value: 'participant', label: 'משתתף' },
-    ];
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        try {
-            await onSave(user.id, formData);
-            onClose();
-        } catch (error) {
-            console.error('Error saving user:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-            onClick={onClose}
-        >
-            <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto"
-                dir="rtl"
-                onClick={(e) => e.stopPropagation()}
-            >
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-                        עריכת משתמש: {user.username}
-                    </h3>
-                    <button
-                        onClick={onClose}
-                        className="p-2 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors"
-                    >
-                        <FontAwesomeIcon icon={faTimes} />
-                    </button>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">שם משתמש</label>
-                            <input
-                                type="text"
-                                value={formData.username}
-                                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">שם תצוגה</label>
-                            <input
-                                type="text"
-                                value={formData.displayName}
-                                onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">אימייל</label>
-                        <input
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            required
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">אלמנט</label>
-                            <select
-                                value={formData.element}
-                                onChange={(e) => setFormData({ ...formData, element: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                <option value="">בחר אלמנט</option>
-                                {elementOptions.map(option => (
-                                    <option key={option.value} value={option.value}>{option.label}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">תפקיד</label>
-                            <select
-                                value={formData.role}
-                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                {roleOptions.map(option => (
-                                    <option key={option.value} value={option.value}>{option.label}</option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">מיקום</label>
-                        <input
-                            type="text"
-                            value={formData.location}
-                            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">תמונת פרופיל (URL)</label>
-                        <input
-                            type="url"
-                            value={formData.photoURL}
-                            onChange={(e) => setFormData({ ...formData, photoURL: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">ביו</label>
-                        <textarea
-                            value={formData.bio}
-                            onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                            rows={3}
-                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
-                        >
-                            ביטול
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                        >
-                            {isLoading ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" />
-                            ) : (
-                                <FontAwesomeIcon icon={faSave} className="ml-2" />
-                            )}
-                            שמור
-                        </button>
-                    </div>
-                </form>
-            </motion.div>
-        </motion.div>
-    );
-};
-
-
-// Delete Confirmation Modal (Re-used from your provided code)
+// Enhanced Delete Confirmation Modal
 const DeleteConfirmModal = ({ user, onConfirm, onCancel, isLoading }) => {
     return (
         <motion.div
@@ -325,36 +72,42 @@ const DeleteConfirmModal = ({ user, onConfirm, onCancel, isLoading }) => {
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6"
+                className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md p-8"
                 dir="rtl"
                 onClick={(e) => e.stopPropagation()}
             >
-                <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">
-                    אישור מחיקה
-                </h3>
-                <p className="text-slate-600 dark:text-slate-300 mb-6">
-                    האם אתה בטוח שברצונך למחוק את המשתמש <strong>{user.username}</strong>?
-                    פעולה זו לא ניתנת לביטול.
-                </p>
-                <div className="flex justify-end gap-3">
+                <div className="text-center">
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+                        <FontAwesomeIcon icon={faTrash} className="text-2xl text-red-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                        אישור מחיקה
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-300 mb-8">
+                        האם אתה בטוח שברצונך למחוק את המשתמש <strong className="text-slate-900">{user.username}</strong>?
+                        <br />
+                        <span className="text-red-600 font-medium">פעולה זו לא ניתנת לביטול.</span>
+                    </p>
+                </div>
+                <div className="flex justify-center gap-4">
                     <button
                         onClick={onCancel}
                         disabled={isLoading}
-                        className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+                        className="px-6 py-3 text-slate-600 hover:text-slate-800 font-medium transition-colors"
                     >
                         ביטול
                     </button>
                     <button
                         onClick={() => onConfirm(user.id)}
                         disabled={isLoading}
-                        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        className="px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium shadow-lg hover:shadow-xl transition-all duration-200"
                     >
                         {isLoading ? (
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" />
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white ml-2" />
                         ) : (
                             <FontAwesomeIcon icon={faTrash} className="ml-2" />
                         )}
-                        מחק
+                        מחק סופית
                     </button>
                 </div>
             </motion.div>
@@ -362,22 +115,33 @@ const DeleteConfirmModal = ({ user, onConfirm, onCancel, isLoading }) => {
     );
 };
 
-// New Assign/Unassign Modal
-const AssignMentorshipModal = ({ type, user, allMentors, allParticipants, currentMentorships, onClose, onAssign, onUnassign, isProcessing }) => {
-    const [selectedUser, setSelectedUser] = useState(""); // This will hold the ID of the mentor or participant to assign/unassign
+// Enhanced Assign/Unassign Modal
+const AssignMentorshipModal = ({ type, user, allMentors, allParticipants, onClose, onAssign, onUnassign, isProcessing }) => {
+    const [selectedUser, setSelectedUser] = useState("");
+    const [searchTerm, setSearchTerm] = useState("");
 
     const isMentor = type === 'mentor';
-    const title = isMentor ? `ניהול חניכים למנטור: ${user.profile?.displayName || user.username}` : `ניהול מנטור לחניך: ${user.profile?.displayName || user.username}`;
+    const title = isMentor ? 
+        `ניהול חניכים למנטור: ${user.profile?.displayName || user.username}` : 
+        `ניהול מנטור לחניך: ${user.profile?.displayName || user.username}`;
 
-    const associatedUsers = currentMentorships.filter(ms =>
-        isMentor ? ms.mentorId === user.id : ms.participantId === user.id
-    ).map(ms =>
-        isMentor ? allParticipants.find(p => p.id === ms.participantId) : allMentors.find(m => m.id === ms.mentorId)
-    ).filter(Boolean); // Filter out undefined if a user is not found
+    const associatedUserIds = isMentor ? (user.participants || []) : (user.mentors || []);
+    const associatedUsers = associatedUserIds.map(id => 
+        isMentor ? allParticipants.find(p => p.id === id) : allMentors.find(m => m.id === id)
+    ).filter(Boolean);
 
     const availableUsers = isMentor
-        ? allParticipants.filter(p => !associatedUsers.some(au => au.id === p.id))
-        : allMentors.filter(m => !associatedUsers.some(au => au.id === m.id));
+         ? allParticipants.filter(p => 
+            !associatedUserIds.includes(p.id) && // not already assigned
+            !(p.mentors && p.mentors.length > 0) && // has no mentor yet
+            (p.element === user.element) && // *** ELEMENT MATCH ONLY ***
+            (p.profile?.displayName || p.username).toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        : allMentors.filter(m => 
+            !associatedUserIds.includes(m.id) && 
+            (!m.participants || m.participants.length < 5) &&
+            (m.profile?.displayName || m.username).toLowerCase().includes(searchTerm.toLowerCase())
+          );
 
     return (
         <motion.div
@@ -391,149 +155,209 @@ const AssignMentorshipModal = ({ type, user, allMentors, allParticipants, curren
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto"
+                className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto"
                 dir="rtl"
                 onClick={(e) => e.stopPropagation()}
             >
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-                        {title}
-                    </h3>
+                <div className="flex justify-between items-center mb-8">
+                    <div>
+                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white">
+                            {title}
+                        </h3>
+                        <div className="flex items-center gap-4 mt-2">
+                            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                                {associatedUsers.length} מתוך {isMentor ? 5 : 1}
+                            </div>
+                        </div>
+                    </div>
                     <button
                         onClick={onClose}
-                        className="p-2 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors"
+                        className="p-3 text-slate-500 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-all duration-200"
                     >
-                        <FontAwesomeIcon icon={faTimes} />
+                        <FontAwesomeIcon icon={faTimes} className="text-xl" />
                     </button>
                 </div>
 
                 {/* Current Associations */}
-                <div className="mb-6">
-                    <h4 className="text-lg font-semibold text-slate-700 mb-3">
-                        {isMentor ? "חניכים משויכים" : "מנטור משויך"} ({associatedUsers.length} מתוך 5)
+                <div className="mb-8">
+                    <h4 className="text-lg font-semibold text-slate-700 mb-4 flex items-center">
+                        <FontAwesomeIcon icon={faUsers} className="ml-2 text-blue-600" />
+                        {isMentor ? "חניכים משויכים" : "מנטור משויך"}
                     </h4>
                     {associatedUsers.length > 0 ? (
-                        <ul className="space-y-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {associatedUsers.map(associatedUser => (
-                                <li key={associatedUser.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg shadow-sm">
+                                <motion.div 
+                                    key={associatedUser.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100 p-4 rounded-2xl shadow-sm border border-slate-200"
+                                >
                                     <Link
                                         to={`/profile/${associatedUser.username}`}
-                                        className="flex items-center gap-3 hover:bg-slate-100 rounded-lg px-2 py-1 transition-colors"
-                                        >
+                                        className="flex items-center gap-3 hover:bg-slate-200 rounded-xl px-3 py-2 transition-all duration-200 flex-grow"
+                                    >
                                         <img
-                                        src={associatedUser.profile?.photoURL || "https://placehold.co/40x40/e2e8f0/64748b?text=User"}
-                                        alt={associatedUser.username}
-                                        className="w-10 h-10 rounded-full object-cover"
+                                            src={associatedUser.profile?.photoURL || "https://placehold.co/40x40/e2e8f0/64748b?text=User"}
+                                            alt={associatedUser.username}
+                                            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
                                         />
-                                        <span className="text-gray-800">{associatedUser.profile?.displayName || associatedUser.username}</span>
-                                        </Link>
+                                        <div>
+                                            <span className="font-medium text-slate-800">{associatedUser.profile?.displayName || associatedUser.username}</span>
+                                            <p className="text-sm text-slate-600">{associatedUser.email}</p>
+                                        </div>
+                                    </Link>
                                     <button
                                         onClick={() => onUnassign(user.id, associatedUser.id, isMentor)}
                                         disabled={isProcessing}
-                                        className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                                     >
                                         <FontAwesomeIcon icon={faMinus} className="ml-1" />
                                         הסר
                                     </button>
-                                </li>
+                                </motion.div>
                             ))}
-                        </ul>
+                        </div>
                     ) : (
-                        <p className="text-slate-500">אין חניכים משויכים כרגע.</p>
+                        <div className="text-center py-8 bg-slate-50 rounded-2xl">
+                            <FontAwesomeIcon icon={faUsers} className="text-4xl text-slate-400 mb-3" />
+                            <p className="text-slate-500">{isMentor ? "אין חניכים משויכים כרגע." : "אין מנטור משויך כרגע."}</p>
+                        </div>
                     )}
                 </div>
 
                 {/* Assign New */}
-                {isMentor && associatedUsers.length < 5 && (
-                    <div className="border-t pt-6">
-                        <h4 className="text-lg font-semibold text-slate-700 mb-3">שייך חניך חדש</h4>
-                        <div className="flex gap-3">
-                            <select
-                                value={selectedUser}
-                                onChange={(e) => setSelectedUser(e.target.value)}
-                                className="flex-grow px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                <option value="">בחר חניך</option>
-                                {availableUsers.map(participant => (
-                                    <option key={participant.id} value={participant.id}>
-                                        {participant.profile?.displayName || participant.username}
-                                    </option>
-                                ))}
-                            </select>
-                            <button
-                                onClick={() => onAssign(user.id, selectedUser)}
-                                disabled={isProcessing || !selectedUser}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                            >
-                                {isProcessing ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" />
-                                ) : (
-                                    <FontAwesomeIcon icon={faPlus} className="ml-2" />
-                                )}
-                                שייך
-                            </button>
+                {((isMentor && associatedUsers.length < 5) || (!isMentor && associatedUsers.length === 0)) && (
+                    <div className="border-t border-slate-200 pt-8">
+                        <h4 className="text-lg font-semibold text-slate-700 mb-4 flex items-center">
+                            <FontAwesomeIcon icon={faPlus} className="ml-2 text-green-600" />
+                            {isMentor ? "שייך חניך חדש" : "שייך מנטור"}
+                        </h4>
+                        
+                        {/* Search for available users */}
+                        <div className="mb-4">
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder={`חפש ${isMentor ? "חניכים..." : "מנטורים..."}`}
+                                    className="w-full px-4 py-3 pr-12 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                />
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Search size={20} className="text-slate-400" />
+                                </div>
+                            </div>
                         </div>
+
+                        {availableUsers.length > 0 ? (
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+                                    {availableUsers.map(availableUser => (
+                                        <motion.div
+                                            key={availableUser.id}
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            className={`p-4 rounded-2xl border-2 transition-all duration-200 cursor-pointer ${
+                                                selectedUser === availableUser.id 
+                                                    ? 'border-blue-500 bg-blue-50' 
+                                                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                                            }`}
+                                            onClick={() => setSelectedUser(availableUser.id)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <img
+                                                    src={availableUser.profile?.photoURL || "https://placehold.co/40x40/e2e8f0/64748b?text=User"}
+                                                    alt={availableUser.username}
+                                                    className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                                                />
+                                                <div className="flex-grow">
+                                                    <h5 className="font-medium text-slate-800">{availableUser.profile?.displayName || availableUser.username}</h5>
+                                                    <p className="text-sm text-slate-600">{availableUser.email}</p>
+                                                    {availableUser.location && (
+                                                        <div className="flex items-center gap-1 mt-1">
+                                                            <MapPin size={12} className="text-slate-400" />
+                                                            <span className="text-xs text-slate-500">{availableUser.location}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {selectedUser === availableUser.id && (
+                                                    <div className="bg-blue-500 text-white rounded-full p-2">
+                                                        <FontAwesomeIcon icon={faCheck} size="sm" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                                
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={() => {
+                                            if (isMentor) {
+                                                onAssign(user.id, selectedUser);
+                                            } else {
+                                                onAssign(selectedUser, user.id);
+                                            }
+                                            setSelectedUser("");
+                                            setSearchTerm("");
+                                        }}
+                                        disabled={isProcessing || !selectedUser}
+                                        className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                                    >
+                                        {isProcessing ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white ml-2" />
+                                        ) : (
+                                            <FontAwesomeIcon icon={faPlus} className="ml-2" />
+                                        )}
+                                        שייך נבחר
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 bg-slate-50 rounded-2xl">
+                                <FontAwesomeIcon icon={faSearch} className="text-4xl text-slate-400 mb-3" />
+                                <p className="text-slate-500">
+                                    {searchTerm ? `לא נמצאו תוצאות עבור "${searchTerm}"` : `אין ${isMentor ? "חניכים" : "מנטורים"} זמינים לשיוך.`}
+                                </p>
+                            </div>
+                        )}
+
+                        {!isMentor && associatedUsers.length > 0 && (
+                            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                                <p className="text-amber-800 text-sm flex items-center">
+                                    <FontAwesomeIcon icon={faInfoCircle} className="ml-2" />
+                                    חניך יכול להיות משויך למנטור אחד בלבד.
+                                </p>
+                            </div>
+                        )}
                     </div>
-                )}
-                {!isMentor && associatedUsers.length === 0 && (
-                     <div className="border-t pt-6">
-                        <h4 className="text-lg font-semibold text-slate-700 mb-3">שייך מנטור</h4>
-                        <div className="flex gap-3">
-                            <select
-                                value={selectedUser}
-                                onChange={(e) => setSelectedUser(e.target.value)}
-                                className="flex-grow px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            >
-                                <option value="">בחר מנטור</option>
-                                {availableUsers.map(mentor => (
-                                    <option key={mentor.id} value={mentor.id}>
-                                        {mentor.profile?.displayName || mentor.username}
-                                    </option>
-                                ))}
-                            </select>
-                            <button
-                                onClick={() => onAssign(selectedUser, user.id)}
-                                disabled={isProcessing || !selectedUser}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                            >
-                                {isProcessing ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" />
-                                ) : (
-                                    <FontAwesomeIcon icon={faPlus} className="ml-2" />
-                                )}
-                                שייך
-                            </button>
-                        </div>
-                    </div>
-                )}
-                 {!isMentor && associatedUsers.length > 0 && (
-                    <p className="text-slate-500 border-t pt-4">חניך יכול להיות משויך למנטור אחד בלבד.</p>
                 )}
             </motion.div>
         </motion.div>
     );
 };
 
-
 function Mentorship() {
     const [users, setUsers] = useState([]);
-    const [mentorships, setMentorships] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
+    const [filterElement, setFilterElement] = useState("");
+    const [sortBy, setSortBy] = useState("name");
     const [displayedUsers, setDisplayedUsers] = useState([]);
-    const [assigningUser, setAssigningUser] = useState(null); // User for whom to assign/unassign mentorship
-    const [assigningUserType, setAssigningUserType] = useState(null); // 'mentor' or 'participant'
+    const [assigningUser, setAssigningUser] = useState(null);
+    const [assigningUserType, setAssigningUserType] = useState(null);
     const [isProcessingMentorship, setIsProcessingMentorship] = useState(false);
 
     const { user: currentUser } = useUser();
     const isAdmin = currentUser?.role === 'admin';
 
     const elementGradients = {
-        fire: 'bg-gradient-to-r from-rose-700 via-amber-550 to-yellow-500',
-        water: 'bg-gradient-to-r from-indigo-500 via-blue-400 to-teal-300',
-        earth: 'bg-gradient-to-r from-lime-700 via-amber-600 to-stone-400',
-        air: 'bg-gradient-to-r from-white via-sky-200 to-indigo-100',
-        metal: 'bg-gradient-to-r from-zinc-300 via-slate-00 to-neutral-700',
+        fire: 'from-red-500 via-orange-500 to-yellow-500',
+        water: 'from-blue-600 via-blue-500 to-cyan-400',
+        earth: 'from-green-600 via-green-500 to-lime-400',
+        air: 'from-cyan-500 via-sky-400 to-blue-300',
+        metal: 'from-slate-600 via-gray-500 to-zinc-400',
     };
 
     const elementIcons = {
@@ -549,59 +373,45 @@ function Mentorship() {
         water: 'text-blue-500',
         earth: 'text-green-500',
         air: 'text-cyan-500',
-        metal: 'text-neutral-500'
+        metal: 'text-slate-500'
     };
 
-    useEffect(() => {
-        const styleSheet = document.createElement("style");
-        styleSheet.type = "text/css";
-        styleSheet.innerText = `
-          @keyframes float {
-            0% { transform: translateY(0) rotate(0deg) scale(1); }
-            50% { transform: translateY(-25px) rotate(8deg) scale(1.05); }
-            100% { transform: translateY(0) rotate(0deg) scale(1); }
-          }
-          .animate-float-1 { animation: float 8s ease-in-out infinite; }
-          .animate-float-2 { animation: float 9s ease-in-out 1s infinite; }
-          .animate-float-3 { animation: float 10s ease-in-out 2s infinite; }
-          .animate-float-4 { animation: float 11s ease-in-out 3s infinite; }
-          .animate-float-5 { animation: float 12s ease-in-out 4s infinite; }
-        `;
-        document.head.appendChild(styleSheet);
-        return () => {
-            document.head.removeChild(styleSheet);
-        };
-    }, []);
+    const elementNames = {
+        fire: "אש",
+        water: "מים", 
+        earth: "אדמה",
+        air: "אוויר",
+        metal: "מתכת"
+    };
 
+    // Fetch users with profiles
     const fetchAllData = useCallback(async () => {
         setLoading(true);
-        const usersQuery = query(collection(db, "users"), orderBy("createdAt", "desc"));
-        const mentorshipQuery = query(collection(db, "mentorship"));
+        try {
+            const usersQuery = query(collection(db, "users"), orderBy("createdAt", "desc"));
+            const usersSnapshot = await getDocs(usersQuery);
 
-        const [usersSnapshot, mentorshipSnapshot] = await Promise.all([
-            getDocs(usersQuery),
-            getDocs(mentorshipQuery)
-        ]);
-
-        const usersData = [];
-        for (const userDoc of usersSnapshot.docs) {
-            const userData = { id: userDoc.id, ...userDoc.data() };
-            try {
-                const profileSnap = await getDoc(doc(db, "profiles", userDoc.id));
-                if (profileSnap.exists()) {
-                    userData.profile = profileSnap.data();
+            const usersData = [];
+            for (const userDoc of usersSnapshot.docs) {
+                const userData = { id: userDoc.id, ...userDoc.data() };
+                try {
+                    const profileSnap = await getDoc(doc(db, "profiles", userDoc.id));
+                    if (profileSnap.exists()) {
+                        userData.profile = profileSnap.data();
+                    }
+                } catch (err) {
+                    console.error("Error fetching profile:", err);
                 }
-            } catch (err) {
-                console.error("Error fetching profile:", err);
+                usersData.push(userData);
             }
-            usersData.push(userData);
+
+            setUsers(usersData);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            toast.error("שגיאה בטעינת הנתונים");
+        } finally {
+            setLoading(false);
         }
-
-        const mentorshipsData = mentorshipSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        setUsers(usersData);
-        setMentorships(mentorshipsData);
-        setLoading(false);
     }, []);
 
     useEffect(() => {
@@ -609,43 +419,77 @@ function Mentorship() {
     }, [fetchAllData]);
 
     useEffect(() => {
-        const filtered = users.filter(user => {
+        let filtered = users.filter(user => {
             const matchesSearch = searchTerm === "" ||
                 (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
                 (user.profile?.displayName && user.profile.displayName.toLowerCase().includes(searchTerm.toLowerCase()));
-            const matchesRole = user.role === 'mentor'; // Only show mentors
-            return matchesSearch && matchesRole;
+            const matchesRole = user.role === 'mentor';
+            const matchesElement = filterElement === "" || user.element === filterElement;
+            return matchesSearch && matchesRole && matchesElement;
         });
-        setDisplayedUsers(filtered);
-    }, [searchTerm, users]);
 
+        // Sort users
+        filtered.sort((a, b) => {
+            switch (sortBy) {
+                case "name":
+                    const nameA = a.profile?.displayName || a.username || "";
+                    const nameB = b.profile?.displayName || b.username || "";
+                    return nameA.localeCompare(nameB);
+                case "participants":
+                    return (b.participants?.length || 0) - (a.participants?.length || 0);
+                case "element":
+                    return (a.element || "").localeCompare(b.element || "");
+                default:
+                    return 0;
+            }
+        });
+
+        setDisplayedUsers(filtered);
+    }, [searchTerm, filterElement, sortBy, users]);
+
+    // Updated assign mentorship function using user-embedded relationships
     const handleAssignMentorship = async (mentorId, participantId) => {
         setIsProcessingMentorship(true);
         try {
-            // Check if participant is already assigned to any mentor
-            const existingParticipantMentorship = mentorships.find(ms => ms.participantId === participantId);
-            if (existingParticipantMentorship) {
-                toast.error("החניך כבר משויך למנטור אחר. יש להסיר אותו קודם.");
-                setIsProcessingMentorship(false);
+            const mentorRef = doc(db, "users", mentorId);
+            const participantRef = doc(db, "users", participantId);
+            
+            const [mentorSnap, participantSnap] = await Promise.all([
+                getDoc(mentorRef),
+                getDoc(participantRef)
+            ]);
+
+            const mentorData = mentorSnap.data();
+            const participantData = participantSnap.data();
+
+
+             // Check constraints
+            if (participantData.mentors && participantData.mentors.length > 0) {
+                toast.error("החניך כבר משויך למנטור אחר.");
+                return;
+            }
+            if (mentorData.element !== participantData.element) {
+                toast.error("אפשר לשייך רק חניך עם אותו אלמנט של המנטור.");
                 return;
             }
 
-            // Check mentor's current participant count
-            const mentorParticipants = mentorships.filter(ms => ms.mentorId === mentorId).length;
-            if (mentorParticipants >= 5) {
-                toast.error("למנטור זה כבר יש 5 חניכים משויכים. לא ניתן לשייך יותר.");
-                setIsProcessingMentorship(false);
+            if (mentorData.participants && mentorData.participants.length >= 5) {
+                toast.error("למנטור זה כבר יש 5 חניכים משויכים.");
                 return;
             }
 
-            await addDoc(collection(db, "mentorship"), {
-                mentorId,
-                participantId,
-                createdAt: new Date(),
-            });
+            // Update both users
+            const updatedMentorParticipants = Array.from(new Set([...(mentorData.participants || []), participantId]));
+            const updatedParticipantMentors = Array.from(new Set([...(participantData.mentors || []), mentorId]));
+
+            await Promise.all([
+                updateDoc(mentorRef, { participants: updatedMentorParticipants }),
+                updateDoc(participantRef, { mentors: updatedParticipantMentors })
+            ]);
+
             toast.success("השיוך בוצע בהצלחה!");
-            await fetchAllData(); // Re-fetch all data to update UI
-            setAssigningUser(null); // Close modal
+            await fetchAllData();
+            setAssigningUser(null);
         } catch (error) {
             console.error("Error assigning mentorship:", error);
             toast.error("אירעה שגיאה בשיוך המנטור לחניך.");
@@ -654,23 +498,43 @@ function Mentorship() {
         }
     };
 
+    // Updated unassign mentorship function
     const handleUnassignMentorship = async (userId, associatedUserId, isMentor) => {
         setIsProcessingMentorship(true);
         try {
-            let mentorshipToDelete;
+            const userRef = doc(db, "users", userId);
+            const associatedUserRef = doc(db, "users", associatedUserId);
+            
+            const [userSnap, associatedUserSnap] = await Promise.all([
+                getDoc(userRef),
+                getDoc(associatedUserRef)
+            ]);
+
+            const userData = userSnap.data();
+            const associatedUserData = associatedUserSnap.data();
+
             if (isMentor) {
-                mentorshipToDelete = mentorships.find(ms => ms.mentorId === userId && ms.participantId === associatedUserId);
+                // Remove participant from mentor's list and mentor from participant's list
+                const updatedParticipants = (userData.participants || []).filter(id => id !== associatedUserId);
+                const updatedMentors = (associatedUserData.mentors || []).filter(id => id !== userId);
+
+                await Promise.all([
+                    updateDoc(userRef, { participants: updatedParticipants }),
+                    updateDoc(associatedUserRef, { mentors: updatedMentors })
+                ]);
             } else {
-                mentorshipToDelete = mentorships.find(ms => ms.participantId === userId && ms.mentorId === associatedUserId);
+                // Remove mentor from participant's list and participant from mentor's list
+                const updatedMentors = (userData.mentors || []).filter(id => id !== associatedUserId);
+                const updatedParticipants = (associatedUserData.participants || []).filter(id => id !== userId);
+
+                await Promise.all([
+                    updateDoc(userRef, { mentors: updatedMentors }),
+                    updateDoc(associatedUserRef, { participants: updatedParticipants })
+                ]);
             }
 
-            if (mentorshipToDelete) {
-                await deleteDoc(doc(db, "mentorship", mentorshipToDelete.id));
-                toast.success("השיוך הוסר בהצלחה!");
-                await fetchAllData(); // Re-fetch all data to update UI
-            } else {
-                toast.error("שיוך לא נמצא.");
-            }
+            toast.success("השיוך הוסר בהצלחה!");
+            await fetchAllData();
         } catch (error) {
             console.error("Error unassigning mentorship:", error);
             toast.error("אירעה שגיאה בהסרת השיוך.");
@@ -681,175 +545,357 @@ function Mentorship() {
 
     const clearFilters = () => {
         setSearchTerm("");
+        setFilterElement("");
+        setSortBy("name");
     };
 
     const mentors = users.filter(user => user.role === 'mentor');
     const participants = users.filter(user => user.role === 'participant');
 
-    // Function to get associated users for display
-    const getAssociatedUsers = (userId, userRole) => {
-        if (userRole === 'mentor') {
-            const participantIds = mentorships.filter(ms => ms.mentorId === userId).map(ms => ms.participantId);
-            return users.filter(u => participantIds.includes(u.id));
-        } else if (userRole === 'participant') {
-            const mentorId = mentorships.find(ms => ms.participantId === userId)?.mentorId;
-            return mentorId ? [users.find(u => u.id === mentorId)] : [];
-        }
-        return [];
-    };
+    // Statistics
+    const totalMentors = mentors.length;
+    const activeMentors = mentors.filter(m => m.participants?.length > 0).length;
+    const totalParticipants = participants.length;
+    const assignedParticipants = participants.filter(p => p.mentors?.length > 0).length;
 
     return (
         <DashboardLayout>
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-extrabold text-gray-900">ניהול מנטורים</h2>
-            </div>
-
-            <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex flex-col">
-                    <label className="mb-1 text-sm font-medium text-gray-700">חיפוש מנטורים</label>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="חפש לפי שם משתמש..."
-                            className="appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right"
-                        />
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Search size={18} className="text-gray-400" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-col justify-end">
-                    <button
-                        onClick={clearFilters}
-                        className="py-3 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50" dir="rtl">
+                {loading && <ElementalLoader />}
+                
+                <div className="p-6 space-y-8">
+                    {/* Header Section */}
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-center mb-8"
                     >
-                        נקה סינון
-                    </button>
-                </div>
-            </div>
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                            ניהול מנטורים
+                        </h1>
+                        <p className="text-slate-600 text-lg">נהל ושייך מנטורים וחניכים בקלות</p>
+                    </motion.div>
 
-            {loading ? (
-                <CleanElementalOrbitLoader />
-            ) : displayedUsers.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {displayedUsers.map((user) => {
-                        const associated = getAssociatedUsers(user.id, 'mentor');
+                    {/* Statistics Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <StatsCard
+                            title="סה״כ מנטורים"
+                            value={totalMentors}
+                            icon={faCrown}
+                            gradient="from-purple-600 to-blue-600"
+                            trend={`${activeMentors} פעילים`}
+                        />
+                        <StatsCard
+                            title="חניכים משויכים"
+                            value={assignedParticipants}
+                            icon={faUsers}
+                            gradient="from-green-600 to-teal-600"
+                            trend={`מתוך ${totalParticipants}`}
+                        />
+                        <StatsCard
+                            title="שיוכים פעילים"
+                            value={mentors.reduce((sum, m) => sum + (m.participants?.length || 0), 0)}
+                            icon={faChartLine}
+                            gradient="from-orange-600 to-red-600"
+                        />
+                        <StatsCard
+                            title="מנטורים זמינים"
+                            value={mentors.filter(m => !m.participants || m.participants.length < 5).length}
+                            icon={faUser}
+                            gradient="from-cyan-600 to-blue-600"
+                        />
+                    </div>
 
-                        return (
-                            <motion.div
-                                key={user.id}
-                                layout
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 relative group"
-                            >
-                                <div className={`h-4 ${elementGradients[user.element] || "bg-gray-300"}`}></div>
-
-                                {isAdmin && (
-                                    <div className="absolute top-6 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col gap-1 z-10">
-                                        <button
-                                            onClick={() => { setAssigningUser(user); setAssigningUserType('mentor'); }}
-                                            className="p-2 bg-purple-600 text-white rounded-lg shadow-lg hover:bg-purple-700 transition-colors"
-                                            title="נהל חניכים"
-                                        >
-                                            <FontAwesomeIcon icon={faUser} size="sm" />
-                                        </button>
-                                    </div>
-                                )}
-
-                                <div className="p-5">
-                                    <div className="flex justify-center mb-4">
-                                        <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
-                                            <img
-                                                src={user.profile?.photoURL || "https://placehold.co/100x100/e2e8f0/64748b?text=User"}
-                                                alt={user.username}
-                                                className="w-full h-full object-cover"
-                                                onError={(e) => {
-                                                    e.target.onerror = null;
-                                                    e.target.src = "https://placehold.co/100x100/e2e8f0/64748b?text=User";
-                                                }}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="text-center">
-                                        <h3 className="text-lg font-bold text-gray-900">{user.profile?.displayName || user.username}</h3>
-                                        <p className="text-sm text-gray-600">מנטור</p>
-                                        <div className="flex items-center justify-center gap-1 text-sm text-gray-600 mt-1">
-                                            <UserIcon size={14} />
-                                            <span>{user.email}</span>
-                                        </div>
-
-                                        <div className="flex items-center justify-center gap-1 mt-2">
-                                            <FontAwesomeIcon
-                                                icon={elementIcons[user.element] || faLeaf}
-                                                className={`${elementColors[user.element] || "text-gray-400"}`}
-                                            />
-                                            <span className="text-sm capitalize">
-                                                {user.element === "fire" && "אש"}
-                                                {user.element === "water" && "מים"}
-                                                {user.element === "earth" && "אדמה"}
-                                                {user.element === "air" && "אוויר"}
-                                                {user.element === "metal" && "מתכת"}
-                                                {!user.element && "לא מוגדר"}
-                                            </span>
-                                        </div>
-
-                                        {user.location && (
-                                            <p className="text-sm text-gray-500 mt-1">{user.location}</p>
-                                        )}
-
-                                        {/* Display Associated Participants */}
-                                        {associated.length > 0 && (
-                                            <div className="mt-3 text-sm">
-                                                <p className="font-semibold text-gray-700">חניכים:</p>
-                                                <ul className="text-gray-600">
-                                                    {associated.map(assocUser => (
-                                                        <li key={assocUser.id}>
-                                                            {assocUser.profile?.displayName || assocUser.username}
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                        {associated.length === 0 && (
-                                            <p className="mt-3 text-sm text-gray-500">אין חניכים משויכים.</p>
-                                        )}
+                    {/* Enhanced Filters Section */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8 mb-8"
+                    >
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            {/* Search */}
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700 flex items-center">
+                                    <Search size={16} className="ml-2" />
+                                    חיפוש מנטורים
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        placeholder="חפש לפי שם או אימייל..."
+                                        className="w-full px-4 py-3 pr-12 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/90"
+                                    />
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <Search size={18} className="text-slate-400" />
                                     </div>
                                 </div>
-                            </motion.div>
-                        );
-                    })}
-                </div>
-            ) : (
-                <div className="text-center py-12">
-                    <div className="text-4xl mb-3">🔎</div>
-                    <h3 className="text-xl font-medium text-gray-700">לא נמצאו מנטורים</h3>
-                    <p className="text-gray-500">נסה לשנות את פרמטרי החיפוש שלך</p>
-                </div>
-            )}
+                            </div>
 
-            {/* Assign/Unassign Mentorship Modal */}
-            <AnimatePresence>
-                {assigningUser && isAdmin && (
-                    <AssignMentorshipModal
-                        type="mentor"
-                        user={assigningUser}
-                        allMentors={mentors}
-                        allParticipants={participants}
-                        currentMentorships={mentorships}
-                        onClose={() => setAssigningUser(null)}
-                        onAssign={handleAssignMentorship}
-                        onUnassign={handleUnassignMentorship}
-                        isProcessing={isProcessingMentorship}
-                    />
-                )}
-            </AnimatePresence>
+                            {/* Element Filter */}
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700 flex items-center">
+                                    <Filter size={16} className="ml-2" />
+                                    סינון לפי אלמנט
+                                </label>
+                                <select
+                                    value={filterElement}
+                                    onChange={(e) => setFilterElement(e.target.value)}
+                                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/90"
+                                >
+                                    <option value="">כל האלמנטים</option>
+                                    {Object.entries(elementNames).map(([key, name]) => (
+                                        <option key={key} value={key}>{name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Sort */}
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700 flex items-center">
+                                    <FontAwesomeIcon icon={faSortAmountDown} className="ml-2" size="sm" />
+                                    מיון
+                                </label>
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/90"
+                                >
+                                    <option value="name">לפי שם</option>
+                                    <option value="participants">לפי מספר חניכים</option>
+                                    <option value="element">לפי אלמנט</option>
+                                </select>
+                            </div>
+
+                            {/* Clear Filters */}
+                            <div className="flex flex-col justify-end">
+                                <button
+                                    onClick={clearFilters}
+                                    className="px-6 py-3 bg-gradient-to-r from-slate-600 to-slate-700 text-white rounded-xl hover:from-slate-700 hover:to-slate-800 transition-all duration-200 shadow-lg hover:shadow-xl font-medium flex items-center justify-center"
+                                >
+                                    <FontAwesomeIcon icon={faTimes} className="ml-2" />
+                                    נקה סינון
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Results Summary */}
+                    {!loading && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="flex items-center justify-between bg-blue-50 rounded-2xl p-4 border border-blue-200"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className="bg-blue-500 text-white rounded-full p-2">
+                                    <FontAwesomeIcon icon={faUsers} />
+                                </div>
+                                <span className="text-blue-800 font-medium">
+                                    נמצאו {displayedUsers.length} מנטורים
+                                </span>
+                            </div>
+                            {(searchTerm || filterElement) && (
+                                <div className="text-sm text-blue-600 flex items-center gap-2">
+                                    <FontAwesomeIcon icon={faFilter} />
+                                    סינון פעיל
+                                </div>
+                            )}
+                        </motion.div>
+                    )}
+
+                    {/* Main Mentors Grid */}
+                    {!loading && displayedUsers.length > 0 ? (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                        >
+                            {displayedUsers.map((user, index) => {
+                                const associated = (user.participants || [])
+                                    .map(pid => users.find(u => u.id === pid))
+                                    .filter(Boolean);
+
+                                return (
+                                    <motion.div
+                                        key={user.id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: index * 0.1 }}
+                                        className="group relative bg-white/90 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-white/20 overflow-hidden"
+                                    >
+                                        {/* Element gradient header */}
+                                        <div className={`h-6 bg-gradient-to-r ${elementGradients[user.element] || "from-gray-300 to-gray-400"}`}></div>
+                                        
+                                        {/* Admin controls */}
+                                        {isAdmin && (
+                                            <div className="absolute top-8 left-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                                                <button
+                                                    onClick={() => { 
+                                                        setAssigningUser(user); 
+                                                        setAssigningUserType('mentor'); 
+                                                    }}
+                                                    className="p-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-2xl shadow-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 transform hover:scale-105"
+                                                    title="נהל חניכים"
+                                                >
+                                                    <FontAwesomeIcon icon={faUsers} />
+                                                </button>
+                                            </div>
+                                        )}
+
+                                        <div className="p-6">
+                                            {/* Profile image with element border */}
+                                            <div className="flex justify-center mb-6">
+                                                <div className={`w-24 h-24 rounded-full overflow-hidden border-4 bg-gradient-to-r ${elementGradients[user.element] || "from-gray-300 to-gray-400"} p-1 shadow-lg`}>
+                                                    <img
+                                                        src={user.profile?.photoURL || "https://placehold.co/100x100/e2e8f0/64748b?text=User"}
+                                                        alt={user.username}
+                                                        className="w-full h-full object-cover rounded-full bg-white"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* User info */}
+                                            <div className="text-center space-y-3">
+                                                <div>
+                                                    <h3 className="text-xl font-bold text-slate-800 mb-1">
+                                                        {user.profile?.displayName || user.username}
+                                                    </h3>
+                                                    <div className="flex items-center justify-center gap-2 text-purple-600 font-medium">
+                                                        <FontAwesomeIcon icon={faCrown} className="text-sm" />
+                                                        <span>מנטור</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Contact info */}
+                                                <div className="space-y-2 text-sm text-slate-600">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <FontAwesomeIcon icon={faEnvelope} className="text-xs" />
+                                                        <span className="truncate">{user.email}</span>
+                                                    </div>
+                                                    {user.location && (
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <FontAwesomeIcon icon={faMapMarkerAlt} className="text-xs" />
+                                                            <span>{user.location}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Element badge */}
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${elementGradients[user.element] || "from-gray-300 to-gray-400"} text-white shadow-md`}>
+                                                        <FontAwesomeIcon
+                                                            icon={elementIcons[user.element] || faLeaf}
+                                                            className="text-sm"
+                                                        />
+                                                        <span className="text-sm font-medium">
+                                                            {elementNames[user.element] || "לא מוגדר"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Progress bar for participants */}
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="text-sm font-medium text-slate-700">חניכים</span>
+                                                        <span className="text-sm text-slate-500">{associated.length}/5</span>
+                                                    </div>
+                                                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                                                        <div
+                                                            className={`h-full bg-gradient-to-r ${
+                                                                associated.length === 0 
+                                                                    ? "from-gray-400 to-gray-500" 
+                                                                    : associated.length < 3 
+                                                                        ? "from-green-400 to-green-500" 
+                                                                        : associated.length < 5 
+                                                                            ? "from-yellow-400 to-orange-500" 
+                                                                            : "from-red-400 to-red-500"
+                                                            } transition-all duration-300`}
+                                                            style={{ width: `${(associated.length / 5) * 100}%` }}
+                                                        ></div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Participants list */}
+                                                {associated.length > 0 ? (
+                                                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 border border-blue-100">
+                                                        <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center justify-center">
+                                                            <FontAwesomeIcon icon={faUserGraduate} className="ml-2 text-blue-600" />
+                                                            חניכים משויכים
+                                                        </h4>
+                                                        <div className="space-y-2">
+                                                            {associated.map(assocUser => (
+                                                                <Link
+                                                                    key={assocUser.id}
+                                                                    to={`/profile/${assocUser.username}`}
+                                                                    className="flex items-center gap-3 p-2 bg-white/70 rounded-xl hover:bg-white/90 transition-all duration-200 hover:shadow-md"
+                                                                >
+                                                                    <img
+                                                                        src={assocUser.profile?.photoURL || "https://placehold.co/32x32/e2e8f0/64748b?text=U"}
+                                                                        alt={assocUser.username}
+                                                                        className="w-8 h-8 rounded-full object-cover border border-white shadow-sm"
+                                                                    />
+                                                                    <div className="flex-grow text-right">
+                                                                        <p className="text-sm font-medium text-slate-800 truncate">
+                                                                            {assocUser.profile?.displayName || assocUser.username}
+                                                                        </p>
+                                                                    </div>
+                                                                </Link>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-2xl p-4 border border-slate-200">
+                                                        <div className="text-center text-slate-500">
+                                                            <FontAwesomeIcon icon={faUsers} className="text-2xl mb-2 opacity-50" />
+                                                            <p className="text-sm">אין חניכים משויכים</p>
+                                                            <p className="text-xs">זמין לשיוך חניכים חדשים</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    ) : !loading ? (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-center py-16 bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg border border-white/20"
+                        >
+                            <div className="text-6xl mb-6">🔍</div>
+                            <h3 className="text-2xl font-bold text-slate-800 mb-2">לא נמצאו מנטורים</h3>
+                            <p className="text-slate-600 mb-6">נסה לשנות את פרמטרי החיפוש שלך</p>
+                            <button
+                                onClick={clearFilters}
+                                className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+                            >
+                                אפס סינונים
+                            </button>
+                        </motion.div>
+                    ) : null}
+                </div>
+
+                {/* Assign/Unassign Modal */}
+                <AnimatePresence>
+                    {assigningUser && isAdmin && (
+                        <AssignMentorshipModal
+                            type="mentor"
+                            user={assigningUser}
+                            allMentors={mentors}
+                            allParticipants={participants}
+                            onClose={() => setAssigningUser(null)}
+                            onAssign={handleAssignMentorship}
+                            onUnassign={handleUnassignMentorship}
+                            isProcessing={isProcessingMentorship}
+                        />
+                    )}
+                </AnimatePresence>
+            </div>
         </DashboardLayout>
     );
 }
-
 export default Mentorship;
