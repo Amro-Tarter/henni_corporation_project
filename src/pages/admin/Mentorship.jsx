@@ -629,24 +629,6 @@ function Mentorship() {
                                 </div>
                             </div>
 
-                            {/* Element Filter */}
-                            <div className="space-y-2">
-                                <label className="block text-sm font-semibold text-slate-700 flex items-center">
-                                    <Filter size={16} className="ml-2" />
-                                    סינון לפי אלמנט
-                                </label>
-                                <select
-                                    value={filterElement}
-                                    onChange={(e) => setFilterElement(e.target.value)}
-                                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white/90"
-                                >
-                                    <option value="">כל האלמנטים</option>
-                                    {Object.entries(elementNames).map(([key, name]) => (
-                                        <option key={key} value={key}>{name}</option>
-                                    ))}
-                                </select>
-                            </div>
-
                             {/* Sort */}
                             <div className="space-y-2">
                                 <label className="block text-sm font-semibold text-slate-700 flex items-center">
@@ -660,7 +642,6 @@ function Mentorship() {
                                 >
                                     <option value="name">לפי שם</option>
                                     <option value="participants">לפי מספר חניכים</option>
-                                    <option value="element">לפי אלמנט</option>
                                 </select>
                             </div>
 
@@ -778,18 +759,6 @@ function Mentorship() {
                                                     )}
                                                 </div>
 
-                                                {/* Element badge */}
-                                                <div className="flex items-center justify-center gap-2">
-                                                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r ${elementGradients[user.element] || "from-gray-300 to-gray-400"} text-white shadow-md`}>
-                                                        <FontAwesomeIcon
-                                                            icon={elementIcons[user.element] || faLeaf}
-                                                            className="text-sm"
-                                                        />
-                                                        <span className="text-sm font-medium">
-                                                            {elementNames[user.element] || "לא מוגדר"}
-                                                        </span>
-                                                    </div>
-                                                </div>
 
                                                 {/* Progress bar for participants */}
                                                 <div className="space-y-2">
