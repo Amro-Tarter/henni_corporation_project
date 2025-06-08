@@ -3,7 +3,7 @@ import { db, storage } from '@/config/firbaseConfig';
 import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
-const SystemCalls = ({ currentUser, elementColors, onHideSystemCalls, onSent }) => {
+export default function SystemInquiries({ currentUser, elementColors, onHideSystemCalls, onSent }) {
     const [systemCallRecipient, setSystemCallRecipient] = useState('');
     const [systemCallRecipientId, setSystemCallRecipientId] = useState('');
     const [systemCallSubject, setSystemCallSubject] = useState('');
@@ -16,6 +16,7 @@ const SystemCalls = ({ currentUser, elementColors, onHideSystemCalls, onSent }) 
     const [userMap, setUserMap] = useState({});
     const [showDropdown, setShowDropdown] = useState(false);
     const recipientInputRef = useRef(null);
+
 
     // Fetch possible recipients from users collection
     useEffect(() => {
@@ -148,23 +149,23 @@ const SystemCalls = ({ currentUser, elementColors, onHideSystemCalls, onSent }) 
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
-            <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8" style={{ border: `2px solid ${elementColors.primary}` }}>
+            <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8" style={{ border: `2px solid ${elementColors?.primary}` }}>
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold" style={{ color: elementColors.primary }}>מערכת פניות - פנייה חדשה</h2>
+                    <h2 className="text-2xl font-bold" style={{ color: elementColors?.primary }}>מערכת פניות - פנייה חדשה</h2>
                     <button
                         className="text-lg font-bold"
-                        style={{ color: elementColors.primary }}
+                        style={{ color: elementColors?.primary }}
                         onClick={onHideSystemCalls}
                         aria-label="סגור מערכת פניות"
                     >✕</button>
                 </div>
                 <form onSubmit={handleSystemCallSubmit} className="space-y-5">
                     <div ref={recipientInputRef} className="relative">
-                        <label className="block text-sm font-semibold mb-1" style={{ color: elementColors.primary }}>נמען</label>
+                        <label className="block text-sm font-semibold mb-1" style={{ color: elementColors?.primary }}>נמען</label>
                         <input
                             type="text"
                             className="w-full border rounded-lg p-2 text-right focus:ring-2"
-                            style={{ borderColor: elementColors.primary, background: elementColors.light }}
+                            style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
                             value={systemCallRecipient}
                             onChange={handleRecipientInput}
                             placeholder="התחל להקליד שם..."
@@ -186,11 +187,11 @@ const SystemCalls = ({ currentUser, elementColors, onHideSystemCalls, onSent }) 
                         )}
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold mb-1" style={{ color: elementColors.primary }}>נושא</label>
+                        <label className="block text-sm font-semibold mb-1" style={{ color: elementColors?.primary }}>נושא</label>
                         <input
                             type="text"
                             className="w-full border rounded-lg p-2 text-right focus:ring-2"
-                            style={{ borderColor: elementColors.primary, background: elementColors.light }}
+                            style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
                             value={systemCallSubject}
                             onChange={e => setSystemCallSubject(e.target.value)}
                             required
@@ -198,10 +199,10 @@ const SystemCalls = ({ currentUser, elementColors, onHideSystemCalls, onSent }) 
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold mb-1" style={{ color: elementColors.primary }}>תוכן הפנייה</label>
+                        <label className="block text-sm font-semibold mb-1" style={{ color: elementColors?.primary }}>תוכן הפנייה</label>
                         <textarea
                             className="w-full border rounded-lg p-2 text-right focus:ring-2 min-h-[100px]"
-                            style={{ borderColor: elementColors.primary, background: elementColors.light }}
+                            style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
                             value={systemCallContent}
                             onChange={e => setSystemCallContent(e.target.value)}
                             required
@@ -209,16 +210,16 @@ const SystemCalls = ({ currentUser, elementColors, onHideSystemCalls, onSent }) 
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold mb-1" style={{ color: elementColors.primary }}>קובץ מצורף (אופציונלי)</label>
+                        <label className="block text-sm font-semibold mb-1" style={{ color: elementColors?.primary }}>קובץ מצורף (אופציונלי)</label>
                         <input
                             type="file"
                             accept=".pdf,.doc,.docx,image/*"
                             className="w-full border rounded-lg p-2 text-right"
-                            style={{ borderColor: elementColors.primary, background: elementColors.light }}
+                            style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
                             onChange={handleSystemCallFileChange}
                         />
                         {systemCallFile && (
-                            <div className="mt-2 text-xs" style={{ color: elementColors.primary }}>קובץ נבחר: {systemCallFile.name}</div>
+                            <div className="mt-2 text-xs" style={{ color: elementColors?.primary }}>קובץ נבחר: {systemCallFile.name}</div>
                         )}
                         {uploadProgress > 0 && uploadProgress < 100 && (
                             <div className="text-xs text-gray-500 mt-1">העלאה: {Math.round(uploadProgress)}%</div>
@@ -230,7 +231,7 @@ const SystemCalls = ({ currentUser, elementColors, onHideSystemCalls, onSent }) 
                     <button
                         type="submit"
                         className="w-full py-3 rounded-lg font-bold text-lg hover:opacity-90 transition-all disabled:opacity-60"
-                        style={{ background: elementColors.primary, color: '#fff' }}
+                        style={{ background: elementColors?.primary, color: '#fff' }}
                         disabled={isSubmittingSystemCall}
                     >
                         {isSubmittingSystemCall ? "שולח..." : "שלח פנייה"}
@@ -240,5 +241,3 @@ const SystemCalls = ({ currentUser, elementColors, onHideSystemCalls, onSent }) 
         </div>
     );
 };
-
-export default SystemCalls;

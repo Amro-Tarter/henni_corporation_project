@@ -7,11 +7,11 @@ import MessageLoadingState from './components/MessageLoadingState';
 import { useChatScroll } from './hooks/useChatScroll';
 import { useEmojiPicker } from './hooks/useEmojiPicker';
 import ChatInfoSidebar from './ChatIntoSidebar';
-import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useNavigate } from "react-router-dom";
-import SystemCalls from './components/systemCalls';
+import SystemInquiries from './components/SystemInquiries';
 
 /**
  * ChatArea is the main chat window, displaying messages and input.
@@ -40,6 +40,7 @@ export default function ChatArea({
   onHideSystemCalls = () => {},
   selectedInquiry = null,
   setSelectedInquiry = () => {},
+  isLoadingInquiries = false,
   onShowSystemCalls = () => {},
   ...props
 }) {
@@ -61,7 +62,7 @@ export default function ChatArea({
   } = useVoiceRecorder();
   const navigate = useNavigate();
   const [isCreatingMentorChat, setIsCreatingMentorChat] = useState(false);
-
+  const [systemCallsView, setSystemCallsView] = useState('list'); // 'list', 'create', 'details'
 
   // Show scroll-to-bottom button if user scrolls up too far
   useEffect(() => {
@@ -98,6 +99,18 @@ export default function ChatArea({
     };
   }, [selectedConversation && selectedConversation.id, selectedConversation && selectedConversation.type]);
 
+  // Real-time listener for selected inquiry
+  useEffect(() => {
+    if (!selectedInquiry || !selectedInquiry.id) return;
+    const ref = doc(db, 'system_of_inquiries', selectedInquiry.id);
+    const unsubscribe = onSnapshot(ref, (docSnap) => {
+      if (docSnap.exists()) {
+        setSelectedInquiry({ id: docSnap.id, ...docSnap.data() });
+      }
+    });
+    return () => unsubscribe();
+  }, [selectedInquiry && selectedInquiry.id]);
+
   const handleScrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   };
@@ -128,7 +141,7 @@ export default function ChatArea({
   // Handler to navigate participant to their mentor chat (create if not exists)
   const handleGoToMentorChat = async () => {
     if (!currentUser?.mentorName || !currentUser?.uid) {
-      alert("לא מוגדר שם מנטור בפרופיל שלך. פנה למנהל המערכת.");
+      alert("לא מוגדר שם מנחה בפרופיל שלך. פנה למנהל המערכת.");
       return;
     }
     // Find mentor by username (mentorName)
@@ -165,13 +178,13 @@ export default function ChatArea({
           mentorUid = mentorDoc.id;
           mentorUsername = mentorDoc.data().username;
         } else {
-          alert("לא נמצא משתמש מנטור עם שם זה. פנה למנהל המערכת.");
+          alert("לא נמצא משתמש מנחה עם שם זה. פנה למנהל המערכת.");
           return;
         }
       }
     } catch (err) {
       console.error("Error finding mentor:", err);
-      alert("שגיאה בחיפוש מנטור. נסה שוב.");
+      alert("שגיאה בחיפוש מנחה. נסה שוב.");
       return;
     }
     // Find direct conversation with mentor
@@ -212,10 +225,10 @@ export default function ChatArea({
         setSelectedConversation({ id: newConvo.id, ...newConvo.data() });
         navigate(`/chat/${newConvo.id}`);
       } else {
-        alert("שגיאה ביצירת צ'אט עם המנטור. נסה שוב.");
+        alert("שגיאה ביצירת צ'אט עם המנחה. נסה שוב.");
       }
     } catch (err) {
-      alert("שגיאה ביצירת צ'אט עם המנטור. נסה שוב.");
+      alert("שגיאה ביצירת צ'אט עם המנחה. נסה שוב.");
     } finally {
       setIsCreatingMentorChat(false);
     }
@@ -265,9 +278,23 @@ export default function ChatArea({
   }
   possibleRecipients = Array.from(new Set(possibleRecipients));
 
-
+  // Reset systemCallsView when entering/exiting system calls
+  useEffect(() => {
+    if (showSystemCalls) {
+      setSystemCallsView('list');
+    }
+  }, [showSystemCalls]);
 
   if (showSystemCalls) {
+    if (isLoadingInquiries) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
+          <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8 text-center">
+            <div className="text-lg text-gray-500">טוען פנייה...</div>
+          </div>
+        </div>
+      );
+    }
     if (selectedInquiry) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
@@ -277,7 +304,7 @@ export default function ChatArea({
               style={{ color: elementColors.primary }}
               onClick={() => setSelectedInquiry(null)}
             >
-              ← חזרה לרשימת פניות
+              ← חזרה
             </button>
             <h2 className="text-2xl font-bold mb-4" style={{ color: elementColors.primary }}>{selectedInquiry.subject}</h2>
             <div className="mb-2 text-sm text-gray-700">
@@ -306,38 +333,18 @@ export default function ChatArea({
                 </div>
               </div>
             )}
-            <div className="mt-6 text-xs text-gray-400">סטטוס: {'פתוח'}</div>
+            <div className="mt-6 text-xs text-gray-400">סטטוס: {selectedInquiry.status === 'closed' ? 'סגור' : 'פתוח'}</div>
           </div>
         </div>
       );
     }
-    if (showSystemCalls && !selectedInquiry) {
-      return (  
-        <SystemCalls
-          currentUser={currentUser}
-          elementColors={elementColors}
-          onHideSystemCalls={onHideSystemCalls}
-          setSelectedInquiry={setSelectedInquiry}
-        />
-      );
-    }
-    // No inquiry selected: show instructions
+    // No inquiry selected
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
         <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8 flex flex-col items-center justify-center text-center" style={{ border: `2px solid ${elementColors.primary}` }}>
           <h2 className="text-xl font-bold mb-4" style={{ color: elementColors.primary }}>בחר פנייה כדי להציג את פרטיה</h2>
           <p className="text-gray-500 mb-4">לחץ על פנייה מהרשימה כדי לראות את כל הפרטים כאן.</p>
-          <button
-            className="mt-2 px-6 py-2 rounded-lg font-bold text-white text-base shadow hover:opacity-90 transition-all"
-            style={{ background: elementColors.primary }}
-            onClick={() => {
-              setSelectedInquiry(null);
-              if (typeof onShowSystemCalls === 'function') onShowSystemCalls();
-            }}
-          >
-            פנייה חדשה
-          </button>
-       </div>
+        </div>
       </div>
     );
   }
@@ -528,7 +535,7 @@ export default function ChatArea({
                   onClick={handleGoToMentorChat}
                   disabled={isCreatingMentorChat}
                 >
-                  {isCreatingMentorChat ? "פותח צ'אט..." : "ובוא נדבר"}
+                  {isCreatingMentorChat ? "פותח צ'אט..." : "תרגיש חופשי לדבר עם מנחה שלך"}
                 </button>
               ) : null}
             </div>

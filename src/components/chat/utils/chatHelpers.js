@@ -25,13 +25,13 @@ export function getChatPartner(participants, conversationType, element, currentU
   
   if (conversationType === "community") {
     if (communityType === 'mentor_community') {
-      return mentorName ? `קהילה של ${mentorName}` : 'קהילת מנטור';
+      return mentorName ? `קהילה של ${mentorName}` : 'קהילת מנחה';
     } else if (communityType === 'element') {
       return element ? `${element} קהילה` : chatTitle || 'קהילה';
     } else if (communityType === 'all_mentors') {
-      return 'קהילת כל המנטורים';
+      return 'קהילת כל המנחים';
     } else if (communityType === 'all_mentors_with_admin') {
-      return 'קהילת כל המנטורים והמנהלים';
+      return 'קהילת כל המנחים והמנהלים';
     }
   }
 

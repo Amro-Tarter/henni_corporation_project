@@ -42,6 +42,7 @@ import Team from './pages/Team';
 import NewsletterPage from './pages/NewsletterPage';
 import ArtSkillsPage from './pages/ArtSkillsPage';
 import Staff from './pages/admin/Staff';  
+import SystemInquiries from './components/chat/components/SystemInquiries';
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,7 @@ const App = () => {
                   <Route path="/post/:postId" element={<ProtectedRoute><PostPage /></ProtectedRoute>} />
                   <Route path="/chat" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
                   <Route path="/chat/:chatId" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
+                  <Route path="/chat/inquiry/:inquiryId" element={<ProtectedRoute><ChatApp /></ProtectedRoute>} />
                   <Route path="/publicSettings" element={<ProtectedRoute><PublicSettings /></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><PrivateSettings /></ProtectedRoute>} />
 

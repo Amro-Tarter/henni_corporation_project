@@ -3,6 +3,7 @@ import { db } from '@/config/firbaseConfig';
 import { doc, getDoc, collection, query as firestoreQuery, where, getDocs, orderBy } from 'firebase/firestore';
 import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
 import { HiOutlineChatBubbleBottomCenterText, HiUserGroup, HiMiniUsers, HiMiniHome } from "react-icons/hi2";
+import { useNavigate } from "react-router-dom";
 
 
 /**
@@ -27,14 +28,13 @@ export default function ConversationList({
   onHideSystemCalls = () => {},
   selectedInquiry = null,
   setSelectedInquiry = () => {},
+  inquiries = [],
+  isLoadingInquiries = false,
 }) {
   const [usernames, setUsernames] = useState({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const [inquiries, setInquiries] = useState([]);
-  const [loadingInquiries, setLoadingInquiries] = useState(false);
-  const [inquiriesError, setInquiriesError] = useState('');
-
+  const navigate = useNavigate();
   // Define filter items
   const filterItems = [
     { icon: HiMiniHome, label: "הכל", type: "all" },
@@ -75,53 +75,17 @@ export default function ConversationList({
     });
   }, [visibleConversations]);
 
-  useEffect(() => {
-    if (showSystemCalls) {
-      setLoadingInquiries(true);
-      setInquiriesError('');
-      const fetchInquiries = async () => {
-        try {
-          let q = firestoreQuery(
-            collection(db, 'system_of_inquiries'),
-            where('recipient', '==', currentUser.uid),
-            orderBy('createdAt', 'desc')
-          );
-          let snapshot;
-          let usedFallback = false;
-          try {
-            snapshot = await getDocs(q);
-          } catch (err) {
-            // If orderBy fails (e.g. missing createdAt), try without orderBy
-            console.error('Error with orderBy(createdAt):', err);
-            setInquiriesError('שגיאה בטעינת פניות (מיון לפי תאריך נכשל). מנסה ללא מיון...');
-            q = firestoreQuery(
-              collection(db, 'system_of_inquiries'),
-              where('recipient', '==', currentUser.uid)
-            );
-            snapshot = await getDocs(q);
-            usedFallback = true;
-          }
-          let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          if (usedFallback) {
-            // Sort by createdAt descending in JS, missing createdAt last
-            docs = docs.sort((a, b) => {
-              if (!a.createdAt && !b.createdAt) return 0;
-              if (!a.createdAt) return 1;
-              if (!b.createdAt) return -1;
-              return b.createdAt.toDate() - a.createdAt.toDate();
-            });
-          }
-          setInquiries(docs);
-        } catch (err) {
-          setInquiriesError('שגיאה בטעינת פניות: ' + err.message);
-          setInquiries([]);
-          console.error('Error fetching inquiries:', err);
-        }
-        setLoadingInquiries(false);
-      };
-      fetchInquiries();
-    }
-  }, [showSystemCalls, currentUser.uid]);
+  const filteredInquiries = useMemo(() => {
+    if (!searchQuery) return inquiries;
+    const q = searchQuery.trim().toLowerCase();
+    return inquiries.filter(inquiry => {
+      return (
+        (inquiry.subject && inquiry.subject.toLowerCase().includes(q)) ||
+        (inquiry.senderName && inquiry.senderName.toLowerCase().includes(q)) ||
+        (inquiry.sender && inquiry.sender.toLowerCase().includes(q))
+      );
+    });
+  }, [inquiries, searchQuery]);
 
   // Handle filter button click
   const handleFilterClick = (filterType) => {
@@ -149,8 +113,31 @@ export default function ConversationList({
   return (
     <div className="w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] overflow-y-auto" dir="rtl" onClick={() => setSelectedConversation(null)}>
       <div className="p-2 sm:p-4 sticky top-0 bg-white z-10 border-b border-gray-100">
-        <h1 className="text-lg sm:text-xl font-bold text-gray-800 mb-2">שיחות</h1>
-        <h2 className="text-xs md:text-sm text-gray-500 mt-1">{showSystemCalls ? 'פניות שהתקבלו' : `הודעות (${visibleConversations.length})`}</h2>
+      <div className="flex flex-row gap-2">
+      <button
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:bg-gray-200 w-1/2 ${!showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    background: !showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
+                  }}
+                  onClick={e => { e.stopPropagation(); onHideSystemCalls(); }}
+                >
+                  <HiOutlineChatBubbleBottomCenterText className="text-base" />
+                  <span>שיחות</span>
+              </button>
+              <button
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 w-1/2 ${showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+                    style={{
+                      border: '1px solid #e5e7eb',
+                      background: showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
+                    }}
+                    onClick={e => { e.stopPropagation(); onShowSystemCalls(); setIsDropdownOpen(false); }}
+                  >
+                    <HiOutlineChatBubbleBottomCenterText className="text-base" />
+                    <span>פניות</span>
+              </button>
+      </div>
+        <h2 className="text-xs md:text-sm text-gray-500 mt-2">{showSystemCalls ? 'פניות שהתקבלו' : `הודעות (${visibleConversations.length})`}</h2>
         <div className="mt-2 sm:mt-4 relative">
           <input
             type="text"
@@ -159,7 +146,6 @@ export default function ConversationList({
             style={{ borderColor: "transparent", outlineColor: elementColorsMap[currentUser?.element]?.primary || '#ccc' }}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            disabled={showSystemCalls}
           />
           <svg className="absolute right-2 top-3 h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0z" />
@@ -167,14 +153,13 @@ export default function ConversationList({
         </div>
         {/* Filter Dropdown */}
         <div className="mt-3 relative flex flex-row gap-2" ref={dropdownRef}>
-          <button
+          {!showSystemCalls && <button
             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:bg-gray-200 w-1/2 justify-between ${!showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
             style={{
               border: '1px solid #e5e7eb',
               background: !showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
             }}
             onClick={e => { e.stopPropagation(); setIsDropdownOpen(v => !v); onHideSystemCalls(); }}
-
           >
             <span className="flex items-center gap-2 w-full">
               {(() => {
@@ -188,7 +173,7 @@ export default function ConversationList({
             <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
-          </button>
+          </button>}
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-1/2 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
               {filterItems.map((item, idx) => {
@@ -209,38 +194,28 @@ export default function ConversationList({
               })}
             </div>
           )}
-            <button
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 w-1/2 ${showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
-              style={{
-                border: '1px solid #e5e7eb',
-                background: showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
-              }}
-              onClick={e => { e.stopPropagation(); onShowSystemCalls(); setIsDropdownOpen(false); }}
-            >
-              <HiOutlineChatBubbleBottomCenterText className="text-base" />
-              <span>מערכת פניות</span>
-            </button>
         </div>
         
       </div>
       <div className="flex-1 overflow-y-auto max-h-[calc(100dvh-4rem)] px-1 sm:px-2">
         {showSystemCalls ? (
-          loadingInquiries ? (
+          isLoadingInquiries ? (
             <div className="p-4 text-center text-gray-500">טוען פניות...</div>
-          ) : inquiriesError ? (
-            <div className="p-4 text-center text-red-500">{inquiriesError}</div>
           ) : inquiries.length === 0 ? (
             <div className="p-4 text-center text-gray-500">לא התקבלו פניות.</div>
           ) : (
-            inquiries.map(inquiry => {
+            filteredInquiries.map(inquiry => {
               const isSelected = selectedInquiry?.id === inquiry.id;
               const elementColor = elementColorsMap[currentUser?.element]?.primary || '#2563eb';
               const lightColor = elementColorsMap[currentUser?.element]?.light || '#f5f5f5';
-              const statusColor = inquiry.status === 'closed' ? 'bg-gray-400 text-white' : '';
               return (
                 <div
                   key={inquiry.id}
-                  onClick={() => setSelectedInquiry(inquiry)}
+                  onClick={e => {
+                    e.stopPropagation();
+                    navigate(`/chat/inquiry/${inquiry.id}`);
+                    setSelectedInquiry(inquiry);
+                  }}
                   className={`p-3 rounded-xl border cursor-pointer flex flex-col gap-2 mb-4 shadow-sm transition-all duration-200 ${isSelected ? 'ring-2 ring-offset-2' : ''}`}
                   style={{
                     background: isSelected ? lightColor : '#fff',
@@ -369,7 +344,7 @@ export default function ConversationList({
                       <div className="font-medium text-gray-900 truncate flex items-center gap-2">
                         {partnerName}
                         {partnerName === mentorName && (
-                          <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
+                          <div className="text-gray-500 mt-1 text-sm">מנחה שלך</div>
                         )}
                         {/* Unread badge */}
                         {conv.unread?.[currentUser.uid] > 0 && (

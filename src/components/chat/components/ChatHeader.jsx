@@ -64,17 +64,17 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
     displayName = partnerName || '';
   } else if (type === 'community') {
     if (communityType === 'mentor_community') {
-      displayName = mentorName ? `קהילה של ${mentorName}` : 'קהילת מנטור';
+      displayName = mentorName ? `קהילה של ${mentorName}` : 'קהילת מנחה';
       displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl"><Mentor_icon color='#7f1d1d' width={28} height={28}/></span>;
     } else if (communityType === 'element') {
       const elementLabel = element ? ELEMENT_COLORS[element]?.label : '';
       displayName = elementLabel ? `קהילת ${elementLabel} ` : chatTitle || 'קהילה';
       displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl">{icon}</span>;
     } else if (communityType === 'all_mentors') {
-      displayName = 'קהילת כל המנטורים';
+      displayName = 'קהילת כל המנחים';
       displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl"><All_mentors_icon color='#7f1d1d' width={28} height={28}/></span>;
     } else if (communityType === 'all_mentors_with_admin') {
-      displayName = 'קהילת כל המנטורים והמנהלים';
+      displayName = 'קהילת כל המנחים והמנהלים';
       displayIcon = <span className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-200 text-2xl"><All_mentors_with_admin_icon color='#7f1d1d' width={28} height={28}/></span>;
     }
   } else {
@@ -119,7 +119,7 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
         </div>
       )}
       {displayName === mentorName && (
-        <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
+        <div className="text-gray-500 mt-1 text-sm">מנחה שלך</div>
       )}
       {currentUser.role === 'mentor' && (
         <button

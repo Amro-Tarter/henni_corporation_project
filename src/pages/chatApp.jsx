@@ -34,7 +34,7 @@ import { handleElementCommunityChatMembership } from "../components/chat/utils/h
 import Rightsidebar from "../components/social/Rightsidebar";
 
 export default function ChatApp() {
-  const { chatId } = useParams();
+  const { chatId, inquiryId } = useParams();
   const navigate = useNavigate();
   // --- State ---
   const [authInitialized, setAuthInitialized] = useState(false);
@@ -70,6 +70,8 @@ export default function ChatApp() {
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [showSystemCalls, setShowSystemCalls] = useState(false);
   const [selectedInquiry, setSelectedInquiry] = useState(null);
+  const [inquiries, setInquiries] = useState([]);
+  const [isLoadingInquiries, setIsLoadingInquiries] = useState(false);
   // File upload state/logic (moved to hook)
   const {
     file,
@@ -855,6 +857,87 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, [selectedConversation?.id]);
 
+  // Always fetch the list when showSystemCalls is true and user is loaded
+  useEffect(() => {
+    if (showSystemCalls && currentUser.uid) {
+      setIsLoadingInquiries(true);
+      const fetchInquiries = async () => {
+        try {
+          let q = query(
+            collection(db, 'system_of_inquiries'),
+            where('recipient', '==', currentUser.uid),
+            orderBy('createdAt', 'desc')
+          );
+          let snapshot;
+          let usedFallback = false;
+          try {
+            snapshot = await getDocs(q);
+          } catch (err) {
+            q = query(
+              collection(db, 'system_of_inquiries'),
+              where('recipient', '==', currentUser.uid)
+            );
+            snapshot = await getDocs(q);
+            usedFallback = true;
+          }
+          let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          if (usedFallback) {
+            docs = docs.sort((a, b) => {
+              if (!a.createdAt && !b.createdAt) return 0;
+              if (!a.createdAt) return 1;
+              if (!b.createdAt) return -1;
+              return b.createdAt.toDate() - a.createdAt.toDate();
+            });
+          }
+          setInquiries(docs);
+        } catch (err) {
+          setInquiries([]);
+        } finally {
+          setIsLoadingInquiries(false);
+        }
+      };
+      fetchInquiries();
+    }
+  }, [showSystemCalls, currentUser.uid]);
+
+  // When inquiryId changes, set selectedInquiry from the list if possible, otherwise fetch
+  useEffect(() => {
+    if (inquiryId) {
+      setShowSystemCalls(true);
+      setIsLoadingInquiries(true);
+      const found = inquiries.find(i => i.id === inquiryId);
+      if (found) {
+        setSelectedInquiry(found);
+        setIsLoadingInquiries(false);
+      } else {
+        const fetchInquiry = async () => {
+          try {
+            const inquiryDoc = await getDoc(doc(db, 'system_of_inquiries', inquiryId));
+            if (inquiryDoc.exists()) {
+              const fetched = { id: inquiryDoc.id, ...inquiryDoc.data() };
+              setSelectedInquiry(fetched);
+              setInquiries(prev => {
+                if (!prev.some(i => i.id === fetched.id)) {
+                  return [...prev, fetched];
+                }
+                return prev;
+              });
+            } else {
+              setSelectedInquiry(null);
+            }
+          } catch (err) {
+            setSelectedInquiry(null);
+          } finally {
+            setIsLoadingInquiries(false);
+          }
+        };
+        fetchInquiry();
+      }
+    } else {
+      setSelectedInquiry(null);
+    }
+  }, [inquiryId, inquiries]);
+
   if (!authInitialized) {
     return <ElementalLoader />;
   }
@@ -904,9 +987,19 @@ export default function ChatApp() {
           onTabChange={setActiveTab}
           showSystemCalls={showSystemCalls}
           onShowSystemCalls={() => setShowSystemCalls(true)}
-          onHideSystemCalls={() => setShowSystemCalls(false)}
+          onHideSystemCalls={() => {
+            setShowSystemCalls(false);
+            setSelectedInquiry(null);
+            navigate('/chat');
+          }}
           selectedInquiry={selectedInquiry}
-          setSelectedInquiry={setSelectedInquiry}
+          setSelectedInquiry={inq => {
+            setSelectedInquiry(inq);
+            if (inq) navigate(`/chat/inquiry/${inq.id}`);
+            else navigate('/chat');
+          }}
+          inquiries={inquiries}
+          isLoadingInquiries={isLoadingInquiries}
         />
       </div>
       {/* Chat Area Panel */}
@@ -949,9 +1042,18 @@ export default function ChatApp() {
             setSelectedConversation={handleSelectConversation}
             setMobilePanel={setMobilePanel}
             showSystemCalls={showSystemCalls}
-            onHideSystemCalls={() => setShowSystemCalls(false)}
+            onHideSystemCalls={() => {
+              setShowSystemCalls(false);
+              setSelectedInquiry(null);
+              navigate('/chat');
+            }}
             selectedInquiry={selectedInquiry}
-            setSelectedInquiry={setSelectedInquiry}
+            setSelectedInquiry={inq => {
+              setSelectedInquiry(inq);
+              if (inq) navigate(`/chat/inquiry/${inq.id}`);
+              else navigate('/chat');
+            }}
+            isLoadingInquiries={isLoadingInquiries}
           />
         </div>
       </div>

@@ -3,9 +3,9 @@ import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs
 
 const COMMUNITY_DESCRIPTIONS = {
   element: 'קהילה זו מיועדת לכל חברי היסוד שלך. כאן תוכלו לשתף, לשאול ולהתחבר עם חברים מהיסוד.',
-  mentor_community: 'קהילה זו כוללת את המנטור שלך ואת כל המשתתפים שמלווים על ידו. כאן אפשר להתייעץ, לשאול ולשתף.',
-  all_mentors: 'קהילה זו מאגדת את כל המנטורים בתכנית. כאן ניתן להחליף רעיונות, לשתף ידע ולתמוך זה בזה.',
-  all_mentors_with_admin: 'קהילה זו כוללת את כל המנטורים והמנהלים. כאן מתקיימים עדכונים, שיתופים ודיונים מקצועיים.'
+  mentor_community: 'קהילה זו כוללת את המנחה שלך ואת כל המשתתפים שמלווים על ידו. כאן אפשר להתייעץ, לשאול ולשתף.',
+  all_mentors: 'קהילה זו מאגדת את כל המנחים בתכנית. כאן ניתן להחליף רעיונות, לשתף ידע ולתמוך זה בזה.',
+  all_mentors_with_admin: 'קהילה זו כוללת את כל המנחים והמנהלים. כאן מתקיימים עדכונים, שיתופים ודיונים מקצועיים.'
 };
 
 export const handleMentorCommunityMembership = async (userId, userRole, mentorName, username) => {
@@ -31,7 +31,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
             await updateDoc(docSnap.ref, {
               participants: newIds,
               participantNames: newNames,
-              lastMessage: `${username} עזב/ה את קהילת המנטורים`,
+              lastMessage: `${username} עזב/ה את קהילת המנחים`,
               lastUpdated: serverTimestamp(),
             });
           }
@@ -53,7 +53,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
             await updateDoc(docSnap.ref, {
               participants: newIds,
               participantNames: newNames,
-              lastMessage: `${username} עזב/ה את קהילת המנטורים והמנהלים`,
+              lastMessage: `${username} עזב/ה את קהילת המנחים והמנהלים`,
               lastUpdated: serverTimestamp(),
             });
           }
@@ -76,7 +76,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
             await updateDoc(docSnap.ref, {
               participants: newIds,
               participantNames: newNames,
-              lastMessage: `${username} עזב/ה את קהילת המנטור`,
+              lastMessage: `${username} עזב/ה את קהילת המנחה`,
               lastUpdated: serverTimestamp(),
             });
           }
@@ -158,7 +158,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
           participants: allIds,
           participantNames: allNames,
           unread: newUnread,
-          lastMessage: "קהילת המנטור עודכנה!",
+          lastMessage: "קהילת המנחה עודכנה!",
           lastUpdated: serverTimestamp(),
         });
       }
@@ -198,13 +198,13 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         participants: newIds,
         participantNames: newNames,
         unread: newUnread,
-        lastMessage: `${username} עזב/ה את קהילת המנטור`,
+        lastMessage: `${username} עזב/ה את קהילת המנחה`,
         lastUpdated: serverTimestamp(),
       });
       
       // Add system message
       await addDoc(collection(db, "conversations", communityDoc.id, "messages"), {
-        text: `${username} עזב/ה את קהילת המנטור`,
+        text: `${username} עזב/ה את קהילת המנחה`,
         type: "system",
         createdAt: serverTimestamp(),
       });
@@ -252,7 +252,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         await updateDoc(docRef, {
           participants: mentorIds,
           participantNames: mentorNames,
-          lastMessage: "קהילת כל המנטורים עודכנה!",
+          lastMessage: "קהילת כל המנחים עודכנה!",
           lastUpdated: serverTimestamp(),
         });
       }
@@ -303,7 +303,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         await updateDoc(docRef, {
           participants: mentorAdminIds,
           participantNames: mentorAdminNames,
-          lastMessage: "קהילת כל המנטורים והמנהלים עודכנה!",
+          lastMessage: "קהילת כל המנחים והמנהלים עודכנה!",
           lastUpdated: serverTimestamp(),
         });
       }

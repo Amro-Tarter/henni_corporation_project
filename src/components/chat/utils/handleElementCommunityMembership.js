@@ -3,9 +3,9 @@ import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs
 
 const COMMUNITY_DESCRIPTIONS = {
   element: 'קהילה זו מיועדת לכל חברי היסוד שלך. כאן תוכלו לשתף, לשאול ולהתחבר עם חברים מהיסוד.',
-  mentor_community: 'קהילה זו כוללת את המנטור שלך ואת כל המשתתפים שמלווים על ידו. כאן אפשר להתייעץ, לשאול ולשתף.',
-  all_mentors: 'קהילה זו מאגדת את כל המנטורים בתכנית. כאן ניתן להחליף רעיונות, לשתף ידע ולתמוך זה בזה.',
-  all_mentors_with_admin: 'קהילה זו כוללת את כל המנטורים והמנהלים. כאן מתקיימים עדכונים, שיתופים ודיונים מקצועיים.'
+  mentor_community: 'קהילה זו כוללת את המנחה שלך ואת כל המשתתפים שמלווים על ידו. כאן אפשר להתייעץ, לשאול ולשתף.',
+  all_mentors: 'קהילה זו מאגדת את כל המנחים בתכנית. כאן ניתן להחליף רעיונות, לשתף ידע ולתמוך זה בזה.',
+  all_mentors_with_admin: 'קהילה זו כוללת את כל המנחים והמנהלים. כאן מתקיימים עדכונים, שיתופים ודיונים מקצועיים.'
 };
 
 export const handleElementCommunityChatMembership = async (userId, userElement) => {

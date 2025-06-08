@@ -1153,7 +1153,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         </a>
         <div className="text-gray-500 mt-1 text-sm">סוג האלמנט: {partnerElement || '...'} {ELEMENT_COLORS[partnerElement]?.icon}</div>
         {partnerName === mentorName && (
-          <div className="text-gray-500 mt-1 text-sm">מנטור שלך</div>
+          <div className="text-gray-500 mt-1 text-sm">מנחה שלך</div>
         )}
       </div>
       {/* Images Gallery */}
