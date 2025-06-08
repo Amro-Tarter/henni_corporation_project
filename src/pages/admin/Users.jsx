@@ -829,53 +829,71 @@ function Users() {
 
   // Event handlers
   const handleSaveUser = useCallback(async (userId, formData) => {
-    try {
-      // Update user document
-      await updateDoc(doc(db, "users", userId), {
-        username: formData.username,
-        email: formData.email,
-        element: formData.element,
-        location: formData.location,
-        role: formData.role,
-        mentors: formData.role === 'participant' ? (formData.mentors || []) : [],
-        updatedAt: new Date(),
-      });
+    const userRef = doc(db, "users", userId);
 
-      // Handle profile based on role
+    try {
+      // 1) Fetch current data so we know the old role
+      const userSnap = await getDoc(userRef);
+      const oldRole = userSnap.data()?.role;
+
+      // 2) Update all the common fields in one shot
+      await updateDoc(userRef, {
+        username: formData.username,
+        email:    formData.email,
+        element:  formData.element,
+        location: formData.location,
+        role:     formData.role,
+        updatedAt: new Date(),
+        // if switching to participant, write their selected mentors
+        mentors: formData.role === 'participant' ? (formData.mentors || []) : [],
+        // always clear bio/displayName/photoURL in the user doc itself
+        bio: formData.role === 'staff' ? '' : formData.bio,
+        displayName: formData.role === 'staff' ? '' : formData.displayName,
+        photoURL: formData.role === 'staff' ? '' : formData.photoURL,
+      });
+      // 3) Now enforce the “empty array” rule whenever the role flips
+      if (oldRole !== formData.role) {
+        if (formData.role === 'mentor') {
+          // newly a mentor → ensure a participants field exists
+          await updateDoc(userRef, { participants: [] });
+        }
+        else if (formData.role === 'participant') {
+          // newly a participant → ensure a mentors field exists (we already seeded it above), and remove any stray participants property
+          await updateDoc(userRef, { mentors: formData.mentors || [], participants: [] });
+        }
+        else {
+          // any other role: drop both arrays
+          await updateDoc(userRef, { mentors: [], participants: [] });
+        }
+      }
+
+      // 4) Profile logic (unchanged) …
       const profileRef = doc(db, "profiles", userId);
       const profileSnap = await getDoc(profileRef);
-
       if (formData.role === "staff") {
-        if (profileSnap.exists()) {
-          await deleteDoc(profileRef);
-        }
+        if (profileSnap.exists()) await deleteDoc(profileRef);
       } else {
-        const profileData = {
+        const data = {
           displayName: formData.displayName,
-          bio: formData.bio,
-          photoURL: formData.photoURL,
-          role: formData.role,
-          updatedAt: new Date(),
+          bio:         formData.bio,
+          photoURL:    formData.photoURL,
+          role:        formData.role,
+          updatedAt:   new Date(),
         };
-
-        if (profileSnap.exists()) {
-          await updateDoc(profileRef, profileData);
-        } else {
-          await setDoc(profileRef, {
-            ...profileData,
-            createdAt: new Date(),
-          });
-        }
+        if (profileSnap.exists()) await updateDoc(profileRef, data);
+        else              await setDoc(profileRef, { ...data, createdAt: new Date() });
       }
 
       toast.success("המשתמש עודכן בהצלחה");
       await fetchUsers();
-    } catch (error) {
+    }
+    catch (error) {
       console.error("Error updating user:", error);
       toast.error("שגיאה בעדכון המשתמש");
       throw error;
     }
   }, [fetchUsers]);
+
 
   const handleDeleteUser = useCallback(async (userId) => {
     setIsDeleting(true);

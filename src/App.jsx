@@ -10,7 +10,7 @@ import { NotificationsProvider, useNotifications } from './components/social/Not
 import DashboardHome from "./pages/admin/DashboardHome";
 import Users from './pages/admin/Users';
 import Reports from './pages/admin/Reports';
-import Settings from './pages/admin/Settings';
+import Settings from './pages/admin/ContactMessages';
 import MentorReportForm from './pages/Report';
 import PartnerForm from'./pages/admin/Partners'
 import DonationForm from'./pages/admin/Donations'
@@ -42,6 +42,7 @@ import Team from './pages/Team';
 import NewsletterPage from './pages/NewsletterPage';
 import ArtSkillsPage from './pages/ArtSkillsPage';
 import Staff from './pages/admin/Staff';  
+import ContactMessages from './pages/admin/ContactMessages'; // Import the new ContactMessages page
 
 const queryClient = new QueryClient();
 
@@ -130,6 +131,8 @@ const App = () => {
                   <Route path="/admin/submissions" element={<SubmissionViewer />} />
                   <Route path="/form/:formId" element={<PublicForm />} />
                   <Route path="/admin/staff" element={<Staff />} />
+                  <Route path="/admin/contactMessages" element={<ContactMessages />} />
+
 
                   
                   {/* 404 Page */}
