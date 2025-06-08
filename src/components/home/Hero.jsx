@@ -39,14 +39,19 @@ const Hero = () => {
       {/* Hero Content */}
       <div className="relative z-10 text-center px-4 sm:px-6 md:px-8 max-w-6xl mx-auto">
         
-        <motion.h1
-          variants={fadeSlideUp}
-          initial="hidden"
-          animate="visible"
-          className="font-title text-6xl text-white mb-6 drop-shadow-lg"
+         {/* Logo */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8 }}
+          className="mb-8 sm:mb-12"
         >
-          עמותת לגלות את האור – הנני 
-        </motion.h1>
+          <img 
+            src="/logoo.svg" 
+            alt="עמותת לגלות את האור – הנני" 
+            className="w-240 h-240 sm:w-128 sm:h-128 md:w-128 md:h-128 mx-auto drop-shadow-lg"
+          />
+        </motion.div>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
