@@ -22,6 +22,10 @@ import {
   faWater,
   faFire
 } from '@fortawesome/free-solid-svg-icons';
+import { toast } from "@/components/ui/sonner"; 
+import { db } from "../config/firbaseConfig"; 
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
 
 const Contact = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -33,13 +37,36 @@ const Contact = () => {
     message: ''
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => { // Made async to handle Firestore operations
     e.preventDefault();
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+
+    try {
+      // Add a new document with a generated ID to the "contacts" collection
+      await addDoc(collection(db, "contacts"), {
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+        timestamp: serverTimestamp() // Add a server-generated timestamp
+      });
+
+      console.log("Document successfully written!");
       setSubmitted(true);
-    }, 1500);
+      // Optionally clear the form after successful submission
+      setFormData({
+        name: '',
+        email: '',
+        subject: '',
+        message: ''
+      });
+
+    } catch (e) {
+      console.error("Error adding document: ", e);
+      toast.error("Failed to send message. Please try again."); // User feedback for error
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleInputChange = (e) => {
@@ -50,7 +77,7 @@ const Contact = () => {
   return (
     <Layout>
       <div className="pt-16 min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-amber-100 transition-all duration-700" dir="rtl">
-     {/* Decorative floating elements using FontAwesome icons */}
+      {/* Decorative floating elements using FontAwesome icons */}
         <div className="fixed inset-0 pointer-events-none overflow-hidden">
           <div className="absolute top-1/4 right-10 opacity-20 animate-float">
             <FontAwesomeIcon icon={faLeaf} className="w-12 h-12 text-orange-400" />
@@ -284,7 +311,7 @@ const Contact = () => {
                   </div>
                 </div>
 
-               
+                
 
                 {/* Response time */}
                 <div className="rounded-2xl shadow-md transition-all duration-500 transform hover:-translate-y-1 hover:shadow-lg bg-gradient-to-br from-amber-50 to-white border border-amber-100 p-6">

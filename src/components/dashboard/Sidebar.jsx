@@ -16,7 +16,8 @@ import {
   X,
   Volume2,
   Pause,
-  Play
+  Play,
+  MessageCircle
 } from "lucide-react";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
@@ -361,11 +362,17 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       label: "תרומות", 
       icon: Heart 
     },
+    {
+      path: "/admin/contactMessages",
+      label: "הודעות קשר",
+      icon: MessageCircle
+    },
     { 
       path: "/admin/forms", 
       label: "טפסים", 
       icon: ClipboardList 
     }
+
   ];
 
   const isActiveLink = (path, exact = false) => {
