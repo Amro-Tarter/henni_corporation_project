@@ -722,8 +722,10 @@ function Users() {
     [currentUser]
   );
 
-  const displayedUsers = useMemo(() => {
-    return users.filter(user => {
+ const displayedUsers = useMemo(() => {
+  return users
+    .filter(user => user.role !== "staff") 
+    .filter(user => {
       const matchesSearch = !searchTerm || 
         (user.username?.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (user.profile?.displayName?.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -735,7 +737,8 @@ function Users() {
       
       return matchesSearch && matchesElement && matchesLocation && matchesRole;
     });
-  }, [users, searchTerm, elementFilter, locationFilter, roleFilter]);
+}, [users, searchTerm, elementFilter, locationFilter, roleFilter]);
+
 
   const hasActiveFilters = useMemo(() => 
     searchTerm || elementFilter || locationFilter || roleFilter,

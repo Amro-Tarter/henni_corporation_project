@@ -1,7 +1,6 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
 from dotenv import load_dotenv
-from datetime import datetime
 
 # Load environment variables (if any)
 load_dotenv()
@@ -12,73 +11,63 @@ def initialize_firebase():
         firebase_admin.initialize_app(cred)
         print("✅ Firebase initialized.")
 
-def upload_art_skills():
-    initialize_firebase()
-    db = firestore.client()
+staff_members = [
+    {
+        "name": "ענת זגרון בוג'יו",
+        "bio": "טכנולוגיות למידה בחינוך(MA) בעולם שבו נדמה לפעמים שהקשרים בין אנשים מתרופפים, אני מציעה דרך אחרת. הבנתי כי השינוי האמיתי מתחיל במקום הכי פנימי שלנו - באני האותנטי שבכל אחד מאיתנו. כאמא, אקטיביסטית חברתית וסביבתית, אני חיה את החיבור העמוק בין אהבת האדם לאהבת הטבע. מתוך הכרה עמוקה שהשינוי החברתי והסביבתי מתחיל בתוכנו, ייסדתי את העמותה עם חזון ברור: ליצור מרחב שבו אנשים יכולים להתחבר ליצירה שבתוכם ומשם לבנות קשרים משמעותיים גם עם הזולת. בעידן של מידע רב ולחצים חיצוניים, אני מציעה חזרה לפשטות - לקשר האותנטי עם עצמנו, עם אחרים ועם הטבע שמסביבנו. 'כשאנחנו פועלים ממקום של אמת פנימית, אנחנו לא רק משנים את עצמנו - אנחנו משנים את העולם'"
+    },
+    {
+        "name": "ולרי חבוט",
+        "bio": "בעבור השנים בהן פיקדתי על בני נוער מגוונים ומיוחדים כקצינה בצה״ל בסדיר ובמילואים, זכיתי לקחת חלק בעיצוב והעצמת דוד העתיד המתהווה לנגד עינינו בגאווה גדולה. יחד עם כלים שרכשתי מעולם הNLP המופלא, אני מאמינה שהמנהיגים הבאים שלנו יצמחו מתוכנו ויובילו שינויים מהותיים בחברה הישראלית 🇮🇱🇮🇱🇮🇱 משמעות-השראה-העצמה-התפתחות"
+    },
+    {
+        "name": "אורלי עופר",
+        "bio": "כמנחת קבוצות ומטפלת גופנפש כיום וכמעצבת טקסטיל בעבר, (וגם כאמא לבן מוסיקאי ומורה וכבת לאם אמנית), אני יודעת עד כמה החשיפה למגוון אמנויות בגיל צעיר יוצרת בסיס חזק לפיתוח אישיות מגוונת, מסייעת לגבש נפש רגישה ויצירתית בעלת דימיון עשיר ויכולת לאלתר ויחד עם זאת לבטא נוכחות אותנטית בכאן ועכשיו ופרספקטיבה בריאה לעתיד."
+    },
+    {
+        "name": "עליזה עמיר",
+        "bio": "טוענת רבנית, מטפלת זוגית, בוגרת בית ספר למשחק (MA) ספרות עברית. יוצרת ללא גבולות. מאמינה שיצירה היא חלק מהניצוץ האלוהי של כל אדם, עולם שיונהג על ידי יוצרים מעומק הלב והנשמה יהיה עולם טוב יותר. לא אוהבת להגדיר או לקטלג אנשים - גם לא את עצמה. כותבת, יוצרת, משחקת וטוענת. לפני הכל - אדם שאוהב אדם באשר הוא."
+    },
+    {
+        "name": "ענת בר ושדי",
+        "bio": "ביבליותרפיסטית (MA), מטפלת רגשית, מנחת קבוצות וסופרת. מאמינה בחינוך הדורות הבאים בדרך אחרת של חשיבה עצמאית, גמישות מחשבתית, יצירתיות, אחריות ואמפטיה לזולת."
+    },
+    {
+        "name": "דקלה בר",
+        "bio": "מדענית (MA בגנטיקה) ואשת חינוך. מובילה פרויקטים בבינה מלאכותית ובחינוך מותאם אישית, מינהל חדשנות וטכנולוגיה, משה\"ח. אוהבת לראות כיצד אומנות מזמינה פרשנות מתוך העצמי."
+    }
+]
 
-    artSkills = [
-        {
-            "title": "אמנות פלסטית",
-            "description": "חשיבה יצירתית וחדשנית המאפשרת פתרון בעיות בדרכים לא שגרתיות",
-            "icon": "",  # Empty string for the icon field
-            "iconName": "Paintbrush",  # New field for the icon name
-            "color": "bg-green-100 text-green-800",
-            "accent": "bg-green-500", # Added accent field
-            "gradient": "from-green-400 to-emerald-500",
-        },
-        {
-            "title": "מוזיקה",
-            "description": "הקשבה עמוקה, שיתוף פעולה הרמוני והובלת קבוצות במטרה ליצור יצירות משותפות",
-            "icon": "",
-            "iconName": "Music",
-            "color": "bg-blue-100 text-blue-800",
-            "accent": "bg-blue-500", # Added accent field
-            "gradient": "from-blue-400 to-indigo-500",
-        },
-        {
-            "title": "תיאטרון",
-            "description": "ביטחון עצמי, תקשורת אפקטיבית ומנהיגות רגשית המאפשרת השפעה והשראה",
-            "icon": "",
-            "iconName": "TheaterIcon",
-            "color": "bg-purple-100 text-purple-800",
-            "accent": "bg-purple-500", # Added accent field
-            "gradient": "from-purple-400 to-pink-500",
-        },
-        {
-            "title": "מחול",
-            "description": "משמעת אישית, התמדה ודוגמה אישית המחזקת כושר גופני ומנטלי",
-            "icon": "",
-            "iconName": "Move3D",
-            "color": "bg-sky-100 text-sky-800",
-            "accent": "bg-sky-500", # Added accent field
-            "gradient": "from-sky-400 to-cyan-500",
-        },
-        {
-            "title": "כתיבה יוצרת",
-            "description": "פיתוח קול אישי והשפעה תרבותית דרך יכולת ביטוי מילולי מדויק",
-            "icon": "",
-            "iconName": "Pen",
-            "color": "bg-orange-100 text-orange-800",
-            "accent": "bg-orange-500", # Added accent field
-            "gradient": "from-orange-400 to-red-500",
-        },
-    ]
-
-    for skill in artSkills:
-        try:
-            doc_ref = db.collection("artSkills").add(skill)
-            print(f"Added art skill '{skill['title']}' with ID: {doc_ref[1].id}")
-        except Exception as e:
-            print(f"Error adding art skill '{skill['title']}': {e}")
-
-# ---
-# This part remains as it was for existing functionality
-# ---
 
 def initialize_collections():
     initialize_firebase()
     db = firestore.client()
 
+    for staff in staff_members:
+        # 1. Create a user doc for the staff
+        user_doc = {
+            "username": staff["name"],
+            "role": "staff",
+            "email": "",           # add if you want, or leave blank
+            "is_active": True,
+            "createdAt": firestore.SERVER_TIMESTAMP,
+            "updatedAt": firestore.SERVER_TIMESTAMP,
+            # add other fields as needed
+        }
+        # Use the name as the doc ID (you can use .add for auto-ID, but then you have to store the ID somewhere)
+        user_ref = db.collection('users').document(staff["name"])
+        user_ref.set(user_doc)
+
+        # 2. Add the staff doc, linking to the user document ID
+        staff_doc = {
+            "name": staff["name"],
+            "bio": staff["bio"],
+            "user_id": staff["name"],  # same as user doc ID
+            "photoURL":"",  # add photo URL if available
+        }
+        db.collection('staff').document(staff["name"]).set(staff_doc)
+
+    print("✅ Staff and users collections initialized and linked.")
+
 if __name__ == "__main__":
-    upload_art_skills()
     initialize_collections()

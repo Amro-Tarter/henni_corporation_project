@@ -336,6 +336,16 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       label: "משתמשים", 
       icon: Users 
     },
+     { 
+      path: "/admin/Mentorship", 
+      label: "מנטורים", 
+      icon: GraduationCap 
+    },
+    { 
+      path: "/admin/staff", 
+      label: "צוות", 
+      icon: Users 
+    },
     { 
       path: "/admin/Partners", 
       label: "שותפים שלנו", 
@@ -355,11 +365,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       path: "/admin/forms", 
       label: "טפסים", 
       icon: ClipboardList 
-    },
-    { 
-      path: "/admin/Mentorship", 
-      label: "מנטורים", 
-      icon: GraduationCap 
     }
   ];
 
