@@ -35,7 +35,6 @@ import Contact from './pages/Contact';
 import ChatApp from './pages/chatApp';
 import PrivateSettings from './pages/Settings';
 import ElementalProjects from './pages/ElementalProjects';
-import PublicSettings from './pages/PublicSettings';
 import CommunityPage from './pages/CommunityPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Team from './pages/Team';

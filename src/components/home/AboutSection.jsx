@@ -122,7 +122,7 @@ const AboutSection = ({ currentUser }) => {
       try {
         const adminQuery = query(
           collection(db, 'staff'),
-          where('in_role', 'in', ['ceo', 'staff'])
+          where('in_role', 'not-in', ['staff'])
         );
         const querySnapshot = await getDocs(adminQuery);
         const admins = [];
