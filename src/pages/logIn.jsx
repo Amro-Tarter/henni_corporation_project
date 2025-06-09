@@ -7,7 +7,6 @@ import {
   getDoc, // Directly get the user document by UID
   updateDoc,
   serverTimestamp,
-  // Removed collection, query, where, getDocs as they are no longer strictly needed for user lookup
 } from "firebase/firestore";
 import { auth, db } from "../config/firbaseConfig";
 import { User, Lock, Loader } from "lucide-react";
@@ -21,6 +20,24 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from 'sonner';
+import AirIcon from '@mui/icons-material/Air';
+
+const ELEMENTS = [
+  { key: 'earth', type: 'emoji', value: '🌱' },
+  { key: 'metal', type: 'emoji', value: '⚒️' },
+  { key: 'air',   type: 'icon',  value: <AirIcon /> },
+  { key: 'water', type: 'emoji', value: '💧' },
+  { key: 'fire',  type: 'emoji', value: '🔥' },
+];
+
+const FLOAT_POS = [
+  { top: '15%',  left: '10%', anim: 'animate-float-1' },
+  { top: '80%', left: '80%', anim: 'animate-float-2' },
+  { top: '90%', left: '10%', anim: 'animate-float-3' },
+  { top: '60%', left: '20%',  anim: 'animate-float-4' },
+  { top: '15%', left: '80%', anim: 'animate-float-5' },
+];
+
 
 const Login = () => {
   const navigate = useNavigate();
@@ -200,56 +217,36 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-100 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
+  <div className="min-h-screen flex items-center justify-center absolute inset-0 bg-red-900 opacity-95 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
       {/* Floating Element Icons */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        {/* Element 1 - Leaf */}
-        <div className="absolute top-10 left-10 opacity-40 animate-float-1">
-          <FontAwesomeIcon icon={faLeaf} className="w-16 h-16 text-green-500" />
-        </div>
-
-        {/* Element 2 - Hammer */}
-        <div className="absolute top-1/3 right-5 opacity-50 animate-float-2">
-          <FontAwesomeIcon icon={faHammer} className="w-14 h-14 text-indigo-600" />
-        </div>
-
-        {/* Element 3 - Wind */}
-        <div className="absolute top-1/2 left-1/4 opacity-45 animate-float-3">
-          <FontAwesomeIcon icon={faWind} className="w-12 h-12 text-cyan-600" />
-        </div>
-
-        {/* Element 4 - Water */}
-        <div className="absolute bottom-10 right-20 opacity-50 animate-float-4">
-          <FontAwesomeIcon icon={faWater} className="w-14 h-14 text-blue-500" />
-        </div>
-
-        {/* Element 5 - Fire */}
-        <div className="absolute bottom-1/4 left-5 opacity-40 animate-float-5">
-          <FontAwesomeIcon icon={faFire} className="w-16 h-16 text-red-500" />
-        </div>
-
-        {/* Additional decorative icons */}
-        <div className="absolute top-16 right-10 opacity-30 animate-float-6">
-          <FontAwesomeIcon icon={faLeaf} className="w-12 h-12 text-green-400" />
-        </div>
-
-        <div className="absolute bottom-24 left-1/3 opacity-30 animate-float-7">
-          <FontAwesomeIcon icon={faWind} className="w-10 h-10 text-teal-500" />
-        </div>
-
-        <div className="absolute top-3/5 left-1/4 opacity-35 animate-float-8">
-          <FontAwesomeIcon icon={faWater} className="w-12 h-12 text-blue-400" />
-        </div>
+        {ELEMENTS.map((el, i) => (
+          <div
+            key={el.key}
+            className={`absolute ${FLOAT_POS[i].anim}`}
+            style={{
+              top:     FLOAT_POS[i].top,
+              left:    FLOAT_POS[i].left,
+              opacity: 0.6,
+            }}
+          >
+            {el.type === 'icon' ? (
+              // MUI icon, enlarge via inline style
+              React.cloneElement(el.value, { style: { fontSize: 64, color: '#87ceeb' } })
+            ) : (
+              // Emoji, use Tailwind for sizing
+              <span className="text-7xl">{el.value}</span>
+            )}
+          </div>
+        ))}
       </div>
 
       <div className="max-w-md w-full rounded-xl bg-white shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
-        {/* Decorative element background */}
-        <div className="absolute -top-14 -left-14 w-40 h-40 bg-indigo-100 rounded-full opacity-60"></div>
-        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-cyan-100 rounded-full opacity-60"></div>
+      
         
         {/* Logo */}
         <div className="text-center relative">
-          <h2 className="mt-2 text-3xl font-extrabold text-gray-900">עמותת לגלות את האור הנני</h2>
+          <h2 className="mt-2 text-3xl font-extrabold text-gray-900">עמותת לגלות את האור - הנני</h2>
           <p className="mt-2 text-sm text-gray-600">התחברות לחשבון שלך</p>
         </div>
 
@@ -335,24 +332,9 @@ const Login = () => {
           </div>
 
           <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className={`shine-button group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                loading 
-                  ? "bg-indigo-400 cursor-not-allowed" 
-                  : "bg-indigo-500 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              }`}
-            >
-              {loading ? (
-                <span className="flex items-center">
-                  <Loader className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                  מתחבר...
-                </span>
-              ) : (
-                "התחבר"
-              )}
-              <span className="shine" />
+             <button type="submit" disabled={loading}
+              className="w-full py-3 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 font-bold text-white hover:from-amber-400 hover:via-orange-400 hover:to-red-500 transition-all duration-300 flex justify-center items-center space-x-2">
+                {loading ? <Loader className="animate-spin" size={20}/> : 'התחבר'}
             </button>
           </div>
         </form>
