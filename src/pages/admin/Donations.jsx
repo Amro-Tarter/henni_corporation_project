@@ -111,19 +111,7 @@ function Donations() {
             toast.error("אירעה שגיאה בטעינת נתוני המשתתפים.");
           }
 
-          // Fetch projects
-          const projectsCollectionRef = collection(db, "projects"); // Assuming projects collection
-          try {
-            const projectSnapshot = await getDocs(projectsCollectionRef);
-            const fetchedProjects = projectSnapshot.docs.map(doc => ({
-              id: doc.id,
-              name: doc.data().projectName || doc.id, // Use projectName, then ID as fallback
-            }));
-            setProjects(fetchedProjects);
-          } catch (error) {
-            console.error("Error fetching projects:", error);
-            toast.error("אירעה שגיאה בטעינת נתוני הפרויקטים.");
-          }
+         
 
           setLoading(false); // All data loaded
           return () => unsubscribeDonations(); // Cleanup donations listener on unmount

@@ -38,11 +38,9 @@ const ContactMessages = () => {
   // --- Loading State ---
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center">
+      
           <ElementalLoader />
-        </div>
-      </DashboardLayout>
+        
     );
   }
 
