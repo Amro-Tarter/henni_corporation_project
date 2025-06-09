@@ -22,7 +22,7 @@ function MentorReportForm() {
 
   // Form states
   const [mentorId, setMentorId] = useState(""); // This will be set from currentUserId
-  const [participantId, setParticipantId] = useState("");
+  const [participantName, setParticipantName] = useState("");
   const [reportDate, setReportDate] = useState("");
   const [reportingPeriod, setReportingPeriod] = useState("");
   const [programYear, setProgramYear] = useState(1);
@@ -110,17 +110,26 @@ function MentorReportForm() {
       setLoadingParticipants(true);
       setParticipantsError(null);
       try {
-        const querySnapshot = await getDocs(collection(db, "users")); // Or 'participants' collection
+        const querySnapshot = await getDocs(collection(db, "users"));
         const participantsList = [];
-        querySnapshot.forEach((doc) => {
-          const data = doc.data();
-          if (data.role === "participant" || data.role === "מנטור") { // Adjust filter as needed
+        for (const userDoc of querySnapshot.docs) {
+          const data = userDoc.data();
+          if (data.role === "participant" || data.role === "מנטור") {
+            let displayName = data.displayName || data.name || data.username || userDoc.id;
+            // Try to get displayName from profiles collection
+            try {
+              const profileSnap = await getDocs(query(collection(db, 'profiles'), where('associated_id', '==', userDoc.id)));
+              if (!profileSnap.empty) {
+                const profileData = profileSnap.docs[0].data();
+                displayName = profileData.displayName || profileData.username || displayName;
+              }
+            } catch (e) { /* ignore profile errors */ }
             participantsList.push({
-              id: doc.id,
-              name: data.displayName || data.name || doc.id,
+              id: userDoc.id,
+              name: displayName,
             });
           }
-        });
+        }
         setParticipants(participantsList);
       } catch (err) {
         console.error("Error fetching participants:", err);
@@ -151,7 +160,7 @@ function MentorReportForm() {
       return;
     }
 
-    if (!mentorId || !participantId || !reportDate || !reportingPeriod || !q1ArtisticDevelopment || !q5OverallProgressRating) {
+    if (!mentorId || !participantName || !reportDate || !reportingPeriod || !q1ArtisticDevelopment || !q5OverallProgressRating) {
       toast.error("אנא מלא את כל שדות החובה.");
       return;
     }
@@ -159,7 +168,7 @@ function MentorReportForm() {
     try {
       const reportData = {
         mentor_id: mentorId,
-        participant_id: participantId,
+        participant_name: participantName,
         report_date: new Date(reportDate),
         reporting_period: reportingPeriod,
         program_year: Number(programYear),
@@ -194,7 +203,7 @@ function MentorReportForm() {
       toast.success("הדיווח נשלח בהצלחה!");
 
       // Reset form fields
-      setParticipantId("");
+      setParticipantName("");
       setReportDate("");
       setReportingPeriod("");
       setProgramYear(1);
@@ -257,14 +266,14 @@ function MentorReportForm() {
                     <label className="mb-1 text-sm font-medium text-gray-700">בחר משתתף</label>
                     <select
                       required
-                      value={participantId}
-                      onChange={(e) => setParticipantId(e.target.value)}
+                      value={participantName}
+                      onChange={(e) => setParticipantName(e.target.value)}
                       className={inputStyle}
                       disabled={loadingParticipants || participantsError}
                     >
                       <option value="">{loadingParticipants ? "טוען משתתפים..." : participantsError ? "שגיאה בטעינה" : "בחר משתתף *"}</option>
                       {participants.map((participant) => (
-                        <option key={participant.id} value={participant.id}>
+                        <option key={participant.id} value={participant.name}>
                           {participant.name}
                         </option>
                       ))}
