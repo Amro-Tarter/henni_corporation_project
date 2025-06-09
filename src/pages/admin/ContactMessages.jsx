@@ -60,13 +60,13 @@ const ContactMessages = () => {
   return (
     <DashboardLayout>
       <div className="p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-3xl font-extrabold text-orange-800 mb-6 border-b pb-4">
+        <h1 className="text-3xl font-extrabold text-black mb-6 border-b pb-4">
           הודעות "צרו קשר" שהתקבלו
         </h1>
 
         {contacts.length === 0 ? (
           // --- No Contacts State ---
-          <div className="text-center text-gray-600 p-8 bg-amber-50 rounded-lg border border-amber-100">
+          <div className="text-center text-gray-600 p-8 bg-gray-150 rounded-lg border ">
             <p className="text-xl font-semibold">אין כרגע הודעות "צרו קשר" להצגה.</p>
             <p className="text-md mt-3">כאשר משתמשים ישלחו הודעות דרך טופס יצירת הקשר, הן יופיעו כאן באופן אוטומטי.</p>
           </div>
@@ -74,7 +74,7 @@ const ContactMessages = () => {
           // --- Display Contacts ---
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {contacts.map(contact => (
-              <div key={contact.id} className="bg-amber-50 p-6 rounded-xl shadow-sm border border-amber-100 transition-transform hover:scale-[1.02] hover:shadow-md">
+              <div key={contact.id} className="bg-gray-50 p-6 rounded-xl shadow-sm border  transition-transform hover:scale-[1.02] hover:shadow-md">
                 <div className="flex items-center text-sm text-gray-500 mb-3 border-b pb-2 border-amber-200">
                   <Clock size={16} className="ml-2 text-gray-400" />
                   <span className="text-gray-700">
@@ -85,7 +85,7 @@ const ContactMessages = () => {
                   </span>
                 </div>
 
-                <h2 className="text-xl font-bold text-orange-700 mb-3 flex items-center">
+                <h2 className="text-xl font-bold text-gray-700 mb-3 flex items-center">
                   <User size={20} className="ml-2 text-orange-600" />
                   {contact.name || 'שם לא צוין'}
                 </h2>
@@ -109,7 +109,7 @@ const ContactMessages = () => {
                     <MessageSquare size={18} className="ml-2 text-purple-500" />
                     הודעה:
                   </p>
-                  <p className="text-gray-600 leading-relaxed bg-amber-100 p-4 rounded-md border border-amber-200 text-sm">
+                  <p className="text-gray-600 leading-relaxed p-4 rounded-md border border-amber-200 text-sm">
                     {contact.message || 'הודעה ריקה'}
                   </p>
                 </div>

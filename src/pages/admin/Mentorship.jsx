@@ -137,11 +137,11 @@ const AssignMentorshipModal = ({
       >
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h3 className="text-2xl font-bold text-slate-800 dark:text-white">
+            <h3 className="text-2xl font-bold text-slate-800 dark:text-black">
               {title}
             </h3>
             <div className="flex items-center gap-4 mt-2">
-              <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+              <div className="bg-black-100 text-black-800 px-3 py-1 rounded-full text-sm font-medium">
                 {associatedUsers.length} מתוך {isMentor ? 5 : 1}
               </div>
             </div>
@@ -550,7 +550,7 @@ function Mentorship() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-8"
           >
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 leading-[1.5]">
+            <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent mb-2 leading-[1.5]">
               ניהול מנטורים
             </h1>
             <p className="text-slate-600 text-lg">

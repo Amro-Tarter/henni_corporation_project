@@ -210,7 +210,7 @@ function Donations() {
           <div className="mb-6 text-center">
             <button
               onClick={() => setShowAddDonationForm(true)}
-              className="py-2 px-6 rounded-md font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md"
+                className="gap-2 px-6 py-3 relative inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md transition-colors "
             >
               <FontAwesomeIcon icon={faPlus} className="ml-2" />
               הוסף תרומה חדשה
