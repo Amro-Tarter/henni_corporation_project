@@ -232,7 +232,7 @@ function Staff() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-10" dir="rtl">
+      <div className="min-h-screen py-10" dir="rtl">
         <div className="max-w-6xl mx-auto p-6 space-y-8">
           {/* Header */}
           <motion.div

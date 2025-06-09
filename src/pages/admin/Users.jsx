@@ -947,22 +947,27 @@ function Users() {
   return (
     <DashboardLayout>
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <FontAwesomeIcon icon={faUsers} className="text-white text-xl" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
-              קהילת משתמשי הניני
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              ניהול וצפייה בכל משתמשי המערכת
-            </p>
-          </div>
+    <div className="flex justify-center items-center mb-8 relative">
+      {isAdmin && (
+        <div className="absolute left-0">
+          <PendingUsersButton />
         </div>
-        {isAdmin && <PendingUsersButton />}
+      )}
+      <div className="flex flex-col items-center gap-4">
+        <div className="p-6 space-y-8">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-8"
+          >
+            <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5] px-4">
+              קהילת משתמשי העמותה
+            </h1>
+          </motion.div>
+        </div>
       </div>
+    </div>
+
 
       {/* Filters */}
       <FilterPanel
@@ -1000,6 +1005,7 @@ function Users() {
                 onView={handleViewUser}
               />
             ))}
+            
           </AnimatePresence>
         </motion.div>
       ) : (

@@ -32,7 +32,6 @@ const ContactMessages = () => {
     };
 
     fetchContacts();
-    // No dependencies means this effect runs once when the component mounts
   }, []);
 
   // --- Loading State ---
@@ -75,7 +74,7 @@ const ContactMessages = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {contacts.map(contact => (
               <div key={contact.id} className="bg-gray-50 p-6 rounded-xl shadow-sm border  transition-transform hover:scale-[1.02] hover:shadow-md">
-                <div className="flex items-center text-sm text-gray-500 mb-3 border-b pb-2 border-amber-200">
+                <div className="flex items-center text-sm text-gray-500 mb-3 border-b pb-2 border-black-200">
                   <Clock size={16} className="ml-2 text-gray-400" />
                   <span className="text-gray-700">
                     {contact.timestamp ? new Date(contact.timestamp.seconds * 1000).toLocaleString('he-IL', {
@@ -104,12 +103,12 @@ const ContactMessages = () => {
                   </p>
                 )}
 
-                <div className="mt-4 pt-4 border-t border-amber-200">
+                <div className="mt-4 pt-4 border-t border-gray-200">
                   <p className="font-semibold text-gray-800 mb-2 flex items-center">
                     <MessageSquare size={18} className="ml-2 text-purple-500" />
                     הודעה:
                   </p>
-                  <p className="text-gray-600 leading-relaxed p-4 rounded-md border border-amber-200 text-sm">
+                  <p className="text-gray-600 leading-relaxed p-4 rounded-md border border-black-200 text-sm">
                     {contact.message || 'הודעה ריקה'}
                   </p>
                 </div>

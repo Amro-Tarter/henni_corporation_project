@@ -169,30 +169,31 @@ function Partners() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-extrabold text-gray-900">ניהול שותפים</h2>
-            <p className="mt-2 text-sm text-gray-700">צפה, ערוך והוסף שותפים למערכת</p>
-          </div>
+    <div className="container mx-auto min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
+      <div className="flex justify-center items-center mb-8 relative">
+         <button
+            onClick={() => setShowAddPartnerForm(true)}
+            className="flex gap-2 absolute left-0 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md transition-all duration-200"
+          >
+            <FontAwesomeIcon icon={faPlus} className="ml-2" />
+            הוסף שותף חדש
+          </button>
+        {/* Title */}
+        <div className="flex flex-col items-center gap-4">
+          <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5] px-6">
+            ניהול שותפים
+          </h1>
+        </div>
+      </div>
 
-          <div className="mb-6 text-center">
-            <button
-              onClick={() => setShowAddPartnerForm(true)} 
-                className="gap-2 px-6 py-3 relative inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md transition-colors text-white rounded-2xl  transition-all duration-200"
-            >
-              <FontAwesomeIcon icon={faPlus} className="ml-2" />
-              הוסף שותף חדש
-            </button>
-          </div>
-
-          {showAddPartnerForm && (
-            <Modal onClose={() => setShowAddPartnerForm(false)}>
-              <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">טופס הוספת שותף</h3>
-              <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
-                {/* Partner Name */}
-                <div className="relative flex flex-col">
-                  <label className="mb-1 text-sm font-medium text-gray-700">שם הארגון/שותף</label>
-                  <div className="relative">
+        {showAddPartnerForm && (
+          <Modal onClose={() => setShowAddPartnerForm(false)}>
+            <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">טופס הוספת שותף</h3>
+            <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={handleSubmit}>
+              {/* Partner Name */}
+              <div className="relative flex flex-col">
+                <label className="mb-1 text-sm font-medium text-gray-700">שם הארגון/שותף</label>
+                <div className="relative">
                     <input
                       type="text"
                       required

@@ -537,10 +537,7 @@ function Mentorship() {
 
   return (
     <DashboardLayout>
-      <div
-        className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50"
-        dir="rtl"
-      >
+      <div className="min-h-screen" dir="rtl">
         {loading && <ElementalLoader />}
 
         <div className="p-6 space-y-8">
@@ -553,9 +550,6 @@ function Mentorship() {
             <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent mb-2 leading-[1.5]">
               ניהול מנטורים
             </h1>
-            <p className="text-slate-600 text-lg">
-              נהל ושייך מנטורים וחניכים בקלות
-            </p>
           </motion.div>
 
           {/* Statistics Cards */}

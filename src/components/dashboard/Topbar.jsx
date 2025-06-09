@@ -1,23 +1,29 @@
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
+import { FaSignOutAlt, FaUserCircle } from 'react-icons/fa'; // Import icons
 
 const Topbar = () => {
-  const navigate = useNavigate(); // Initialize useNavigate
+  const navigate = useNavigate();
 
   const handleLogout = () => {
-    // In a real application, you would handle logout logic here,
-    // e.g., clearing authentication tokens, calling a logout API.
-    // For now, we'll just navigate to the home page.
-    navigate("/"); 
+    // Implement real logout logic (clearing tokens, API calls, etc.)
+    navigate("/");
   };
 
   return (
-    <div className="w-full h-16 bg-white shadow flex items-center justify-between px-6">
-      <div className="font-semibold">ברוך הבא מנהל </div>
+    <div className="w-full h-16 bg-white shadow-md flex items-center justify-between px-6">
+      {/* User Greeting */}
+      <div className="flex items-center gap-3 text-gray-700 font-semibold text-lg">
+        <FaUserCircle size={24} className="text-gray-600" />
+        <span>ברוך הבא מנהל</span>
+      </div>
+
+      {/* Logout Button */}
       <button 
-        className="bg-red-500 text-white px-4 py-1 rounded"
-        onClick={handleLogout} // Correctly call the navigation function
+        className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-all duration-300"
+        onClick={handleLogout}
       >
-        התנתק
+        <FaSignOutAlt size={18} />
+        <span>התנתק</span>
       </button>
     </div>
   );
