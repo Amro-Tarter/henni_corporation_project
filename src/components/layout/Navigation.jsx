@@ -210,19 +210,19 @@ export default function Navigation() {
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-300/0 via-orange-300 to-orange-300/0 shadow-lg shadow-orange-300/20" />
 
         {/* --- Navigation Bar --- */}
-        <nav className="relative z-50 container mx-auto flex items-end justify-around px-3">
+        <nav className="relative z-50 container mx-auto flex items-end justify-between px-3">
           <a href="/" className="flex items-center gap-2">
             <img src="/logoo.svg" alt="לגלות את האור - הנני" className="h-10 md:h-12 w-auto" />
           </a>
 
           <div className="hidden lg:flex items-center">
-            <ul className="flex items-center gap-6 text-white whitespace-nowrap">
+            <ul className="flex items-center gap-3 text-white whitespace-nowrap">
               {sections.map(item => (
                 <li key={item.id}>
                   <span
                     onClick={e => handleSectionClick(e, item.id)}
                     className={cn(
-                      'flex items-center gap-4 px-4 py-2 rounded-lg text-sm font-medium hover:bg-white/10 cursor-pointer whitespace-nowrap',
+                      'flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium hover:bg-white/10 cursor-pointer whitespace-nowrap',
                       activeSection === item.id && 'bg-white/10'
                     )}
                   >
@@ -265,9 +265,9 @@ export default function Navigation() {
                 <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
                   {currentUser ? <User size={18} /> : <LogIn size={18} />}
                 </div>
-          <span className="text-sm font-medium whitespace-nowrap truncate">
+               <span className="text-sm font-medium whitespace-nowrap truncate">
                   {currentUser ? (username || 'החשבון שלי') : 'התחברות'}
-               </span>
+                </span>
               </button>
               {showAuthDropdown && (
                 <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
