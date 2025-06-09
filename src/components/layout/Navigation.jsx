@@ -266,7 +266,7 @@ export default function Navigation() {
                   {currentUser ? <User size={18} /> : <LogIn size={18} />}
                 </div>
                 <span className="text-sm font-medium">
-                  {currentUser ? (currentUser.displayName || 'החשבון שלי') : 'התחברות'}
+                  {currentUser ? (currentUser.username || 'החשבון שלי') : 'התחברות'}
                 </span>
               </button>
               {showAuthDropdown && (
