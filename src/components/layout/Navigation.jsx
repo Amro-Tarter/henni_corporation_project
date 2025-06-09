@@ -197,14 +197,6 @@ export default function Navigation() {
           style={{ animationDelay: '2s' }}
         />
 
-        {/* 5) Decorative flame glow */}
-        <div className="absolute top-2 right-4 opacity-20">
-          <Flame size={120} className="text-orange-300/20" />
-          <div className="absolute inset-0 blur-sm">
-            <Flame size={120} className="text-orange-400/10" />
-          </div>
-        </div>
-
         {/* 6) Animated borders */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-300/50 to-transparent animate-pulse" />
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-300/0 via-orange-300 to-orange-300/0 shadow-lg shadow-orange-300/20" />
