@@ -265,9 +265,9 @@ export default function Navigation() {
                 <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
                   {currentUser ? <User size={18} /> : <LogIn size={18} />}
                 </div>
-                <span className="text-sm font-medium">
-                  {currentUser ? (currentUser.username || 'החשבון שלי') : 'התחברות'}
-                </span>
+          <span className="text-sm font-medium whitespace-nowrap truncate">
+                  {currentUser ? (username || 'החשבון שלי') : 'התחברות'}
+               </span>
               </button>
               {showAuthDropdown && (
                 <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
