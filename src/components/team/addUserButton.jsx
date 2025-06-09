@@ -17,7 +17,6 @@ const RoleSelectionModal = ({ user, onConfirm, onCancel, isProcessing }) => {
     { value: 'admin', label: 'מנהל', description: 'גישה מלאה לכל המערכת', color: 'bg-purple-100 text-purple-800' },
     { value: 'mentor', label: 'מנטור', description: 'הדרכה וליווי משתתפים', color: 'bg-blue-100 text-blue-800' },
     { value: 'participant', label: 'משתתף', description: 'משתתף בתוכניות', color: 'bg-yellow-100 text-yellow-800' },
-    { value: 'staff', label: 'צוות', description: 'גישה מוגבלת למידע', color: 'bg-gray-100 text-gray-800' }
   ];
 
   useEffect(() => {
@@ -291,14 +290,6 @@ const PendingUsersModal = ({ onClose }) => {
       
       const profileRef = doc(db, 'profiles', roleSelectionUser.id);
       const profileSnap = await getDoc(profileRef);
-
-        if (selectedRole === 'staff') {
-      // Always delete profile if role is staff
-        if (profileSnap.exists()) {
-          await deleteDoc(profileRef);
-          console.log('Profile deleted for user:', roleSelectionUser.id);
-        }
-      } else {
       if (!profileSnap.exists()) {
         await setDoc(profileRef, {
           associated_id: roleSelectionUser.id,
@@ -325,7 +316,7 @@ const PendingUsersModal = ({ onClose }) => {
         }
         await updateDoc(profileRef, profileUpdateData);
       }
-    }
+
 
       
       const mentorText = mentorId ? ' עם מנטור מוקצה' : '';
@@ -366,7 +357,6 @@ const PendingUsersModal = ({ onClose }) => {
       'admin': 'מנהל',
       'mentor': 'מנטור',
       'participant': 'משתתף',
-      'staff': 'צוות',
     };
     return roleMap[role] || role;
   };
@@ -376,7 +366,6 @@ const PendingUsersModal = ({ onClose }) => {
       'admin': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
       'mentor': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
       'participant': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-      'staff': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
     };
     return colorMap[role] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300';
   };

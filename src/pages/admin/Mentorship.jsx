@@ -11,15 +11,8 @@ import {
 import { db } from "../../config/firbaseConfig";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faLeaf,
-  faHammer,
-  faWind,
-  faWater,
-  faFire,
   faSearch,
-  faTrash,
   faCheck,
-  faSave,
   faTimes,
   faPlus,
   faMinus,
