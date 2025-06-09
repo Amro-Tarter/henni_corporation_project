@@ -361,13 +361,7 @@ function Mentorship() {
   const { user: currentUser } = useUser();
   const isAdmin = currentUser?.role === "admin";
 
-  const elementGradients = {
-    fire: "from-red-500 via-orange-500 to-yellow-500",
-    water: "from-blue-600 via-blue-500 to-cyan-400",
-    earth: "from-green-600 via-green-500 to-lime-400",
-    air: "from-cyan-500 via-sky-400 to-blue-300",
-    metal: "from-slate-600 via-gray-500 to-zinc-400",
-  };
+
 
   // Fetch users with profiles
     const fetchAllData = useCallback(async () => {
@@ -705,13 +699,7 @@ function Mentorship() {
                     transition={{ delay: index * 0.1 }}
                     className="group relative bg-white/90 backdrop-blur-sm rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-white/20 overflow-hidden"
                   >
-                    {/* Element gradient header */}
-                    <div
-                      className={`h-6 bg-gradient-to-r ${
-                        elementGradients[user.element] ||
-                        "from-gray-300 to-gray-400"
-                      }`}
-                    ></div>
+
 
                     {/* Admin controls */}
                     {isAdmin && (
@@ -732,12 +720,7 @@ function Mentorship() {
                     <div className="p-6">
                       {/* Profile image with element border */}
                       <div className="flex justify-center mb-6">
-                        <div
-                          className={`w-24 h-24 rounded-full overflow-hidden border-4 bg-gradient-to-r ${
-                            elementGradients[user.element] ||
-                            "from-gray-300 to-gray-400"
-                          } p-1 shadow-lg`}
-                        >
+                        <div className={`w-24 h-24 rounded-full overflow-hidden  bg-red-900 p-1 shadow-lg`}>
                           <img
                             src={
                               user.profile?.photoURL ||
