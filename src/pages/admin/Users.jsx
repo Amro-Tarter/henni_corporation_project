@@ -27,6 +27,8 @@ import PendingUsersButton from "../../components/team/addUserButton";
 import { useUser } from "../../hooks/useUser";
 import ElementalLoader from "@/theme/ElementalLoader";
 import AirIcon from '@mui/icons-material/Air';
+import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+
 // Constants
 const ELEMENT_OPTIONS = [
   { value: 'fire', label: 'אש', icon: '🔥', gradient: 'from-rose-700 via-amber-550 to-yellow-500', color: 'text-red-500' },
@@ -929,6 +931,7 @@ function Users() {
     fetchUsers();
     fetchAvailableMentors();
   }, [fetchUsers, fetchAvailableMentors]);
+  if (loading) return <CleanElementalOrbitLoader/>;
 
   return (
     <DashboardLayout>
@@ -963,11 +966,11 @@ function Users() {
         onClearFilters={clearFilters}
         resultCount={displayedUsers.length}
       />
+  
 
       {/* Content */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <ElementalLoader />
         </div>
       ) : displayedUsers.length > 0 ? (
         <motion.div

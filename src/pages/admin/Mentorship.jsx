@@ -31,7 +31,7 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { useUser } from "../../hooks/useUser";
-import ElementalLoader from "@/theme/ElementalLoader"
+import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
 
 // Enhanced Statistics Cards
 const StatsCard = ({ title, value, icon, gradient, trend }) => (
@@ -553,6 +553,7 @@ function Mentorship() {
     const activeMentors = mentors.filter(m => m.participants?.length > 0).length;
     const totalParticipants = participants.length;
     const assignedParticipants = participants.filter(p => p.mentors?.length > 0).length;
+  if (loading) return <CleanElementalOrbitLoader/>;
 
     return (
         <DashboardLayout>

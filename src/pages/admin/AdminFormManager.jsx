@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { db } from '../../config/firbaseConfig'; // Import your Firebase db
 import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
 
 // Function to generate a simple mock Firestore-like ID for client-side management
 const generateClientId = () => {
@@ -351,8 +352,7 @@ export default function AdminFormManager() {
   };
 
 
-  if (loading) return <QuietLoader />;
-
+  if (loading) return <CleanElementalOrbitLoader/>;
   return (
     <DashboardLayout>
       {/* Compact Header */}
