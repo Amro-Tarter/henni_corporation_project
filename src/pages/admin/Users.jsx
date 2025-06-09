@@ -166,6 +166,7 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {formData.role === 'participant' && (
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-700 mb-2">אלמנט</label>
               <select
@@ -181,6 +182,7 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
                 ))}
               </select>
             </div>
+           )}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-700 mb-2">תפקיד</label>
               <select
@@ -420,8 +422,12 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
       className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 relative group border border-slate-200 dark:border-slate-700"
     >
       {/* Element Header */}
-      <div className={`h-2 bg-gradient-to-r ${elementConfig.gradient}`} />
-      
+      {user.role === 'participant' ? (
+        <div className={`h-2 bg-gradient-to-r ${elementConfig.gradient}`} />
+      ) : (
+        <div className="h-2 bg-red-900" />
+      )}
+
       {/* Admin Actions */}
       {isAdmin && (
         <div className="absolute top-4 left-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 flex flex-col gap-2 z-20">
@@ -474,12 +480,14 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
               />
             </div>
             {/* Element Badge */}
-            <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-r ${elementConfig.gradient} flex items-center justify-center shadow-md border-2 border-white dark:border-slate-700`}>
-              <FontAwesomeIcon
-                icon={ELEMENT_ICONS[user.element] || faLeaf}
-                className="text-white text-sm"
-              />
-            </div>
+            {user.role === 'participant' && (
+              <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-r ${elementConfig.gradient} flex items-center justify-center shadow-md border-2 border-white dark:border-slate-700`}>
+                <FontAwesomeIcon
+                  icon={ELEMENT_ICONS[user.element] || faLeaf}
+                  className="text-white text-sm"
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -511,14 +519,16 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
           </div>
 
           {/* Element Display */}
-          <div className="flex items-center justify-center gap-2 text-sm">
-            <span className={elementConfig.color}>
-              <FontAwesomeIcon icon={ELEMENT_ICONS[user.element] || faLeaf} />
-            </span>
-            <span className="text-slate-600 dark:text-slate-400">
-              {elementConfig.label}
-            </span>
-          </div>
+          {user.role === 'participant' && (
+            <div className="flex items-center justify-center gap-2 text-sm">
+              <span className={elementConfig.color}>
+                <FontAwesomeIcon icon={ELEMENT_ICONS[user.element] || faLeaf} />
+              </span>
+              <span className="text-slate-600 dark:text-slate-400">
+                {elementConfig.label}
+              </span>
+            </div>
+          )}
 
           {/* Role-specific Info */}
           {user.role === 'mentor' && user.mentorshipCount > 0 && (
@@ -842,8 +852,9 @@ function Users() {
       await updateDoc(userRef, {
         username: formData.username,
         email:    formData.email,
-        element:  formData.element,
-        location: formData.location,
+        element: formData.role === 'participant'
+           ? formData.element
+           : '',        location: formData.location,
         role:     formData.role,
         updatedAt: new Date(),
         // if switching to participant, write their selected mentors
