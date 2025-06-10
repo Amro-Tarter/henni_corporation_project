@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import TeamFilters from "../components/team/TeamFilters"
 import RoleSection from "../components/team/RoleSection"
-import TeamSearch from "../components/team/TeamSearch"
 import TeamEmptyState from "../components/team/TeamEmptyState"
 import ElementalLoader from "../theme/ElementalLoader"
-import useTeamData from "../hooks/useTeamData"
 import Layout from "../components/layout/Layout"
 import { ThemeProvider, useElement } from "../theme/ThemeProvider"
 import { collection, getDocs, query, where } from "firebase/firestore"
@@ -13,19 +10,11 @@ import { db } from "@/config/firbaseConfig"
 import { toast } from "@/components/ui/sonner"
 
 import {
-  Users,
   UserCheck,
-  UserCog,
-  Home,
-  BarChart2,
-  ArrowUpCircle,
-  Filter,
-  XCircle,
   Users2,
   Crown
 } from "lucide-react"
 
-// --- Custom Hook: Staff Members Fetching ---
 function useStaffMembers(searchQuery = "") {
   const [ceoData, setCeoData] = useState([])
   const [staffData, setStaffData] = useState([])
@@ -226,7 +215,7 @@ export default function Team() {
                     photo: c.photo,
                     bio: c.bio,
                     email: c.email,
-                    in_role: c.in_role,
+                    in_role: /ceo|מנכ״ל/i.test(c.in_role)   ? "מייסדת ומנכ\"לית" : c.in_role,
                     mentorName: c.mentorName
                   }))}
                   sectionInView={sectionInView}

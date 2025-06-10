@@ -56,7 +56,6 @@ const ProfilePage = () => {
   const [projects, setProjects] = useState([]);
   const [projectComments, setProjectComments] = useState({});
   const [allUsers, setAllUsers] = useState([]);
-  const [sameElementUsers, setSameElementUsers] = useState([]);
   const [authorProfilesCache, setAuthorProfilesCache] = useState({});
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState('posts'); // 'posts' or 'projects'
@@ -189,28 +188,6 @@ const ProfilePage = () => {
       setIsFollowing(profile.followers?.includes(viewerProfile.uid));
     }
   }, [profile, viewerProfile]);
-
-  // Fetch users with the same element
-  useEffect(() => {
-    const fetchSimilarElementUsers = async () => {
-      if (!profile?.element || !uid) return;
-
-      const othersQuery = query(
-        collection(db, 'profiles'),
-        where('element', '==', profile.element)
-      );
-      const othersSnap = await getDocs(othersQuery);
-
-      const others = othersSnap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(u => u.id !== uid); // Exclude current user
-
-      const shuffled = others.sort(() => 0.5 - Math.random()).slice(0, 5);
-      setSameElementUsers(shuffled);
-    };
-
-    fetchSimilarElementUsers();
-  }, [profile?.element, uid]);
 
   useEffect(() => {
     async function loadUsers() {
@@ -845,7 +822,6 @@ const ProfilePage = () => {
             <LeftSidebar
               element={element}
               viewerElement={viewerElement}
-              users={sameElementUsers}
               viewerProfile={viewerProfile}
               profileUser={profile}
               onFollowToggle={handleFollowToggle}

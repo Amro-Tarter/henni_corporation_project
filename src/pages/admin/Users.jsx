@@ -27,6 +27,8 @@ import PendingUsersButton from "../../components/team/addUserButton";
 import { useUser } from "../../hooks/useUser";
 import ElementalLoader from "@/theme/ElementalLoader";
 import AirIcon from '@mui/icons-material/Air';
+import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+
 // Constants
 const ELEMENT_OPTIONS = [
   { value: 'fire', label: 'אש', icon: '🔥', gradient: 'from-rose-700 via-amber-550 to-yellow-500', color: 'text-red-500' },
@@ -164,6 +166,7 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {formData.role === 'participant' && (
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-700 mb-2">אלמנט</label>
               <select
@@ -179,6 +182,7 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
                 ))}
               </select>
             </div>
+           )}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-700 mb-2">תפקיד</label>
               <select
@@ -418,8 +422,12 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
       className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 relative group border border-slate-200 dark:border-slate-700"
     >
       {/* Element Header */}
-      <div className={`h-2 bg-gradient-to-r ${elementConfig.gradient}`} />
-      
+      {user.role === 'participant' ? (
+        <div className={`h-2 bg-gradient-to-r ${elementConfig.gradient}`} />
+      ) : (
+        <div className="h-2 bg-red-900" />
+      )}
+
       {/* Admin Actions */}
       {isAdmin && (
         <div className="absolute top-4 left-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 flex flex-col gap-2 z-20">
@@ -472,12 +480,14 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
               />
             </div>
             {/* Element Badge */}
-            <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-r ${elementConfig.gradient} flex items-center justify-center shadow-md border-2 border-white dark:border-slate-700`}>
-              <FontAwesomeIcon
-                icon={ELEMENT_ICONS[user.element] || faLeaf}
-                className="text-white text-sm"
-              />
-            </div>
+            {user.role === 'participant' && (
+              <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-r ${elementConfig.gradient} flex items-center justify-center shadow-md border-2 border-white dark:border-slate-700`}>
+                <FontAwesomeIcon
+                  icon={ELEMENT_ICONS[user.element] || faLeaf}
+                  className="text-white text-sm"
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -509,14 +519,16 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
           </div>
 
           {/* Element Display */}
-          <div className="flex items-center justify-center gap-2 text-sm">
-            <span className={elementConfig.color}>
-              <FontAwesomeIcon icon={ELEMENT_ICONS[user.element] || faLeaf} />
-            </span>
-            <span className="text-slate-600 dark:text-slate-400">
-              {elementConfig.label}
-            </span>
-          </div>
+          {user.role === 'participant' && (
+            <div className="flex items-center justify-center gap-2 text-sm">
+              <span className={elementConfig.color}>
+                <FontAwesomeIcon icon={ELEMENT_ICONS[user.element] || faLeaf} />
+              </span>
+              <span className="text-slate-600 dark:text-slate-400">
+                {elementConfig.label}
+              </span>
+            </div>
+          )}
 
           {/* Role-specific Info */}
           {user.role === 'mentor' && user.mentorshipCount > 0 && (
@@ -829,53 +841,72 @@ function Users() {
 
   // Event handlers
   const handleSaveUser = useCallback(async (userId, formData) => {
-    try {
-      // Update user document
-      await updateDoc(doc(db, "users", userId), {
-        username: formData.username,
-        email: formData.email,
-        element: formData.element,
-        location: formData.location,
-        role: formData.role,
-        mentors: formData.role === 'participant' ? (formData.mentors || []) : [],
-        updatedAt: new Date(),
-      });
+    const userRef = doc(db, "users", userId);
 
-      // Handle profile based on role
+    try {
+      // 1) Fetch current data so we know the old role
+      const userSnap = await getDoc(userRef);
+      const oldRole = userSnap.data()?.role;
+
+      // 2) Update all the common fields in one shot
+      await updateDoc(userRef, {
+        username: formData.username,
+        email:    formData.email,
+        element: formData.role === 'participant'
+           ? formData.element
+           : '',        location: formData.location,
+        role:     formData.role,
+        updatedAt: new Date(),
+        // if switching to participant, write their selected mentors
+        mentors: formData.role === 'participant' ? (formData.mentors || []) : [],
+        // always clear bio/displayName/photoURL in the user doc itself
+        bio: formData.role === 'staff' ? '' : formData.bio,
+        displayName: formData.role === 'staff' ? '' : formData.displayName,
+        photoURL: formData.role === 'staff' ? '' : formData.photoURL,
+      });
+      // 3) Now enforce the “empty array” rule whenever the role flips
+      if (oldRole !== formData.role) {
+        if (formData.role === 'mentor') {
+          // newly a mentor → ensure a participants field exists
+          await updateDoc(userRef, { participants: [] });
+        }
+        else if (formData.role === 'participant') {
+          // newly a participant → ensure a mentors field exists (we already seeded it above), and remove any stray participants property
+          await updateDoc(userRef, { mentors: formData.mentors || [], participants: [] });
+        }
+        else {
+          // any other role: drop both arrays
+          await updateDoc(userRef, { mentors: [], participants: [] });
+        }
+      }
+
+      // 4) Profile logic (unchanged) …
       const profileRef = doc(db, "profiles", userId);
       const profileSnap = await getDoc(profileRef);
-
       if (formData.role === "staff") {
-        if (profileSnap.exists()) {
-          await deleteDoc(profileRef);
-        }
+        if (profileSnap.exists()) await deleteDoc(profileRef);
       } else {
-        const profileData = {
+        const data = {
           displayName: formData.displayName,
-          bio: formData.bio,
-          photoURL: formData.photoURL,
-          role: formData.role,
-          updatedAt: new Date(),
+          bio:         formData.bio,
+          photoURL:    formData.photoURL,
+          role:        formData.role,
+          updatedAt:   new Date(),
         };
-
-        if (profileSnap.exists()) {
-          await updateDoc(profileRef, profileData);
-        } else {
-          await setDoc(profileRef, {
-            ...profileData,
-            createdAt: new Date(),
-          });
-        }
+        if (profileSnap.exists()) await updateDoc(profileRef, data);
+        else              await setDoc(profileRef, { ...data, createdAt: new Date() });
       }
 
       toast.success("המשתמש עודכן בהצלחה");
       await fetchUsers();
-    } catch (error) {
+    }
+    catch (error) {
       console.error("Error updating user:", error);
       toast.error("שגיאה בעדכון המשתמש");
       throw error;
     }
   }, [fetchUsers]);
+
 
   const handleDeleteUser = useCallback(async (userId) => {
     setIsDeleting(true);
@@ -911,26 +942,32 @@ function Users() {
     fetchUsers();
     fetchAvailableMentors();
   }, [fetchUsers, fetchAvailableMentors]);
+  if (loading) return <CleanElementalOrbitLoader/>;
 
   return (
     <DashboardLayout>
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-            <FontAwesomeIcon icon={faUsers} className="text-white text-xl" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
-              קהילת משתמשי הניני
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              ניהול וצפייה בכל משתמשי המערכת
-            </p>
-          </div>
+    <div className="flex justify-center items-center mb-8 relative">
+      {isAdmin && (
+        <div className="absolute left-0">
+          <PendingUsersButton />
         </div>
-        {isAdmin && <PendingUsersButton />}
+      )}
+      <div className="flex flex-col items-center gap-4">
+        <div className="p-6 space-y-8">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-8"
+          >
+            <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5] px-4">
+              קהילת משתמשי העמותה
+            </h1>
+          </motion.div>
+        </div>
       </div>
+    </div>
+
 
       {/* Filters */}
       <FilterPanel
@@ -945,11 +982,11 @@ function Users() {
         onClearFilters={clearFilters}
         resultCount={displayedUsers.length}
       />
+  
 
       {/* Content */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <ElementalLoader />
         </div>
       ) : displayedUsers.length > 0 ? (
         <motion.div
@@ -968,6 +1005,7 @@ function Users() {
                 onView={handleViewUser}
               />
             ))}
+            
           </AnimatePresence>
         </motion.div>
       ) : (

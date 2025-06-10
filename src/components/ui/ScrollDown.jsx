@@ -77,7 +77,7 @@ const ScrollDown = ({
       case "pulsing":
         return {
           container: "bg-gradient-to-br from-blue-500/20 to-purple-600/20 backdrop-blur-sm",
-          button: "p-3 rounded-full bg-blue-600/80 hover:bg-blue-700 text-white shadow-lg p-3 transition-all",
+          button: "p-3 rounded-full bg-red-900 text-white shadow-lg p-3 transition-all",
           icon: "w-7 h-7"
         };
       case "default":

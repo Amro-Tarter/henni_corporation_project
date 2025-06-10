@@ -15,6 +15,25 @@ import './auth.css';
 import { Eye, EyeOff } from "lucide-react"; // optional if using Lucide
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { toast } from 'sonner'
+import AirIcon from '@mui/icons-material/Air'; // Importing Air icon from MUI
+
+const ELEMENTS = [
+  { key: 'earth', type: 'emoji', value: '🌱' },
+  { key: 'metal', type: 'emoji', value: '⚒️' },
+  { key: 'air',   type: 'icon',  value: <AirIcon /> },
+  { key: 'water', type: 'emoji', value: '💧' },
+  { key: 'fire',  type: 'emoji', value: '🔥' },
+];
+
+const FLOAT_POS = [
+  { top: '15%',  left: '10%', anim: 'animate-float-1' },
+  { top: '80%', left: '80%', anim: 'animate-float-2' },
+  { top: '90%', left: '10%', anim: 'animate-float-3' },
+  { top: '60%', left: '20%',  anim: 'animate-float-4' },
+  { top: '15%', left: '80%', anim: 'animate-float-5' },
+];
+
+
 
 function Signup() {
   const [email, setEmail] = useState("");
@@ -127,60 +146,36 @@ function Signup() {
   };
 
   return (
-    <div   
-      className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-100 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl"
-    >
-        {/* Floating Element Icons */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-          {/* Element 1 - Leaf */}
-          <div className="absolute top-10 left-10 opacity-40 animate-float-1">
-            <FontAwesomeIcon icon={faLeaf} className="w-16 h-16 text-green-500" />
-          </div>
-          
-          {/* Element 2 - Hammer */}
-          <div className="absolute top-1/3 right-5 opacity-50 animate-float-2">
-            <FontAwesomeIcon icon={faHammer} className="w-14 h-14 text-indigo-600" />
-          </div>
-          
-          {/* Element 3 - Wind */}
-          <div className="absolute top-1/2 left-1/4 opacity-45 animate-float-3">
-            <FontAwesomeIcon icon={faWind} className="w-12 h-12 text-cyan-600" />
-          </div>
-          
-          {/* Element 4 - Water */}
-          <div className="absolute bottom-10 right-20 opacity-50 animate-float-4">
-            <FontAwesomeIcon icon={faWater} className="w-14 h-14 text-blue-500" />
-          </div>
-          
-          {/* Element 5 - Fire */}
-          <div className="absolute bottom-1/4 left-5 opacity-40 animate-float-5">
-            <FontAwesomeIcon icon={faFire} className="w-16 h-16 text-red-500" />
-          </div>
-          
-          {/* Additional decorative icons */}
-          <div className="absolute top-16 right-10 opacity-30 animate-float-6">
-            <FontAwesomeIcon icon={faLeaf} className="w-12 h-12 text-green-400" />
-          </div>
-          
-          <div className="absolute bottom-24 left-1/3 opacity-30 animate-float-7">
-            <FontAwesomeIcon icon={faWind} className="w-10 h-10 text-teal-500" />
-          </div>
-          
-          <div className="absolute top-3/5 left-1/4 opacity-35 animate-float-8">
-            <FontAwesomeIcon icon={faWater} className="w-12 h-12 text-blue-400" />
-          </div>
-        </div>
+    <div className="min-h-screen flex items-center justify-center absolute inset-0 bg-red-900 opacity-95 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
+           <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+               {ELEMENTS.map((el, i) => (
+                 <div
+                   key={el.key}
+                   className={`absolute ${FLOAT_POS[i].anim}`}
+                   style={{
+                     top:     FLOAT_POS[i].top,
+                     left:    FLOAT_POS[i].left,
+                     opacity: 0.6,
+                   }}
+                 >
+                   {el.type === 'icon' ? (
+                     // MUI icon, enlarge via inline style
+                     React.cloneElement(el.value, { style: { fontSize: 64, color: '#87ceeb' } })
+                   ) : (
+                     // Emoji, use Tailwind for sizing
+                     <span className="text-7xl">{el.value}</span>
+                   )}
+                 </div>
+               ))}
+             </div>
 
     
     
       <div className="w-full max-w-2xl bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
-          {/* Decorative Circles */}
-          <div className="absolute -top-14 -left-14 w-40 h-40 bg-indigo-100 rounded-full opacity-60"></div>
-          <div className="absolute z-10   -bottom-10 -right-10 w-32 h-32 bg-cyan-100 rounded-full opacity-60"></div>
 
           {/* Heading */}
           <div className="text-center mb-6">
-            <h2 className="text-3xl font-extrabold text-gray-900"> לגלות את האור הניני</h2>
+            <h2 className="text-3xl font-extrabold text-gray-900"> עמותת לגלות את האור - הנני</h2>
             <p className="mt-2 text-sm text-gray-700">צור חשבון חדש</p>
           </div>
 
@@ -313,17 +308,12 @@ function Signup() {
             </div>
 
             {/* Removed: Element selection section */}
-            {/* The entire 'Element' div and its content has been removed */}
-
             {/* Submit Button */}
             <div className="col-span-1 md:col-span-2 ">
               <button
                 type="submit"
-                // Changed background to blue
-                className={`relative overflow-hidden z-10 w-full py-3 px-4 rounded-md font-medium text-white text-lg
-                  transition hover:opacity-95 
-                  bg-blue-600 hover:bg-blue-700 shine-button`} // Changed from bg-gray-300 to bg-blue-600 hover:bg-blue-700
-              >
+
+                 className="w-full py-3 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 font-bold text-white hover:from-amber-400 hover:via-orange-400 hover:to-red-500 transition-all duration-300 flex justify-center items-center space-x-2">
                 הרשם
                 <span className="shine" />
               </button>

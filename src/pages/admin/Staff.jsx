@@ -3,7 +3,7 @@ import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from "firebase
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../config/firbaseConfig";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import ElementalLoader from "@/theme/ElementalLoader";
+import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner"; 
 import { 
@@ -228,10 +228,11 @@ function Staff() {
       s.in_role.toLowerCase().includes(search.toLowerCase()) ||
       (s.bio && s.bio.toLowerCase().includes(search.toLowerCase()))
   );
+  if (loading) return <CleanElementalOrbitLoader/>;
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-10" dir="rtl">
+      <div className="min-h-screen py-10" dir="rtl">
         <div className="max-w-6xl mx-auto p-6 space-y-8">
           {/* Header */}
           <motion.div
@@ -240,10 +241,9 @@ function Staff() {
             className="text-center"
           >
             <div className="flex items-center justify-center gap-3 mb-2">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5]">
                 נהל צוות העמותה
               </h1>
-              {isAdmin && <Shield className="text-blue-600" size={24} />}
             </div>
           </motion.div>
 
@@ -264,7 +264,7 @@ function Staff() {
             {isAdmin && (
               <button
                 onClick={() => setShowAddForm(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-2xl hover:from-green-600 hover:to-emerald-600 transition-all duration-200 shadow-lg hover:shadow-xl font-medium whitespace-nowrap"
+                className="flex items-center gap-2 px-6 py-3 relative inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md transition-colors transition-all duration-200 shadow-lg hover:shadow-xl font-medium whitespace-nowrap"
               >
                 <Plus size={20} />
                 הוסף חבר צוות
@@ -349,7 +349,7 @@ function Staff() {
 
           {/* Loading state */}
           {loading ? (
-            <ElementalLoader />
+                    <h3 className="text-s"></h3>
           ) : (
             <>
               {/* Empty state */}

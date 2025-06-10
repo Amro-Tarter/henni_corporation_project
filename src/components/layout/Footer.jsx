@@ -37,7 +37,7 @@ const Footer = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Enhanced animated background with multiple layers */}
-      <div className="absolute inset-0 bg-gradient-to-br from-red-900 via-red-950 to-black opacity-95" />
+      <div className="absolute inset-0 bg-red-900 opacity-95" />
       
       {/* Dynamic gradient overlay that follows mouse */}
       <div 
@@ -68,15 +68,6 @@ const Footer = () => {
       <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-orange-400/10 rounded-full blur-xl animate-pulse-slow" />
       <div className="absolute top-3/4 right-1/4 w-24 h-24 bg-red-400/10 rounded-full blur-xl animate-pulse-slow" style={{ animationDelay: '2s' }} />
       
-      {/* Enhanced decorative flame icon with glow */}
-      <div className="absolute top-8 right-8 opacity-8">
-        <div className="relative">
-          <Flame size={240} className="text-orange-300/20" />
-          <div className="absolute inset-0 blur-sm">
-            <Flame size={240} className="text-orange-400/10" />
-          </div>
-        </div>
-      </div>
       
       {/* Animated border elements */}
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-orange-300/50 to-transparent animate-pulse" />
@@ -89,9 +80,7 @@ const Footer = () => {
             <div className="group relative">
               <div className="flex items-center mb-6 p-4 rounded-lg bg-gradient-to-r from-red-800/40 to-red-900/40 backdrop-blur-sm border border-red-700/30 hover:border-orange-300/50 transition-all duration-300">
                 <div className="relative">
-                  <Flame className="mr-3 text-orange-300 group-hover:text-yellow-300 transition-colors duration-300" size={32} />
                   <div className="absolute inset-0 blur-sm opacity-50">
-                    <Flame className="mr-3 text-orange-400" size={32} />
                   </div>
                 </div>
                 <h3 className="font-gveret-levin text-2xl bg-gradient-to-r from-white to-orange-200 bg-clip-text text-transparent">

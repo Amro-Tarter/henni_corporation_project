@@ -238,7 +238,7 @@ const MusicPlayer = () => {
           <motion.button
             onClick={togglePlay}
             disabled={isLoading}
-            className={`relative p-3 rounded-full bg-gradient-to-br from-purple-600/40 to-blue-500/40 hover:from-purple-600/60 hover:to-blue-500/60 transition-all shadow-lg hover:shadow-purple-500/20 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`relative p-3 rounded-full bg-red-900 hover:from-purple-600/60 hover:to-blue-500/60 transition-all shadow-lg hover:shadow-purple-500/20 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             whileHover={{ scale: isLoading ? 1 : 1.1 }}
             whileTap={{ scale: isLoading ? 1 : 0.95 }}
           >
@@ -273,7 +273,7 @@ const MusicPlayer = () => {
                   step="0.01"
                   value={volume}
                   onChange={handleVolumeChange}
-                  className="w-20 accent-purple-500"
+                  className="w-20 bg-red-900"
                 />
                 <div className="flex items-center gap-1 text-white/60 text-xs">
                   <span>{formatTime(currentTime)}</span>
@@ -283,7 +283,7 @@ const MusicPlayer = () => {
                     max={duration || 100}
                     value={currentTime}
                     onChange={handleSeek}
-                    className="w-32 accent-purple-500"
+                    className="w-32 bg-red-900"
                   />
                   <span>{formatTime(duration)}</span>
                 </div>

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, Eye, Trash2, ExternalLink, FileText, Bookmark } from 'lucide-react'; // Changed Zap to Bookmark
+import { Plus, X, Eye, Trash2, ExternalLink, FileText, Bookmark } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import { db } from '../../config/firbaseConfig'; // Import your Firebase db
+import { db } from '../../config/firbaseConfig';
 import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
 
 // Function to generate a simple mock Firestore-like ID for client-side management
 const generateClientId = () => {
@@ -11,16 +12,14 @@ const generateClientId = () => {
 };
 
 // Define built-in forms statically in the code.
-// These are primarily for initial setup/display if not yet fetched from Firestore.
-// The primary source of truth should be Firestore.
 const initialBuiltInForms = [
   {
-    id: 'd9hdg5lqImzEPn8Mnspb', // IMPORTANT: This ID should match your Firestore document ID for this form
+    id: 'd9hdg5lqImzEPn8Mnspb',
     title: 'טופס קליטה לעמותת תלגלות את האור',
     type: 'builtin',
-    built_in: true, // New field: set to true for built-in forms
-    createdAt: new Date('2025-01-01').toISOString(), // Use ISO string for consistency
-    responses: 0, // This should be dynamically counted from submissions
+    built_in: true,
+    createdAt: new Date('2025-01-01').toISOString(),
+    responses: 0,
     fields: [
       { label: 'שם פרטי', type: 'text', required: true },
       { label: 'שם משפחה', type: 'text', required: true },
@@ -80,12 +79,12 @@ const initialBuiltInForms = [
     ]
   },
   {
-    id: 'mentor-prep-form-id', // IMPORTANT: This ID should match your Firestore document ID for this form
+    id: 'mentor-prep-form-id',
     title: 'שאלון הכנה למנטוריות',
     type: 'builtin',
-    built_in: true, // New field: set to true for built-in forms
-    createdAt: new Date('2025-06-06').toISOString(), // Use ISO string for consistency
-    responses: 0, // This should be dynamically counted from submissions
+    built_in: true,
+    createdAt: new Date('2025-06-06').toISOString(),
+    responses: 0,
     fields: [
       { label: 'שם הילד/ה', type: 'text', required: true },
       { label: 'תאריך', type: 'text', required: true },
@@ -123,7 +122,7 @@ const QUESTION_TYPES = [
   { key: "multipleChoice", label: "בחירה מרובה" },
   { key: "checkboxes", label: "תיבות סימון" },
   { key: "dropdown", label: "רשימה נפתחת" },
-  { key: "date", label: "תאריך" }, // Added 'date' type for completeness
+  { key: "date", label: "תאריך" },
 ];
 
 // Simplified Loader Component
@@ -137,13 +136,13 @@ function QuietLoader() {
 }
 
 export default function AdminFormManager() {
-  const [allForms, setAllForms] = useState([]); // This will now be populated from Firestore
-  const [loading, setLoading] = useState(true); // Start as loading
+  const [allForms, setAllForms] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newFormTitle, setNewFormTitle] = useState("טופס חדש");
   const [newFormFields, setNewFormFields] = useState([
     {
-      id: generateClientId(), // Use a client-side ID for local management
+      id: generateClientId(),
       label: "שאלה חדשה",
       type: "text",
       required: false,
@@ -158,20 +157,15 @@ export default function AdminFormManager() {
     try {
       const querySnapshot = await getDocs(collection(db, "forms"));
       let formsData = querySnapshot.docs.map(doc => ({
-        id: doc.id, // Use the actual Firestore document ID
+        id: doc.id,
         ...doc.data(),
-        // Ensure fields array exists and each field has an 'id'
         fields: doc.data().fields?.map(field => ({
-          id: field.id || generateClientId(), // Assign client-side ID if missing for existing fields
+          id: field.id || generateClientId(),
           ...field
         })) || [],
-        // Ensure built_in field exists and is a boolean
-        built_in: !!doc.data().built_in // Converts to boolean, defaults to false if undefined/null
+        built_in: !!doc.data().built_in
       }));
 
-      // In a real application, you'd only add built-in forms if they are missing
-      // (e.g., using a Cloud Function trigger or the seedForms.js script once)
-      // This client-side code will strictly show what's in Firestore.
       setAllForms(formsData);
 
     } catch (err) {
@@ -183,20 +177,17 @@ export default function AdminFormManager() {
   };
 
   useEffect(() => {
-    fetchForms(); // Fetch forms on component mount
+    fetchForms();
   }, []);
 
-  // Now, userForms and builtinForms are derived from the merged allForms state
-  // Filtering built-in forms based on the 'built_in' field directly
   const userForms = allForms.filter(form => !form.built_in);
   const builtinForms = allForms.filter(form => form.built_in);
-
 
   const addQuestion = () => {
     setNewFormFields(prev => [
       ...prev,
       {
-        id: generateClientId(), // Unique client-side ID for new question
+        id: generateClientId(),
         label: "שאלה חדשה",
         type: "text",
         required: false,
@@ -269,27 +260,26 @@ export default function AdminFormManager() {
     try {
       const formToSave = {
         title: newFormTitle,
-        type: 'user', // New forms are 'user' type
-        built_in: false, // New forms are NOT built-in by default
-        createdAt: serverTimestamp(), // Firestore timestamp
-        responses: 0, // Initial responses count
-        fields: newFormFields.map(({ id, ...rest }) => rest) // Remove client-side 'id' from fields before saving
+        type: 'user',
+        built_in: false,
+        createdAt: serverTimestamp(),
+        responses: 0,
+        fields: newFormFields.map(({ id, ...rest }) => rest)
       };
 
       const docRef = await addDoc(collection(db, "forms"), formToSave);
       
-      // Add a reference to 'publicForms' collection
       await addDoc(collection(db, "publicForms"), {
-        formRef: docRef.path, // Store the reference as /forms/{formId}
+        formRef: docRef.path,
         title: newFormTitle,
         createdAt: serverTimestamp()
       });
 
       const newFormWithId = {
-        id: docRef.id, // Get the actual Firestore document ID
+        id: docRef.id,
         ...formToSave,
-        createdAt: new Date(), // Use actual Date object for client-side sorting/display before full re-fetch
-        fields: newFormFields // Keep client-side fields for display until re-fetch
+        createdAt: new Date(),
+        fields: newFormFields
       };
       
       setAllForms(prev => [newFormWithId, ...prev]);
@@ -297,7 +287,7 @@ export default function AdminFormManager() {
       setNewFormTitle("טופס חדש");
       setNewFormFields([{
         id: generateClientId(),
-        label: "שאלה חדודה",
+        label: "שאלה חדשה",
         type: "text",
         required: false,
         options: [],
@@ -319,7 +309,6 @@ export default function AdminFormManager() {
       setLoading(true);
       try {
         await deleteDoc(doc(db, "forms", formId));
-        // TODO: Also consider deleting corresponding entries in 'publicForms' and 'submissions' for full cleanup
         setAllForms(prev => prev.filter(form => form.id !== formId));
       } catch (err) {
         console.error("Error deleting form:", err);
@@ -337,113 +326,132 @@ export default function AdminFormManager() {
       await updateDoc(formDocRef, {
         built_in: !currentStatus
       });
-      // Optimistically update the local state
       setAllForms(prev => prev.map(form =>
         form.id === formId ? { ...form, built_in: !currentStatus } : form
       ));
       console.log(`Form ${formId} built_in status toggled to: ${!currentStatus}`);
     } catch (err) {
-      console.error("Error toggling built-in status:", err); // Improved error logging
+      console.error("Error toggling built-in status:", err);
       setError("שגיאה בשינוי סטטוס הטופס.");
     } finally {
       setLoading(false);
     }
   };
 
-
-  if (loading) return <QuietLoader />;
-
+  if (loading) return <CleanElementalOrbitLoader/>;
+  
   return (
     <DashboardLayout>
-      {/* Compact Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-6">
+      {/* Enhanced Header with Better Layout */}
+        <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-gray-900 mb-1">מנהל טפסים</h1>
-              <p className="text-sm text-gray-600">נהל את הטפסים שלך</p>
-            </div>
-            
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setShowModal(true)}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors duration-200 flex items-center gap-2"
+                className="px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
               >
-                <Plus size={16} />
+                <Plus size={18} />
                 טופס חדש
               </button>
 
               <Link 
                 to="/admin/submissions" 
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2"
+                className="px-6 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
               >
-                <Eye size={16} />
+                <Eye size={18} />
                 תשובות
               </Link>
             </div>
+
+            {/* Center - Title */}
+            <div className="flex-1 text-center">
+              <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5]"
+              >מנהל טפסים</h1>
+            </div>
+
+            {/* Right side - Statistics or additional info */}
+            <div className="flex items-center gap-4 text-sm text-gray-500">
+              <div className="text-center">
+                <div className="font-semibold text-gray-900">{allForms.length}</div>
+                <div>טפסים</div>
+              </div>
+              <div className="text-center">
+                <div className="font-semibold text-red-600">{builtinForms.length}</div>
+                <div>מובנים</div>
+              </div>
+            </div>
           </div>
-        </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-600 text-sm">{error}</p>
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <X className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-red-700 font-medium">{error}</p>
+              </div>
+            </div>
           </div>
         )}
 
         {/* Built-in Forms Section */}
-        <div className="mb-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
-            <FileText size={18} className="text-gray-600" />
-            טפסים מובנים
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-red-100 rounded-lg">
+              <FileText size={24} className="text-red-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">טפסים מובנים</h2>
+              <p className="text-gray-600 text-sm">טפסים מוכנים מראש לשימוש מיידי</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {builtinForms.map((form) => (
-              <div key={form.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow duration-200">
-                <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-sm font-medium text-gray-900 leading-tight">{form.title}</h3>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">מובנה</span>
+              <div key={form.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1">
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 leading-tight flex-1 ml-3">{form.title}</h3>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">מובנה</span>
                     <button
                       onClick={() => toggleBuiltInStatus(form.id, form.built_in)}
-                      className={`p-1 rounded transition-colors duration-200 ${
-                        form.built_in ? 'bg-red-200 text-red-700 hover:bg-red-300' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
-                      title={form.built_in ? 'הגדר כטופס רגיל' : 'הגדר כטופס מובנה'}
+                      className="p-2 bg-red-200 text-red-700 hover:bg-red-300 rounded-lg transition-colors duration-200"
+                      title="הגדר כטופס רגיל"
                     >
-                      <Bookmark size={14} /> {/* Changed to Bookmark icon */}
+                      <Bookmark size={16} />
                     </button>
                   </div>
                 </div>
-                
-                <div className="space-y-2 mb-4 text-xs text-gray-500">
-                  <div className="flex justify-between">
-                    <span>תשובות:</span>
-                    <span className="font-medium">{form.responses !== undefined ? form.responses : 0}</span>
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <span>שדות: {form.fields?.length || 0}</span>
+                    <span>תגובות: {form.responses || 0}</span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    נוצר: {new Date(form.createdAt).toLocaleDateString('he-IL')}
                   </div>
                 </div>
                 
-                <div className="bg-gray-50 rounded p-2 mb-3">
-                  <p className="text-xs text-gray-500 mb-1">קישור:</p>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-600 font-mono truncate">/form/{form.id}</span>
-                    <Link to={`/form/${form.id}`} target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-600">
-                      <ExternalLink size={12} />
-                    </Link>
-                  </div>
+                <div className="flex gap-2">
+                  <Link
+                    to={`/admin/form/${form.id}`}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 text-center rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    <Eye size={16} />
+                    צפייה
+                  </Link>
+                  <Link
+                    to={`/admin/form/${form.id}/responses`}
+                    className="flex-1 px-4 py-2 bg-red-50 text-red-600 text-center rounded-lg hover:bg-red-100 transition-colors duration-200 flex items-center justify-center gap-2"
+                  >
+                    <ExternalLink size={16} />
+                    תגובות
+                  </Link>
                 </div>
-
-                <button
-                  onClick={() => deleteForm(form.id, form.built_in)}
-                  className={`w-full px-3 py-2 text-white rounded text-sm font-medium transition-colors duration-200 ${
-                    form.built_in ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'
-                  }`}
-                  disabled={form.built_in}
-                >
-                  {form.built_in ? 'לא ניתן למחוק' : 'מחק'}
-                </button>
               </div>
             ))}
           </div>
@@ -451,83 +459,79 @@ export default function AdminFormManager() {
 
         {/* User Forms Section */}
         <div>
-          <h2 className="text-lg font-medium text-gray-900 mb-4">הטפסים שלי</h2>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Plus size={24} className="text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">הטפסים שלי</h2>
+              <p className="text-gray-600 text-sm">טפסים שיצרת ונוהל על ידך</p>
+            </div>
+          </div>
           
           {userForms.length === 0 ? (
-            <div className="text-center py-12 bg-white border border-gray-200 rounded-lg">
-              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                <Plus size={24} className="text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-700 mb-2">אין טפסים עדיין</h3>
-              <p className="text-gray-500 mb-4 text-sm">צור את הטופס הראשון שלך</p>
+            <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+              <FileText size={48} className="mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">אין טפסים עדיין</h3>
+              <p className="text-gray-600 mb-4">צור את הטופס הראשון שלך כדי להתחיל</p>
               <button
                 onClick={() => setShowModal(true)}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors duration-200"
+                className="px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors duration-200"
               >
                 צור טופס חדש
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userForms.map((form) => (
-                <div key={form.id} className="group bg-white border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow duration-200">
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-sm font-medium text-gray-900 leading-tight">{form.title}</h3>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div key={form.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1">
+                  <div className="flex items-start justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 leading-tight flex-1 ml-3">{form.title}</h3>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">משלי</span>
                       <button
                         onClick={() => toggleBuiltInStatus(form.id, form.built_in)}
-                        className={`p-1 rounded transition-colors duration-200 ${
-                          form.built_in ? 'bg-red-200 text-red-700 hover:bg-red-300' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                        }`}
-                        title={form.built_in ? 'הגדר כטופס רגיל' : 'הגדר כטופס מובנה'}
+                        className="p-2 bg-blue-200 text-blue-700 hover:bg-blue-300 rounded-lg transition-colors duration-200"
+                        title="הגדר כטופס מובנה"
                       >
-                        <Bookmark size={14} /> {/* Changed to Bookmark icon */}
+                        <Bookmark size={16} />
                       </button>
-                      <Link to={`/form/${form.id}`} target="_blank" rel="noopener noreferrer" className="p-1 text-gray-400 hover:text-gray-600 rounded">
-                        <ExternalLink size={12} />
-                      </Link>
-                      <button 
+                      <button
                         onClick={() => deleteForm(form.id, form.built_in)}
-                        className={`p-1 text-gray-400 rounded ${form.built_in ? 'cursor-not-allowed' : 'hover:text-red-600'}`}
-                        disabled={form.built_in}
+                        className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors duration-200"
+                        title="מחק טופס"
                       >
-                        <Trash2 size={12} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
                   
-                  <div className="space-y-2 mb-4 text-xs text-gray-500">
-                    <div className="flex justify-between">
-                      <span>נוצר:</span>
-                      {/* Convert Firestore Timestamp to readable string for display */}
-                      <span>{form.createdAt && typeof form.createdAt.toDate === 'function' ? form.createdAt.toDate().toLocaleDateString() : 'תאריך לא זמין'}</span>
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center justify-between text-sm text-gray-600">
+                      <span>שדות: {form.fields?.length || 0}</span>
+                      <span>תגובות: {form.responses || 0}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>תשובות:</span>
-                      <span className="font-medium text-red-600">{form.responses !== undefined ? form.responses : 0}</span>
+                    <div className="text-xs text-gray-500">
+                      נוצר: {form.createdAt?.toDate ? form.createdAt.toDate().toLocaleDateString('he-IL') : new Date(form.createdAt).toLocaleDateString('he-IL')}
                     </div>
                   </div>
                   
-                  <div className="bg-gray-50 rounded p-2 mb-3">
-                    <p className="text-xs text-gray-500 mb-1">קישור:</p>
-                    <div className="flex items-center gap-1">
-                      {/* The link now uses the actual Firestore document ID */}
-                      <span className="text-xs text-gray-600 font-mono truncate">/form/{form.id}</span>
-                      <Link to={`/form/${form.id}`} target="_blank" rel="noopener noreferrer" className="text-red-400 hover:text-red-600">
-                        <ExternalLink size={12} />
-                      </Link>
-                    </div>
+                  <div className="flex gap-2">
+                    <Link
+                      to={`/admin/form/${form.id}`}
+                      className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 text-center rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2"
+                    >
+                      <Eye size={16} />
+                      צפייה
+                    </Link>
+                    <Link
+                      to={`/admin/form/${form.id}/responses`}
+                      className="flex-1 px-4 py-2 bg-blue-50 text-blue-600 text-center rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-2"
+                    >
+                      <ExternalLink size={16} />
+                      תגובות
+                    </Link>
                   </div>
-                  
-                  <button
-                    onClick={() => deleteForm(form.id, form.built_in)}
-                    className={`w-full px-3 py-2 text-white rounded text-sm font-medium transition-colors duration-200 ${
-                      form.built_in ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600'
-                    }`}
-                    disabled={form.built_in}
-                  >
-                    {form.built_in ? 'לא ניתן למחוק' : 'מחק'}
-                  </button>
                 </div>
               ))}
             </div>
@@ -535,129 +539,161 @@ export default function AdminFormManager() {
         </div>
       </div>
 
-      {/* Compact Modal */}
+      {/* Modal for Creating New Form */}
       {showModal && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg w-full max-w-3xl max-h-[85vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <input
-                type="text"
-                value={newFormTitle}
-                onChange={(e) => setNewFormTitle(e.target.value)}
-                placeholder="כותרת הטופס"
-                className="text-lg font-medium bg-transparent border-none outline-none flex-1"
-              />
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded ml-2"
-              >
-                <X size={20} />
-              </button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">צור טופס חדש</h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
 
-            <div className="p-4 max-h-[60vh] overflow-y-auto">
-              {newFormFields.map((field, idx) => (
-                <div key={field.id} className="bg-gray-50 rounded-lg p-4 mb-3 relative">
-                  <button
-                    onClick={() => removeQuestion(field.id)}
-                    className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-600 rounded"
-                  >
-                    <X size={14} />
-                  </button>
+            <div className="p-6">
+              {/* Form Title */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  כותרת הטופס
+                </label>
+                <input
+                  type="text"
+                  value={newFormTitle}
+                  onChange={(e) => setNewFormTitle(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200"
+                  placeholder="הכנס כותרת לטופס..."
+                />
+              </div>
 
-                  <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">שאלה:</label>
-                    <input
-                      type="text"
-                      value={field.label}
-                      onChange={(e) => updateQuestion(field.id, "label", e.target.value)}
-                      className="w-full text-sm bg-white border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-500"
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">סוג:</label>
-                    <select
-                      value={field.type}
-                      onChange={(e) => {
-                        const newType = e.target.value;
-                        updateQuestion(field.id, "type", newType);
-                        if (["multipleChoice", "checkboxes", "dropdown"].includes(newType) && 
-                            (!field.options || field.options.length === 0)) {
-                          updateQuestion(field.id, "options", ["אפשרות 1"]);
-                        } else if (!["multipleChoice", "checkboxes", "dropdown"].includes(newType)) {
-                            updateQuestion(field.id, "options", []);
-                        }
-                      }}
-                      className="w-full text-sm bg-white border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-red-500"
-                    >
-                      {QUESTION_TYPES.map((qt) => (
-                        <option key={qt.key} value={qt.key}>{qt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {["multipleChoice", "checkboxes", "dropdown"].includes(field.type) && (
-                    <div className="mb-3 p-3 bg-white rounded border">
-                      <p className="text-xs font-medium text-gray-700 mb-2">אפשרויות:</p>
-                      {field.options.map((option, i) => (
-                        <div key={i} className="flex items-center gap-2 mb-1">
-                          <input
-                            type="text"
-                            value={option}
-                            onChange={(e) => updateOption(field.id, i, e.target.value)}
-                            className="flex-1 text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-red-500"
-                          />
-                          <button
-                            onClick={() => removeOption(field.id, i)}
-                            className="p-1 text-gray-400 hover:text-red-600 rounded"
-                          >
-                            <X size={12} />
-                          </button>
-                        </div>
-                      ))}
+              {/* Form Fields */}
+              <div className="space-y-6">
+                {newFormFields.map((field, index) => (
+                  <div key={field.id} className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-lg font-medium text-gray-900">שאלה {index + 1}</h4>
                       <button
-                        onClick={() => addOption(field.id)}
-                        className="mt-1 text-xs text-red-600 hover:text-red-700 flex items-center gap-1"
+                        onClick={() => removeQuestion(field.id)}
+                        className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors duration-200"
+                        disabled={newFormFields.length === 1}
                       >
-                        <Plus size={12} /> הוסף
+                        <Trash2 size={16} />
                       </button>
                     </div>
-                  )}
 
-                  <label className="inline-flex items-center gap-2 text-xs text-gray-700">
-                    <input
-                      type="checkbox"
-                      checked={field.required}
-                      onChange={(e) => updateQuestion(field.id, "required", e.target.checked)}
-                      className="w-3 h-3 text-red-600 rounded focus:ring-red-500"
-                    />
-                    חובה
-                  </label>
-                </div>
-              ))}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          טקסט השאלה
+                        </label>
+                        <input
+                          type="text"
+                          value={field.label}
+                          onChange={(e) => updateQuestion(field.id, "label", e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          סוג השאלה
+                        </label>
+                        <select
+                          value={field.type}
+                          onChange={(e) => updateQuestion(field.id, "type", e.target.value)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                        >
+                          {QUESTION_TYPES.map((type) => (
+                            <option key={type.key} value={type.key}>
+                              {type.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
 
-              <button
-                onClick={addQuestion}
-                className="w-full py-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors duration-200 border border-dashed border-red-200"
-              >
-                + הוסף שאלה
-              </button>
+                    <div className="flex items-center mb-4">
+                      <input
+                        type="checkbox"
+                        id={`required-${field.id}`}
+                        checked={field.required}
+                        onChange={(e) => updateQuestion(field.id, "required", e.target.checked)}
+                        className="w-4 h-4 text-red-600 bg-gray-100 border-gray-300 rounded focus:ring-red-500"
+                      />
+                      <label htmlFor={`required-${field.id}`} className="mr-2 text-sm font-medium text-gray-700">
+                        שאלה חובה
+                      </label>
+                    </div>
+
+                    {/* Options for multiple choice questions */}
+                    {["multipleChoice", "checkboxes", "dropdown"].includes(field.type) && (
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="text-sm font-medium text-gray-700">אפשרויות</label>
+                          <button
+                            onClick={() => addOption(field.id)}
+                            className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors duration-200"
+                          >
+                            הוסף אפשרות
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {(field.options || []).map((option, optionIndex) => (
+                            <div key={optionIndex} className="flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={option}
+                                onChange={(e) => updateOption(field.id, optionIndex, e.target.value)}
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                placeholder={`אפשרות ${optionIndex + 1}`}
+                              />
+                              <button
+                                onClick={() => removeOption(field.id, optionIndex)}
+                                className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors duration-200"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Add Question Button */}
+              <div className="mt-6 text-center">
+                <button
+                  onClick={addQuestion}
+                  className="px-6 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2 mx-auto"
+                >
+                  <Plus size={18} />
+                  הוסף שאלה
+                </button>
+              </div>
             </div>
 
-            <div className="flex justify-end gap-3 p-4 bg-gray-50 border-t">
-              <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 text-gray-700 text-sm font-medium hover:bg-gray-100 rounded"
-              >
-                ביטול
-              </button>
-              <button
-                onClick={saveForm}
-                className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded hover:bg-red-600 transition-colors duration-200"
-              >
-                שמור
-              </button>
+            {/* Modal Footer */}
+            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 rounded-b-xl">
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200"
+                >
+                  ביטול
+                </button>
+                <button
+                  onClick={saveForm}
+                  disabled={loading}
+                  className="px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "שומר..." : "שמור טופס"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
