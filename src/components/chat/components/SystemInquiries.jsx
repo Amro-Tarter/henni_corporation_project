@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { db, storage } from '@/config/firbaseConfig';
 import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { HiOutlineMailOpen, HiOutlineX } from 'react-icons/hi';
 
 export default function SystemInquiries({ onClose, currentUser, elementColors, onHideSystemCalls, onSent }) {
     const [systemCallRecipient, setSystemCallRecipient] = useState('');
@@ -16,7 +17,16 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
     const [userMap, setUserMap] = useState({});
     const [showDropdown, setShowDropdown] = useState(false);
     const recipientInputRef = useRef(null);
+    const [recipient, setRecipient] = useState('');
 
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const recipient_id = urlParams.get('recipient');
+        if (recipient_id) {
+            setRecipient(recipient_id);
+            setSystemCallRecipient(recipient_id);
+        }
+    }, []);
 
     // Fetch possible recipients from users collection
     useEffect(() => {
@@ -148,36 +158,55 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
     }, [showDropdown]);
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6 min-w-full" dir="rtl">
-            <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8" style={{ border: `2px solid ${elementColors?.primary}` }}>
-                <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold" style={{ color: elementColors?.primary }}>מערכת פניות - פנייה חדשה</h2>
+        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6 min-w-full animate-fade-in" dir="rtl">
+            <div className="w-full max-w-lg bg-white shadow-2xl rounded-2xl p-0 overflow-hidden border-2" style={{ borderColor: elementColors?.primary }}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-8 py-6 bg-gradient-to-l from-white to-gray-50 border-b" style={{ borderColor: elementColors?.primary }}>
+                    <div className="flex items-center gap-3">
+                        <span className="bg-blue-100 p-2 rounded-full">
+                            <HiOutlineMailOpen className="text-2xl" style={{ color: elementColors?.primary }} />
+                        </span>
+                        <h2 className="text-2xl font-bold" style={{ color: elementColors?.primary }}>מערכת פניות - פנייה חדשה</h2>
+                    </div>
                     <button
-                        className="text-lg font-bold"
+                        className="text-2xl font-bold hover:bg-gray-200 rounded-full p-2 transition"
                         style={{ color: elementColors?.primary }}
                         onClick={onClose}
                         aria-label="סגור מערכת פניות"
-                    >✕</button>
+                    >
+                        <HiOutlineX />
+                    </button>
                 </div>
-                <form onSubmit={handleSystemCallSubmit} className="space-y-5">
+                {/* Form */}
+                <form onSubmit={handleSystemCallSubmit} className="space-y-6 px-8 py-6">
                     <div ref={recipientInputRef} className="relative">
                         <label className="block text-sm font-semibold mb-1" style={{ color: elementColors?.primary }}>נמען</label>
-                        <input
+                        {recipient ? <input
+                            disabled
                             type="text"
-                            className="w-full border rounded-lg p-2 text-right focus:ring-2"
+                            className="w-full border rounded-lg p-3 text-right focus:ring-2 focus:ring-blue-200 transition shadow-sm bg-gray-50"
+                            style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
+                            value={recipient}
+                            onChange={handleRecipientInput}
+                            placeholder="התחל להקליד שם..."
+                            autoComplete="off"
+                            required
+                        /> : <input
+                            type="text"
+                            className="w-full border rounded-lg p-3 text-right focus:ring-2 focus:ring-blue-200 transition shadow-sm bg-gray-50"
                             style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
                             value={systemCallRecipient}
                             onChange={handleRecipientInput}
                             placeholder="התחל להקליד שם..."
                             autoComplete="off"
                             required
-                        />
+                        />}
                         {showDropdown && filteredRecipientOptions.length > 0 && (
-                            <div className="absolute z-10 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                            <div className="absolute z-20 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto animate-fade-in border-blue-100">
                                 {filteredRecipientOptions.map(user => (
                                     <div
                                         key={user.id}
-                                        className="p-2 hover:bg-blue-100 cursor-pointer text-right"
+                                        className="p-2 hover:bg-blue-50 cursor-pointer text-right transition"
                                         onClick={() => handleRecipientSelect(user)}
                                     >
                                         {user.username}
@@ -190,7 +219,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                         <label className="block text-sm font-semibold mb-1" style={{ color: elementColors?.primary }}>נושא</label>
                         <input
                             type="text"
-                            className="w-full border rounded-lg p-2 text-right focus:ring-2"
+                            className="w-full border rounded-lg p-3 text-right focus:ring-2 focus:ring-blue-200 transition shadow-sm bg-gray-50"
                             style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
                             value={systemCallSubject}
                             onChange={e => setSystemCallSubject(e.target.value)}
@@ -201,7 +230,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                     <div>
                         <label className="block text-sm font-semibold mb-1" style={{ color: elementColors?.primary }}>תוכן הפנייה</label>
                         <textarea
-                            className="w-full border rounded-lg p-2 text-right focus:ring-2 min-h-[100px]"
+                            className="w-full border rounded-lg p-3 text-right focus:ring-2 focus:ring-blue-200 transition shadow-sm min-h-[120px] bg-gray-50"
                             style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
                             value={systemCallContent}
                             onChange={e => setSystemCallContent(e.target.value)}
@@ -211,26 +240,34 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                     </div>
                     <div>
                         <label className="block text-sm font-semibold mb-1" style={{ color: elementColors?.primary }}>קובץ מצורף (אופציונלי)</label>
-                        <input
-                            type="file"
-                            accept=".pdf,.doc,.docx,image/*"
-                            className="w-full border rounded-lg p-2 text-right"
-                            style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
-                            onChange={handleSystemCallFileChange}
-                        />
-                        {systemCallFile && (
-                            <div className="mt-2 text-xs" style={{ color: elementColors?.primary }}>קובץ נבחר: {systemCallFile.name}</div>
-                        )}
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,image/*"
+                                className="w-full border rounded-lg p-2 text-right bg-gray-50"
+                                style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
+                                onChange={handleSystemCallFileChange}
+                            />
+                            {systemCallFile && (
+                                <span className="text-xs px-2 py-1 rounded bg-blue-50 text-blue-700 border border-blue-200 animate-fade-in">{systemCallFile.name}</span>
+                            )}
+                        </div>
                         {uploadProgress > 0 && uploadProgress < 100 && (
-                            <div className="text-xs text-gray-500 mt-1">העלאה: {Math.round(uploadProgress)}%</div>
+                            <div className="w-full bg-gray-200 rounded-full h-2 mt-2 animate-fade-in">
+                                <div
+                                    className="bg-blue-500 h-2 rounded-full transition-all"
+                                    style={{ width: `${uploadProgress}%` }}
+                                />
+                                <div className="text-xs text-gray-500 mt-1 text-center">העלאה: {Math.round(uploadProgress)}%</div>
+                            </div>
                         )}
                     </div>
                     {systemCallError && (
-                        <div className="text-red-600 text-sm font-semibold">{systemCallError}</div>
+                        <div className="text-red-600 text-sm font-semibold animate-fade-in">{systemCallError}</div>
                     )}
                     <button
                         type="submit"
-                        className="w-full py-3 rounded-lg font-bold text-lg hover:opacity-90 transition-all disabled:opacity-60"
+                        className="w-full py-3 rounded-lg font-bold text-lg hover:opacity-90 transition-all disabled:opacity-60 shadow-md"
                         style={{ background: elementColors?.primary, color: '#fff' }}
                         disabled={isSubmittingSystemCall}
                     >
@@ -238,6 +275,15 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                     </button>
                 </form>
             </div>
+            <style>{`
+                .animate-fade-in {
+                    animation: fadeIn 0.5s;
+                }
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            `}</style>
         </div>
     );
 };

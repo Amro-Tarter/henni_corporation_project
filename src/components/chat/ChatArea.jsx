@@ -44,7 +44,6 @@ export default function ChatArea({
   onShowSystemCalls = () => {},
   ...props
 }) {
-  // All hooks must be called before any return
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
   const [isSendingImage, setIsSendingImage] = useState(false);
@@ -52,7 +51,6 @@ export default function ChatArea({
   const [showInfoSidebar, setShowInfoSidebar] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [liveGroupAvatarURL, setLiveGroupAvatarURL] = useState(null);
-  const [showCreateInquiryDialog, setShowCreateInquiryDialog] = useState(false);
   const {
     isRecording,
     audioURL,
@@ -65,6 +63,7 @@ export default function ChatArea({
   const navigate = useNavigate();
   const [isCreatingMentorChat, setIsCreatingMentorChat] = useState(false);
   const [systemCallsView, setSystemCallsView] = useState('list'); // 'list', 'create', 'details'
+  const [showCreateInquiryDialog, setShowCreateInquiryDialog] = useState(false);
 
   // Show scroll-to-bottom button if user scrolls up too far
   useEffect(() => {
@@ -275,7 +274,30 @@ export default function ChatArea({
     }
   }, [showSystemCalls]);
 
-  // All hooks are now above, so conditional returns are safe
+  // Modal overlay for SystemInquiries
+  const renderSystemInquiriesModal = () => {
+    return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in">
+      <SystemInquiries
+        onClose={() => {setShowCreateInquiryDialog(false); navigate('/chat/inquiry');}}
+        elementColors={elementColors}
+        currentUser={currentUser}
+        setSelectedInquiry={setSelectedInquiry}
+        isLoadingInquiries={isLoadingInquiries}
+        onShowSystemCalls={onShowSystemCalls}
+        onHideSystemCalls={onHideSystemCalls}
+      />
+    </div>
+    )
+  }
+  const urlParams = new URLSearchParams(window.location.search);
+    const recipient_id = urlParams.get('recipient');
+
+  if (showCreateInquiryDialog || recipient_id) {
+    
+    return renderSystemInquiriesModal();
+  }
+
 
 
   if (showSystemCalls) {
@@ -288,30 +310,7 @@ export default function ChatArea({
         </div>
       );
     }
-    if (showCreateInquiryDialog) {
-      if (selectedInquiry) {
-        setSelectedInquiry(null);
-      }
-  
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6 max-h-full" dir="rtl">
-          <SystemInquiries
-            onClose={() => setShowCreateInquiryDialog(false)}
-            elementColors={elementColors}
-            currentUser={currentUser}
-            selectedInquiry={selectedInquiry}
-            isLoadingInquiries={isLoadingInquiries}
-            onShowSystemCalls={onShowSystemCalls}
-            onHideSystemCalls={onHideSystemCalls}
-            onSent={() => setShowCreateInquiryDialog(false)}
-          />
-        </div>
-      );
-    }
     if (selectedInquiry) {
-      if (showCreateInquiryDialog) {
-        setShowCreateInquiryDialog(false);
-      }
       return (
         <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
           <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8" style={{ border: `2px solid ${elementColors.primary}` }}>
@@ -466,7 +465,7 @@ export default function ChatArea({
               <div ref={messagesEndRef} />
             </div>
             {/* ChatInput always at the bottom */}
-            {currentUser.role !== 'admin' && (
+              {(currentUser.role !== 'admin' || (selectedConversation.communityType === 'all_mentors_with_admin' && currentUser.role === 'admin') )&& (
               <ChatInput
                 newMessage={newMessage}
                 setNewMessage={setNewMessage}

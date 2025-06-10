@@ -432,7 +432,6 @@ export default function ChatApp() {
 
   // --- Send Message (handles text and file/image/voice) ---
   const sendMessage = async (opts = {}) => {
-    if (currentUser.role === 'admin') return; // admin cannot send
     // Support: opts.fileOverride, opts.mediaTypeOverride
     const fileToSend = opts.fileOverride || file;
     const mediaTypeOverride = opts.mediaTypeOverride;
@@ -756,7 +755,7 @@ export default function ChatApp() {
   // Reset to /chat if no conversation is selected (e.g., after reload)
   useEffect(() => {
     // Only auto-redirect to main chat if no chatId in URL and nothing is selected
-    if (!chatId && window.location.pathname.startsWith('/chat') && selectedConversation === null) {
+    if (!chatId && window.location.pathname.startsWith('/chat') && selectedConversation === null && !window.location.pathname.startsWith('/chat/inquiry')) {
       navigate('/chat');
     }
     // Don't auto-redirect away if chatId exists, allow time to fetch & select conversation
@@ -945,8 +944,8 @@ export default function ChatApp() {
     if (selectedInquiry) {
       navigate(`/chat/inquiry/${selectedInquiry.id}`);
     } else if (showSystemCalls) {
-      navigate('/chat/inquiries');
-    }
+      navigate('/chat/inquiry');
+    } 
   }, [selectedInquiry, showSystemCalls, navigate]);
 
   if (!authInitialized) {
@@ -1033,7 +1032,7 @@ export default function ChatApp() {
             currentUser={currentUser}
             messages={messages}
             newMessage={newMessage}
-            setNewMessage={currentUser.role === 'admin' ? () => {} : setNewMessage}
+            setNewMessage={setNewMessage}
             sendMessage={sendMessage}
             isSending={isSending}
             isLoadingMessages={isLoadingMessages}
@@ -1043,8 +1042,8 @@ export default function ChatApp() {
             preview={preview}
             isUploading={isUploading}
             uploadProgress={uploadProgress}
-            handleFileChange={currentUser.role === 'admin' ? () => {} : handleFileChange}
-            removeFile={currentUser.role === 'admin' ? () => {} : removeFile}
+            handleFileChange={ handleFileChange}
+            removeFile={removeFile}
             elementColors={elementColors}
             userAvatars={userAvatars}
             activeTab={activeTab}

@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { doc, getDoc, query, getDocs, collection, where, addDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, deleteDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { ELEMENT_COLORS } from './utils/ELEMENT_COLORS';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
 
 export default function ChatInfoSidebar({ open, onClose, conversation, currentUser, messages, elementColors, setSelectedConversation }) {
@@ -1005,6 +1005,9 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
               >
                 מעבר לפרופיל
               </a>
+                <Link to={`/chat/inquiry?recipient=${user.name}`} className="px-4 py-1 rounded transition mb-2" style={{ backgroundColor: elementColors.primary, color: elementColors.light }}>
+                פנה אל המשתמש
+              </Link>
               {/* Images Gallery */}
               <div className="mt-2 font-semibold text-gray-700 mb-2">תמונות שנשלחו על ידי {user.name}:</div>
               {user.userImages.length === 0 ? (

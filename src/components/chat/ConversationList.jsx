@@ -1,10 +1,10 @@
 import { useMemo, useEffect, useState, useRef } from "react";
 import { db } from '@/config/firbaseConfig';
-import { doc, getDoc, collection, query as firestoreQuery, where, getDocs, orderBy } from 'firebase/firestore';
+import { doc, getDoc, collection, query as firestoreQuery, where, getDocs, orderBy, onSnapshot, updateDoc, arrayUnion } from 'firebase/firestore';
 import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
 import { HiOutlineChatBubbleBottomCenterText, HiUserGroup, HiMiniUsers, HiMiniHome } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
-
+import notification from "@/assets/notification.mp3"
 
 /**
  * ConversationList displays the list of conversations.
@@ -28,13 +28,21 @@ export default function ConversationList({
   onHideSystemCalls = () => {},
   selectedInquiry = null,
   setSelectedInquiry = () => {},
-  inquiries = [],
-  isLoadingInquiries = false,
+  inquiries: propInquiries = [],
+  isLoadingInquiries: propIsLoadingInquiries = false,
 }) {
   const [usernames, setUsernames] = useState({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+  const [inquiries, setInquiries] = useState(propInquiries);
+  const [isLoadingInquiries, setIsLoadingInquiries] = useState(propIsLoadingInquiries);
+  const [inquiryUnreadCount, setInquiryUnreadCount] = useState(0);
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
+  const [seenInquiryNotifications, setSeenInquiryNotifications] = useState(new Set());
+  const seenInquiryRef = useRef(new Set());
+  const [unreadCount, setUnreadCount] = useState(0);
+  const prevInquiryUnreadCount = useRef(0);
   // Define filter items
   const filterItems = [
     { icon: HiMiniHome, label: "הכל", type: "all" },
@@ -110,6 +118,85 @@ export default function ConversationList({
     };
   }, [isDropdownOpen]);
 
+  // Real-time listener for inquiries
+  useEffect(() => {
+    if (!showSystemCalls || !currentUser?.uid) return;
+    setIsLoadingInquiries(true);
+    const q = firestoreQuery(
+      collection(db, 'system_of_inquiries'),
+      where('recipient', '==', currentUser.uid),
+      orderBy('createdAt', 'desc')
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setInquiries(docs);
+      setIsLoadingInquiries(false);
+    }, () => setIsLoadingInquiries(false));
+    return () => unsubscribe();
+  }, [showSystemCalls, currentUser?.uid]);
+
+  // Robust unread logic for inquiries
+  useEffect(() => {
+    // Only count as unread if not seen and open
+    const unread = inquiries.filter(inq => !seenInquiryRef.current.has(inq.id) && inq.status !== 'closed').length;
+    setInquiryUnreadCount(unread);
+    setUnreadCount(unread + messageUnreadCount);
+    // Play sound only if unread increased
+    if (unread > prevInquiryUnreadCount.current) {
+      const notificationSound = new Audio(notification);
+      notificationSound.play();
+    }
+    prevInquiryUnreadCount.current = unread;
+  }, [inquiries, seenInquiryNotifications, messageUnreadCount]);
+
+  // When an inquiry is clicked, mark as seen immediately (optimistic update)
+  const handleInquiryClick = (inquiry) => {
+    setSelectedInquiry(inquiry);
+    if (!seenInquiryRef.current.has(inquiry.id) && inquiry.status !== 'closed') {
+      seenInquiryRef.current.add(inquiry.id);
+      setSeenInquiryNotifications(prev => new Set([...prev, inquiry.id]));
+      persistSeenInquiry(inquiry.id);
+    }
+  };
+
+  const urlParams = new URLSearchParams(window.location.search);
+    const recipient_id = urlParams.get('recipient');
+
+  if (window.location.pathname === '/chat/inquiry' && !recipient_id) {
+    onShowSystemCalls();
+  }
+
+  // Fetch seen inquiry notifications from Firestore
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+    const fetchSeenInquiries = async () => {
+      try {
+        const profileDoc = await getDoc(doc(db, 'profiles', currentUser.uid));
+        if (profileDoc.exists()) {
+          const data = profileDoc.data();
+          const seenArr = Array.isArray(data.seenInquiryNotifications) ? data.seenInquiryNotifications : [];
+          seenInquiryRef.current = new Set(seenArr);
+          setSeenInquiryNotifications(new Set(seenArr));
+        }
+      } catch (err) {
+        console.error('Error loading seen inquiry notifications:', err);
+      }
+    };
+    fetchSeenInquiries();
+  }, [currentUser?.uid]);
+
+  // Helper to persist seen inquiryId in Firestore
+  const persistSeenInquiry = async (inquiryId) => {
+    if (!currentUser?.uid || !inquiryId) return;
+    try {
+      await updateDoc(doc(db, 'profiles', currentUser.uid), {
+        seenInquiryNotifications: arrayUnion(inquiryId)
+      });
+    } catch (err) {
+      console.error('Failed to persist seen inquiry notification:', err);
+    }
+  };
+
   return (
     <div className="w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] overflow-y-auto" dir="rtl" onClick={() => setSelectedConversation(null)}>
       <div className="p-2 sm:p-4 sticky top-0 bg-white z-10 border-b border-gray-100">
@@ -124,6 +211,9 @@ export default function ConversationList({
                 >
                   <HiOutlineChatBubbleBottomCenterText className="text-base" />
                   <span>שיחות</span>
+                  {messageUnreadCount > 0 && (
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">{messageUnreadCount}</span>
+                  )}
               </button>
               <button
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 w-1/2 ${showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
@@ -135,6 +225,9 @@ export default function ConversationList({
                   >
                     <HiOutlineChatBubbleBottomCenterText className="text-base" />
                     <span>פניות</span>
+                    {inquiryUnreadCount > 0 && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">{inquiryUnreadCount}</span>
+                    )}
               </button>
       </div>
         <h2 className="text-xs md:text-sm text-gray-500 mt-2">{showSystemCalls ? 'פניות שהתקבלו' : `הודעות (${visibleConversations.length})`}</h2>
@@ -204,16 +297,17 @@ export default function ConversationList({
           ) : inquiries.length === 0 ? (
             <div className="p-4 text-center text-gray-500">לא התקבלו פניות.</div>
           ) : (
-            filteredInquiries.map(inquiry => {
+            filteredInquiries.sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate()).map(inquiry => {
               const isSelected = selectedInquiry?.id === inquiry.id;
               const elementColor = elementColorsMap[currentUser?.element]?.primary || '#2563eb';
               const lightColor = elementColorsMap[currentUser?.element]?.light || '#f5f5f5';
+              const isSeen = seenInquiryRef.current.has(inquiry.id);
               return (
                 <div
                   key={inquiry.id}
                   onClick={e => {
                     e.stopPropagation();
-                    setSelectedInquiry(inquiry);
+                    handleInquiryClick(inquiry);
                   }}
                   className={`p-3 rounded-xl border cursor-pointer flex flex-col gap-2 mb-4 shadow-sm transition-all duration-200 ${isSelected ? 'ring-2 ring-offset-2' : ''}`}
                   style={{
@@ -224,9 +318,10 @@ export default function ConversationList({
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg font-bold" style={{ color: elementColor }}>{inquiry.subject}</span>
-                    <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${inquiry.status === 'closed' ? 'bg-gray-400 text-white' : ''}`} style={inquiry.status !== 'closed' ? { background: elementColor, color: '#fff' } : {}}>
-                      {inquiry.status === 'closed' ? 'סגור' : 'פתוח'}
-                    </span>
+
+                    {(!isSeen && inquiry.status !== 'closed') && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">חדש</span>
+                    )}
                   </div>
                   <div className="text-xs text-gray-600">מאת: {inquiry.senderName || inquiry.sender} {inquiry.senderRole === 'admin' && <span className="text-gray-500">(מנהל)</span>}</div>
                   <div className="text-xs text-gray-500">{inquiry.createdAt?.toDate ? inquiry.createdAt.toDate().toLocaleString() : ''}</div>
@@ -348,7 +443,7 @@ export default function ConversationList({
                         {/* Unread badge */}
                         {conv.unread?.[currentUser.uid] > 0 && (
                           <span
-                            className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-red-500 text-white shadow"
+                            className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white shadow"
                             aria-label={`יש ${conv.unread[currentUser.uid]} הודעות שלא נקראו`}
                             title={`יש ${conv.unread[currentUser.uid]} הודעות שלא נקראו`}
                           >
