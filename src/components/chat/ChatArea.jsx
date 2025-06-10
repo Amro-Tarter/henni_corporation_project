@@ -44,6 +44,7 @@ export default function ChatArea({
   onShowSystemCalls = () => {},
   ...props
 }) {
+  // All hooks must be called before any return
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
   const [isSendingImage, setIsSendingImage] = useState(false);
@@ -51,6 +52,7 @@ export default function ChatArea({
   const [showInfoSidebar, setShowInfoSidebar] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [liveGroupAvatarURL, setLiveGroupAvatarURL] = useState(null);
+  const [showCreateInquiryDialog, setShowCreateInquiryDialog] = useState(false);
   const {
     isRecording,
     audioURL,
@@ -98,18 +100,6 @@ export default function ChatArea({
       if (unsubscribe) unsubscribe();
     };
   }, [selectedConversation && selectedConversation.id, selectedConversation && selectedConversation.type]);
-
-  // Real-time listener for selected inquiry
-  useEffect(() => {
-    if (!selectedInquiry || !selectedInquiry.id) return;
-    const ref = doc(db, 'system_of_inquiries', selectedInquiry.id);
-    const unsubscribe = onSnapshot(ref, (docSnap) => {
-      if (docSnap.exists()) {
-        setSelectedInquiry({ id: docSnap.id, ...docSnap.data() });
-      }
-    });
-    return () => unsubscribe();
-  }, [selectedInquiry && selectedInquiry.id]);
 
   const handleScrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
@@ -285,6 +275,9 @@ export default function ChatArea({
     }
   }, [showSystemCalls]);
 
+  // All hooks are now above, so conditional returns are safe
+
+
   if (showSystemCalls) {
     if (isLoadingInquiries) {
       return (
@@ -295,7 +288,30 @@ export default function ChatArea({
         </div>
       );
     }
+    if (showCreateInquiryDialog) {
+      if (selectedInquiry) {
+        setSelectedInquiry(null);
+      }
+  
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6 max-h-full" dir="rtl">
+          <SystemInquiries
+            onClose={() => setShowCreateInquiryDialog(false)}
+            elementColors={elementColors}
+            currentUser={currentUser}
+            selectedInquiry={selectedInquiry}
+            isLoadingInquiries={isLoadingInquiries}
+            onShowSystemCalls={onShowSystemCalls}
+            onHideSystemCalls={onHideSystemCalls}
+            onSent={() => setShowCreateInquiryDialog(false)}
+          />
+        </div>
+      );
+    }
     if (selectedInquiry) {
+      if (showCreateInquiryDialog) {
+        setShowCreateInquiryDialog(false);
+      }
       return (
         <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
           <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8" style={{ border: `2px solid ${elementColors.primary}` }}>
@@ -343,7 +359,13 @@ export default function ChatArea({
       <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
         <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8 flex flex-col items-center justify-center text-center" style={{ border: `2px solid ${elementColors.primary}` }}>
           <h2 className="text-xl font-bold mb-4" style={{ color: elementColors.primary }}>בחר פנייה כדי להציג את פרטיה</h2>
-          <p className="text-gray-500 mb-4">לחץ על פנייה מהרשימה כדי לראות את כל הפרטים כאן.</p>
+          <button
+            className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300 font-bold text-base"
+            style={{ backgroundColor: elementColors.primary }}
+            onClick={() => setShowCreateInquiryDialog(true)}
+          >
+            צור פנייה חדשה
+          </button>
         </div>
       </div>
     );

@@ -3,7 +3,7 @@ import { db, storage } from '@/config/firbaseConfig';
 import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
-export default function SystemInquiries({ currentUser, elementColors, onHideSystemCalls, onSent }) {
+export default function SystemInquiries({ onClose, currentUser, elementColors, onHideSystemCalls, onSent }) {
     const [systemCallRecipient, setSystemCallRecipient] = useState('');
     const [systemCallRecipientId, setSystemCallRecipientId] = useState('');
     const [systemCallSubject, setSystemCallSubject] = useState('');
@@ -125,7 +125,7 @@ export default function SystemInquiries({ currentUser, elementColors, onHideSyst
             setSystemCallError('');
             if (onSent) onSent();
             alert('הפנייה נשלחה בהצלחה!');
-            onHideSystemCalls();
+            onClose();
         } catch (err) {
             setSystemCallError('שגיאה בשליחת הפנייה: ' + err.message);
             setIsSubmittingSystemCall(false);
@@ -148,14 +148,14 @@ export default function SystemInquiries({ currentUser, elementColors, onHideSyst
     }, [showDropdown]);
 
     return (
-        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
+        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6 min-w-full" dir="rtl">
             <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8" style={{ border: `2px solid ${elementColors?.primary}` }}>
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold" style={{ color: elementColors?.primary }}>מערכת פניות - פנייה חדשה</h2>
                     <button
                         className="text-lg font-bold"
                         style={{ color: elementColors?.primary }}
-                        onClick={onHideSystemCalls}
+                        onClick={onClose}
                         aria-label="סגור מערכת פניות"
                     >✕</button>
                 </div>

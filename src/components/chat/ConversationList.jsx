@@ -213,7 +213,6 @@ export default function ConversationList({
                   key={inquiry.id}
                   onClick={e => {
                     e.stopPropagation();
-                    navigate(`/chat/inquiry/${inquiry.id}`);
                     setSelectedInquiry(inquiry);
                   }}
                   className={`p-3 rounded-xl border cursor-pointer flex flex-col gap-2 mb-4 shadow-sm transition-all duration-200 ${isSelected ? 'ring-2 ring-offset-2' : ''}`}

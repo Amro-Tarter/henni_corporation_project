@@ -624,6 +624,8 @@ export default function ChatApp() {
 
   // When a conversation is selected, always use the full object from conversations array
   const handleSelectConversation = (conv) => {
+    if (showSystemCalls) return;
+
     if (!conv) {
       setSelectedConversation(null);
       navigate(`/chat`);
@@ -655,6 +657,7 @@ export default function ChatApp() {
     } else {
       // If not found, try to fetch directly and set
       const fetchAndSet = async () => {
+        if (showSystemCalls) return;
         try {
           const conversationRef = doc(db, "conversations", convId);
           const conversationDoc = await getDoc(conversationRef);
@@ -685,6 +688,7 @@ export default function ChatApp() {
 
   // Refactor: Only update selectedConversation when chatId changes and conversation is found
   useEffect(() => {
+    if (showSystemCalls) return;
     if (!currentUser.uid || isLoadingConversations) return;
     if (chatId) {
       const conversation = conversations.find(c => c.id === chatId);
@@ -933,10 +937,17 @@ export default function ChatApp() {
         };
         fetchInquiry();
       }
-    } else {
-      setSelectedInquiry(null);
     }
   }, [inquiryId, inquiries]);
+
+  // Add new useEffect for navigation
+  useEffect(() => {
+    if (selectedInquiry) {
+      navigate(`/chat/inquiry/${selectedInquiry.id}`);
+    } else if (showSystemCalls) {
+      navigate('/chat/inquiries');
+    }
+  }, [selectedInquiry, showSystemCalls, navigate]);
 
   if (!authInitialized) {
     return <ElementalLoader />;
