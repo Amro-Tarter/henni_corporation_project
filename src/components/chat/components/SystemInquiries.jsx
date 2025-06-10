@@ -18,15 +18,24 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
     const [showDropdown, setShowDropdown] = useState(false);
     const recipientInputRef = useRef(null);
     const [recipient, setRecipient] = useState('');
+    const [users, setUsers] = useState([]);
 
     useEffect(() => {
+        const fetchUsers = async () => {
+            const usersSnapshot = await getDocs(collection(db, 'users'));
+            const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setUsers(users);
+        };
+        fetchUsers();
         const urlParams = new URLSearchParams(window.location.search);
-        const recipient_id = urlParams.get('recipient');
-        if (recipient_id) {
-            setRecipient(recipient_id);
-            setSystemCallRecipient(recipient_id);
-        }
-    }, []);
+        const recipient_name = urlParams.get('recipient');
+        const recipient_id = users.find(u => u.username === recipient_name)?.id;
+        if (recipient_name) {   
+            setRecipient(recipient_name);
+            setSystemCallRecipient(recipient_name);
+            setSystemCallRecipientId(recipient_id);
+        }   
+    }, [users]);
 
     // Fetch possible recipients from users collection
     useEffect(() => {
@@ -186,8 +195,8 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                             type="text"
                             className="w-full border rounded-lg p-3 text-right focus:ring-2 focus:ring-blue-200 transition shadow-sm bg-gray-50"
                             style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
-                            value={recipient}
                             onChange={handleRecipientInput}
+                            value={recipient}
                             placeholder="התחל להקליד שם..."
                             autoComplete="off"
                             required
@@ -201,7 +210,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                             autoComplete="off"
                             required
                         />}
-                        {showDropdown && filteredRecipientOptions.length > 0 && (
+                        {showDropdown && filteredRecipientOptions.length > 0 && !recipient && (
                             <div className="absolute z-20 w-full bg-white border rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto animate-fade-in border-blue-100">
                                 {filteredRecipientOptions.map(user => (
                                     <div
