@@ -47,6 +47,7 @@ function Signup() {
   const inputStyle = "appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right";
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Removed: elementGradients object is no longer needed
 
@@ -146,7 +147,7 @@ function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center absolute inset-0 bg-red-900 opacity-95 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
+    <div className="min-h-screen flex items-center justify-center absolute inset-0 bg-gradient-to-tl from-red-950 via-red-800 to-orange-600 opacity-95 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
            <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
                {ELEMENTS.map((el, i) => (
                  <div
@@ -313,10 +314,18 @@ function Signup() {
               <button
                 type="submit"
 
-                 className="w-full py-3 rounded-lg bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 font-bold text-white hover:from-amber-400 hover:via-orange-400 hover:to-red-500 transition-all duration-300 flex justify-center items-center space-x-2">
+              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white   transition hover:opacity-95 
+                  shine-button ${
+                  loading
+                    ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 cursor-not-allowed"
+                    : "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                }`}  
+            >
                 הרשם
                 <span className="shine" />
               </button>
+              
+          
             </div>
 
             {/* Login Link */}

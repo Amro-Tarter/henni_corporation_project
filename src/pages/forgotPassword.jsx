@@ -64,7 +64,7 @@ const ForgotPassword = () => {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-cyan-100 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-tl from-red-950 via-red-800 to-orange-600 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
       {/* Floating Element Icons */}
       {/* Floating Element Icons */}
 <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -156,9 +156,9 @@ const ForgotPassword = () => {
   className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white   transition hover:opacity-95 
      shine-button ${
     loading
-      ? "bg-indigo-400 cursor-not-allowed"
-      : "bg-indigo-500 hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-  }`}
+      ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 cursor-not-allowed"
+      : "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+  }`}   
 >
 שלח קישור לאיפוס סיסמה
 <span className="shine" />
