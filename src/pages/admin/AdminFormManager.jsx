@@ -11,111 +11,7 @@ const generateClientId = () => {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
-// Define built-in forms statically in the code.
-const initialBuiltInForms = [
-  {
-    id: 'd9hdg5lqImzEPn8Mnspb',
-    title: 'טופס קליטה לעמותת תלגלות את האור',
-    type: 'builtin',
-    built_in: true,
-    createdAt: new Date('2025-01-01').toISOString(),
-    responses: 0,
-    fields: [
-      { label: 'שם פרטי', type: 'text', required: true },
-      { label: 'שם משפחה', type: 'text', required: true },
-      { label: 'תאריך לידה', type: 'text', required: true },
-      { label: 'גיל', type: 'text', required: true },
-      { label: 'מין', type: 'multipleChoice', required: true, options: ['זכר', 'נקבה'] },
-      { label: 'כתובת מגורים', type: 'text', required: true },
-      { label: 'עיר', type: 'text', required: true },
-      { label: 'מיקוד', type: 'text', required: true },
-      { label: 'בית ספר', type: 'text', required: true },
-      { label: 'כיתה', type: 'text', required: true },
-      { label: 'שם ההורה/אפוטרופוס הראשי', type: 'text', required: true },
-      { label: 'קרבת משפחה', type: 'multipleChoice', required: true, options: ['אם', 'אב', 'סבא/סבתא', 'דוד/דודה', 'אפוטרופוס אחר'] },
-      { label: 'טלפון נייד', type: 'text', required: true },
-      { label: 'טלפון בית', type: 'text', required: false },
-      { label: 'אימייל', type: 'text', required: true },
-      { label: 'מקצוע', type: 'text', required: false },
-      { label: 'מקום עבודה', type: 'text', required: false },
-      { label: 'שם הורה שני', type: 'text', required: false },
-      { label: 'מצב זוגי של ההורים', type: 'multipleChoice', required: true, options: ['נשואים', 'גרושים', 'אלמן/ה', 'רווקים', 'אחר'] },
-      { label: 'מספר ילדים במשפחה', type: 'text', required: true },
-      { label: 'מיקום הילד/ה בין האחים', type: 'text', required: true },
-      { label: 'שפות הדיבור בבית', type: 'text', required: false },
-      { label: 'מצב כלכלי משפחתי', type: 'multipleChoice', required: true, options: ['מעל הממוצע', 'ממוצע', 'מתחת לממוצע', 'קשיים כלכליים'] },
-      { label: 'האם יש לילד/ה בעיות בריאותיות כרוניות?', type: 'multipleChoice', required: true, options: ['כן', 'לא'] },
-      { label: 'פרטי בעיות בריאותיות', type: 'paragraph', required: false },
-      { label: 'האם הילד/ה נוטל/ת תרופות באופן קבוע?', type: 'multipleChoice', required: true, options: ['כן', 'לא'] },
-      { label: 'פרטי תרופות', type: 'paragraph', required: false },
-      { label: 'האם יש אלרגיות?', type: 'multipleChoice', required: true, options: ['כן', 'לא'] },
-      { label: 'פרטי אלרגיות', type: 'paragraph', required: false },
-      { label: 'האם יש מוגבלויות פיזיות או קשיי למידה מאובחנים?', type: 'multipleChoice', required: true, options: ['כן', 'לא'] },
-      { label: 'פרטי מוגבלויות/קשיי למידה', type: 'paragraph', required: false },
-      { label: 'תארו את אישיות הילד/ה', type: 'paragraph', required: true },
-      { label: 'האם הילד/ה מטופל/ת אצל פסיכולוג/עובד סוציאלי/יועץ?', type: 'multipleChoice', required: true, options: ['כן', 'לא'] },
-      { label: 'פרטי הטיפול והסיבה', type: 'paragraph', required: false },
-      { label: 'האם היו אירועים משמעותיים בחיי הילד/ה?', type: 'paragraph', required: false },
-      { label: 'באילו תחומי אמנות הילד/ה מגלה עניין?', type: 'checkboxes', required: false, options: ['תיאטרון/משחק', 'מוזיקה/שירה', 'מחול/תנועה', 'אמנות חזותית', 'כתיבה יוצרת'] },
-      { label: 'האם הילד/ה למד/ה בעבר תחומי אמנות?', type: 'multipleChoice', required: false, options: ['כן', 'לא'] },
-      { label: 'פרטי לימודי אמנות קודמים', type: 'paragraph', required: false },
-      { label: 'תארו כישרונות מיוחדים של הילד/ה', type: 'paragraph', required: false },
-      { label: 'מה הילד/ה הכי אוהב/ת לעשות בזמן הפנוי?', type: 'paragraph', required: false },
-      { label: 'מה הסיבה להצטרפות לעמותה?', type: 'checkboxes', required: true, options: ['פיתוח יכולות אמנותיות', 'חיזוק ביטחון עצמי', 'פיתוח כישורים חברתיים', 'העשרה תרבותית', 'מתן מסגרת תומכת', 'אחר'] },
-      { label: 'מה הציפיות שלכם מהעמותה?', type: 'paragraph', required: false },
-      { label: 'האם יש משהו מיוחד שחשוב לנו לדעת על הילד/ה?', type: 'paragraph', required: false },
-      { label: 'איך שמעתם על העמותה?', type: 'multipleChoice', required: false, options: ['המלצה מחבר/בן משפחה', 'רשתות חברתיות', 'בית ספר', 'אתר אינטרנט', 'אחר'] },
-      { label: 'האם תוכלו להגיע לפעילויות באופן קבוע?', type: 'multipleChoice', required: true, options: ['כן', 'לא בטוח', 'לא'] },
-      { label: 'האם יש לכם דרישות מיוחדות להסעות?', type: 'multipleChoice', required: false, options: ['כן', 'לא'] },
-      { label: 'פרטי דרישות הסעות', type: 'paragraph', required: false },
-      { label: 'הסכמות והצהרות', type: 'checkboxes', required: true, options: [
-        'אני מסכים/ה שהעמותה תיצור קשר עם גורמים רלוונטיים במידת הצורך',
-        'אני מסכים/ה לצילום הילד/ה לצרכי תיעוד ופרסום של העמותה',
-        'אני מתחייב/ת להודיע על שינויים במצב הבריאותי או האישי של הילד/ה',
-        'אני מאשר/ת שכל המידע שמסרתי נכון ומדויק'
-      ]},
-      { label: 'שם חותם של ההורה/אפוטרופוס', type: 'text', required: true },
-      { label: 'תאריך', type: 'text', required: true }
-    ]
-  },
-  {
-    id: 'mentor-prep-form-id',
-    title: 'שאלון הכנה למנטוריות',
-    type: 'builtin',
-    built_in: true,
-    createdAt: new Date('2025-06-06').toISOString(),
-    responses: 0,
-    fields: [
-      { label: 'שם הילד/ה', type: 'text', required: true },
-      { label: 'תאריך', type: 'text', required: true },
-      { label: 'הורים יקרים, כדי שהמנטור יוכל להכין מפגש מותאם ומועיל עבורכם, אנא מלאו את השאלון הקצר הזה ושלחו אותו 2-3 ימים לפני המפגש.', type: 'paragraph', required: false },
-      { label: 'איך הילד/ה מרגיש/ה לאחרונה?', type: 'multipleChoice', required: true, options: ['מאושר/ת ואנרגטי/ת', 'רגוע/ה ומאוזן/ת', 'קצת עצוב/ה או מתוח/ה', 'משתנה הרבה'] },
-      { label: 'שינויים שהבחנתם בהם בזמן האחרון: (התנהגות, מצב רוח, הרגלי שינה, תיאבון וכו\')', type: 'paragraph', required: false },
-      { label: 'האם קרה משהו מיוחד בבית/בבית ספר/בחיים שלו/ה?', type: 'paragraph', required: false },
-      { label: 'איך הילד/ה מספר/ת על הפעילויות בעמותה?', type: 'multipleChoice', required: true, options: ['מתלהב/ת ומספר/ת הרבה', 'אוהב/ת אבל לא מספר/ת הרבה', 'מתלונן/ת לפעמים', 'לא אוהב/ת לדבר על זה'] },
-      { label: 'דברים שהילד/ה הכי אוהב/ת בעמותה:', type: 'paragraph', required: false },
-      { label: 'דברים שגורמים לו/ה קושי או מתח:', type: 'paragraph', required: false },
-      { label: 'בחרו עד 3 נושאים שהכי חשובים לכם לדבר עליהם:', type: 'checkboxes', required: true, options: ['התקדמות הילד/ה בתחום האמנותי', 'התפתחות חברתית ויחסים עם ילדים אחרים', 'בניית ביטחון עצמי', 'התמודדות עם קשיים או אתגרים', 'התנהגות של הילד/ה בבית', 'עבודת שיתוף עם בית הספר', 'יעדים לתקופה הקרובה', 'דרכים שאתם יכולים לעזור בבית', 'אחר'] },
-      { label: 'השאלה הכי חשובה שרציתם לשאול:', type: 'paragraph', required: false },
-      { label: 'איך הילד/ה מתנהג/ת בבית השבועות האחרונים?', type: 'multipleChoice', required: true, options: ['שיתופי/ת ונעים/ה', 'רגיל/ה כמו תמיד', 'קצת עצבני/ת או עקשן/ית', 'סגור/ה ושקט/ה', 'משתנה לפי היום'] },
-      { label: 'האם יש דברים שגורמים במיוחד לעימותים או קושי?', type: 'paragraph', required: false },
-      { label: 'דברים שמשמחים את הילד/ה בזמן האחרון:', type: 'paragraph', required: false },
-      { label: 'האם יש נושא רגיש שחשוב שהמנטור ידע עליו? (גירושין, מחלה במשפחה, קשיים כלכליים, בעיות בבית ספר וכו\')', type: 'paragraph', required: false },
-      { label: 'איך אתם מעדיפים שהמנטור יגיש לילד/ה עצות או ביקורת?', type: 'multipleChoice', required: true, options: ['ישירות וברור', 'בעדינות ובהדרגה', 'דרך סיפורים ודוגמאות', 'בהומור'] },
-      { label: 'האם יש דברים שהילד/ה לא אוהב/ת לשמוע או שגורמים לו/ה לסגירות?', type: 'paragraph', required: false },
-      { label: 'מה אתם הכי מקווים לקבל מהשיחה הזאת?', type: 'checkboxes', required: true, options: ['הבנת המצב הנוכחי של הילד/ה', 'כלים מעשיים לטיפול בבעיות', 'עידוד וחיזוק שאתם בדרך הנכונה', 'יעדים ברורים לתקופה הקרובה', 'הכנה לאירוע או שינוי מתוכנן', 'אחר'] },
-      { label: 'בסיום השיחה, איך תדעו שהיא הייתה מוצלחת עבורכם?', type: 'paragraph', required: false },
-      { label: 'עדיפות זמן לשיחה:', type: 'multipleChoice', required: true, options: ['בוקר', 'צהריים', 'אחר הצהריים', 'ערב'] },
-      { label: 'איך מעדיפים לקיים את השיחה?', type: 'multipleChoice', required: true, options: ['פגישה פיזית', 'זום/שיחת וידאו', 'שיחת טלפון'] },
-      { label: 'משך זמן מועדף:', type: 'multipleChoice', required: true, options: ['30 דקות', '45 דקות', 'שעה', 'יותר אם נדרש'] },
-      { label: 'האם תרצו שהילד/ה יהיה/תהיה חלק מהשיחה?', type: 'multipleChoice', required: true, options: ['כן', 'כל השיחה', 'כן', 'חלק מהשיחה', 'לא', 'רק ההורים'] },
-      { label: 'שם ההורה הממלא:', type: 'text', required: true },
-      { label: 'חתימה:', type: 'text', required: true },
-      { label: 'תאריך', type: 'text', required: true }
-    ]
-  }
-];
-
+// Define
 const QUESTION_TYPES = [
   { key: "text", label: "תשובה קצרה" },
   { key: "paragraph", label: "פסקה" },
@@ -125,15 +21,6 @@ const QUESTION_TYPES = [
   { key: "date", label: "תאריך" },
 ];
 
-// Simplified Loader Component
-function QuietLoader() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-8 h-8 border-2 border-red-200 border-t-red-500 rounded-full animate-spin mb-4"></div>
-      <p className="text-sm text-gray-500">טוען...</p>
-    </div>
-  );
-}
 
 export default function AdminFormManager() {
   const [allForms, setAllForms] = useState([]);
@@ -438,14 +325,14 @@ export default function AdminFormManager() {
                 
                 <div className="flex gap-2">
                   <Link
-                    to={`/admin/form/${form.id}`}
+                    to={`/form/${form.id}`}
                     className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 text-center rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2"
                   >
                     <Eye size={16} />
                     צפייה
                   </Link>
                   <Link
-                    to={`/admin/form/${form.id}/responses`}
+                    to={`/admin/submissions`}
                     className="flex-1 px-4 py-2 bg-red-50 text-red-600 text-center rounded-lg hover:bg-red-100 transition-colors duration-200 flex items-center justify-center gap-2"
                   >
                     <ExternalLink size={16} />
@@ -518,14 +405,14 @@ export default function AdminFormManager() {
                   
                   <div className="flex gap-2">
                     <Link
-                      to={`/admin/form/${form.id}`}
+                      to={`/admin/submissions`}
                       className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 text-center rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2"
                     >
                       <Eye size={16} />
                       צפייה
                     </Link>
                     <Link
-                      to={`/admin/form/${form.id}/responses`}
+                      to={`/admin/submissions`}
                       className="flex-1 px-4 py-2 bg-blue-50 text-blue-600 text-center rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-2"
                     >
                       <ExternalLink size={16} />

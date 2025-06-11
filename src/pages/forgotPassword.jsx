@@ -4,6 +4,7 @@ import { auth } from "../config/firbaseConfig";
 import { Link } from "react-router-dom";
 import Notification from "../components/Notification"; // ✅ import notification
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {  Loader } from "lucide-react";
 import {
   faLeaf,
   faHammer,
@@ -159,10 +160,11 @@ const ForgotPassword = () => {
       ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 cursor-not-allowed"
       : "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
   }`}   
->
-שלח קישור לאיפוס סיסמה
-<span className="shine" />
-</button>
+    >
+                    {loading ? <Loader className="animate-spin" size={20}/> : '    שלח קישור לאיפוס סיסמה'}
+
+    <span className="shine" />
+    </button>
 
           </div>
         </form>

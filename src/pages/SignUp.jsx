@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth ,db } from "../config/firbaseConfig";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { Loader } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faLeaf,
@@ -321,7 +322,8 @@ function Signup() {
                     : "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2"
                 }`}  
             >
-                הרשם
+                {loading ? <Loader className="animate-spin" size={20}/> : 'הרשם'}
+
                 <span className="shine" />
               </button>
               
