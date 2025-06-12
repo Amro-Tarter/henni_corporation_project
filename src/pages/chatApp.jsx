@@ -37,7 +37,12 @@ import Rightsidebar from "../components/social/Rightsidebar";
 function Notification({ message, type, onClose, elementColors, actions }) {
   return (
     <div
-      className={`fixed top-8 right-8 z-50 min-w-[260px] max-w-xs px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in border-2`}
+      className={
+        `fixed z-50 min-w-[260px] px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in border-2
+        top-4 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm
+        sm:top-8 sm:left-auto sm:right-8 sm:-translate-x-0 sm:w-auto sm:max-w-xs
+        md:top-20`
+      }
       style={{
         background: type === 'success' ? elementColors?.light : type === 'error' ? '#fff0f0' : '#fef9c3',
         borderColor: type === 'success' ? elementColors?.primary : type === 'error' ? '#f87171' : '#facc15',
@@ -1029,7 +1034,7 @@ export default function ChatApp() {
         <Navbar element={userElement} className="hidden md:block"/>
         <Rightsidebar element={userElement} onExpandChange={setIsRightOpen}/>
       </ThemeProvider>
-      <div className="h-[calc(100vh-4rem)] mt-16 w-full flex flex-row overflow-hidden bg-gray-50">
+      <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 ${mobilePanel === 'conversations' ? 'mt-14' : 'mt-16'}`}>
 
         {/* TEMP: Admin-only delete all conversations button 
         <button
@@ -1094,8 +1099,9 @@ export default function ChatApp() {
               ← חזרה לרשימת שיחות
             </button>
           )}
-          <div className="flex-1 flex flex-col h-full">
-            <ChatArea
+          <div className={`flex-1 flex flex-col h-full`}>
+            <ChatArea 
+              mobilePanel={mobilePanel}
               selectedConversation={selectedConversation}
               currentUser={currentUser}
               messages={messages}
