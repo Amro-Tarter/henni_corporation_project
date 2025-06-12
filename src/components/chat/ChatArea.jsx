@@ -42,6 +42,7 @@ export default function ChatArea({
   setSelectedInquiry = () => {},
   isLoadingInquiries = false,
   onShowSystemCalls = () => {},
+  setNotification,
   ...props
 }) {
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
@@ -130,7 +131,10 @@ export default function ChatArea({
   // Handler to navigate participant to their mentor chat (create if not exists)
   const handleGoToMentorChat = async () => {
     if (!currentUser?.mentorName || !currentUser?.uid) {
-      alert("לא מוגדר שם מנחה בפרופיל שלך. פנה למנהל המערכת.");
+      if (setNotification) {
+        setNotification({ message: "לא מוגדר שם מנחה בפרופיל שלך. פנה למנהל המערכת.", type: 'warning' });
+        setTimeout(() => setNotification(null), 3500);
+      }
       return;
     }
     // Find mentor by username (mentorName)
@@ -167,13 +171,19 @@ export default function ChatArea({
           mentorUid = mentorDoc.id;
           mentorUsername = mentorDoc.data().username;
         } else {
-          alert("לא נמצא משתמש מנחה עם שם זה. פנה למנהל המערכת.");
+          if (setNotification) {
+            setNotification({ message: "לא נמצא משתמש מנחה עם שם זה. פנה למנהל המערכת.", type: 'error' });
+            setTimeout(() => setNotification(null), 3500);
+          }
           return;
         }
       }
     } catch (err) {
       console.error("Error finding mentor:", err);
-      alert("שגיאה בחיפוש מנחה. נסה שוב.");
+      if (setNotification) {
+        setNotification({ message: "שגיאה בחיפוש מנחה. נסה שוב.", type: 'error' });
+        setTimeout(() => setNotification(null), 3500);
+      }
       return;
     }
     // Find direct conversation with mentor
@@ -214,10 +224,16 @@ export default function ChatArea({
         setSelectedConversation({ id: newConvo.id, ...newConvo.data() });
         navigate(`/chat/${newConvo.id}`);
       } else {
-        alert("שגיאה ביצירת צ'אט עם המנחה. נסה שוב.");
+        if (setNotification) {
+          setNotification({ message: "שגיאה ביצירת צ'אט עם המנחה. נסה שוב.", type: 'error' });
+          setTimeout(() => setNotification(null), 3500);
+        }
       }
     } catch (err) {
-      alert("שגיאה ביצירת צ'אט עם המנחה. נסה שוב.");
+      if (setNotification) {
+        setNotification({ message: "שגיאה ביצירת צ'אט עם המנחה. נסה שוב.", type: 'error' });
+        setTimeout(() => setNotification(null), 3500);
+      }
     } finally {
       setIsCreatingMentorChat(false);
     }
@@ -251,22 +267,6 @@ export default function ChatArea({
     if (window.innerWidth < 768 && setMobilePanel) setMobilePanel('conversations');
   };
 
-  // Determine possible recipients
-  let possibleRecipients = [];
-  if (currentUser.role === "admin") {
-    possibleRecipients = conversations
-      .filter(c => c.type === "direct")
-      .flatMap(c => c.participants)
-      .filter(uid => uid !== currentUser.uid);
-  } else {
-    // mentor or participant can only send to admin
-    possibleRecipients = conversations
-      .filter(c => c.type === "direct")
-      .flatMap(c => c.participants)
-      .filter(uid => uid !== currentUser.uid && (conversations.find(conv => conv.type === 'direct' && conv.participants.includes(uid))?.participantNames?.some(name => name.toLowerCase().includes('admin'))));
-  }
-  possibleRecipients = Array.from(new Set(possibleRecipients));
-
   // Reset systemCallsView when entering/exiting system calls
   useEffect(() => {
     if (showSystemCalls) {
@@ -286,6 +286,7 @@ export default function ChatArea({
         isLoadingInquiries={isLoadingInquiries}
         onShowSystemCalls={onShowSystemCalls}
         onHideSystemCalls={onHideSystemCalls}
+        setNotification={setNotification}
       />
     </div>
     )
@@ -363,7 +364,7 @@ export default function ChatArea({
             style={{ backgroundColor: elementColors.primary }}
             onClick={() => setShowCreateInquiryDialog(true)}
           >
-            צור פנייה חדשה
+             צור פנייה חדשה ל{currentUser.role !== 'admin' ? 'מנהל/ת' : 'מנחה או לילד'}
           </button>
         </div>
       </div>
@@ -489,7 +490,10 @@ export default function ChatArea({
                       return;
                     } catch (error) {
                       console.error("Error sending voice message:", error);
-                      alert("Failed to send voice message. Please try again.");
+                      if (setNotification) {
+                        setNotification({ message: "Failed to send voice message. Please try again.", type: 'error' });
+                        setTimeout(() => setNotification(null), 3500);
+                      }
                       return;
                     }
                   }
@@ -505,6 +509,10 @@ export default function ChatArea({
                     }
                   } catch (error) {
                     console.error("Error sending message:", error);
+                    if (setNotification) {
+                      setNotification({ message: "שגיאה בשליחת הודעה. נסה שוב.", type: 'error' });
+                      setTimeout(() => setNotification(null), 3500);
+                    }
                     setIsSendingImage(false);
                   }
                 }}
