@@ -934,7 +934,7 @@ function Users() {
 
   const handleViewUser = useCallback((user) => {
     // Navigate to user profile - implement based on your routing
-    window.open(`/profile/${user.id}`, '_blank');
+    window.open(`/profile/${user.username}`, '_blank');
   }, []);
 
   // Effects
