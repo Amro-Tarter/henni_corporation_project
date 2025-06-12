@@ -44,9 +44,6 @@ export const NotificationsProvider = ({ children }) => {
   const seenPostsRef = useRef(new Set());
   const seenCommentsRef = useRef(new Set());
   const navigate = useNavigate();
-  const [inquiryUnreadCount, setInquiryUnreadCount] = useState(0);
-  const [seenInquiryNotifications, setSeenInquiryNotifications] = useState(new Set());
-  const seenInquiryRef = useRef(new Set());
 
   // Listen to auth state changes
   useEffect(() => {
@@ -549,55 +546,66 @@ export const NotificationsProvider = ({ children }) => {
     };
   }, [user, seenCommentsLoaded, userPosts, userCommentedPosts]);
 
-  // Listen for new inquiries (system_of_inquiries) for the current user
+  // Listen for new closed inquiries for the current user
   useEffect(() => {
     if (!user) return;
+    // Listen for inquiries with status 'closed' where recipient is the current user
     const inquiriesQuery = query(
       collection(db, 'system_of_inquiries'),
       where('recipient', '==', user.uid),
+      where('status', '==', 'closed'),
       orderBy('createdAt', 'desc')
     );
-    const unsubscribe = onSnapshot(inquiriesQuery, (snapshot) => {
-      const inquiryNotifications = [];
-      let unread = 0;
-      snapshot.docs.forEach(doc => {
-        const inquiry = doc.data();
-        const isSeen = seenInquiryRef.current.has(doc.id);
-        // Only show unread badge if not seen and open
-        if (!isSeen && inquiry.status !== 'closed') {
-          unread++;
+    const unsubscribe = onSnapshot(inquiriesQuery, async (snapshot) => {
+      try {
+        const inquiryNotifications = [];
+        const now = Date.now();
+        const dayInMs = 24 * 60 * 60 * 1000;
+        snapshot.docs.forEach(docSnap => {
+          const inquiry = docSnap.data();
+          const inquiryId = docSnap.id;
+          // Only show inquiries from the last 24 hours
+          const createdAt = inquiry.createdAt?.toMillis ? inquiry.createdAt.toMillis() : 0;
+          if (now - createdAt > dayInMs) return;
+          // Avoid duplicate notifications
+          if (notifications.some(n => n.id === `inquiry_${inquiryId}`)) return;
+          inquiryNotifications.push({
+            id: `inquiry_${inquiryId}`,
+            type: 'inquiry',
+            message: `פנייה חדשה: ${inquiry.subject}`,
+            timestamp: inquiry.createdAt,
+            senderId: inquiry.sender,
+            senderName: inquiry.senderName || 'משתמש',
+            inquiryId: inquiryId,
+            subject: inquiry.subject,
+            content: inquiry.content,
+            unreadCount: 1,
+            conversationType: 'inquiry',
+          });
+        });
+        if (inquiryNotifications.length > 0) {
+          setNotifications(prevNotifications => {
+            const existingIds = new Set(prevNotifications.map(n => n.id));
+            const newNotifications = inquiryNotifications.filter(n => !existingIds.has(n.id));
+            if (newNotifications.length > 0) {
+              const combined = [...newNotifications, ...prevNotifications];
+              combined.sort((a, b) => {
+                const timeA = a.timestamp?.toMillis?.() || 0;
+                const timeB = b.timestamp?.toMillis?.() || 0;
+                return timeB - timeA;
+              });
+              return combined;
+            }
+            return prevNotifications;
+          });
+          setUnreadCount(prev => prev + inquiryNotifications.length);
         }
-        inquiryNotifications.push({
-          id: `inquiry_${doc.id}`,
-          type: 'inquiry',
-          message: inquiry.subject || 'פנייה חדשה',
-          timestamp: inquiry.createdAt,
-          senderId: inquiry.sender,
-          senderName: inquiry.senderName || 'מערכת',
-          inquiryId: doc.id,
-          inquirySubject: inquiry.subject,
-          inquiryContent: inquiry.content?.substring(0, 100) || '',
-          unreadCount: (!isSeen && inquiry.status !== 'closed') ? 1 : 0,
-          conversationType: 'inquiry',
-          status: inquiry.status,
-        });
-      });
-      setNotifications(prevNotifications => {
-        // Remove old inquiry notifications
-        const nonInquiry = prevNotifications.filter(n => n.type !== 'inquiry');
-        const combined = [...inquiryNotifications, ...nonInquiry];
-        combined.sort((a, b) => {
-          const timeA = a.timestamp?.toMillis?.() || a.timestamp?.getTime?.() || 0;
-          const timeB = b.timestamp?.toMillis?.() || b.timestamp?.getTime?.() || 0;
-          return timeB - timeA;
-        });
-        return combined;
-      });
-      setInquiryUnreadCount(unread);
-      setUnreadCount(unread + messageUnreadCount + postUnreadCount + commentUnreadCount);
+      } catch (error) {
+        console.error('Error processing inquiry notifications:', error);
+      }
     });
     return () => unsubscribe();
-  }, [user, messageUnreadCount, postUnreadCount, commentUnreadCount, seenInquiryNotifications]);
+  }, [user, notifications]);
 
   // Fetch profile pictures
   useEffect(() => {
@@ -691,18 +699,6 @@ export const NotificationsProvider = ({ children }) => {
     }
   };
 
-  // Helper to persist seen inquiryId in Firestore
-  const persistSeenInquiry = async (inquiryId) => {
-    if (!user || !inquiryId) return;
-    try {
-      await updateDoc(firestoreDoc(db, 'profiles', user.uid), {
-        seenInquiryNotifications: arrayUnion(inquiryId)
-      });
-    } catch (err) {
-      console.error('Failed to persist seen inquiry notification:', err);
-    }
-  };
-
   const handleNotificationClick = async (notification) => {
     console.log('handleNotificationClick:', notification);
     
@@ -776,13 +772,15 @@ export const NotificationsProvider = ({ children }) => {
         }, 300);
         
       } else if (notification.type === 'inquiry') {
-        // Mark as seen
-        seenInquiryRef.current.add(notification.inquiryId);
-        setSeenInquiryNotifications(prev => new Set([...prev, notification.inquiryId]));
-        persistSeenInquiry(notification.inquiryId);
-        setNotifications(prevNotifications => prevNotifications.filter(n => n.id !== notification.id));
+        // Handle inquiry notifications
+        // Mark inquiry as open in Firestore
+        await updateDoc(firestoreDoc(db, 'system_of_inquiries', notification.inquiryId), {
+          status: 'open'
+        });
+        setNotifications(prevNotifications => 
+          prevNotifications.filter(n => n.id !== notification.id)
+        );
         setUnreadCount(prev => Math.max(0, prev - 1));
-        setInquiryUnreadCount(prev => Math.max(0, prev - 1));
         setShowNotifications(false);
         setTimeout(() => {
           navigate(`/chat/inquiry/${notification.inquiryId}`);
@@ -858,11 +856,7 @@ export const NotificationsProvider = ({ children }) => {
         seenCommentsRef.current.add(notification.commentId);
         setSeenComments(prev => new Set([...prev, notification.commentId]));
         persistSeenComment(notification.commentId);
-      } else if (notification.type === 'inquiry' && notification.inquiryId) {
-        seenInquiryRef.current.add(notification.inquiryId);
-        setSeenInquiryNotifications(prev => new Set([...prev, notification.inquiryId]));
-        persistSeenInquiry(notification.inquiryId);
-      } 
+      }
     });
     
     setNotifications([]);
@@ -870,7 +864,7 @@ export const NotificationsProvider = ({ children }) => {
     setMessageUnreadCount(0);
     setPostUnreadCount(0);
     setCommentUnreadCount(0);
-    setInquiryUnreadCount(0);
+    
     setTimeout(() => {
       setIsProcessing(false);
     }, 300);
@@ -967,8 +961,19 @@ export const NotificationsProvider = ({ children }) => {
                           </div>
                         </div>
                       ) : notification.type === 'inquiry' ? (
-                        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-yellow-100 border-2 border-yellow-300 text-yellow-700 text-2xl font-bold">
-                          📩
+                        <div className="relative">
+                          <img
+                            src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
+                            alt="Profile"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://ui-avatars.com/api/?name=User&background=random';
+                            }}
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs">📩</span>
+                          </div>
                         </div>
                       ) : (
                         <img
@@ -1015,20 +1020,24 @@ export const NotificationsProvider = ({ children }) => {
                               </>
                             ) : notification.type === 'inquiry' ? (
                               <>
-                                <span className="font-bold">{notification.inquirySubject}</span>
-                                {notification.inquiryContent && (
+                                {notification.message}
+                                {notification.subject && (
                                   <span className="block text-xs text-gray-500 mt-1 italic">
-                                    "{notification.inquiryContent}..."
+                                    "{notification.subject}"
                                   </span>
                                 )}
-                                <span className={`block text-xs mt-1 font-bold ${notification.status === 'closed' ? 'text-gray-400' : 'text-yellow-700'}`}>{notification.status === 'closed' ? 'סגור' : 'פתוח'}</span>
+                                {notification.content && (
+                                  <span className="block text-xs text-gray-400 mt-1">
+                                    {notification.content.length > 60 ? notification.content.substring(0, 60) + '...' : notification.content}
+                                  </span>
+                                )}
                               </>
                             ) : (
                               notification.message
                             )}
                           </p>
                           <span className="text-sm text-gray-500">
-                            {notification.timestamp?.toDate?.().toLocaleString('he-IL', {
+                            {notification.timestamp?.toDate().toLocaleString('he-IL', {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric',

@@ -4,7 +4,8 @@ import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { HiOutlineMailOpen, HiOutlineX } from 'react-icons/hi';
 
-export default function SystemInquiries({ onClose, currentUser, elementColors, onHideSystemCalls, onSent }) {
+
+export default function SystemInquiries({ onClose, currentUser, elementColors, onHideSystemCalls, onSent, setNotification }) {
     const [systemCallRecipient, setSystemCallRecipient] = useState('');
     const [systemCallRecipientId, setSystemCallRecipientId] = useState('');
     const [systemCallSubject, setSystemCallSubject] = useState('');
@@ -85,14 +86,20 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
         setSystemCallError('');
         if (!systemCallRecipientId) {
             setSystemCallError('יש לבחור נמען מהרשימה.');
+            setNotification && setNotification({ message: 'יש לבחור נמען מהרשימה.', type: 'error' });
+            setTimeout(() => setNotification && setNotification(null), 3500);
             return;
         }
         if (!systemCallSubject.trim()) {
             setSystemCallError('יש להזין נושא.');
+            setNotification && setNotification({ message: 'יש להזין נושא.', type: 'error' });
+            setTimeout(() => setNotification && setNotification(null), 3500);
             return;
         }
         if (!systemCallContent.trim()) {
             setSystemCallError('יש להזין תוכן הפנייה.');
+            setNotification && setNotification({ message: 'יש להזין תוכן הפנייה.', type: 'error' });
+            setTimeout(() => setNotification && setNotification(null), 3500);
             return;
         }
         setIsSubmittingSystemCall(true);
@@ -132,7 +139,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                 content: systemCallContent,
                 createdAt: serverTimestamp(),
                 ...(fileUrl ? { fileUrl, ...fileMeta } : {}),
-                status: 'open',
+                status: 'closed',
             };
             await addDoc(collection(db, 'system_of_inquiries'), inquiryData);
             setIsSubmittingSystemCall(false);
@@ -143,11 +150,16 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
             setSystemCallRecipientId('');
             setSystemCallError('');
             if (onSent) onSent();
-            alert('הפנייה נשלחה בהצלחה!');
-            onClose();
+            setNotification({ message: 'הפנייה נשלחה בהצלחה!', type: 'success' });
+            setTimeout(() => {
+                setNotification(null);
+                onClose();
+            }, 2500);
         } catch (err) {
             setSystemCallError('שגיאה בשליחת הפנייה: ' + err.message);
             setIsSubmittingSystemCall(false);
+            setNotification({ message: 'שגיאה בשליחת הפנייה: ' + err.message, type: 'error' });
+            setTimeout(() => setNotification(null), 3500);
         }
     };
 
@@ -168,6 +180,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6 min-w-full animate-fade-in" dir="rtl">
+
             <div className="w-full max-w-lg bg-white shadow-2xl rounded-2xl p-0 overflow-hidden border-2" style={{ borderColor: elementColors?.primary }}>
                 {/* Header */}
                 <div className="flex items-center justify-between px-8 py-6 bg-gradient-to-l from-white to-gray-50 border-b" style={{ borderColor: elementColors?.primary }}>
@@ -218,7 +231,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                                         className="p-2 hover:bg-blue-50 cursor-pointer text-right transition"
                                         onClick={() => handleRecipientSelect(user)}
                                     >
-                                        {user.username}
+                                        {user.username} {user.role === 'admin' ? '(מנהל)' : user.role === 'mentor' ? '(מנחה)' : user.role === 'participant' ? '(משתתף)' : ''}
                                     </div>
                                 ))}
                             </div>

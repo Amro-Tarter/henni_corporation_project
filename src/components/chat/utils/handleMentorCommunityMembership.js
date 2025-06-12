@@ -105,7 +105,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
     console.log('handleMentorCommunity called with:', { mentorId, mentorUsername });
     // Find all mentees for this mentor
     const myParticipants = allUsers.filter(u => 
-      u.role === 'participant' && u.mentorName === mentorUsername
+      u.role === 'participant' && u.mentors.includes(mentorId)
     );
     
     const participantIds = myParticipants.map(u => u.id);
@@ -215,19 +215,14 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
     const allMentors = allUsers.filter(u => u.role === 'mentor');
     const mentorIds = allMentors.map(u => u.id);
     const mentorNames = allMentors.map(u => u.username);
-    
-    const queryRef = query(
-      collection(db, "conversations"),
-      where("type", "==", "community"),
-      where("communityType", "==", "all_mentors")
-    );
-    
-    const snapshot = await getDocs(queryRef);
-    
-    if (snapshot.empty) {
+
+    // Use a fixed document ID for the all_mentors community
+    const docRef = doc(db, "conversations", "all_mentors");
+    const docSnap = await getDoc(docRef);
+
+    if (!docSnap.exists()) {
       // Create new community
-      const newRef = doc(collection(db, "conversations"));
-      await setDoc(newRef, {
+      await setDoc(docRef, {
         type: "community",
         communityType: "all_mentors",
         participants: mentorIds,
@@ -236,19 +231,18 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         lastUpdated: serverTimestamp(),
         createdAt: serverTimestamp(),
       });
-      await addDoc(collection(db, "conversations", newRef.id, "messages"), {
+      await addDoc(collection(db, "conversations", "all_mentors", "messages"), {
         text: COMMUNITY_DESCRIPTIONS.all_mentors,
         type: "system",
         createdAt: serverTimestamp(),
       });
     } else {
-      // Update existing community
-      const docRef = snapshot.docs[0].ref;
-      const data = snapshot.docs[0].data();
-      
+      const data = docSnap.data();
       // Check if update needed
-      if (mentorIds.length !== data.participants.length ||
-          !mentorIds.every(id => data.participants.includes(id))) {
+      if (
+        mentorIds.length !== data.participants.length ||
+        !mentorIds.every(id => data.participants.includes(id))
+      ) {
         await updateDoc(docRef, {
           participants: mentorIds,
           participantNames: mentorNames,
