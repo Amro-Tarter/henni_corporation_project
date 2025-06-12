@@ -1072,7 +1072,7 @@ export default function ChatApp() {
       </ThemeProvider>
       <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 ${mobilePanel === 'conversations' ? 'mt-14' : 'mt-16'}`}>
 
-        {currentUser.role === 'mentor' && (
+        {currentUser.role === 'admin' && (
           <div className="flex flex-row gap-2">
             <button
               onClick={delete_all_inquiries}
