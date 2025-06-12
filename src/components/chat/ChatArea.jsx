@@ -364,7 +364,7 @@ export default function ChatArea({
             style={{ backgroundColor: elementColors.primary }}
             onClick={() => setShowCreateInquiryDialog(true)}
           >
-            צור פנייה חדשה
+             צור פנייה חדשה ל{currentUser.role !== 'admin' ? 'מנהל/ת' : 'מנחה או לילד'}
           </button>
         </div>
       </div>

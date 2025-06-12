@@ -231,7 +231,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                                         className="p-2 hover:bg-blue-50 cursor-pointer text-right transition"
                                         onClick={() => handleRecipientSelect(user)}
                                     >
-                                        {user.username}
+                                        {user.username} {user.role === 'admin' ? '(מנהל)' : user.role === 'mentor' ? '(מנחה)' : user.role === 'participant' ? '(משתתף)' : ''}
                                     </div>
                                 ))}
                             </div>
