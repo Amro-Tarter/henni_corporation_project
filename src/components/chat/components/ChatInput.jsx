@@ -123,10 +123,10 @@ const ChatInput = memo(({
         >
           <label className='cursor-pointer text-gray-500 hover:scale-105 flex items-center justify-center w-auto' style={{color: elementColors.primary, borderColor: elementColors.primary, backgroundColor: elementColors.light}}>
             <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} disabled={!!newMessage.trim()} />
-            <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="5" width="20" height="16" rx="2" strokeWidth="2" />
-              <path d="M21 19l-5.5-7-4.5 6-3-4-4 5" strokeWidth="2" />
-              <circle cx="7.5" cy="9.5" r="1.5" strokeWidth="2" />
+            <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="5" width="18" height="16" rx="2" strokeWidth="1.75" />
+              <path d="M21 19l-5.5-7-4.5 6-3-4-4 5" strokeWidth="1.75" />
+              <circle cx="7.5" cy="9.5" r="1.5" strokeWidth="1.75" />
             </svg>
           </label>
         </div>
