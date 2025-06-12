@@ -43,18 +43,16 @@ export const handleElementCommunityChatMembership = async (userId, userElement) 
         }
       }
       // 3. Find or create the new element community for the user's current element
-      const q = query(
-        collection(db, "conversations"),
-        where("type", "==", "community"),
-        where("element", "==", normalizedElement),
-        where("communityType", "in", [null, "element"])
-      );
-      const querySnapshot = await getDocs(q);
+      const elementCommunityDocId = `element_community_${normalizedElement}`;
+      const elementCommunityRef = doc(db, "conversations", elementCommunityDocId);
+      const elementCommunityDoc = await getDoc(elementCommunityRef);
       let communityDoc;
-      if (querySnapshot.empty) {
+      if (!elementCommunityDoc.exists()) {
         // No community exists for this element → create it
-        const newCommunityRef = doc(collection(db, "conversations"));
-        await setDoc(newCommunityRef, {
+        if (normalizedElement === 'admin_mentor') {
+          return null;
+        }
+        await setDoc(elementCommunityRef, {
           participants: [userId],
           participantNames: [username],
           type: "community",
@@ -64,15 +62,15 @@ export const handleElementCommunityChatMembership = async (userId, userElement) 
           lastUpdated: serverTimestamp(),
           createdAt: serverTimestamp(),
         });
-        await addDoc(collection(db, "conversations", newCommunityRef.id, "messages"), {
+        await addDoc(collection(db, "conversations", elementCommunityDocId, "messages"), {
           text: COMMUNITY_DESCRIPTIONS.element,
           type: "system",
           createdAt: serverTimestamp(),
         });
-        communityDoc = await getDoc(newCommunityRef);
+        communityDoc = await getDoc(elementCommunityRef);
       } else {
-        // A community already exists — use the first one
-        communityDoc = querySnapshot.docs[0];
+        // A community already exists — use it
+        communityDoc = elementCommunityDoc;
         const data = communityDoc.data();
         if (!data.participants.includes(userId)) {
           await updateDoc(communityDoc.ref, {

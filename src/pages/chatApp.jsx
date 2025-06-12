@@ -819,7 +819,7 @@ export default function ChatApp() {
   }, [chatId, selectedConversation, navigate]);
 
   // TEMP: Admin-only delete all conversations button
-  async function handleDeleteAllConversations() {
+  async function delete_all_conversations() {
     setNotification({
       message: "האם אתה בטוח שברצונך למחוק את כל הצ'אטים? פעולה זו אינה הפיכה!",
       type: 'warning',
@@ -1072,7 +1072,24 @@ export default function ChatApp() {
       </ThemeProvider>
       <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 ${mobilePanel === 'conversations' ? 'mt-14' : 'mt-16'}`}>
 
-          
+        {currentUser.role === 'mentor' && (
+          <div className="flex flex-row gap-2">
+            <button
+              onClick={delete_all_inquiries}
+              className="fixed self-center justify-center z-50 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
+            >
+              מחק את כל הפניות (אדמין)
+            </button>
+            <button
+              onClick={delete_all_conversations}
+              className="fixed self-center justify-center z-50 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
+            >
+              מחק את כל הצ'אטים (אדמין)
+            </button>
+          </div>
+        )}
+
+      
         
         {/* Main Panels */}
         {/* Conversation List Panel */}
