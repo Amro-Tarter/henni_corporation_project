@@ -251,22 +251,6 @@ export default function ChatArea({
     if (window.innerWidth < 768 && setMobilePanel) setMobilePanel('conversations');
   };
 
-  // Determine possible recipients
-  let possibleRecipients = [];
-  if (currentUser.role === "admin") {
-    possibleRecipients = conversations
-      .filter(c => c.type === "direct")
-      .flatMap(c => c.participants)
-      .filter(uid => uid !== currentUser.uid);
-  } else {
-    // mentor or participant can only send to admin
-    possibleRecipients = conversations
-      .filter(c => c.type === "direct")
-      .flatMap(c => c.participants)
-      .filter(uid => uid !== currentUser.uid && (conversations.find(conv => conv.type === 'direct' && conv.participants.includes(uid))?.participantNames?.some(name => name.toLowerCase().includes('admin'))));
-  }
-  possibleRecipients = Array.from(new Set(possibleRecipients));
-
   // Reset systemCallsView when entering/exiting system calls
   useEffect(() => {
     if (showSystemCalls) {

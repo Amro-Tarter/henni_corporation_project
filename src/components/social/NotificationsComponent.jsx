@@ -44,9 +44,6 @@ export const NotificationsProvider = ({ children }) => {
   const seenPostsRef = useRef(new Set());
   const seenCommentsRef = useRef(new Set());
   const navigate = useNavigate();
-  const [inquiryUnreadCount, setInquiryUnreadCount] = useState(0);
-  const [seenInquiryNotifications, setSeenInquiryNotifications] = useState(new Set());
-  const seenInquiryRef = useRef(new Set());
 
   // Listen to auth state changes
   useEffect(() => {
@@ -549,63 +546,13 @@ export const NotificationsProvider = ({ children }) => {
     };
   }, [user, seenCommentsLoaded, userPosts, userCommentedPosts]);
 
-  // Listen for new inquiries (system_of_inquiries) for the current user
-  useEffect(() => {
-    if (!user) return;
-    const inquiriesQuery = query(
-      collection(db, 'system_of_inquiries'),
-      where('recipient', '==', user.uid),
-      orderBy('createdAt', 'desc')
-    );
-    const unsubscribe = onSnapshot(inquiriesQuery, (snapshot) => {
-      const inquiryNotifications = [];
-      let unread = 0;
-      snapshot.docs.forEach(doc => {
-        const inquiry = doc.data();
-        const isSeen = seenInquiryRef.current.has(doc.id);
-        // Only show unread badge if not seen and open
-        if (!isSeen && inquiry.status !== 'closed') {
-          unread++;
-        }
-        inquiryNotifications.push({
-          id: `inquiry_${doc.id}`,
-          type: 'inquiry',
-          message: inquiry.subject || 'פנייה חדשה',
-          timestamp: inquiry.createdAt,
-          senderId: inquiry.sender,
-          senderName: inquiry.senderName || 'מערכת',
-          inquiryId: doc.id,
-          inquirySubject: inquiry.subject,
-          inquiryContent: inquiry.content?.substring(0, 100) || '',
-          unreadCount: (!isSeen && inquiry.status !== 'closed') ? 1 : 0,
-          conversationType: 'inquiry',
-          status: inquiry.status,
-        });
-      });
-      setNotifications(prevNotifications => {
-        // Remove old inquiry notifications
-        const nonInquiry = prevNotifications.filter(n => n.type !== 'inquiry');
-        const combined = [...inquiryNotifications, ...nonInquiry];
-        combined.sort((a, b) => {
-          const timeA = a.timestamp?.toMillis?.() || a.timestamp?.getTime?.() || 0;
-          const timeB = b.timestamp?.toMillis?.() || b.timestamp?.getTime?.() || 0;
-          return timeB - timeA;
-        });
-        return combined;
-      });
-      setInquiryUnreadCount(unread);
-      setUnreadCount(unread + messageUnreadCount + postUnreadCount + commentUnreadCount);
-    });
-    return () => unsubscribe();
-  }, [user, messageUnreadCount, postUnreadCount, commentUnreadCount, seenInquiryNotifications]);
-
   // Fetch profile pictures
   useEffect(() => {
     console.log('useEffect: fetchProfilePictures, notifications:', notifications.length);
     const fetchProfilePictures = async () => {
       const pictures = {};
       for (const notification of notifications) {
-        if (notification.type === 'message' || notification.type === 'post' || notification.type === 'comment' || notification.type === 'inquiry') {
+        if (notification.type === 'message' || notification.type === 'post' || notification.type === 'comment') {
           try {
             const senderProfileRef = firestoreDoc(db, 'profiles', notification.senderId);
             const senderProfile = await getDoc(senderProfileRef);
@@ -691,18 +638,6 @@ export const NotificationsProvider = ({ children }) => {
     }
   };
 
-  // Helper to persist seen inquiryId in Firestore
-  const persistSeenInquiry = async (inquiryId) => {
-    if (!user || !inquiryId) return;
-    try {
-      await updateDoc(firestoreDoc(db, 'profiles', user.uid), {
-        seenInquiryNotifications: arrayUnion(inquiryId)
-      });
-    } catch (err) {
-      console.error('Failed to persist seen inquiry notification:', err);
-    }
-  };
-
   const handleNotificationClick = async (notification) => {
     console.log('handleNotificationClick:', notification);
     
@@ -775,28 +710,6 @@ export const NotificationsProvider = ({ children }) => {
           }, 500);
         }, 300);
         
-      } else if (notification.type === 'inquiry') {
-        // Mark as seen
-        seenInquiryRef.current.add(notification.inquiryId);
-        setSeenInquiryNotifications(prev => new Set([...prev, notification.inquiryId]));
-        persistSeenInquiry(notification.inquiryId);
-        setNotifications(prevNotifications => prevNotifications.filter(n => n.id !== notification.id));
-        setUnreadCount(prev => Math.max(0, prev - 1));
-        setInquiryUnreadCount(prev => Math.max(0, prev - 1));
-        setShowNotifications(false);
-        setTimeout(() => {
-          navigate(`/chat/inquiry/${notification.inquiryId}`);
-          setTimeout(() => {
-            setIsProcessing(false);
-            setTimeout(() => {
-              setClickedNotifications(prev => {
-                const newState = {...prev};
-                delete newState[notificationKey];
-                return newState;
-              });
-            }, 5000);
-          }, 500);
-        }, 300);
       } else {
         // Handle message notifications
         const conversationRef = firestoreDoc(db, 'conversations', notification.conversationId);
@@ -858,11 +771,7 @@ export const NotificationsProvider = ({ children }) => {
         seenCommentsRef.current.add(notification.commentId);
         setSeenComments(prev => new Set([...prev, notification.commentId]));
         persistSeenComment(notification.commentId);
-      } else if (notification.type === 'inquiry' && notification.inquiryId) {
-        seenInquiryRef.current.add(notification.inquiryId);
-        setSeenInquiryNotifications(prev => new Set([...prev, notification.inquiryId]));
-        persistSeenInquiry(notification.inquiryId);
-      } 
+      }
     });
     
     setNotifications([]);
@@ -870,7 +779,7 @@ export const NotificationsProvider = ({ children }) => {
     setMessageUnreadCount(0);
     setPostUnreadCount(0);
     setCommentUnreadCount(0);
-    setInquiryUnreadCount(0);
+    
     setTimeout(() => {
       setIsProcessing(false);
     }, 300);
@@ -966,10 +875,6 @@ export const NotificationsProvider = ({ children }) => {
                             <span className="text-white text-xs">💬</span>
                           </div>
                         </div>
-                      ) : notification.type === 'inquiry' ? (
-                        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-yellow-100 border-2 border-yellow-300 text-yellow-700 text-2xl font-bold">
-                          📩
-                        </div>
                       ) : (
                         <img
                           src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
@@ -1013,22 +918,12 @@ export const NotificationsProvider = ({ children }) => {
                                   </span>
                                 )}
                               </>
-                            ) : notification.type === 'inquiry' ? (
-                              <>
-                                <span className="font-bold">{notification.inquirySubject}</span>
-                                {notification.inquiryContent && (
-                                  <span className="block text-xs text-gray-500 mt-1 italic">
-                                    "{notification.inquiryContent}..."
-                                  </span>
-                                )}
-                                <span className={`block text-xs mt-1 font-bold ${notification.status === 'closed' ? 'text-gray-400' : 'text-yellow-700'}`}>{notification.status === 'closed' ? 'סגור' : 'פתוח'}</span>
-                              </>
                             ) : (
                               notification.message
                             )}
                           </p>
                           <span className="text-sm text-gray-500">
-                            {notification.timestamp?.toDate?.().toLocaleString('he-IL', {
+                            {notification.timestamp?.toDate().toLocaleString('he-IL', {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric',
@@ -1040,8 +935,7 @@ export const NotificationsProvider = ({ children }) => {
                         {notification.unreadCount > 0 && (
                           <span className={`flex-shrink-0 rounded-full text-white px-3 py-1 text-sm font-medium ${
                             notification.type === 'post' ? 'bg-blue-500' : 
-                            notification.type === 'comment' ? 'bg-green-500' : 
-                            notification.type === 'inquiry' ? 'bg-yellow-500' : 'bg-red-500'
+                            notification.type === 'comment' ? 'bg-green-500' : 'bg-red-500'
                           }`}>
                             {notification.unreadCount}
                           </span>

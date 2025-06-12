@@ -30,6 +30,7 @@ export default function ConversationList({
   setSelectedInquiry = () => {},
   inquiries: propInquiries = [],
   isLoadingInquiries: propIsLoadingInquiries = false,
+  allConversations = [],
 }) {
   const [usernames, setUsernames] = useState({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -37,12 +38,10 @@ export default function ConversationList({
   const navigate = useNavigate();
   const [inquiries, setInquiries] = useState(propInquiries);
   const [isLoadingInquiries, setIsLoadingInquiries] = useState(propIsLoadingInquiries);
-  const [inquiryUnreadCount, setInquiryUnreadCount] = useState(0);
-  const [messageUnreadCount, setMessageUnreadCount] = useState(0);
-  const [seenInquiryNotifications, setSeenInquiryNotifications] = useState(new Set());
-  const seenInquiryRef = useRef(new Set());
-  const [unreadCount, setUnreadCount] = useState(0);
-  const prevInquiryUnreadCount = useRef(0);
+  const [closedInquiriesCount, setClosedInquiriesCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+
+
   // Define filter items
   const filterItems = [
     { icon: HiMiniHome, label: "הכל", type: "all" },
@@ -61,6 +60,10 @@ export default function ConversationList({
     }),
     [filteredConversations, activeTab]
   );
+
+  useEffect(() => {
+      setUnreadMessagesCount(allConversations.filter(conv => conv.unread?.[currentUser.uid] > 0).length);
+  }, [allConversations, currentUser.uid]);
 
   useEffect(() => {
     const ids = new Set();
@@ -130,32 +133,23 @@ export default function ConversationList({
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setInquiries(docs);
+      setClosedInquiriesCount(docs.filter(inq => inq.status === 'closed').length);
       setIsLoadingInquiries(false);
     }, () => setIsLoadingInquiries(false));
     return () => unsubscribe();
   }, [showSystemCalls, currentUser?.uid]);
 
-  // Robust unread logic for inquiries
-  useEffect(() => {
-    // Only count as unread if not seen and open
-    const unread = inquiries.filter(inq => !seenInquiryRef.current.has(inq.id) && inq.status !== 'closed').length;
-    setInquiryUnreadCount(unread);
-    setUnreadCount(unread + messageUnreadCount);
-    // Play sound only if unread increased
-    if (unread > prevInquiryUnreadCount.current) {
-      const notificationSound = new Audio(notification);
-      notificationSound.play();
-    }
-    prevInquiryUnreadCount.current = unread;
-  }, [inquiries, seenInquiryNotifications, messageUnreadCount]);
 
   // When an inquiry is clicked, mark as seen immediately (optimistic update)
   const handleInquiryClick = (inquiry) => {
     setSelectedInquiry(inquiry);
-    if (!seenInquiryRef.current.has(inquiry.id) && inquiry.status !== 'closed') {
-      seenInquiryRef.current.add(inquiry.id);
-      setSeenInquiryNotifications(prev => new Set([...prev, inquiry.id]));
-      persistSeenInquiry(inquiry.id);
+    if (inquiry.status === 'closed') {
+      inquiry.status = 'open';
+      updateDoc(doc(db, 'system_of_inquiries', inquiry.id), {
+        status: 'open'
+      });
+      setInquiries(prev => prev.map(inq => inq.id === inquiry.id ? { ...inq, status: 'open' } : inq));
+      setClosedInquiriesCount(prev => prev - 1);
     }
   };
 
@@ -166,39 +160,10 @@ export default function ConversationList({
     onShowSystemCalls();
   }
 
-  // Fetch seen inquiry notifications from Firestore
-  useEffect(() => {
-    if (!currentUser?.uid) return;
-    const fetchSeenInquiries = async () => {
-      try {
-        const profileDoc = await getDoc(doc(db, 'profiles', currentUser.uid));
-        if (profileDoc.exists()) {
-          const data = profileDoc.data();
-          const seenArr = Array.isArray(data.seenInquiryNotifications) ? data.seenInquiryNotifications : [];
-          seenInquiryRef.current = new Set(seenArr);
-          setSeenInquiryNotifications(new Set(seenArr));
-        }
-      } catch (err) {
-        console.error('Error loading seen inquiry notifications:', err);
-      }
-    };
-    fetchSeenInquiries();
-  }, [currentUser?.uid]);
 
-  // Helper to persist seen inquiryId in Firestore
-  const persistSeenInquiry = async (inquiryId) => {
-    if (!currentUser?.uid || !inquiryId) return;
-    try {
-      await updateDoc(doc(db, 'profiles', currentUser.uid), {
-        seenInquiryNotifications: arrayUnion(inquiryId)
-      });
-    } catch (err) {
-      console.error('Failed to persist seen inquiry notification:', err);
-    }
-  };
 
   return (
-    <div className="w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] overflow-y-auto" dir="rtl" onClick={() => setSelectedConversation(null)}>
+    <div className="w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] overflow-y-auto" dir="rtl" onClick={() => {setSelectedConversation(null); setSelectedInquiry(null);}}>
       <div className="p-2 sm:p-4 sticky top-0 bg-white z-10 border-b border-gray-100">
       <div className="flex flex-row gap-2">
       <button
@@ -211,8 +176,9 @@ export default function ConversationList({
                 >
                   <HiOutlineChatBubbleBottomCenterText className="text-base" />
                   <span>שיחות</span>
-                  {messageUnreadCount > 0 && (
-                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">{messageUnreadCount}</span>
+                  {/* Always show unread badge if there are unread messages */}
+                  {unreadMessagesCount > 0 &&(
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">{unreadMessagesCount}</span>
                   )}
               </button>
               <button
@@ -221,12 +187,12 @@ export default function ConversationList({
                       border: '1px solid #e5e7eb',
                       background: showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
                     }}
-                    onClick={e => { e.stopPropagation(); onShowSystemCalls(); setIsDropdownOpen(false); }}
+                    onClick={e => { e.stopPropagation(); onShowSystemCalls(); setIsDropdownOpen(false);}}
                   >
                     <HiOutlineChatBubbleBottomCenterText className="text-base" />
                     <span>פניות</span>
-                    {inquiryUnreadCount > 0 && (
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">{inquiryUnreadCount}</span>
+                    {closedInquiriesCount > 0 && (
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">{closedInquiriesCount}</span>
                     )}
               </button>
       </div>
@@ -301,7 +267,6 @@ export default function ConversationList({
               const isSelected = selectedInquiry?.id === inquiry.id;
               const elementColor = elementColorsMap[currentUser?.element]?.primary || '#2563eb';
               const lightColor = elementColorsMap[currentUser?.element]?.light || '#f5f5f5';
-              const isSeen = seenInquiryRef.current.has(inquiry.id);
               return (
                 <div
                   key={inquiry.id}
@@ -319,7 +284,7 @@ export default function ConversationList({
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg font-bold" style={{ color: elementColor }}>{inquiry.subject}</span>
 
-                    {(!isSeen && inquiry.status !== 'closed') && (
+                    {(inquiry.status === 'closed') && (
                       <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">חדש</span>
                     )}
                   </div>
@@ -429,6 +394,14 @@ export default function ConversationList({
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedConversation(conv);
+                      if (conv.unread?.[currentUser.uid] > 0) {
+                        updateDoc(doc(db, 'conversations', conv.id), {
+                          unread: {
+                            [currentUser.uid]: 0
+                          }
+                        });
+                        setUnreadMessagesCount(prev => prev - 1);
+                      }
                     }}
                     className={`p-3 rounded-md border-b border-gray-100 cursor-pointer hover:bg-gray-50 text-right mx-auto mb-2 w-full max-w-full flex items-center gap-3`}
                     style={bgColorStyle}
@@ -462,7 +435,7 @@ export default function ConversationList({
           </>
         )}
       </div>
-      {activeTab === "direct" && currentUser.role !== 'admin' && (
+      {activeTab === "direct" && currentUser.role !== 'admin' && !showSystemCalls && (
         <div className="p-2.5 border-t  border-gray-200">
           <button
             onClick={() => setShowNewChatDialog(true)}
@@ -474,7 +447,7 @@ export default function ConversationList({
           </button>
         </div>
       )}
-      {activeTab === "group" && currentUser.role !== 'admin' && (
+      {activeTab === "group" && currentUser.role !== 'admin' && !showSystemCalls && (
         <div className="p-2.5 border-t border-gray-200">
           <button
             onClick={() => setShowNewGroupDialog(true)}
