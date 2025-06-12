@@ -1,5 +1,5 @@
 import { db } from '@/config/firbaseConfig';
-import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, collection, serverTimestamp, getDoc, setDoc, query, where, getDocs, updateDoc, arrayUnion, addDoc } from 'firebase/firestore';
 
 const COMMUNITY_DESCRIPTIONS = {
   element: 'קהילה זו מיועדת לכל חברי היסוד שלך. כאן תוכלו לשתף, לשאול ולהתחבר עם חברים מהיסוד.',

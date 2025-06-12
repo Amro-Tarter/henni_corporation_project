@@ -154,11 +154,14 @@ export default function ConversationList({
   };
 
   const urlParams = new URLSearchParams(window.location.search);
-    const recipient_id = urlParams.get('recipient');
+  const recipient_id = urlParams.get('recipient');
 
-  if (window.location.pathname === '/chat/inquiry' && !recipient_id) {
-    onShowSystemCalls();
-  }
+  // Fix: Move onShowSystemCalls out of render phase to avoid setState in render
+  useEffect(() => {
+    if (window.location.pathname === '/chat/inquiry' && !recipient_id) {
+      onShowSystemCalls();
+    }
+  }, [recipient_id, onShowSystemCalls]);
 
 
 

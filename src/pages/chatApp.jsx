@@ -169,13 +169,19 @@ export default function ChatApp() {
           let userElement = userDoc.data().element;
           const userRole = userDoc.data().role;
           const associated_id = userDoc.data().associated_id;
+          const mentorsID = userDoc.data().mentors;
+          let mentorName = null;
+          if (Array.isArray(mentorsID) && mentorsID.length > 0 && mentorsID[0]) {
+            const mentorDoc = await getDoc(doc(db, "users", mentorsID[0]));
+            mentorName = mentorDoc.exists() ? mentorDoc.data().username : null;
+          }
           const userData = {
             uid: user.uid,
             username: userDoc.data().username,
             element: userElement || "admin_mentor",
             role: userRole,
             associated_id,
-            mentorName: userDoc.data().mentorName,
+            mentorName: mentorName,
           };
           setCurrentUser(userData);
 
