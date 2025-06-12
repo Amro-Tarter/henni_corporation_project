@@ -166,7 +166,7 @@ export default function ChatApp() {
       if (user) {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
-          const userElement = userDoc.data().element;
+          let userElement = userDoc.data().element;
           const userRole = userDoc.data().role;
           const associated_id = userDoc.data().associated_id;
           const userData = {
@@ -786,6 +786,9 @@ export default function ChatApp() {
     if (typeof window !== 'undefined' && window.innerWidth < 768 && selectedConversation === null) {
       setMobilePanel('conversations');
     }
+    if (typeof window !== 'undefined' && window.innerWidth < 768 && selectedInquiry !== null) {
+      setMobilePanel('inquiry');
+    }
   }, [selectedConversation]);
 
   // When conversations update, if there's a pending selection, select it
@@ -829,6 +832,33 @@ export default function ChatApp() {
               await deleteDoc(doc(db, "conversations", conversationDoc.id));
             }
             setNotification({ message: "כל הצ'אטים נמחקו בהצלחה!", type: 'success' });
+            setTimeout(() => setNotification(null), 3500);
+          }}
+        >כן</button>,
+        <button
+          key="no"
+          className="px-3 py-1 rounded bg-gray-300 text-gray-800 font-bold hover:bg-gray-400"
+          onClick={() => setNotification(null)}
+        >לא</button>
+      ]
+    });
+  }
+
+  async function delete_all_inquiries() {
+    setNotification({
+      message: "האם אתה בטוח שברצונך למחוק את כל הפניות? פעולה זו אינה הפיכה!",
+      type: 'warning',
+      actions: [
+        <button
+          key="yes"
+          className="px-3 py-1 rounded bg-red-600 text-white font-bold hover:bg-red-700"
+          onClick={async () => {
+            setNotification(null);
+            const inquiriesSnapshot = await getDocs(collection(db, "system_of_inquiries"));
+            for (const inquiryDoc of inquiriesSnapshot.docs) {
+              await deleteDoc(doc(db, "system_of_inquiries", inquiryDoc.id));
+            }
+            setNotification({ message: "כל הפניות נמחקו בהצלחה!", type: 'success' });
             setTimeout(() => setNotification(null), 3500);
           }}
         >כן</button>,
@@ -1036,15 +1066,7 @@ export default function ChatApp() {
       </ThemeProvider>
       <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 ${mobilePanel === 'conversations' ? 'mt-14' : 'mt-16'}`}>
 
-        {/* TEMP: Admin-only delete all conversations button 
-        <button
-            onClick={handleDeleteAllConversations}
-            className="fixed self-center justify-center z-50 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
-          >
-            מחק את כל הצ'אטים (אדמין)
-          </button>
-          */} 
-
+          
         
         {/* Main Panels */}
         {/* Conversation List Panel */}
@@ -1138,6 +1160,7 @@ export default function ChatApp() {
                 else navigate('/chat');
               }}
               isLoadingInquiries={isLoadingInquiries}
+              setNotification={setNotification}
             />
           </div>
         </div>

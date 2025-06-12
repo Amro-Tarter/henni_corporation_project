@@ -546,13 +546,74 @@ export const NotificationsProvider = ({ children }) => {
     };
   }, [user, seenCommentsLoaded, userPosts, userCommentedPosts]);
 
+  // Listen for new closed inquiries for the current user
+  useEffect(() => {
+    if (!user) return;
+    // Listen for inquiries with status 'closed' where recipient is the current user
+    const inquiriesQuery = query(
+      collection(db, 'system_of_inquiries'),
+      where('recipient', '==', user.uid),
+      where('status', '==', 'closed'),
+      orderBy('createdAt', 'desc')
+    );
+    const unsubscribe = onSnapshot(inquiriesQuery, async (snapshot) => {
+      try {
+        const inquiryNotifications = [];
+        const now = Date.now();
+        const dayInMs = 24 * 60 * 60 * 1000;
+        snapshot.docs.forEach(docSnap => {
+          const inquiry = docSnap.data();
+          const inquiryId = docSnap.id;
+          // Only show inquiries from the last 24 hours
+          const createdAt = inquiry.createdAt?.toMillis ? inquiry.createdAt.toMillis() : 0;
+          if (now - createdAt > dayInMs) return;
+          // Avoid duplicate notifications
+          if (notifications.some(n => n.id === `inquiry_${inquiryId}`)) return;
+          inquiryNotifications.push({
+            id: `inquiry_${inquiryId}`,
+            type: 'inquiry',
+            message: `פנייה חדשה: ${inquiry.subject}`,
+            timestamp: inquiry.createdAt,
+            senderId: inquiry.sender,
+            senderName: inquiry.senderName || 'משתמש',
+            inquiryId: inquiryId,
+            subject: inquiry.subject,
+            content: inquiry.content,
+            unreadCount: 1,
+            conversationType: 'inquiry',
+          });
+        });
+        if (inquiryNotifications.length > 0) {
+          setNotifications(prevNotifications => {
+            const existingIds = new Set(prevNotifications.map(n => n.id));
+            const newNotifications = inquiryNotifications.filter(n => !existingIds.has(n.id));
+            if (newNotifications.length > 0) {
+              const combined = [...newNotifications, ...prevNotifications];
+              combined.sort((a, b) => {
+                const timeA = a.timestamp?.toMillis?.() || 0;
+                const timeB = b.timestamp?.toMillis?.() || 0;
+                return timeB - timeA;
+              });
+              return combined;
+            }
+            return prevNotifications;
+          });
+          setUnreadCount(prev => prev + inquiryNotifications.length);
+        }
+      } catch (error) {
+        console.error('Error processing inquiry notifications:', error);
+      }
+    });
+    return () => unsubscribe();
+  }, [user, notifications]);
+
   // Fetch profile pictures
   useEffect(() => {
     console.log('useEffect: fetchProfilePictures, notifications:', notifications.length);
     const fetchProfilePictures = async () => {
       const pictures = {};
       for (const notification of notifications) {
-        if (notification.type === 'message' || notification.type === 'post' || notification.type === 'comment') {
+        if (notification.type === 'message' || notification.type === 'post' || notification.type === 'comment' || notification.type === 'inquiry') {
           try {
             const senderProfileRef = firestoreDoc(db, 'profiles', notification.senderId);
             const senderProfile = await getDoc(senderProfileRef);
@@ -710,6 +771,30 @@ export const NotificationsProvider = ({ children }) => {
           }, 500);
         }, 300);
         
+      } else if (notification.type === 'inquiry') {
+        // Handle inquiry notifications
+        // Mark inquiry as open in Firestore
+        await updateDoc(firestoreDoc(db, 'system_of_inquiries', notification.inquiryId), {
+          status: 'open'
+        });
+        setNotifications(prevNotifications => 
+          prevNotifications.filter(n => n.id !== notification.id)
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        setShowNotifications(false);
+        setTimeout(() => {
+          navigate(`/chat/inquiry/${notification.inquiryId}`);
+          setTimeout(() => {
+            setIsProcessing(false);
+            setTimeout(() => {
+              setClickedNotifications(prev => {
+                const newState = {...prev};
+                delete newState[notificationKey];
+                return newState;
+              });
+            }, 5000);
+          }, 500);
+        }, 300);
       } else {
         // Handle message notifications
         const conversationRef = firestoreDoc(db, 'conversations', notification.conversationId);
@@ -875,6 +960,21 @@ export const NotificationsProvider = ({ children }) => {
                             <span className="text-white text-xs">💬</span>
                           </div>
                         </div>
+                      ) : notification.type === 'inquiry' ? (
+                        <div className="relative">
+                          <img
+                            src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
+                            alt="Profile"
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = 'https://ui-avatars.com/api/?name=User&background=random';
+                            }}
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                            <span className="text-white text-xs">📩</span>
+                          </div>
+                        </div>
                       ) : (
                         <img
                           src={profilePictures[notification.senderId] || '/images/default-avatar.png'}
@@ -918,6 +1018,20 @@ export const NotificationsProvider = ({ children }) => {
                                   </span>
                                 )}
                               </>
+                            ) : notification.type === 'inquiry' ? (
+                              <>
+                                {notification.message}
+                                {notification.subject && (
+                                  <span className="block text-xs text-gray-500 mt-1 italic">
+                                    "{notification.subject}"
+                                  </span>
+                                )}
+                                {notification.content && (
+                                  <span className="block text-xs text-gray-400 mt-1">
+                                    {notification.content.length > 60 ? notification.content.substring(0, 60) + '...' : notification.content}
+                                  </span>
+                                )}
+                              </>
                             ) : (
                               notification.message
                             )}
@@ -935,7 +1049,8 @@ export const NotificationsProvider = ({ children }) => {
                         {notification.unreadCount > 0 && (
                           <span className={`flex-shrink-0 rounded-full text-white px-3 py-1 text-sm font-medium ${
                             notification.type === 'post' ? 'bg-blue-500' : 
-                            notification.type === 'comment' ? 'bg-green-500' : 'bg-red-500'
+                            notification.type === 'comment' ? 'bg-green-500' : 
+                            notification.type === 'inquiry' ? 'bg-yellow-500' : 'bg-red-500'
                           }`}>
                             {notification.unreadCount}
                           </span>

@@ -4,35 +4,8 @@ import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { HiOutlineMailOpen, HiOutlineX } from 'react-icons/hi';
 
-// Notification component
-function Notification({ message, type, onClose, elementColors }) {
-    return (
-        <div
-            className={`fixed top-8 right-8 z-50 min-w-[260px] max-w-xs px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in border-2`}
-            style={{
-                background: type === 'success' ? elementColors?.light : '#fff0f0',
-                borderColor: type === 'success' ? elementColors?.primary : '#f87171',
-                color: type === 'success' ? elementColors?.primary : '#b91c1c',
-            }}
-            role="alert"
-        >
-            <span className="font-bold text-lg">
-                {type === 'success' ? '✔️' : '❌'}
-            </span>
-            <span className="flex-1 text-sm font-medium">{message}</span>
-            <button
-                className="ml-2 text-xl font-bold hover:opacity-70 transition"
-                onClick={onClose}
-                aria-label="סגור הודעה"
-                style={{ color: type === 'success' ? elementColors?.primary : '#b91c1c' }}
-            >
-                ×
-            </button>
-        </div>
-    );
-}
 
-export default function SystemInquiries({ onClose, currentUser, elementColors, onHideSystemCalls, onSent }) {
+export default function SystemInquiries({ onClose, currentUser, elementColors, onHideSystemCalls, onSent, setNotification }) {
     const [systemCallRecipient, setSystemCallRecipient] = useState('');
     const [systemCallRecipientId, setSystemCallRecipientId] = useState('');
     const [systemCallSubject, setSystemCallSubject] = useState('');
@@ -47,7 +20,6 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
     const recipientInputRef = useRef(null);
     const [recipient, setRecipient] = useState('');
     const [users, setUsers] = useState([]);
-    const [notification, setNotification] = useState(null); // { message, type }
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -114,14 +86,20 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
         setSystemCallError('');
         if (!systemCallRecipientId) {
             setSystemCallError('יש לבחור נמען מהרשימה.');
+            setNotification && setNotification({ message: 'יש לבחור נמען מהרשימה.', type: 'error' });
+            setTimeout(() => setNotification && setNotification(null), 3500);
             return;
         }
         if (!systemCallSubject.trim()) {
             setSystemCallError('יש להזין נושא.');
+            setNotification && setNotification({ message: 'יש להזין נושא.', type: 'error' });
+            setTimeout(() => setNotification && setNotification(null), 3500);
             return;
         }
         if (!systemCallContent.trim()) {
             setSystemCallError('יש להזין תוכן הפנייה.');
+            setNotification && setNotification({ message: 'יש להזין תוכן הפנייה.', type: 'error' });
+            setTimeout(() => setNotification && setNotification(null), 3500);
             return;
         }
         setIsSubmittingSystemCall(true);
@@ -202,14 +180,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6 min-w-full animate-fade-in" dir="rtl">
-            {notification && (
-                <Notification
-                    message={notification.message}
-                    type={notification.type}
-                    onClose={() => setNotification(null)}
-                    elementColors={elementColors}
-                />
-            )}
+
             <div className="w-full max-w-lg bg-white shadow-2xl rounded-2xl p-0 overflow-hidden border-2" style={{ borderColor: elementColors?.primary }}>
                 {/* Header */}
                 <div className="flex items-center justify-between px-8 py-6 bg-gradient-to-l from-white to-gray-50 border-b" style={{ borderColor: elementColors?.primary }}>

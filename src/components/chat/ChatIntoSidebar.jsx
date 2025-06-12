@@ -6,7 +6,7 @@ import { ELEMENT_COLORS } from './utils/ELEMENT_COLORS';
 import { useNavigate, Link } from "react-router-dom";
 import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
 
-export default function ChatInfoSidebar({ open, onClose, conversation, currentUser, messages, elementColors, setSelectedConversation }) {
+export default function ChatInfoSidebar({ open, onClose, conversation, currentUser, messages, elementColors, setSelectedConversation, setNotification }) {
   const [showAllImages, setShowAllImages] = useState(false);
   const [partnerElement, setPartnerElement] = useState(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -214,7 +214,10 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       await updateDoc(doc(db, 'conversations', conversation.id), { avatarURL: url });
       setAvatarPreview(null);
     } catch (e) {
-      alert('שגיאה בהעלאת תמונת קבוצה');
+      if (setNotification) {
+        setNotification({ message: 'שגיאה בהעלאת תמונת קבוצה', type: 'error' });
+        setTimeout(() => setNotification(null), 3500);
+      }
     }
     setIsUploadingAvatar(false);
   };
@@ -512,9 +515,15 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         await updateDoc(groupRef, unreadUpdate);
         setAddUserSearch("");
         setAddUserResults([]);
-        window.toast && window.toast.success && window.toast.success(`המשתמש ${user.username} נוסף בהצלחה!`);
+        if (setNotification) {
+          setNotification({ message: 'המשתמש ' + user.username + ' נוסף בהצלחה!', type: 'success' });
+          setTimeout(() => setNotification(null), 3500);
+        }
       } catch (e) {
-        alert("שגיאה בהוספת משתמש: " + e.message);
+        if (setNotification) {
+          setNotification({ message: 'שגיאה בהוספת משתמש: ' + e.message, type: 'error' });
+          setTimeout(() => setNotification(null), 3500);
+        }
       }
       setIsAdding(false);
     };
@@ -568,9 +577,15 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           }
         });
         await updateDoc(groupRef, unreadUpdate);
-        window.toast && window.toast.success && window.toast.success(`המשתמש ${latestUsername} הוסר בהצלחה!`);
+        if (setNotification) {
+          setNotification({ message: 'המשתמש ' + latestUsername + ' הוסר בהצלחה!', type: 'success' });
+          setTimeout(() => setNotification(null), 3500);
+        }
       } catch (e) {
-        alert("שגיאה בהרחקת משתמש: " + e.message);
+        if (setNotification) {
+          setNotification({ message: 'שגיאה בהרחקת משתמש: ' + e.message, type: 'error' });
+          setTimeout(() => setNotification(null), 3500);
+        }
       }
     };
 
@@ -606,12 +621,18 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
           }
         });
         await updateDoc(groupRef, unreadUpdate);
-        window.toast && window.toast.success && window.toast.success('עזבת את הקבוצה בהצלחה!');
+        if (setNotification) {
+          setNotification({ message: 'עזבת את הקבוצה בהצלחה!', type: 'success' });
+          setTimeout(() => setNotification(null), 3500);
+        }
         // Optionally close sidebar or redirect
         onClose && onClose();
         setSelectedConversation && setSelectedConversation(null);
       } catch (e) {
-        alert("שגיאה בעזיבת קבוצה: " + e.message);
+        if (setNotification) {
+          setNotification({ message: 'שגיאה בעזיבת קבוצה: ' + e.message, type: 'error' });
+          setTimeout(() => setNotification(null), 3500);
+        }
       }
     };
 
