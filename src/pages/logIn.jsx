@@ -21,7 +21,7 @@ import {
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from 'sonner';
 import AirIcon from '@mui/icons-material/Air';
-
+import Navbar from '../components/layout/Navigation';
 const ELEMENTS = [
   { key: 'earth', type: 'emoji', value: '🌱' },
   { key: 'metal', type: 'emoji', value: '⚒️' },
@@ -217,11 +217,13 @@ const Login = () => {
   };
 
   return (
+    
 <div
   className="min-h-screen flex items-center justify-center absolute inset-0 bg-gradient-to-tl from-red-950 via-red-800 to-orange-600
  opacity-95 py-12 px-4 sm:px-6 lg:px-8 relative"
   dir="rtl"
 >
+  <Navbar/>
       {/* Floating Element Icons */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
         {ELEMENTS.map((el, i) => (
