@@ -34,7 +34,7 @@ const ELEMENT_OPTIONS = [
   { value: 'fire', label: 'אש', icon: '🔥', gradient: 'from-rose-700 via-amber-550 to-yellow-500', color: 'text-red-500' },
   { value: 'water', label: 'מים', icon: '💧', gradient: 'from-indigo-500 via-blue-400 to-teal-300', color: 'text-blue-500' },
   { value: 'earth', label: 'אדמה', icon: '🌱', gradient: 'from-lime-700 via-amber-600 to-stone-400', color: 'text-green-500' },
-  { value: 'air', label: 'אוויר', icon: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', gradient: 'from-white via-sky-200 to-indigo-100', color: 'text-cyan-500' },
+  { value: 'air', label: 'אוויר',   icon: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
   { value: 'metal', label: 'מתכת', icon: '⚒️', gradient: 'from-zinc-300 via-slate-500 to-neutral-700', color: 'text-neutral-500' }
 ];
 
@@ -42,7 +42,6 @@ const ROLE_OPTIONS = [
   { value: 'admin', label: 'מנהל', icon: '👑', color: 'text-purple-600' },
   { value: 'mentor', label: 'מנטור', icon: '🎯', color: 'text-blue-600' },
   { value: 'participant', label: 'משתתף', icon: '🌟', color: 'text-green-600' },
-  { value: 'staff', label: 'צוות', icon: '⚡', color: 'text-orange-600' }
 ];
 
 const ELEMENT_ICONS = {
@@ -79,7 +78,6 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
     { value: 'admin', label: 'מנהל' },
     { value: 'mentor', label: 'מנטור' },
     { value: 'participant', label: 'משתתף' },
-    { value: 'staff', label: 'צוות' }
   ];
 
   const handleSubmit = async (e) => {
@@ -580,6 +578,9 @@ const FilterPanel = React.memo(({
   onClearFilters,
   resultCount 
 }) => {
+   const [isElementDropdownOpen, setIsElementDropdownOpen] = useState(false);
+  const selectedElementOption = ELEMENT_OPTIONS.find(opt => opt.value === elementFilter);
+
   return (
     <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 mb-8 border border-slate-200 dark:border-slate-700">
       <div className="flex items-center justify-between mb-6">
@@ -627,18 +628,67 @@ const FilterPanel = React.memo(({
           <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
             סינון לפי אלמנט
           </label>
-          <select
-            value={elementFilter}
-            onChange={(e) => setElementFilter(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
-          >
-            <option value="">כל האלמנטים</option>
-            {ELEMENT_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.icon} {option.label}
-              </option>
-            ))}
-          </select>
+        <button
+          type="button"
+          className="w-full flex items-center justify-between px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
+          onClick={() => setIsElementDropdownOpen(!isElementDropdownOpen)}
+        >
+          <div className="flex items-center gap-2">
+            {selectedElementOption?.icon && (
+              // Directly render the icon here if it's a React component, or a string
+              // For AirIcon:
+              selectedElementOption.value === 'air' ? selectedElementOption.icon :
+              // For FontAwesomeIcon for other elements
+              (selectedElementOption.icon && typeof selectedElementOption.icon === 'string' ?
+                selectedElementOption.icon : // This will render emojis
+                (ELEMENT_ICONS[selectedElementOption.value] ? <FontAwesomeIcon icon={ELEMENT_ICONS[selectedElementOption.value]} /> : null)
+              )
+            )}
+            {selectedElementOption ? selectedElementOption.label : 'כל האלמנטים'}
+          </div>
+          {/* You might want a chevron icon here */}
+          <FontAwesomeIcon icon={faFilter} className="text-slate-400" />
+        </button>
+          {/* Custom Dropdown Options */}
+        <AnimatePresence>
+          {isElementDropdownOpen && (
+            <motion.ul
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              
+  className="absolute z-10 w-64 mt-1 bg-white dark:bg-slate-700 rounded-xl shadow-lg border border-slate-200 dark:border-slate-600 overflow-hidden max-h-60 " // Changed w-64 to w-max and added right-0
+            >
+              <li
+                className="px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200"
+                onClick={() => {
+                  setElementFilter('');
+                  setIsElementDropdownOpen(false);
+                }}
+              >
+                כל האלמנטים
+              </li>
+              {ELEMENT_OPTIONS.map(option => (
+                <li
+                  key={option.value}
+                  className="px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 flex items-center gap-2"
+                  onClick={() => {
+                    setElementFilter(option.value);
+                    setIsElementDropdownOpen(false);
+                  }}
+                >
+                  {/* Render the icon component directly */}
+                  {option.value === 'air' ? option.icon : (
+                    typeof option.icon === 'string' ? option.icon : (
+                      ELEMENT_ICONS[option.value] ? <FontAwesomeIcon icon={ELEMENT_ICONS[option.value]} /> : null
+                    )
+                  )}
+                  {option.label}
+                </li>
+              ))}
+            </motion.ul>
+          )}
+        </AnimatePresence>
         </div>
 
         {/* Location Filter */}

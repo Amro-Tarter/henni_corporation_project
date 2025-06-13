@@ -12,6 +12,7 @@ import {
   faWater,
   faFire
 } from '@fortawesome/free-solid-svg-icons';
+import Navbar from '../components/layout/Navigation';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -66,6 +67,7 @@ const ForgotPassword = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-tl from-red-950 via-red-800 to-orange-600 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
+      <Navbar/>
       {/* Floating Element Icons */}
       {/* Floating Element Icons */}
 <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
