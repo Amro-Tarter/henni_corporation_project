@@ -239,8 +239,8 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
       ]);
       // Collect all mentor chats
       const chats = [];
-      snap1.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'כל המנטורים והאדמין' }));
-      snap2.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'כל המנטורים' }));
+      snap1.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'כל המנחים והאדמין' }));
+      snap2.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'כל המנחים' }));
       snap3.forEach && snap3.forEach(doc => chats.push({ id: doc.id, ...doc.data(), label: 'הקהילה שלך' }));
 
       setMentorChats(chats);
@@ -327,7 +327,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
         ) : (
           <p className="text-center text-gray-500 mt-4">
             {viewerProfile?.role === 'mentor'
-              ? 'לא נמצאו סטודנטים משויכים למנטור זה'
+              ? 'לא נמצאו סטודנטים משויכים למנחה זה'
               : viewerProfile?.role === 'participant'
                 ? 'לא נמצאו משתמשים מאותו היסוד'
                 : 'לא נמצאו משתמשים'}
@@ -364,7 +364,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
             {mentorCommunityChat && (
               <ChatListItem
                 chat={mentorCommunityChat}
-                label="צ'אט קבוצתי של המנטור"
+                label="צ'אט קבוצתי של המנחה"
                 onClick={() => setTimeout(() => navigate(`/chat/${mentorCommunityChat.id}`), 300)}
                 element={element}
               />
@@ -373,7 +373,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
             {privateMentorChat && (
               <ChatListItem
                 chat={privateMentorChat}
-                label="צ'אט פרטי עם המנטור"
+                label="צ'אט פרטי עם המנחה"
                 onClick={() => setTimeout(() => navigate(`/chat/${privateMentorChat.id}`), 300)}
                 element={element}
               />
@@ -398,11 +398,10 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
           )
         )}
 
-        {/* Admin: only show "all mentors with admin" chat */}
-        {viewerProfile?.role === 'admin' && (
-          mentorChats
-            .filter(chat => chat.label === 'כל המנטורים והאדמין')
-            .map(chat => (
+        {/* Admin */}
+        {viewerProfile?.role === 'admin' && mentorChats.length > 0 && (
+          <div className="space-y-2">
+            {mentorChats.map(chat => (
               <ChatListItem
                 key={chat.id}
                 chat={chat}
@@ -410,7 +409,8 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
                 onClick={() => setTimeout(() => navigate(`/chat/${chat.id}`), 300)}
                 element={element}
               />
-            ))
+            ))}
+          </div>
         )}
       </div>
     </div>

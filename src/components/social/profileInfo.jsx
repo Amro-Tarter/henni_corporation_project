@@ -57,7 +57,7 @@ const ProfileInfo = ({
 
   const followingLabel = isOwner
     ? "אני עוקב אחרי"
-    : `העוקב אחרי ${username}`;
+    : `${username} עוקב אחרי `;
 
 
   const handlePicChange = async e => {
