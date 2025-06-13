@@ -84,24 +84,37 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
     const handleSystemCallSubmit = async (e) => {
         e.preventDefault();
         setSystemCallError('');
+        
         if (!systemCallRecipientId) {
             setSystemCallError('יש לבחור נמען מהרשימה.');
-            setNotification && setNotification({ message: 'יש לבחור נמען מהרשימה.', type: 'error' });
-            setTimeout(() => setNotification && setNotification(null), 3500);
+            setNotification && setNotification({ 
+                message: 'יש לבחור נמען מהרשימה.', 
+                type: 'error',
+                duration: 3500
+            });
             return;
         }
+
         if (!systemCallSubject.trim()) {
             setSystemCallError('יש להזין נושא.');
-            setNotification && setNotification({ message: 'יש להזין נושא.', type: 'error' });
-            setTimeout(() => setNotification && setNotification(null), 3500);
+            setNotification && setNotification({ 
+                message: 'יש להזין נושא.', 
+                type: 'error',
+                duration: 3500
+            });
             return;
         }
+
         if (!systemCallContent.trim()) {
             setSystemCallError('יש להזין תוכן הפנייה.');
-            setNotification && setNotification({ message: 'יש להזין תוכן הפנייה.', type: 'error' });
-            setTimeout(() => setNotification && setNotification(null), 3500);
+            setNotification && setNotification({ 
+                message: 'יש להזין תוכן הפנייה.', 
+                type: 'error',
+                duration: 3500
+            });
             return;
         }
+
         setIsSubmittingSystemCall(true);
         let fileUrl = null;
         let fileMeta = {};
@@ -150,16 +163,22 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
             setSystemCallRecipientId('');
             setSystemCallError('');
             if (onSent) onSent();
-            setNotification({ message: 'הפנייה נשלחה בהצלחה!', type: 'success' });
+            setNotification && setNotification({ 
+                message: 'הפנייה נשלחה בהצלחה!', 
+                type: 'success',
+                duration: 2500
+            });
             setTimeout(() => {
-                setNotification(null);
                 onClose();
             }, 2500);
         } catch (err) {
             setSystemCallError('שגיאה בשליחת הפנייה: ' + err.message);
             setIsSubmittingSystemCall(false);
-            setNotification({ message: 'שגיאה בשליחת הפנייה: ' + err.message, type: 'error' });
-            setTimeout(() => setNotification(null), 3500);
+            setNotification && setNotification({ 
+                message: 'שגיאה בשליחת הפנייה: ' + err.message, 
+                type: 'error',
+                duration: 3500
+            });
         }
     };
 

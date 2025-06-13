@@ -5,6 +5,7 @@ import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './ut
 import { HiOutlineChatBubbleBottomCenterText, HiUserGroup, HiMiniUsers, HiMiniHome } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
 import notification from "@/assets/notification.mp3"
+import SystemInquiries from './components/SystemInquiries';
 
 /**
  * ConversationList displays the list of conversations.
@@ -31,6 +32,9 @@ export default function ConversationList({
   inquiries: propInquiries = [],
   isLoadingInquiries: propIsLoadingInquiries = false,
   allConversations = [],
+  mobilePanel,
+  setMobilePanel,
+  setNotification,
 }) {
   const [usernames, setUsernames] = useState({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -40,7 +44,7 @@ export default function ConversationList({
   const [isLoadingInquiries, setIsLoadingInquiries] = useState(propIsLoadingInquiries);
   const [closedInquiriesCount, setClosedInquiriesCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
-
+  const [showCreateInquiryDialog, setShowCreateInquiryDialog] = useState(false);
 
   // Define filter items
   const filterItems = [
@@ -62,8 +66,12 @@ export default function ConversationList({
   );
 
   useEffect(() => {
-      setUnreadMessagesCount(allConversations.filter(conv => conv.unread?.[currentUser.uid] > 0).length);
+    setUnreadMessagesCount(allConversations.filter(conv => conv.unread?.[currentUser.uid] > 0).length);
   }, [allConversations, currentUser.uid]);
+
+  useEffect(() => {
+    setClosedInquiriesCount(inquiries.filter(inq => inq.status === 'closed').length);
+  }, [inquiries]);
 
   useEffect(() => {
     const ids = new Set();
@@ -123,7 +131,7 @@ export default function ConversationList({
 
   // Real-time listener for inquiries
   useEffect(() => {
-    if (!showSystemCalls || !currentUser?.uid) return;
+    if (!currentUser?.uid) return;
     setIsLoadingInquiries(true);
     const q = firestoreQuery(
       collection(db, 'system_of_inquiries'),
@@ -143,6 +151,10 @@ export default function ConversationList({
   // When an inquiry is clicked, mark as seen immediately (optimistic update)
   const handleInquiryClick = (inquiry) => {
     setSelectedInquiry(inquiry);
+    if (window.innerWidth < 768) {
+      setMobilePanel('selected inquiry');
+      navigate(`/chat/inquiry/${inquiry.id}`);
+    }
     if (inquiry.status === 'closed') {
       inquiry.status = 'open';
       updateDoc(doc(db, 'system_of_inquiries', inquiry.id), {
@@ -160,51 +172,92 @@ export default function ConversationList({
   useEffect(() => {
     if (window.location.pathname === '/chat/inquiry' && !recipient_id) {
       onShowSystemCalls();
+      setMobilePanel('inquiries list');
     }
-  }, [recipient_id, onShowSystemCalls]);
+  }, [recipient_id, onShowSystemCalls, setMobilePanel]);
 
+  // Modal overlay for SystemInquiries
+  const renderSystemInquiriesModal = () => {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in">
+        <SystemInquiries
+          onClose={() => {
+            setMobilePanel('inquiries list');
+            setShowCreateInquiryDialog(false);
+            navigate('/chat/inquiry');
+          }}
+          elementColors={elementColorsMap}
+          currentUser={currentUser}
+          setSelectedInquiry={(inquiry) => {
+            setSelectedInquiry(inquiry);
+            if (inquiry) {
+              setMobilePanel('selected inquiry');
+              navigate(`/chat/inquiry/${inquiry.id}`);
+            }
+          }}
+          isLoadingInquiries={isLoadingInquiries}
+          onShowSystemCalls={() => {
+            setMobilePanel('inquiries list');
+            onShowSystemCalls();
+          }}
+          setNotification={setNotification}
+        />
+      </div>
+    )
+  }
 
+  if (mobilePanel === 'new inquiry' || recipient_id || showCreateInquiryDialog) {
+    return renderSystemInquiriesModal();
+  }
 
   return (
-    <div className="w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] overflow-y-auto" dir="rtl" onClick={() => {setSelectedConversation(null); setSelectedInquiry(null);}}>
-      <div className="p-2 sm:p-4 sticky top-0 bg-white z-10 border-b border-gray-100">
-      <div className="flex flex-row gap-2">
-      <button
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:bg-gray-200 w-1/2 ${!showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
-                  style={{
-                    border: '1px solid #e5e7eb',
-                    background: !showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
-                  }}
-                  onClick={e => { e.stopPropagation(); onHideSystemCalls(); }}
-                >
-                  <HiOutlineChatBubbleBottomCenterText className="text-base" />
-                  <span>שיחות</span>
-                  {/* Always show unread badge if there are unread messages */}
-                  {unreadMessagesCount > 0 &&(
-                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">{unreadMessagesCount}</span>
-                  )}
-              </button>
-              <button
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 w-1/2 ${showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
-                    style={{
-                      border: '1px solid #e5e7eb',
-                      background: showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
-                    }}
-                    onClick={e => { e.stopPropagation(); onShowSystemCalls(); setIsDropdownOpen(false);}}
-                  >
-                    <HiOutlineChatBubbleBottomCenterText className="text-base" />
-                    <span>פניות</span>
-                    {closedInquiriesCount > 0 && (
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">{closedInquiriesCount}</span>
-                    )}
-              </button>
-      </div>
+    <div className={`w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] overflow-y-auto transition-all duration-500 ease-in-out ${mobilePanel === 'conversations' || mobilePanel === 'inquiries list' ? 'block' : 'hidden md:block'}`} dir="rtl" onClick={() => {setSelectedConversation(null); setSelectedInquiry(null);}}>
+      <div className="p-2 sm:p-4 sticky top-0 bg-white z-10 border-b border-gray-100 transition-all duration-500 ease-in-out">
+        <div className="flex flex-row gap-2">
+          <button
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 hover:bg-gray-200 w-1/2 ${!showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+            style={{
+              border: '1px solid #e5e7eb',
+              background: !showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
+            }}
+            onClick={e => { 
+              e.stopPropagation(); 
+              onHideSystemCalls();
+              setMobilePanel('conversations');
+            }}
+          >
+            <HiOutlineChatBubbleBottomCenterText className="text-base" />
+            <span>שיחות</span>
+            {unreadMessagesCount > 0 &&(
+              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">{unreadMessagesCount}</span>
+            )}
+          </button>
+          <button
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 w-1/2 ${showSystemCalls ? 'text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}
+            style={{
+              border: '1px solid #e5e7eb',
+              background: showSystemCalls ? elementColorsMap[currentUser?.element]?.primary : undefined
+            }}
+            onClick={e => { 
+              e.stopPropagation(); 
+              onShowSystemCalls(); 
+              setIsDropdownOpen(false);
+              setMobilePanel('inquiries list');
+            }}
+          >
+            <HiOutlineChatBubbleBottomCenterText className="text-base" />
+            <span>פניות</span>
+            {closedInquiriesCount > 0 && (
+              <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">{closedInquiriesCount}</span>
+            )}
+          </button>
+        </div>
         <h2 className="text-xs md:text-sm text-gray-500 mt-2">{showSystemCalls ? 'פניות שהתקבלו' : `הודעות (${visibleConversations.length})`}</h2>
         <div className="mt-2 sm:mt-4 relative">
           <input
             type="text"
             placeholder="חיפוש"
-            className="w-full p-2 pr-8 bg-gray-100 rounded-lg text-xs md:text-sm text-right focus:ring-1 focus:outline-none"
+            className="w-full p-2 pr-8 bg-gray-100 rounded-lg text-xs md:text-sm text-right focus:ring-1 focus:outline-none transition-all duration-200"
             style={{ borderColor: "transparent", outlineColor: elementColorsMap[currentUser?.element]?.primary || '#ccc' }}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -232,12 +285,12 @@ export default function ConversationList({
               })()}
               <span>{filterItems.find(item => item.type === activeTab)?.label || ''}</span>
             </span>
-            <svg className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>}
           {isDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-1/2 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
+            <div className="absolute right-0 mt-2 w-1/2 bg-white border border-gray-200 rounded-lg shadow-lg z-20 transition-all duration-200">
               {filterItems.map((item, idx) => {
                 const isActive = activeTab === item.type;
                 const elementColors = elementColorsMap[currentUser?.element];
@@ -257,9 +310,8 @@ export default function ConversationList({
             </div>
           )}
         </div>
-        
       </div>
-      <div className="flex-1 overflow-y-auto max-h-[calc(100dvh-4rem)] px-1 sm:px-2">
+      <div className="flex-1 overflow-y-auto max-h-[calc(100dvh-4rem)] px-1 sm:px-2 transition-all duration-500 ease-in-out">
         {showSystemCalls ? (
           isLoadingInquiries ? (
             <div className="p-4 text-center text-gray-500">טוען פניות...</div>
@@ -285,13 +337,12 @@ export default function ConversationList({
                   }}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-lg font-bold" style={{ color: elementColor }}>{inquiry.subject}</span>
-
+                    <span className="text-base sm:text-lg font-bold truncate" style={{ color: elementColor }}>{inquiry.subject}</span>
                     {(inquiry.status === 'closed') && (
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white">חדש</span>
+                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-400 text-white whitespace-nowrap">חדש</span>
                     )}
                   </div>
-                  <div className="text-xs text-gray-600">מאת: {inquiry.senderName || inquiry.sender} {inquiry.senderRole === 'admin' && <span className="text-gray-500">(מנהל)</span>}</div>
+                  <div className="text-xs sm:text-sm text-gray-600 truncate">מאת: {inquiry.senderName || inquiry.sender} {inquiry.senderRole === 'admin' && <span className="text-gray-500">(מנהל)</span>}</div>
                   <div className="text-xs text-gray-500">{inquiry.createdAt?.toDate ? inquiry.createdAt.toDate().toLocaleString() : ''}</div>
                 </div>
               );
@@ -467,7 +518,11 @@ export default function ConversationList({
         <button
           className="fixed bottom-6 right-6 z-50 bg-blue-600 text-white rounded-full shadow-lg px-6 py-3 text-lg font-bold md:hidden hover:bg-blue-700 transition-all"
           style={{ background: elementColorsMap[currentUser?.element]?.primary || '#2563eb' }}
-          onClick={onShowSystemCalls}
+          onClick={() => {
+            setMobilePanel('new inquiry');
+            setShowCreateInquiryDialog(true);
+
+          }}
         >
           פנייה חדשה
         </button>

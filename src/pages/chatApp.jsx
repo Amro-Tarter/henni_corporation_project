@@ -34,38 +34,62 @@ import { handleElementCommunityChatMembership } from "../components/chat/utils/h
 import Rightsidebar from "../components/social/Rightsidebar";
 
 // Notification component
-function Notification({ message, type, onClose, elementColors, actions }) {
+function Notification({ message, type, onClose, elementColors, actions, duration = 3500 }) {
+  useEffect(() => {
+    if (duration) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, duration);
+      return () => clearTimeout(timer);
+    }
+  }, [duration, onClose]);
+
   return (
-    <div
-      className={
-        `fixed z-50 min-w-[260px] px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in border-2
-        top-4 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm
-        sm:top-8 sm:left-auto sm:right-8 sm:-translate-x-0 sm:w-auto sm:max-w-xs
-        md:top-20`
-      }
-      style={{
-        background: type === 'success' ? elementColors?.light : type === 'error' ? '#fff0f0' : '#fef9c3',
-        borderColor: type === 'success' ? elementColors?.primary : type === 'error' ? '#f87171' : '#facc15',
-        color: type === 'success' ? elementColors?.primary : type === 'error' ? '#b91c1c' : '#b45309',
-      }}
-      role="alert"
-    >
-      <span className="font-bold text-lg">
-        {type === 'success' ? '✔️' : type === 'error' ? '❌' : '⚠️'}
-      </span>
-      <span className="flex-1 text-sm font-medium">{message}</span>
-      {actions ? (
-        <div className="flex gap-2">{actions}</div>
-      ) : (
-        <button
-          className="ml-2 text-xl font-bold hover:opacity-70 transition"
-          onClick={onClose}
-          aria-label="סגור הודעה"
-          style={{ color: type === 'success' ? elementColors?.primary : type === 'error' ? '#b91c1c' : '#b45309' }}
-        >
-          ×
-        </button>
-      )}
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4 sm:px-0">
+      <div className={`rounded-lg shadow-lg p-4 animate-fade-in flex items-center justify-between gap-4 ${
+        type === 'error' ? 'bg-red-50 border border-red-200' :
+        type === 'success' ? 'bg-green-50 border border-green-200' :
+        'bg-blue-50 border border-blue-200'
+      }`}>
+        <div className="flex items-center gap-3 flex-1">
+          {type === 'error' && (
+            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
+          {type === 'success' && (
+            <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+            </svg>
+          )}
+          <p className={`text-sm font-medium ${
+            type === 'error' ? 'text-red-800' :
+            type === 'success' ? 'text-green-800' :
+            'text-blue-800'
+          }`}>
+            {message}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {actions && (
+            <div className="flex items-center gap-2">
+              {actions}
+            </div>
+          )}
+          <button
+            onClick={onClose}
+            className={`p-1 rounded-full hover:bg-opacity-20 ${
+              type === 'error' ? 'hover:bg-red-200' :
+              type === 'success' ? 'hover:bg-green-200' :
+              'hover:bg-blue-200'
+            }`}
+          >
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -103,7 +127,7 @@ export default function ChatApp() {
   const [pendingSelectedConversationId, setPendingSelectedConversationId] = useState(null);
   const [groupAvatarFile, setGroupAvatarFile] = useState(null);
   const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
-  const [mobilePanel, setMobilePanel] = useState('conversations'); // 'conversations' | 'chat'
+  const [mobilePanel, setMobilePanel] = useState('conversations'); // 'conversations' | 'chat' | 'inquiries list' | 'selected inquiry' | 'new inquiry'
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [showSystemCalls, setShowSystemCalls] = useState(false);
   const [selectedInquiry, setSelectedInquiry] = useState(null);
@@ -1072,7 +1096,7 @@ export default function ChatApp() {
       </ThemeProvider>
       <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 ${mobilePanel === 'conversations' ? 'mt-14' : 'mt-16'}`}>
 
-        {currentUser.role === 'admin' && (
+        {/* {currentUser.role === 'admin' && (
           <div className="flex flex-row gap-2 right-50">
                         <button
               onClick={delete_all_conversations}
@@ -1088,14 +1112,14 @@ export default function ChatApp() {
             </button>
 
           </div>
-        )}
+        )} */}
 
       
         
         {/* Main Panels */}
         {/* Conversation List Panel */}
         <div
-          className={`flex-1 md:max-w-xs md:block ${mobilePanel === 'conversations' ? 'block' : 'hidden'} md:block h-full duration-500 ease-in-out ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}`}
+          className={`flex-1 md:max-w-xs md:block ${mobilePanel === 'conversations' || mobilePanel === 'inquiries list' ? 'block' : 'hidden'} md:block h-full duration-500 ease-in-out ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'} transition-all`}
           style={{ minWidth: 0 }}
         >
           <ConversationList
@@ -1129,25 +1153,37 @@ export default function ChatApp() {
             inquiries={inquiries}
             isLoadingInquiries={isLoadingInquiries}
             allConversations={conversations}
+            mobilePanel={mobilePanel}
+            setMobilePanel={setMobilePanel}
+            setNotification={setNotification}
           />
         </div>
         {/* Chat Area Panel */}
         <div
-          className={`flex-1 md:block ${mobilePanel === 'chat' ? 'block' : 'hidden'} h-full`}
+          className={`flex-1 md:block ${mobilePanel === 'chat' || mobilePanel === 'selected inquiry' || mobilePanel === 'new inquiry' ? 'block' : 'hidden'} h-full transition-all duration-500 ease-in-out`}
           style={{ minWidth: 0 }}
         >
           {/* Mobile back button */}
-          {typeof window !== 'undefined' && window.innerWidth < 768 && selectedConversation && (
+          {typeof window !== 'undefined' && window.innerWidth < 768 && (selectedConversation || selectedInquiry) && (
             <button
-              className="md:hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded mb-2 mt-2 ml-2"
-              onClick={() => setMobilePanel('conversations')}
+              className="md:hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded mb-2 mt-2 ml-2 transition-colors"
+              onClick={() => {
+                if (selectedInquiry) {
+                  setMobilePanel('inquiries list');
+                  setSelectedInquiry(null);
+                  navigate('/chat/inquiry');
+                } else {
+                  setMobilePanel('conversations');
+                  setSelectedConversation(null);
+                  navigate('/chat');
+                }
+              }}
             >
-              ← חזרה לרשימת שיחות
+              ← חזרה לרשימת {selectedInquiry ? 'פניות' : 'שיחות'}
             </button>
           )}
           <div className={`flex-1 flex flex-col h-full`}>
             <ChatArea 
-              mobilePanel={mobilePanel}
               selectedConversation={selectedConversation}
               currentUser={currentUser}
               messages={messages}
@@ -1162,7 +1198,7 @@ export default function ChatApp() {
               preview={preview}
               isUploading={isUploading}
               uploadProgress={uploadProgress}
-              handleFileChange={ handleFileChange}
+              handleFileChange={handleFileChange}
               removeFile={removeFile}
               elementColors={elementColors}
               userAvatars={userAvatars}
@@ -1170,8 +1206,9 @@ export default function ChatApp() {
               setShowNewGroupDialog={currentUser.role === 'admin' ? undefined : setShowNewGroupDialog}
               conversations={conversations}
               setSelectedConversation={handleSelectConversation}
-              setMobilePanel={setMobilePanel}
               showSystemCalls={showSystemCalls}
+              mobilePanel={mobilePanel}
+              setMobilePanel={setMobilePanel}
               onHideSystemCalls={() => {
                 setShowSystemCalls(false);
                 setSelectedInquiry(null);

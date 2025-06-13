@@ -43,6 +43,7 @@ export default function ChatArea({
   isLoadingInquiries = false,
   onShowSystemCalls = () => {},
   setNotification,
+  mobilePanel,
   ...props
 }) {
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
@@ -277,52 +278,72 @@ export default function ChatArea({
   // Modal overlay for SystemInquiries
   const renderSystemInquiriesModal = () => {
     return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in">
-      <SystemInquiries
-        onClose={() => {setShowCreateInquiryDialog(false); navigate('/chat/inquiry');}}
-        elementColors={elementColors}
-        currentUser={currentUser}
-        setSelectedInquiry={setSelectedInquiry}
-        isLoadingInquiries={isLoadingInquiries}
-        onShowSystemCalls={onShowSystemCalls}
-        onHideSystemCalls={onHideSystemCalls}
-        setNotification={setNotification}
-      />
-    </div>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 animate-fade-in">
+        <SystemInquiries
+          onClose={() => {
+            setShowCreateInquiryDialog(false);
+            setMobilePanel('inquiries list');
+            navigate('/chat/inquiry');
+          }}
+          elementColors={elementColors}
+          currentUser={currentUser}
+          setSelectedInquiry={(inquiry) => {
+            setSelectedInquiry(inquiry);
+            if (inquiry) {
+              setMobilePanel('selected inquiry');
+              navigate(`/chat/inquiry/${inquiry.id}`);
+            }
+          }}
+          isLoadingInquiries={isLoadingInquiries}
+          onShowSystemCalls={() => {
+            setMobilePanel('inquiries list');
+            onShowSystemCalls();
+          }}
+          setNotification={setNotification}
+        />
+      </div>
     )
   }
-  const urlParams = new URLSearchParams(window.location.search);
-    const recipient_id = urlParams.get('recipient');
 
-  if (showCreateInquiryDialog || recipient_id) {
-    
+  const urlParams = new URLSearchParams(window.location.search);
+  const recipient_id = urlParams.get('recipient');
+
+  if (showCreateInquiryDialog || recipient_id === 'new') {
     return renderSystemInquiriesModal();
   }
-
-
 
   if (showSystemCalls) {
     if (isLoadingInquiries) {
       return (
-        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
-          <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8 text-center">
+        <div className={`flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-4 sm:p-6 ${mobilePanel === 'selected inquiry' || mobilePanel === 'new inquiry' ? 'block' : 'hidden md:block'}`} dir="rtl">
+          <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-4 sm:p-8 text-center">
             <div className="text-lg text-gray-500">טוען פנייה...</div>
           </div>
         </div>
       );
     }
+
     if (selectedInquiry) {
       return (
-        <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
-          <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8" style={{ border: `2px solid ${elementColors.primary}` }}>
+        <div className={`flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-4 sm:p-6 ${mobilePanel === 'selected inquiry' ? 'block' : 'hidden md:block'}`} dir="rtl">
+          <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-4 sm:p-8" style={{ border: `2px solid ${elementColors.primary}` }}>
             <button
-              className="mb-4 text-blue-700 font-bold text-sm hover:underline"
+              className="mb-4 text-blue-700 font-bold text-sm hover:underline flex items-center gap-1"
               style={{ color: elementColors.primary }}
-              onClick={() => setSelectedInquiry(null)}
+              onClick={() => {
+                setSelectedInquiry(null);
+                if (window.innerWidth < 768) {
+                  setMobilePanel('inquiries list');
+                  navigate('/chat/inquiry');
+                }
+              }}
             >
-              ← חזרה
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              חזרה
             </button>
-            <h2 className="text-2xl font-bold mb-4" style={{ color: elementColors.primary }}>{selectedInquiry.subject}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 break-words" style={{ color: elementColors.primary }}>{selectedInquiry.subject}</h2>
             <div className="mb-2 text-sm text-gray-700">
               <span className="font-semibold">מאת: </span>
               {selectedInquiry.senderName || selectedInquiry.sender}
@@ -331,7 +352,7 @@ export default function ChatArea({
             <div className="mb-2 text-xs text-gray-500">
               {selectedInquiry.createdAt?.toDate ? selectedInquiry.createdAt.toDate().toLocaleString() : ''}
             </div>
-            <div className="mb-4 text-gray-800 whitespace-pre-line border rounded p-3 bg-gray-50">
+            <div className="mb-4 text-gray-800 whitespace-pre-line border rounded p-3 bg-gray-50 text-sm sm:text-base">
               {selectedInquiry.content}
             </div>
             {selectedInquiry.fileUrl && (
@@ -340,7 +361,7 @@ export default function ChatArea({
                   href={selectedInquiry.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-700 underline font-semibold"
+                  className="text-blue-700 underline font-semibold text-sm sm:text-base"
                 >
                   הורד קובץ מצורף
                 </a>
@@ -354,17 +375,20 @@ export default function ChatArea({
         </div>
       );
     }
-    // No inquiry selected
+
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-6" dir="rtl">
-        <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-8 flex flex-col items-center justify-center text-center" style={{ border: `2px solid ${elementColors.primary}` }}>
+      <div className={`flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-4 sm:p-6 ${mobilePanel === 'inquiries list' ? 'block' : 'hidden md:block'}`} dir="rtl">
+        <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-4 sm:p-8 flex flex-col items-center justify-center text-center" style={{ border: `2px solid ${elementColors.primary}` }}>
           <h2 className="text-xl font-bold mb-4" style={{ color: elementColors.primary }}>בחר פנייה כדי להציג את פרטיה</h2>
           <button
             className="text-white px-4 py-2 rounded-md hover:scale-105 transition-all duration-300 font-bold text-base"
             style={{ backgroundColor: elementColors.primary }}
-            onClick={() => setShowCreateInquiryDialog(true)}
+            onClick={() => {
+              setMobilePanel('new inquiry');
+              setShowCreateInquiryDialog(true);
+            }}
           >
-             צור פנייה חדשה ל{currentUser.role !== 'admin' ? 'מנהל/ת' : 'מנחה או לילד'}
+            צור פנייה חדשה ל{currentUser.role !== 'admin' ? 'מנהל/ת' : 'מנחה או לילד'}
           </button>
         </div>
       </div>
@@ -372,7 +396,7 @@ export default function ChatArea({
   }
 
   return (
-    <div className='flex-1 flex flex-col bg-white h-full max-h-full' dir="rtl">
+    <div className='flex-1 flex flex-col bg-white h-full max-h-full transition-all duration-500 ease-in-out' dir="rtl">
       {selectedConversation ? (
         <>
           <ChatHeader
@@ -416,10 +440,9 @@ export default function ChatArea({
             partnerProfilePic={getDirectAvatar()}
             mentorName={currentUser.mentorName}
           />
-          {/* Main chat area with messages and input, using flex column layout */}
-          <div className="flex flex-col flex-1 min-h-0 max-h-full overflow-y-auto">
+          <div className="flex flex-col flex-1 min-h-0 max-h-full overflow-y-auto transition-all duration-500 ease-in-out">
             <div
-              className="flex-1 overflow-y-auto pb-10"
+              className="flex-1 overflow-y-auto pb-10 transition-all duration-500 ease-in-out"
               style={{ backgroundColor: elementColors.background }}
               ref={messagesContainerRef}
             >
@@ -465,13 +488,11 @@ export default function ChatArea({
               )}
               <div ref={messagesEndRef} />
             </div>
-            {/* ChatInput always at the bottom */}
-              {(currentUser.role !== 'admin' || (selectedConversation.communityType === 'all_mentors_with_admin' && currentUser.role === 'admin') )&& (
+            {(currentUser.role !== 'admin' || (selectedConversation.communityType === 'all_mentors_with_admin' && currentUser.role === 'admin')) && (
               <ChatInput
                 newMessage={newMessage}
                 setNewMessage={setNewMessage}
                 handleSendMessage={async () => {
-                  // Handle voice message
                   if (audioBlob && !isRecording) {
                     try {
                       const voiceFile = new File([audioBlob], `voice_${Date.now()}.webm`, { 
@@ -497,7 +518,6 @@ export default function ChatArea({
                       return;
                     }
                   }
-                  // Handle regular messages and images
                   try {
                     if (file && file.type && file.type.startsWith('image/')) {
                       setIsSendingImage(true);
