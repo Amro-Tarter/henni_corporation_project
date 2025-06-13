@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import CTAButton from '@/components/CTAButton';
 import { Link } from 'react-router-dom';
+import ScrollDown from "@/components/ui/ScrollDown";
 
 const DEFAULT_IMAGE = '/default_user_pic.jpg';
 
@@ -651,6 +652,15 @@ const AboutSection = ({ currentUser }) => {
           </motion.div>
         )}
       </AnimatePresence>
+      {/* Scroll Down Indicator */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+        <ScrollDown
+          targetId="about-section"
+          style="default"
+          position="center"
+          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50"
+        />
+      </div>
     </section>
   );
 };

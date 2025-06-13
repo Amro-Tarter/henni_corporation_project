@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 
-const ScrollDown = ({ 
-  targetId = null, 
-  offset = 100, 
+const ScrollDown = ({
+  targetId = null,
+  offset = 80,
   hideOnScroll = true,
   position = "bottom-center", // "bottom-center", "bottom-right", "bottom-left", "center-right"
   className = "",
-  style = "default" // "default", "minimal", "floating", "pulsing"
+  style = "default"          // "default", "minimal", "floating", "pulsing"
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 
+  // Hide on scroll if requested
   useEffect(() => {
     if (!hideOnScroll) return;
 
@@ -19,26 +20,37 @@ const ScrollDown = ({
       const scrolled = window.scrollY;
       const windowHeight = window.innerHeight;
       const docHeight = document.documentElement.scrollHeight;
-      
-      // Hide when scrolled down a bit or near bottom
-      setIsVisible(scrolled < windowHeight * 0.3 && scrolled < docHeight - windowHeight - 100);
+      setIsVisible(
+        scrolled < windowHeight * 0.3 &&
+        scrolled < docHeight - windowHeight - 100
+      );
     };
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [hideOnScroll]);
 
+  // Scroll logic that takes a fixed header into account
   const scrollToTarget = () => {
     if (targetId) {
       const element = document.getElementById(targetId);
-      if (element) {
-        element.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }
+      if (!element) return;
+
+      // Try to detect your navbar height; fallback to 80px
+      const header = document.querySelector('.navbar');
+      const headerOffset = header instanceof HTMLElement
+        ? header.offsetHeight
+        : 70;
+
+      const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+      const offsetPosition = elementPosition - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
     } else {
-      // Scroll down by viewport height minus offset
+      // Scroll down by viewport minus custom offset
       window.scrollBy({
         top: window.innerHeight - offset,
         behavior: 'smooth'
@@ -46,6 +58,7 @@ const ScrollDown = ({
     }
   };
 
+  // Positioning helpers
   const getPositionClasses = () => {
     switch (position) {
       case "bottom-right":
@@ -60,6 +73,7 @@ const ScrollDown = ({
     }
   };
 
+  // Style variants
   const getStyleVariant = () => {
     switch (style) {
       case "minimal":
@@ -77,7 +91,7 @@ const ScrollDown = ({
       case "pulsing":
         return {
           container: "bg-gradient-to-br from-blue-500/20 to-purple-600/20 backdrop-blur-sm",
-          button: "p-3 rounded-full bg-red-900 text-white shadow-lg p-3 transition-all",
+          button: "p-3 rounded-full bg-red-900 text-white shadow-lg transition-all",
           icon: "w-7 h-7"
         };
       case "default":
@@ -89,7 +103,6 @@ const ScrollDown = ({
         };
     }
   };
-
   const styleVariant = getStyleVariant();
 
   return (
