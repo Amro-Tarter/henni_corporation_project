@@ -1,64 +1,57 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  collection, query, where, getDocs, getDoc, doc, updateDoc
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  updateDoc,
+  increment,
+  query,
+  where,
 } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  HandHeart, Users, Heart, TreePine, X, Edit2, Check, ChevronDown, ChevronUp,
-  TrendingUp, MapPin, Lightbulb
+  HandHeart,
+  Users,
+  Heart,
+  TreePine,
+  X,
+  Edit2,
+  Check,
+  TrendingUp,
+  MapPin,
+  Lightbulb,
 } from 'lucide-react';
 import CTAButton from '@/components/CTAButton';
 import { Link } from 'react-router-dom';
-import ScrollDown from "@/components/ui/ScrollDown";
+import ScrollDown from '@/components/ui/ScrollDown';
 
 const DEFAULT_IMAGE = '/default_user_pic.jpg';
-
-// Statistics data
-const stats = [
-  { 
-    value: 1200, 
-    label: 'בני נוער שגילו את האור שבתוכם', 
-    color: 'pink',
-    icon: <Lightbulb className="h-6 w-6" />
-  },
-  { 
-    value: 85, 
-    label: 'פרויקטים קהילתיים יזמיים', 
-    color: 'orange',
-    icon: <TrendingUp className="h-6 w-6" />
-  },
-  { 
-    value: 30, 
-    label: 'יישובים בהם פועלת העמותה', 
-    color: 'green',
-    icon: <MapPin className="h-6 w-6" />
-  },
-];
 
 // Animated Counter Component
 const AnimatedCounter = ({ endValue, isVisible, duration = 2000 }) => {
   const [count, setCount] = useState(0);
-  
+
   useEffect(() => {
     if (!isVisible) return;
-    
+
     let startTime;
-    const animate = (timestamp) => {
+    const animate = timestamp => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
       setCount(Math.floor(progress * endValue));
-      
+
       if (progress < 1) {
         requestAnimationFrame(animate);
       }
     };
-    
+
     requestAnimationFrame(animate);
   }, [isVisible, endValue, duration]);
-  
+
   return <span>{count.toLocaleString()}+</span>;
 };
 
@@ -82,36 +75,60 @@ const AboutSection = ({ currentUser }) => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAllTeam, setShowAllTeam] = useState(false);
   const [newsletterModal, setNewsletterModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [isStatsInView, setIsStatsInView] = useState(false);
+  const [statsData, setStatsData] = useState({ visits: 0, users: 0, projects: 0 });
+
   const isAdmin = currentUser?.role === 'admin';
 
   // Refs
   const modalRef = useRef();
-  const statsRef = useRef();
+  const statsRef = useRef(null);
 
-  // Intersection Observer for stats animation
+  // Increment visit counter
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsStatsInView(true);
-        }
-      },
+    const statsRefDoc = doc(db, 'siteStats', 'counters');
+    updateDoc(statsRefDoc, { visits: increment(1) }).catch(async () => {
+      const snap = await getDoc(statsRefDoc);
+      if (!snap.exists()) {
+        await updateDoc(statsRefDoc, { visits: 1 });
+      }
+    });
+  }, []);
+
+  // Fetch stats data
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        // Visits
+        const snap = await getDoc(doc(db, 'siteStats', 'counters'));
+        const visits = snap.exists() ? snap.data().visits || 0 : 0;
+        // Projects
+        const elemSnap = await getDocs(collection(db, 'elemental_projects'));
+        const persSnap = await getDocs(collection(db, 'personal_projects'));
+        const projects = elemSnap.size + persSnap.size;
+        // Users
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const users = usersSnap.size;
+        setStatsData({ visits, users, projects });
+      } catch (err) {
+        console.error('Error loading stats:', err);
+      }
+    }
+    fetchStats();
+  }, []);
+
+  // Animate counters on view
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => e.isIntersecting && setIsStatsInView(true),
       { threshold: 0.3 }
     );
-
-    if (statsRef.current) {
-      observer.observe(statsRef.current);
-    }
-
+    if (statsRef.current) obs.observe(statsRef.current);
     return () => {
-      if (statsRef.current) {
-        observer.unobserve(statsRef.current);
-      }
+      if (statsRef.current) obs.disconnect();
     };
   }, []);
 
@@ -134,7 +151,9 @@ const AboutSection = ({ currentUser }) => {
           try {
             const profileDoc = await getDoc(doc(db, 'profiles', associatedId));
             profileData = profileDoc.exists() ? profileDoc.data() : {};
-          } catch {}
+          } catch (e) {
+            console.error('Error fetching profile for staff member:', e);
+          }
           const admin = {
             id: userDoc.id,
             associated_id: associatedId,
@@ -145,7 +164,10 @@ const AboutSection = ({ currentUser }) => {
               'מנהל',
             role: userData.role,
             in_role: userData.in_role, // Keep the in_role field for sorting
-            title: userData.title || profileData.title || (userData.in_role === 'ceo' ? 'מייסדת ומנכ"לית' : userData.in_role),
+            title:
+              userData.title ||
+              profileData.title ||
+              (userData.in_role === 'ceo' ? 'מייסדת ומנכ"לית' : userData.in_role),
             photoURL: profileData.photoURL || userData.photoURL || DEFAULT_IMAGE,
             bio:
               profileData.bio ||
@@ -158,23 +180,26 @@ const AboutSection = ({ currentUser }) => {
           };
           if (admin.is_active) admins.push(admin);
         }
-        
+
         // Sort: CEO first, then staff members by name
         admins.sort((a, b) => {
           if (a.in_role === 'ceo' && b.in_role !== 'ceo') return -1;
           if (b.in_role === 'ceo' && a.in_role !== 'ceo') return 1;
           return a.username.localeCompare(b.username);
         });
-        
+
         if (active) setTeamMembers(admins);
       } catch (error) {
+        console.error('Error fetching admin users:', error);
         setTeamMembers([]);
       } finally {
         setLoading(false);
       }
     };
     fetchAdminUsers();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Modal close on ESC
@@ -182,7 +207,6 @@ const AboutSection = ({ currentUser }) => {
     function onKeyDown(e) {
       if (e.key === 'Escape') {
         setSelectedMember(null);
-        setShowAllTeam(false);
         setNewsletterModal(false);
         setEditMode(false);
       }
@@ -213,34 +237,60 @@ const AboutSection = ({ currentUser }) => {
     },
   ];
 
+
+  // Combined stats config (dynamic + static)
+  const combinedStatsConfig = [
+    {
+      value: statsData.visits,
+      label: 'מבקרים ייחודיים באתר',
+      icon: <Lightbulb className="h-6 w-6 text-pink-500" />,
+      color: 'pink',
+    },
+    {
+      value: statsData.users,
+      label: 'משתמשים נרשמים',
+      icon: <Users className="h-6 w-6 text-blue-500" />,
+      color: 'blue', // Added blue color for dynamic stats
+    },
+    {
+      value: statsData.projects,
+      label: 'פרויקטים שבוצעו',
+      icon: <TrendingUp className="h-6 w-6 text-green-500" />,
+      color: 'green',
+    },
+  ];
+
   // Modal logic
-  const openMemberModal = idx => {
+  const openMemberModal = useCallback(idx => {
     setEditMode(false);
     setSelectedMember(idx);
     setEditData({});
-  };
-  const closeMemberModal = () => {
+  }, []);
+
+  const closeMemberModal = useCallback(() => {
     setEditMode(false);
     setSelectedMember(null);
     setEditData({});
-  };
-  const openNewsletter = () => setNewsletterModal(true);
-  const closeNewsletter = () => setNewsletterModal(false);
+  }, []);
+
+  const openNewsletter = useCallback(() => setNewsletterModal(true), []);
+  const closeNewsletter = useCallback(() => setNewsletterModal(false), []);
 
   // Edit team member
-  const startEdit = () => {
+  const startEdit = useCallback(() => {
     const m = teamMembers[selectedMember];
     setEditData({ bio: m.bio, title: m.title });
     setEditMode(true);
-  };
-  const cancelEdit = () => {
+  }, [selectedMember, teamMembers]);
+
+  const cancelEdit = useCallback(() => {
     setEditData({});
     setEditMode(false);
-  };
+  }, []);
 
-  const handleEditChange = e => {
-    setEditData(ed => ({ ...ed, [e.target.username]: e.target.value }));
-  };
+  const handleEditChange = useCallback(e => {
+    setEditData(ed => ({ ...ed, [e.target.name]: e.target.value }));
+  }, []);
 
   const saveEdit = async () => {
     const member = teamMembers[selectedMember];
@@ -252,20 +302,15 @@ const AboutSection = ({ currentUser }) => {
       });
       // Update local state
       const newTeam = teamMembers.map((m, i) =>
-        i === selectedMember
-          ? { ...m, bio: editData.bio, title: editData.title }
-          : m
+        i === selectedMember ? { ...m, bio: editData.bio, title: editData.title } : m
       );
       setTeamMembers(newTeam);
       setEditMode(false);
     } catch (err) {
       alert('שגיאה בשמירת הפרופיל');
+      console.error('Error saving profile:', err);
     }
   };
-
-  // View all modal logic
-  const openAllTeam = () => setShowAllTeam(true);
-  const closeAllTeam = () => setShowAllTeam(false);
 
   // Newsletter dummy logic (replace with real form/modal/route as needed)
   function NewsletterModal() {
@@ -314,26 +359,32 @@ const AboutSection = ({ currentUser }) => {
   }
 
   // Get color classes for stats
-  const getColorClasses = (color) => {
+  const getColorClasses = color => {
     const colorMap = {
       pink: {
         bg: 'from-pink-100 to-pink-50',
         text: 'text-pink-800',
         icon: 'text-pink-600',
-        border: 'border-pink-200'
+        border: 'border-pink-200',
       },
       orange: {
         bg: 'from-orange-100 to-orange-50',
         text: 'text-orange-800',
         icon: 'text-orange-600',
-        border: 'border-orange-200'
+        border: 'border-orange-200',
       },
       green: {
         bg: 'from-green-100 to-green-50',
         text: 'text-green-800',
         icon: 'text-green-600',
-        border: 'border-green-200'
-      }
+        border: 'border-green-200',
+      },
+      blue: { // Added blue for the dynamic users stat
+        bg: 'from-blue-100 to-blue-50',
+        text: 'text-blue-800',
+        icon: 'text-blue-600',
+        border: 'border-blue-200',
+      },
     };
     return colorMap[color] || colorMap.orange;
   };
@@ -351,48 +402,12 @@ const AboutSection = ({ currentUser }) => {
       {/* Newsletter modal */}
       <NewsletterModal />
 
-      {/* All Team Modal */}
-      <AnimatePresence>
+      {/* All Team Modal (removed as per instructions to link to /team) */}
+      {/* <AnimatePresence>
         {showAllTeam && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          >
-            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-8 relative text-center">
-              <button
-                onClick={closeAllTeam}
-                className="absolute top-4 left-4 bg-white rounded-full p-2 hover:bg-gray-100 shadow-md"
-                aria-label="סגור"
-              >
-                <X className="h-5 w-5 text-gray-600" />
-              </button>
-              <h2 className="font-bold text-2xl mb-3 text-orange-800">
-                כל צוות העמותה
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                {teamMembers.map((member, idx) => (
-                  <div
-                    key={member.id}
-                    className="bg-orange-50/80 rounded-xl p-4 shadow-sm border border-orange-100 cursor-pointer"
-                    onClick={() => {
-                      closeAllTeam();
-                      openMemberModal(idx);
-                    }}
-                  >
-                    <div className="relative w-20 h-20 mx-auto rounded-full overflow-hidden bg-orange-100 mb-3">
-                      <AvatarImg src={member.photoURL} alt={member.username} />
-                    </div>
-                    <h4 className="text-base font-bold text-gray-900">{member.username}</h4>
-                    <p className="text-orange-500 text-sm">{member.title}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
+          // ... (removed "All Team Modal" content) ...
         )}
-      </AnimatePresence>
+      </AnimatePresence> */}
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -403,7 +418,8 @@ const AboutSection = ({ currentUser }) => {
           </h2>
           <div className="h-1 w-20 bg-orange-500 mx-auto mb-4 rounded-full"></div>
           <p className="text-base md:text-lg text-gray-700 max-w-xl mx-auto leading-relaxed">
-            כל ילד וילדה נולדים עם אור פנימי חד-פעמי. דרך אמנות, יצירה וחיבורים אנושיים, אנו יוצרים עבורם קרקע לצמיחה.
+            כל ילד וילדה נולדים עם אור פנימי חד-פעמי. דרך אמנות, יצירה וחיבורים אנושיים,
+            אנו יוצרים עבורם קרקע לצמיחה.
           </p>
         </div>
 
@@ -414,43 +430,60 @@ const AboutSection = ({ currentUser }) => {
               key={index}
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
-              className={`transition-all duration-300 ${hoveredIndex === index ? 'transform -translate-y-1' : ''}`}
+              className={`transition-all duration-300 ${
+                hoveredIndex === index ? 'transform -translate-y-1' : ''
+              }`}
             >
-              <Card className={`h-full bg-white/90 backdrop-blur-sm border-0 shadow-md rounded-2xl ${hoveredIndex === index ? 'shadow-lg shadow-orange-200/50' : ''}`}>
+              <Card
+                className={`h-full bg-white/90 backdrop-blur-sm border-0 shadow-md rounded-2xl ${
+                  hoveredIndex === index ? 'shadow-lg shadow-orange-200/50' : ''
+                }`}
+              >
                 <CardContent className="p-4 md:p-6 text-center h-full flex flex-col">
                   <div className="mb-3 flex justify-center">
-                    <div className={`p-2 rounded-full bg-orange-50 ${hoveredIndex === index ? 'scale-110' : ''} transition-all duration-300`}>
+                    <div
+                      className={`p-2 rounded-full bg-orange-50 ${
+                        hoveredIndex === index ? 'scale-110' : ''
+                      } transition-all duration-300`}
+                    >
                       {feature.icon}
                     </div>
                   </div>
-                  <h3 className="text-lg md:text-xl font-bold mb-2 text-gray-900">{feature.title}</h3>
-                  <p className="text-sm md:text-base text-gray-600 leading-relaxed flex-grow">{feature.description}</p>
+                  <h3 className="text-lg md:text-xl font-bold mb-2 text-gray-900">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm md:text-base text-gray-600 leading-relaxed flex-grow">
+                    {feature.description}
+                  </p>
                 </CardContent>
               </Card>
             </div>
           ))}
         </div>
 
-      
         {/* Newsletter/CTA */}
         <div className="text-center mb-12 rounded-2xl p-8 mx-auto max-w-3xl transition-all duration-300 border border-orange-100">
           <div className="inline-flex items-center gap-3 mb-4 bg-green-50 px-4 py-2 rounded-full">
             <TreePine className="h-6 w-6 text-green-600 animate-pulse" />
             <span className="text-green-700 font-semibold">חדש! הניוזלטר שלנו</span>
           </div>
-          <h3 className="text-2xl md:text-3xl font-bold text-orange-800 mb-4">הישארו מעודכנים בפעילויות העמותה</h3>
-          <p className="text-gray-600 mb-6 max-w-xl mx-auto">הצטרפו לקהילה שלנו וקבלו עדכונים שבועיים על פעילויות, אירועים והשפעות העמותה</p>
+          <h3 className="text-2xl md:text-3xl font-bold text-orange-800 mb-4">
+            הישארו מעודכנים בפעילויות העמותה
+          </h3>
+          <p className="text-gray-600 mb-6 max-w-xl mx-auto">
+            הצטרפו לקהילה שלנו וקבלו עדכונים שבועיים על פעילויות, אירועים והשפעות העמותה
+          </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button
               onClick={openNewsletter}
               className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 
-                         text-white px-8 py-3 rounded-lg shadow-md transition-all duration-300 
-                         hover:shadow-xl hover:-translate-y-1 flex items-center gap-2"
+                             text-white px-8 py-3 rounded-lg shadow-md transition-all duration-300 
+                             hover:shadow-xl hover:-translate-y-1 flex items-center gap-2"
             >
               <span>הרשמו לניוזלטר</span>
               <Edit2 className="h-4 w-4" />
             </Button>
-             <CTAButton
+            <CTAButton
               variant="inverse-fire"
               href="/newsletter"
               className="border-orange-200 text-orange-700 hover:bg-orange-50 px-6 py-3 rounded-lg transition-all duration-300"
@@ -459,7 +492,8 @@ const AboutSection = ({ currentUser }) => {
             </CTAButton>
           </div>
         </div>
-         {/* Animated Statistics */}
+
+        {/* Animated Statistics */}
         <div ref={statsRef} className="mb-12">
           <motion.h3
             initial={{ opacity: 0, y: 20 }}
@@ -469,36 +503,38 @@ const AboutSection = ({ currentUser }) => {
           >
             ההשפעה שלנו – במספרים
           </motion.h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {stats.map((stat, index) => {
+            {combinedStatsConfig.map((stat, index) => {
               const colors = getColorClasses(stat.color);
-                return (
+              return (
                 <div key={index} className="relative">
                   <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.6 }}
-                  className={`bg-white/90 rounded-xl shadow-lg border ${colors.border} p-6 text-center hover:shadow-xl transition-all hover:-translate-y-1 backdrop-blur-sm mt-8`}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.6 }}
+                    className={`bg-white/90 rounded-xl shadow-lg border ${colors.border} p-6 text-center hover:shadow-xl transition-all hover:-translate-y-1 backdrop-blur-sm mt-8`}
                   >
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2">
-                    <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/80 ${colors.icon} shadow-sm border ${colors.border}`}>
-                    {stat.icon}
+                    <div className="absolute -top-6 left-1/2 -translate-x-1/2">
+                      <div
+                        className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/80 ${colors.icon} shadow-sm border ${colors.border}`}
+                      >
+                        {stat.icon}
+                      </div>
                     </div>
-                  </div>
-                  <div className={`text-4xl md:text-5xl font-bold ${colors.text} mt-2 mb-2`}>
-                    <AnimatedCounter
-                    endValue={stat.value}
-                    isVisible={isStatsInView}
-                    duration={2000 + index * 500}
-                    />
-                  </div>
-                  <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-                    {stat.label}
-                  </p>
+                    <div className={`text-4xl md:text-5xl font-bold ${colors.text} mt-2 mb-2`}>
+                      <AnimatedCounter
+                        endValue={stat.value}
+                        isVisible={isStatsInView}
+                        duration={2000 + index * 500}
+                      />
+                    </div>
+                    <p className="text-sm md:text-base text-gray-600 leading-relaxed">
+                      {stat.label}
+                    </p>
                   </motion.div>
                 </div>
-                );
+              );
             })}
           </div>
         </div>
@@ -506,7 +542,9 @@ const AboutSection = ({ currentUser }) => {
         {/* Team Section */}
         <div className="text-center">
           <h3 className="text-2xl md:text-3xl font-bold text-orange-800 mb-2">צוות העמותה</h3>
-          <p className="text-gray-600 mb-6 text-sm md:text-base">הכירו את האנשים שמובילים את החזון שלנו</p>
+          <p className="text-gray-600 mb-6 text-sm md:text-base">
+            הכירו את האנשים שמובילים את החזון שלנו
+          </p>
 
           {loading ? (
             <div className="flex justify-center items-center py-8">
@@ -527,34 +565,33 @@ const AboutSection = ({ currentUser }) => {
                     key={member.id}
                     onClick={() => openMemberModal(idx)}
                     className={`bg-white/60 rounded-xl p-4 shadow-md cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border ${
-                      member.in_role === 'ceo' 
-                        ? 'border-orange-300 bg-gradient-to-br from-orange-50 to-orange-100' 
+                      member.in_role === 'ceo'
+                        ? 'border-orange-300 bg-gradient-to-br from-orange-50 to-orange-100'
                         : 'border-orange-100'
                     }`}
                   >
                     <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full mx-auto mb-3 overflow-hidden bg-orange-100">
-                      <AvatarImg src={member.photoURL} alt={member. username} />
+                      <AvatarImg src={member.photoURL} alt={member.username} />
                     </div>
-                    <h4 className="text-sm md:text-base font-bold text-gray-900 mb-1">{member.username}</h4>
+                    <h4 className="text-sm md:text-base font-bold text-gray-900 mb-1">
+                      {member.username}
+                    </h4>
                     <p className="text-gray-600 text-xs md:text-sm mb-1">{member.title}</p>
                     <p className="text-orange-500 text-xs">לחץ לפרטים נוספים</p>
                   </div>
                 ))}
               </div>
               {/* View all team button */}
-             <Button
-              asChild
-              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg px-6 py-2 shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <Link to="/team">
-                הכירו את כל הצוות
-              </Link>
-            </Button>
+              <Button
+                asChild
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg px-6 py-2 shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Link to="/team">הכירו את כל הצוות</Link>
+              </Button>
             </>
           )}
         </div>
       </div>
-
 
       {/* Member modal */}
       <AnimatePresence>
@@ -579,7 +616,10 @@ const AboutSection = ({ currentUser }) => {
               {teamMembers[selectedMember] && (
                 <div className="p-6 flex flex-col md:flex-row gap-6 items-center md:items-start text-right">
                   <div className="w-32 h-32 rounded-full overflow-hidden flex-shrink-0 border-4 border-orange-200 shadow-lg">
-                    <AvatarImg src={teamMembers[selectedMember].photoURL} alt={teamMembers[selectedMember].username} />
+                    <AvatarImg
+                      src={teamMembers[selectedMember].photoURL}
+                      alt={teamMembers[selectedMember].username}
+                    />
                   </div>
                   <div className="flex-1 text-center md:text-right">
                     <h3 className="text-2xl font-bold text-gray-900 mb-2">
@@ -590,7 +630,9 @@ const AboutSection = ({ currentUser }) => {
                         <p className="text-lg text-orange-500 font-medium mb-4">
                           {teamMembers[selectedMember].title}
                         </p>
-                        <p className="text-gray-700 leading-relaxed">{teamMembers[selectedMember].bio}</p>
+                        <p className="text-gray-700 leading-relaxed">
+                          {teamMembers[selectedMember].bio}
+                        </p>
                         {isAdmin && (
                           <Button
                             variant="ghost"
@@ -613,14 +655,14 @@ const AboutSection = ({ currentUser }) => {
                     ) : (
                       <>
                         <input
-                          username="title"
+                          name="title" // Changed 'username' to 'name' for input
                           className="border rounded-lg px-4 py-2 w-full my-2 text-right"
                           value={editData.title || ''}
                           onChange={handleEditChange}
                           placeholder="תפקיד"
                         />
                         <textarea
-                          username="bio"
+                          name="bio" // Changed 'username' to 'name' for textarea
                           className="border rounded-lg px-4 py-2 w-full my-2 text-right"
                           value={editData.bio || ''}
                           onChange={handleEditChange}
@@ -652,14 +694,10 @@ const AboutSection = ({ currentUser }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
       {/* Scroll Down Indicator */}
-      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-        <ScrollDown
-          targetId="about-section"
-          style="default"
-          position="center"
-          className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50"
-        />
+      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
+        <ScrollDown targetId="team-section" style="default" offset={80} />
       </div>
     </section>
   );
