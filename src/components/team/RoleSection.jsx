@@ -18,33 +18,42 @@ const RoleSection = ({
   const filteredMembers = useMemo(() => {
     if (!members?.length) return []
     
-    return members.filter(member => {
-      const matchesSearch = !searchTerm || 
-        (member.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         member.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         member.bio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         member.mentorName?.toLowerCase().includes(searchTerm.toLowerCase()))
-      
-      const matchesFilter = filterBy === 'all' || 
-        (filterBy === 'has-mentor' && member.mentorName) ||
-        (filterBy === 'no-mentor' && !member.mentorName) ||
-        (filterBy === 'has-bio' && member.bio) ||
-        (filterBy === 'has-specialties' && member.specialties?.length)
-      
-      return matchesSearch && matchesFilter
-    }).sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return (a.username || a.displayName || '').localeCompare(b.username || b.displayName || '')
-        case 'role':
-          return (a.in_role || '').localeCompare(b.in_role || '')
-        case 'mentor':
-          return (a.mentorName || '').localeCompare(b.mentorName || '')
-        default:
-          return 0
-      }
-    })
+    return members
+      .filter(member => {
+        const matchesSearch = !searchTerm || 
+          (member.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          member.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          member.bio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          member.mentorName?.toLowerCase().includes(searchTerm.toLowerCase()))
+
+        const matchesFilter = filterBy === 'all' || 
+          (filterBy === 'has-mentor' && member.mentorName) ||
+          (filterBy === 'no-mentor' && !member.mentorName) ||
+          (filterBy === 'has-bio' && member.bio) ||
+          (filterBy === 'has-specialties' && member.specialties?.length)
+
+        return matchesSearch && matchesFilter
+      })
+      .sort((a, b) => {
+        // ✅ Move CEO to top
+        const aIsCeo = /(ceo|מנכ״ל|מנכ״לית)/i.test(a.in_role || "")
+        const bIsCeo = /(ceo|מנכ״ל|מנכ״לית)/i.test(b.in_role || "")
+        if (aIsCeo && !bIsCeo) return -1
+        if (!aIsCeo && bIsCeo) return 1
+
+        // fallback to current sorting logic
+        switch (sortBy) {
+          case 'name':
+            return (a.username || a.displayName || '').localeCompare(b.username || b.displayName || '')
+          case 'role':
+            return (a.in_role || '').localeCompare(b.in_role || '')
+          case 'mentor':
+            return (a.mentorName || '').localeCompare(b.mentorName || '')
+          default:
+            return 0
+        }
+      })
   }, [members, searchTerm, sortBy, filterBy])
 
   const toggleExpanded = useCallback((memberId) => {
