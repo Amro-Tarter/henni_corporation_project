@@ -392,6 +392,7 @@ const ProfilePage = () => {
   };
 
   // Update profile field
+  // NOTE: username/location updates are handled in Settings page only.
   const updateField = async (field, value) => {
     const profileRef = doc(db, 'profiles', uid);
     const userRef = doc(db, 'users', uid);
@@ -788,7 +789,6 @@ const ProfilePage = () => {
   const viewerElement = isViewerPrivileged || !viewerProfile?.element ? 'red' : viewerProfile?.element;
 
   if (loading) {
-    // you can pass the current element if your loader adapts to it:
     return (
       <ThemeProvider element={profile?.element}>
         <ElementalLoader />
@@ -839,7 +839,6 @@ const ProfilePage = () => {
                 postsCount={profile.postsCount}
                 followersCount={profile.followersCount}
                 followingCount={profile.followingCount}
-                onUpdateField={updateField}
                 onUpdateProfilePic={updateProfilePic}
                 onUpdateBackgroundPic={updateBackgroundPic}
                 onFollowToggle={handleFollowToggle}
