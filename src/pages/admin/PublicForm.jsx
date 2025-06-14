@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../config/firbaseConfig";
 import { useAuth } from "../../context/AuthContext";
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+import CleanElementalOrbitLoader from '../../theme/ElementalLoader';
 
 export default function PublicForm() {
   const { formId } = useParams();
@@ -21,7 +21,8 @@ export default function PublicForm() {
   const [loading, setLoading] = useState(true);
   const [submitStatus, setSubmitStatus] = useState(null);
   const [username, setUsername] = useState("");
-
+  const [isSubmitting, setIsSubmitting] = useState(false); // New state for submission status
+  const [fieldErrors, setFieldErrors] = useState({}); // New state for field-specific errors
 
   useEffect(() => {
     const loadForm = async () => {
@@ -55,8 +56,24 @@ export default function PublicForm() {
     loadUsername();
   }, [formId, currentUser]);
 
+  // Effect to clear submitStatus message after 3 seconds if it's a success message
+  useEffect(() => {
+    if (submitStatus === "הטופס נשלח בהצלחה!") {
+      const timer = setTimeout(() => {
+        setSubmitStatus(null);
+      }, 3000); // Clear after 3 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [submitStatus]);
+
   const handleChange = (id, value) => {
     setAnswers((prev) => ({ ...prev, [id]: value }));
+    // Clear error for this field when it's changed
+    setFieldErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors[id];
+      return newErrors;
+    });
   };
 
   const handleCheckboxChange = (id, option) => {
@@ -65,82 +82,118 @@ export default function PublicForm() {
       const updated = current.includes(option)
         ? current.filter((o) => o !== option)
         : [...current, option];
+
+      // Clear error for this field if at least one is selected
+      if (updated.length > 0) {
+        setFieldErrors((prevErrors) => {
+          const newErrors = { ...prevErrors };
+          delete newErrors[id];
+          return newErrors;
+        });
+      }
       return { ...prev, [id]: updated };
     });
   };
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setSubmitStatus(null);
 
-  // --- Add these console.logs ---
-  console.log("Submitting form...");
-  console.log("formId:", formId); // Check if formId is valid
-  console.log("answers:", answers); // Check content of answers object
-  console.log("username (before submission):", username); // Check username value
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitStatus(null);
+    setFieldErrors({}); // Clear previous errors
+    setIsSubmitting(true); // Disable the submit button
 
-  // Make sure answers has no undefined or non-serializable values
-  const cleanedAnswers = {};
-  for (const key in answers) {
-    if (Object.prototype.hasOwnProperty.call(answers, key)) {
-      const value = answers[key];
-      // Convert undefined to null, or filter it out if not essential
-      if (value === undefined) {
-        // Option 1: Convert undefined to null (Firestore accepts null)
-        cleanedAnswers[key] = null;
-        console.warn(`Field "${key}" was undefined, converted to null.`);
-      } else if (typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof Date) && !(value._isFieldValue)) {
-        // Option 2: Deep check for non-plain objects if your answers can contain them
-        // For now, let's just log potential issues
-        console.warn(`Field "${key}" is a complex object. Ensure it's plain or serializable. Value:`, value);
-        cleanedAnswers[key] = JSON.parse(JSON.stringify(value)); // A crude way to "plain-ify"
-      } else {
-        cleanedAnswers[key] = value;
+    // --- Client-side Validation ---
+    let isValid = true;
+    const newErrors = {};
+
+    form.fields.forEach((field) => {
+      if (field.required) {
+        const fieldId = field.id;
+        const value = answers[fieldId];
+
+        if (field.type === "text" || field.type === "paragraph" || field.type === "date" || field.type === "dropdown") {
+          if (!value || String(value).trim() === "") { // Ensure value is treated as string for trim
+            isValid = false;
+            newErrors[fieldId] = "שדה חובה זה חסר.";
+          }
+        } else if (field.type === "multipleChoice") {
+            if (!value || String(value).trim() === "") {
+                isValid = false;
+                newErrors[fieldId] = "נדרשת בחירה.";
+            }
+        } else if (field.type === "checkboxes") {
+          if (!value || value.length === 0) {
+            isValid = false;
+            newErrors[fieldId] = "נדרשת בחירה אחת לפחות.";
+          }
+        }
+      }
+    });
+
+    if (!isValid) {
+      setFieldErrors(newErrors);
+      setSubmitStatus("אנא מלא/מלאי את כל השדות הנדרשים.");
+      setIsSubmitting(false); // Re-enable button
+      return; // Stop submission if validation fails
+    }
+    // --- End Client-side Validation ---
+
+    // Make sure answers has no undefined or non-serializable values
+    const cleanedAnswers = {};
+    for (const key in answers) {
+      if (Object.prototype.hasOwnProperty.call(answers, key)) {
+        const value = answers[key];
+        cleanedAnswers[key] = value === undefined ? null : value;
       }
     }
-  }
-  console.log("cleanedAnswers:", cleanedAnswers);
-  // --- End console.logs ---
 
-  try {
-    // 1. Add submission
-    await addDoc(collection(db, "submissions"), {
-      formId,
-      answers: cleanedAnswers, // Use cleanedAnswers
-      username: currentUser ? username : "אורח/ת", // Ensure username is always a string
-      submittedAt: serverTimestamp(),
-    });
+    try {
+      // 1. Add submission
+      await addDoc(collection(db, "submissions"), {
+        formId,
+        answers: cleanedAnswers,
+        username: currentUser ? username : "אורח/ת",
+        submittedAt: serverTimestamp(),
+      });
 
-    // 2. Increment responses count in the 'forms' collection
-    const formDocRef = doc(db, "forms", formId);
-    await updateDoc(formDocRef, {
-      responses: increment(1)
-    });
+      // 2. Increment responses count in the 'forms' collection
+      const formDocRef = doc(db, "forms", formId);
+      await updateDoc(formDocRef, {
+        responses: increment(1)
+      });
 
-    setSubmitStatus("הטופס נשלח בהצלחה!");
-    setAnswers({});
-  } catch (err) {
-    console.error("Submission failed:", err);
-    console.error("Full error details:", JSON.stringify(err, null, 2)); // Stringify for full error details
-    setSubmitStatus("השליחה נכשלה.");
-  }
-};
+      setSubmitStatus("הטופס נשלח בהצלחה!");
+      setAnswers({}); // Clear form after successful submission
+    } catch (err) {
+      console.error("Submission failed:", err);
+      let errorMessage = "השליחה נכשלה.";
+      if (err.code === 'unavailable') {
+        errorMessage = "השליחה נכשלה. אנא בדוק/בדקי את חיבור האינטרנט שלך.";
+      } else if (err.message && process.env.NODE_ENV !== 'production') { // Only show detailed message in development
+        errorMessage += ` פרטים: ${err.message}`;
+      }
+      setSubmitStatus(errorMessage);
+    } finally {
+      setIsSubmitting(false); // Re-enable button regardless of success or failure
+    }
+  };
 
-  if (loading ) return <CleanElementalOrbitLoader />;
+  if (loading) return <CleanElementalOrbitLoader />;
   if (!form) return <p className="text-center text-red-600">הטופס לא נמצא.</p>;
 
   return (
     <div className="max-w-xl mx-auto p-6">
       <h2 className="text-2xl font-semibold mb-4">{form.title}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {form.fields && form.fields.map((field, index) => { // Added check for form.fields
+        {form.fields && form.fields.map((field, index) => {
           const fieldId = field.id || `field-${index}`;
           const value = answers[fieldId] || "";
+          const error = fieldErrors[fieldId];
 
           return (
             <div key={fieldId} className="mb-4">
               <label className="block text-sm font-semibold mb-1">
                 {field.label || "שאלה ללא כותרת"}
-                {field.required && <span className="text-red-500">*</span>} {/* Indicate required fields */}
+                {field.required && <span className="text-red-500">*</span>}
               </label>
 
               {field.type === "text" && (
@@ -149,7 +202,7 @@ const handleSubmit = async (e) => {
                   required={field.required}
                   value={value}
                   onChange={(e) => handleChange(fieldId, e.target.value)}
-                  className="w-full px-3 py-2 border rounded"
+                  className={`w-full px-3 py-2 border rounded ${error ? 'border-red-500' : 'border-gray-300'}`}
                 />
               )}
 
@@ -158,7 +211,7 @@ const handleSubmit = async (e) => {
                   required={field.required}
                   value={value}
                   onChange={(e) => handleChange(fieldId, e.target.value)}
-                  className="w-full px-3 py-2 border rounded"
+                  className={`w-full px-3 py-2 border rounded ${error ? 'border-red-500' : 'border-gray-300'}`}
                   rows={4}
                 />
               )}
@@ -173,7 +226,7 @@ const handleSubmit = async (e) => {
                         value={option}
                         checked={value === option}
                         onChange={(e) => handleChange(fieldId, e.target.value)}
-                        required={field.required} // Radio buttons often need one selected if required
+                        required={field.required}
                       />
                       <span>{option}</span>
                     </label>
@@ -193,9 +246,7 @@ const handleSubmit = async (e) => {
                       <span>{option}</span>
                     </label>
                   ))}
-                  {field.required && !value.length && (
-                    <p className="text-red-500 text-xs mt-1">נדרשת בחירה אחת לפחות.</p>
-                  )}
+                  {/* Display general validation message if error exists */}
                 </div>
               )}
 
@@ -204,7 +255,7 @@ const handleSubmit = async (e) => {
                   required={field.required}
                   value={value}
                   onChange={(e) => handleChange(fieldId, e.target.value)}
-                  className="w-full px-3 py-2 border rounded"
+                  className={`w-full px-3 py-2 border rounded ${error ? 'border-red-500' : 'border-gray-300'}`}
                 >
                   <option value="">בחר אפשרות</option>
                   {field.options?.map((option, idx) => (
@@ -221,9 +272,13 @@ const handleSubmit = async (e) => {
                   required={field.required}
                   value={value}
                   onChange={(e) => handleChange(fieldId, e.target.value)}
-                  className="w-full px-3 py-2 border rounded"
+                  className={`w-full px-3 py-2 border rounded ${error ? 'border-red-500' : 'border-gray-300'}`}
                 />
               )}
+
+              {/* Display field-specific error message */}
+              {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+
 
               {![
                 "text",
@@ -243,14 +298,17 @@ const handleSubmit = async (e) => {
 
         <button
           type="submit"
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={isSubmitting} // Disable when submitting
         >
-          שלח
+          {isSubmitting ? "שולח..." : "שלח"}
         </button>
       </form>
 
       {submitStatus && (
-        <p className="mt-4 text-center text-blue-600">{submitStatus}</p>
+        <p className={`mt-4 text-center ${submitStatus.includes("נכשל") ? 'text-red-600' : 'text-blue-600'}`}>
+          {submitStatus}
+        </p>
       )}
     </div>
   );

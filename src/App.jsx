@@ -129,7 +129,7 @@ const App = () => {
                   <Route path="/admin/donations" element={<DonationForm/>} />
                   <Route path="/admin/Mentorship" element={<Mentorship/>} />
                   <Route path="/admin/forms" element={<AdminFormManager />} />
-                  <Route path="/admin/submissions" element={<SubmissionViewer />} />
+                  <Route path="/admin/submissions/:formId" element={<SubmissionViewer />} />
                   <Route path="/form/:formId" element={<PublicForm />} />
                   <Route path="/admin/staff" element={<Staff />} />
                   <Route path="/admin/contactMessages" element={<ContactMessages />} />
