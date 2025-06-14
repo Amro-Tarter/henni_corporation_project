@@ -3,26 +3,40 @@ import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { db } from "../../config/firbaseConfig";
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import ElementalLoader from "@/theme/ElementalLoader";
-import { Mail, User, Book, MessageSquare, Clock } from 'lucide-react'; // Icons for better display
+import { 
+  Mail, 
+  Book, 
+  MessageSquare, 
+  Star,
+  MoreVertical,
+} from 'lucide-react';
 
 const ContactMessages = () => {
   const [contacts, setContacts] = useState([]);
+  const [filteredContacts, setFilteredContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
   useEffect(() => {
     const fetchContacts = async () => {
       try {
         setLoading(true);
-        // Create a query to get documents from 'contact' collection, ordered by timestamp
         const q = query(collection(db, "contacts"), orderBy("timestamp", "desc"));
         const querySnapshot = await getDocs(q);
 
         const fetchedContacts = querySnapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
+          isRead: false, // Add read status
+          isStarred: false, // Add starred status
+          priority: 'normal' // Add priority
         }));
         setContacts(fetchedContacts);
+        setFilteredContacts(fetchedContacts);
       } catch (err) {
         console.error("Error fetching contact messages:", err);
         setError("Failed to load contact messages. Please check your network connection or Firestore permissions.");
@@ -34,23 +48,107 @@ const ContactMessages = () => {
     fetchContacts();
   }, []);
 
-  // --- Loading State ---
-  if (loading) {
-    return (
-      
-          <ElementalLoader />
-        
+  // Filter and search functionality
+  useEffect(() => {
+    let filtered = contacts;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(contact =>
+        contact.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contact.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contact.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        contact.message?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply category filter
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter(contact => {
+        switch (selectedFilter) {
+          case 'unread': return !contact.isRead;
+          case 'starred': return contact.isStarred;
+          case 'recent': return contact.timestamp && 
+            new Date() - new Date(contact.timestamp.seconds * 1000) < 24 * 60 * 60 * 1000;
+          default: return true;
+        }
+      });
+    }
+
+    setFilteredContacts(filtered);
+  }, [contacts, searchTerm, selectedFilter]);
+
+  const toggleStar = (contactId) => {
+    const updatedContacts = contacts.map(contact =>
+      contact.id === contactId 
+        ? { ...contact, isStarred: !contact.isStarred }
+        : contact
     );
+    setContacts(updatedContacts);
+  };
+
+  const markAsRead = (contactId) => {
+    const updatedContacts = contacts.map(contact =>
+      contact.id === contactId 
+        ? { ...contact, isRead: true }
+        : contact
+    );
+    setContacts(updatedContacts);
+  };
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'תאריך לא זמין';
+    
+    const date = new Date(timestamp.seconds * 1000);
+    const now = new Date();
+    const diffInHours = (now - date) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      return 'לפני כמה דקות';
+    } else if (diffInHours < 24) {
+      return `לפני ${Math.floor(diffInHours)} שעות`;
+    } else if (diffInHours < 48) {
+      return 'אתמול';
+    } else {
+      return date.toLocaleDateString('he-IL', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+  };
+
+  const getPriorityColor = (priority) => {
+    switch (priority) {
+      case 'high': return 'border-red-500 bg-red-50';
+      case 'medium': return 'border-yellow-500 bg-yellow-50';
+      default: return 'border-gray-200 bg-white';
+    }
+  };
+
+  // Loading State
+  if (loading) {
+    return <ElementalLoader />
   }
 
-  // --- Error State ---
+  // Error State
   if (error) {
     return (
       <DashboardLayout>
-        <div className="bg-red-50 border border-red-300 text-red-700 p-6 rounded-lg shadow-sm text-center">
-          <p className="font-bold text-xl mb-2">אופס! שגיאה בטעינת ההודעות</p>
-          <p>{error}</p>
-          <p className="mt-3 text-sm">אנא נסה/י לרענן את העמוד או פנה/י לתמיכה.</p>
+        <div className="max-w-2xl mx-auto mt-8">
+          <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-8 text-center shadow-lg">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-red-800 mb-2">אופס! שגיאה בטעינת ההודעות</h2>
+            <p className="text-red-700 mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors duration-200 font-medium"
+            >
+              נסה שוב
+            </button>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -58,65 +156,189 @@ const ContactMessages = () => {
 
   return (
     <DashboardLayout>
-      <div className="p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-3xl font-extrabold text-black mb-6 border-b pb-4">
-          הודעות "צרו קשר" שהתקבלו
-        </h1>
-
-        {contacts.length === 0 ? (
-          // --- No Contacts State ---
-          <div className="text-center text-gray-600 p-8 bg-gray-150 rounded-lg border ">
-            <p className="text-xl font-semibold">אין כרגע הודעות "צרו קשר" להצגה.</p>
-            <p className="text-md mt-3">כאשר משתמשים ישלחו הודעות דרך טופס יצירת הקשר, הן יופיעו כאן באופן אוטומטי.</p>
+      <div className="p-6 space-y-6">
+        {/* Header Section */}
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5]">הודעות צרו קשר</h1>
+            </div>
+        {/* Content Area */}
+        {filteredContacts.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center shadow-lg border border-gray-100">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <MessageSquare className="w-12 h-12 text-gray-400" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-3">
+              {searchTerm || selectedFilter !== 'all' ? 'לא נמצאו תוצאות' : 'אין הודעות להצגה'}
+            </h2>
+            <p className="text-gray-600 max-w-md mx-auto">
+              {searchTerm || selectedFilter !== 'all' 
+                ? 'נסה לשנות את מונחי החיפוש או הסינון'
+                : 'כאשר משתמשים ישלחו הודעות דרך טופס יצירת הקשר, הן יופיעו כאן באופן אוטומטי.'
+              }
+            </p>
           </div>
         ) : (
-          // --- Display Contacts ---
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {contacts.map(contact => (
-              <div key={contact.id} className="bg-gray-50 p-6 rounded-xl shadow-sm border  transition-transform hover:scale-[1.02] hover:shadow-md">
-                <div className="flex items-center text-sm text-gray-500 mb-3 border-b pb-2 border-black-200">
-                  <Clock size={16} className="ml-2 text-gray-400" />
-                  <span className="text-gray-700">
-                    {contact.timestamp ? new Date(contact.timestamp.seconds * 1000).toLocaleString('he-IL', {
-                      year: 'numeric', month: 'short', day: 'numeric',
-                      hour: '2-digit', minute: '2-digit', second: '2-digit'
-                    }) : 'תאריך לא זמין'}
-                  </span>
-                </div>
+          <div className={viewMode === 'grid' 
+            ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" 
+            : "space-y-4"
+          }>
+            {filteredContacts.map(contact => (
+              <div 
+                key={contact.id} 
+                className={`
+                  ${getPriorityColor(contact.priority)}
+                  ${viewMode === 'grid' ? 'p-6' : 'p-4 flex items-center space-x-4'}
+                  rounded-xl shadow-sm border transition-all duration-200 
+                  hover:shadow-lg hover:scale-[1.02] cursor-pointer group
+                `}
+                onClick={() => {
+                  setSelectedContact(contact);
+                  markAsRead(contact.id);
+                }}
+              >
+                {viewMode === 'grid' ? (
+                  <>
+                    {/* Grid View */}
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500">
+                          {formatDate(contact.timestamp)}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleStar(contact.id);
+                          }}
+                          className={`p-1 rounded-full hover:bg-gray-100 ${
+                            contact.isStarred ? 'text-yellow-500' : 'text-gray-400'
+                          }`}
+                        >
+                          <Star size={16} fill={contact.isStarred ? 'currentColor' : 'none'} />
+                        </button>
+                        <button className="p-1 rounded-full hover:bg-gray-100 text-gray-400">
+                          <MoreVertical size={16} />
+                        </button>
+                      </div>
+                    </div>
 
-                <h2 className="text-xl font-bold text-gray-700 mb-3 flex items-center">
-                  <User size={20} className="ml-2 text-orange-600" />
-                  {contact.name || 'שם לא צוין'}
-                </h2>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <div>
+                          <h3 className="font-bold text-gray-800 text-lg">
+                            {contact.name || 'שם לא צוין'}
+                          </h3>
+                          <p className="text-sm text-gray-600">{contact.email}</p>
+                        </div>
+                      </div>
 
-                <p className="text-gray-700 mb-2 flex items-center">
-                  <Mail size={18} className="ml-2 text-blue-500" />
-                  <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline font-medium">
-                    {contact.email || 'אימייל לא צוין'}
-                  </a>
-                </p>
+                      {contact.subject && (
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <p className="font-medium text-gray-800 flex items-center">
+                            <Book size={16} className="ml-2 text-green-500" />
+                            {contact.subject}
+                          </p>
+                        </div>
+                      )}
 
-                {contact.subject && (
-                  <p className="text-gray-700 mb-2 flex items-center">
-                    <Book size={18} className="ml-2 text-green-500" />
-                    <span className="font-medium">נושא:</span> {contact.subject}
-                  </p>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-gray-700 text-sm leading-relaxed line-clamp-3">
+                          {contact.message || 'הודעה ריקה'}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* List View */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-gray-800 truncate">
+                          {contact.name || 'שם לא צוין'}
+                        </h3>
+                        <span className="text-sm text-gray-500 flex-shrink-0 mr-4">
+                          {formatDate(contact.timestamp)}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 truncate">{contact.email}</p>
+                      <p className="text-sm text-gray-700 truncate mt-1">
+                        {contact.subject || contact.message}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleStar(contact.id);
+                        }}
+                        className={`p-2 rounded-full hover:bg-gray-100 ${
+                          contact.isStarred ? 'text-yellow-500' : 'text-gray-400'
+                        }`}
+                      >
+                        <Star size={16} fill={contact.isStarred ? 'currentColor' : 'none'} />
+                      </button>
+                    </div>
+                  </>
                 )}
-
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="font-semibold text-gray-800 mb-2 flex items-center">
-                    <MessageSquare size={18} className="ml-2 text-purple-500" />
-                    הודעה:
-                  </p>
-                  <p className="text-gray-600 leading-relaxed p-4 rounded-md border border-black-200 text-sm">
-                    {contact.message || 'הודעה ריקה'}
-                  </p>
-                </div>
               </div>
             ))}
           </div>
         )}
-      </div>
+
+        {/* Contact Detail Modal */}
+        {selectedContact && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-800">
+                        {selectedContact.name || 'שם לא צוין'}
+                      </h2>
+                      <p className="text-gray-600">{selectedContact.email}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedContact(null)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-gray-500">תאריך:</span>
+                    <p className="font-medium">{formatDate(selectedContact.timestamp)}</p>
+                  </div>
+                </div>
+
+                {selectedContact.subject && (
+                  <div>
+                    <h3 className="font-bold text-gray-800 mb-2">נושא:</h3>
+                    <p className="bg-gray-50 rounded-lg p-4 text-gray-700">
+                      {selectedContact.subject}
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <h3 className="font-bold text-gray-800 mb-2">הודעה:</h3>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {selectedContact.message || 'הודעה ריקה'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        </div>
     </DashboardLayout>
   );
 };
