@@ -533,7 +533,7 @@ function Mentorship() {
   const assignedParticipants = participants.filter(
     (p) => p.mentors?.length > 0
   ).length;
-  if (loading) return <CleanElementalOrbitLoader />;
+  if (loading) return <ElementalLoader />;
 
   return (
     <DashboardLayout>
