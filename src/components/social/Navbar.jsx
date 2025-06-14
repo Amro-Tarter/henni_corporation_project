@@ -25,9 +25,8 @@ const SearchInput = ({ isMobile = false, value, onChange, onFocus, inputRef }) =
       value={value}
       onChange={onChange}
       onFocus={onFocus}
-      className={`w-full border border-white/30 rounded-full py-2 pr-4 ${
-        isMobile ? 'pl-16 text-sm md:text-base' : 'pl-16'
-      } text-white placeholder-white/70 bg-white/10 hover:bg-white/20 focus:bg-white/20 focus:border-white focus:outline-none transition-all duration-200`}
+      className={`w-full border border-white/30 rounded-full py-2 pr-4 ${isMobile ? 'pl-16 text-sm md:text-base' : 'pl-16'
+        } text-white placeholder-white/70 bg-white/10 hover:bg-white/20 focus:bg-white/20 focus:border-white focus:outline-none transition-all duration-200`}
       dir="rtl"
       lang="he"
     />
@@ -99,29 +98,29 @@ const Navbar = ({ element }) => {
 
       try {
         console.log('Fetching viewer profile and role for:', viewerUid);
-        
+
         // Get the user's username first from profiles
         const profileSnap = await getDoc(doc(db, 'profiles', viewerUid));
         const username = profileSnap.exists() ? profileSnap.data().username : null;
-        
+
         if (username) {
           // Fetch user role by username
           const userQuery = query(collection(db, 'users'), where('username', '==', username));
           const userSnapshot = await getDocs(userQuery);
-          
+
           if (!userSnapshot.empty) {
             const userData = userSnapshot.docs[0].data();
             const userRole = userData.role || null;
             console.log('Found user role:', userRole);
             setRole(userRole);
-            
+
             // Set viewer profile with all data
             const viewerProfileData = {
               uid: viewerUid,
               ...(profileSnap.exists() ? profileSnap.data() : {}),
               role: userRole
             };
-            
+
             console.log('Setting viewer profile with role:', viewerProfileData);
             setViewerProfile(viewerProfileData);
           } else {
@@ -159,15 +158,15 @@ const Navbar = ({ element }) => {
                 // First get the user document by username
                 const usersQuery = query(collection(db, 'users'), where('username', '==', profile.username));
                 const userSnapshot = await getDocs(usersQuery);
-                
+
                 if (!userSnapshot.empty) {
                   const userDoc = userSnapshot.docs[0];
                   const userData = userDoc.data();
                   console.log('Found user data for:', profile.username, userData);
-                  return { 
-                    ...profile, 
+                  return {
+                    ...profile,
                     role: userData.role || null,
-                    authorId: userDoc.id 
+                    authorId: userDoc.id
                   };
                 }
                 return profile;
@@ -176,7 +175,7 @@ const Navbar = ({ element }) => {
                 return profile;
               }
             }));
-            
+
             console.log('History with roles:', historyWithRoles);
             setSearchHistory(historyWithRoles.filter(Boolean));
           }
@@ -221,7 +220,7 @@ const Navbar = ({ element }) => {
           try {
             const userQuery = query(collection(db, 'users'), where('username', '==', profile.username));
             const userSnapshot = await getDocs(userQuery);
-            
+
             if (!userSnapshot.empty) {
               const userData = userSnapshot.docs[0].data();
               return {
@@ -319,10 +318,10 @@ const Navbar = ({ element }) => {
 
   const saveProfileToHistory = async (profile) => {
     if (!user || !profile) return;
-    
+
     try {
       console.log('Saving profile to history:', profile);
-      
+
       // Ensure we have all required fields
       if (!profile.username) {
         console.error('Cannot save profile without username:', profile);
@@ -340,21 +339,21 @@ const Navbar = ({ element }) => {
 
       // Remove any existing instance of this profile from history
       const filteredHistory = searchHistory.filter(p => p.username !== profile.username);
-      
+
       // Add the new profile at the beginning and limit to 5
       const updatedHistory = [profileToSave, ...filteredHistory].slice(0, 5);
-      
+
       console.log('Updating search history:', updatedHistory);
-      
+
       // Update local state
       setSearchHistory(updatedHistory);
-      
+
       // Update in Firestore
       const profileDocRef = doc(db, 'profiles', user.uid);
       await updateDoc(profileDocRef, {
         searchHistory: updatedHistory
       });
-      
+
       console.log('Successfully saved to history');
     } catch (err) {
       console.error('Error saving to search history:', err);
@@ -372,9 +371,9 @@ const Navbar = ({ element }) => {
     const isAdmin = role === 'admin';
     const isStaff = role === 'staff';
     const isMentor = role === 'mentor';
-    
+
     console.log('RoleBasedNavItems rendering with:', { isAdmin, isStaff, isMentor, role });
-    
+
     return (
       <>
         {(isAdmin || isStaff) && (
@@ -451,7 +450,7 @@ const Navbar = ({ element }) => {
         {/* Mobile Search */}
         <div className="p-4">
           <form onSubmit={handleSearch} className="w-full" dir="rtl" ref={searchContainerRef}>
-            <SearchInput 
+            <SearchInput
               isMobile={true}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -682,17 +681,16 @@ const Navbar = ({ element }) => {
       </div>
 
       <header dir="rtl" className={`fixed top-0 left-0 w-full bg-red-900 backdrop-blur-md shadow-md border-b border-red-800 z-50`}>
-        <nav className="relative z-50 container mx-auto flex items-center justify-between px-6 py-2">
-          <a href="/" className="flex flex-col items-start">
-            <span className="text-white font-semibold text-base sm:text-lg md:text-xl">עמותת לגלות את האור – הנני</span>
-            <span className="text-white/80 text-xs hidden md:block">יצירה. מנהיגות. שייכות.</span>
+        <nav className="relative z-50 container mx-auto flex items-center justify-between px-4 py-2">
+          <a href="/" className="flex items-center gap-2">
+            <img src="/logoo.svg" alt="לגלות את האור - הנני" className="h-10 md:h-12 w-auto" />
           </a>
 
           {/* Search Bar - Desktop */}
           <div className="hidden lg:flex flex-1 max-w-md mx-8">
             <form onSubmit={handleSearch} className="w-full" dir="rtl" ref={searchContainerRef}>
               <div className="relative">
-                <SearchInput 
+                <SearchInput
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onFocus={handleSearchFocus}
