@@ -11,7 +11,7 @@ import {
   faHandshake, faTag, faGlobe, faImage, faInfoCircle, faPlus, faTimes,
   faEdit, faTrash // Added Edit and Trash icons
 } from '@fortawesome/free-solid-svg-icons';
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+import ElementalLoader from '../../theme/ElementalLoader'
 
 
 // Reusable Modal Component
@@ -294,7 +294,7 @@ function Partners() {
 
 
   if (!isAuthReady || loading) {
-    return <CleanElementalOrbitLoader />;
+    return <ElementalLoader />;
   }
 
   return (

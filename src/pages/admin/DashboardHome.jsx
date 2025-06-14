@@ -12,7 +12,7 @@ import {
   faChartPie, faThumbsUp, faCommentDots, faDollarSign, faPercent , faHandPointUp, faChartSimple, faListUl
 } from '@fortawesome/free-solid-svg-icons'; 
 import { useNavigate } from 'react-router-dom';
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+import ElementalLoader from '../../theme/ElementalLoader'
 
 
 const DashboardHome = () => {

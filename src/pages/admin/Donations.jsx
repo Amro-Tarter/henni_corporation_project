@@ -12,7 +12,7 @@ import {
     faCheckSquare, faInfoCircle, faProjectDiagram, faUserFriends, faPlus, faTimes,
     faMoneyBillWave, faPiggyBank, faHandshake, faClock, faTrashAlt // Import faTrashAlt
 } from '@fortawesome/free-solid-svg-icons';
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+import ElementalLoader from '../../theme/ElementalLoader'
 
 // Modal Component for Add Donation Form
 const Modal = ({ children, onClose }) => {
@@ -227,7 +227,7 @@ function Donations() {
 
 
     if (!isAuthReady || loading) {
-        return <CleanElementalOrbitLoader />;
+        return <ElementalLoader />;
     }
 
     return (
