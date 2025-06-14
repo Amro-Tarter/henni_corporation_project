@@ -5,7 +5,6 @@ import EmojiPicker from 'emoji-picker-react';
 import { createPortal } from 'react-dom';
 import { containsBadWord } from './utils/containsBadWord';
 
-
 export const Comment = ({
   comment,
   element,

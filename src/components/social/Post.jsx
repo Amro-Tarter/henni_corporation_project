@@ -457,7 +457,7 @@ const Post = ({
                 <p className="text-white mt-2 font-medium">החלף מדיה</p>
               </div>
             )}
-            <div className={`group relative w-full max-h-[40rem] overflow-hidden flex justify-center items-center bg-${element}-soft cursor-pointer`}>
+            <div className={`group relative w-full max-h-[28rem] overflow-hidden flex justify-center items-center bg-${element}-soft cursor-pointer`}>
               {!editing && (
                 <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
                   <span className="text-white text-sm font-medium bg-black/40 px-3 py-1 rounded-full">הצג פוסט</span>

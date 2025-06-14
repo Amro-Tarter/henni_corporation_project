@@ -1,5 +1,5 @@
 //profilepage.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import ElementalLoader from '../theme/ElementalLoader';
 import { useParams } from 'react-router-dom';
@@ -22,9 +22,8 @@ import {
   increment,
   arrayUnion,
   arrayRemove,
-  onSnapshot,
-}
-  from 'firebase/firestore';
+  onSnapshot,  // updates the app if the data changes in DB
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import {
   getStorage,
@@ -45,7 +44,7 @@ import CreateProject from '../components/social/CreateProject';
 import Project from '../components/social/Project.jsx';
 
 const ProfilePage = () => {
-  const { username } = useParams();
+  const { username } = useParams(); // reads the username from the URL
   const [uid, setUid] = useState(null);
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -60,12 +59,11 @@ const ProfilePage = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeProfileTab, setActiveProfileTab] = useState('posts'); // 'posts' or 'projects'
   const navigate = useNavigate();
+  const viewerId = viewerProfile?.uid;
 
-
-  // In your useEffect that fetches the profile by username
+  // find the UID by username
   useEffect(() => {
     let retryTimeout;
-
     async function loadUIDByUsername(retryCount = 0) {
       setLoading(true);
       try {
@@ -88,10 +86,10 @@ const ProfilePage = () => {
 
     if (username) loadUIDByUsername();
 
-    return () => clearTimeout(retryTimeout);
+    return () => clearTimeout(retryTimeout); //cancel the retry timeout so it doesn’t run unnecessarily
   }, [username]);
 
-
+  // Fetch viewer profile
   useEffect(() => {
     const fetchViewerProfile = async () => {
       const auth = getAuth();
@@ -108,7 +106,6 @@ const ProfilePage = () => {
         if (userSnap.exists()) {
           const userData = userSnap.data();
           if (userData.role) viewerProfileData.role = userData.role;
-          // You can add any other fields from 'users' as needed
         }
 
         setViewerProfile(viewerProfileData);
@@ -120,11 +117,11 @@ const ProfilePage = () => {
     fetchViewerProfile();
   }, []);
 
-  // Fetch profile and posts
+  // Fetch profile, posts and projects
   useEffect(() => {
-    if (!uid || !viewerProfile?.uid) return;
+    if (!uid || !viewerId) return;
 
-    async function loadData() {
+    const loadData = async () => {
       // Profile
       const profRef = doc(db, 'profiles', uid);
       const profSnap = await getDoc(profRef);
@@ -138,7 +135,7 @@ const ProfilePage = () => {
         const userData = userSnap.data();
         if (userData.role) profileData = { ...profileData, role: userData.role };
       }
-      if (profileData) setProfile({ ...profileData, uid }); // <--- Fix: Always add UID!
+      if (profileData) setProfile({ ...profileData, uid });
 
       else console.warn('No profile for', uid);
 
@@ -155,12 +152,15 @@ const ProfilePage = () => {
         return {
           id: d.id,
           ...data,
-          liked: Array.isArray(data.likedBy) && data.likedBy.includes(viewerProfile.uid),
+          liked: Array.isArray(data.likedBy) && data.likedBy.includes(viewerProfile.uid), //Adds a liked: true/false field if the viewer has liked it
         };
       });
-      setPosts(loaded);
+      if (JSON.stringify(loaded) !== JSON.stringify(posts)) { // compare two arrays
+        // Only update if the posts have changed
+        setPosts(loaded);
+      }
 
-      // Projects
+      // Projects (same as posts)
       const projectsCol = collection(db, 'personal_projects');
       const projectsQuery = query(
         projectsCol,
@@ -176,19 +176,22 @@ const ProfilePage = () => {
           liked: Array.isArray(data.likedBy) && data.likedBy.includes(viewerProfile.uid),
         };
       });
-      setProjects(loadedProjects);
+      if (JSON.stringify(loadedProjects) !== JSON.stringify(projects)) {
+        setProjects(loadedProjects);
+      }
       setLoading(false);
     }
     loadData();
   }, [uid, viewerProfile]);
 
-
+  // Check if the viewer is following this profile
   useEffect(() => {
     if (profile && viewerProfile && profile.uid !== viewerProfile.uid) {
       setIsFollowing(profile.followers?.includes(viewerProfile.uid));
     }
   }, [profile, viewerProfile]);
 
+  // Fetch all users
   useEffect(() => {
     async function loadUsers() {
       const snap = await getDocs(collection(db, 'profiles'));
@@ -197,12 +200,11 @@ const ProfilePage = () => {
     loadUsers();
   }, []);
 
-
   // Set up comment listeners for each post
   useEffect(() => {
     if (!posts.length) return;
 
-    // Create an object to store cleanup functions
+    // store cleanup functions from onSnapShot
     const unsubscribes = {};
 
     // Set up a listener for each post's comments
@@ -215,6 +217,7 @@ const ProfilePage = () => {
         const topLevelComments = []; // Comments without parent
         const commentReplies = {}; // Group replies by parent ID
 
+        // collect the comments
         snapshot.forEach(doc => {
           const commentData = {
             id: doc.id,
@@ -225,7 +228,7 @@ const ProfilePage = () => {
 
           fetchedComments.push(commentData);
 
-          // Organize comments into a hierarchical structure
+          // Organize comments into parent + replies
           if (commentData.parentId) {
             // This is a reply
             if (!commentReplies[commentData.parentId]) {
@@ -238,7 +241,7 @@ const ProfilePage = () => {
           }
         });
 
-        // Process comments to add their replies
+        // combine them together
         const processedComments = topLevelComments.map(comment => {
           return {
             ...comment,
@@ -264,6 +267,7 @@ const ProfilePage = () => {
     };
   }, [posts]);
 
+  // comments for project (same as posts)
   useEffect(() => {
     if (!projects.length) return;
     const unsubscribes = {};
@@ -315,12 +319,10 @@ const ProfilePage = () => {
     };
   }, [projects]);
 
-  const getAuthorProfile = async (uid) => {
+  // Fetch author profiles for posts, projects and comments
+  const getAuthorProfile = useCallback(async (uid) => {
     if (!uid) return null;
-
-    if (authorProfilesCache && authorProfilesCache[uid]) {
-      return authorProfilesCache[uid];
-    }
+    if (authorProfilesCache[uid]) return authorProfilesCache[uid];
 
     try {
       const snap = await getDoc(doc(db, 'profiles', uid));
@@ -334,8 +336,20 @@ const ProfilePage = () => {
     }
 
     return null;
+  }, [authorProfilesCache]);
+
+  // Upload media and return its URL
+  const uploadMediaAndGetURL = async (file, path) => {
+    if (!file) return '';
+    const ext = file.name.split('.').pop();
+    const name = `${Date.now()}.${ext}`;
+    const storage = getStorage();
+    const ref = storageRef(storage, `${path}/${name}`);
+    await uploadBytes(ref, file);
+    return await getDownloadURL(ref);
   };
 
+  // Toggle follow/unfollow action
   const handleFollowToggle = async (targetUserId) => {
     const myUid = viewerProfile?.uid;
     if (!myUid || myUid === targetUserId) return;
@@ -364,7 +378,7 @@ const ProfilePage = () => {
           : [...(prev.following || []), targetUserId],
       }));
 
-      // ✅ If viewing this profile, update its followersCount too
+      // If viewing this profile, update its followersCount too
       if (profile?.uid === targetUserId) {
         setProfile(prev => ({
           ...prev,
@@ -396,8 +410,8 @@ const ProfilePage = () => {
         alert('שם המשתמש הזה כבר תפוס. אנא בחר שם אחר.');
         return;
       }
-
-      const batch = writeBatch(db);
+      // Use a batch to update both collections
+      const batch = writeBatch(db); 
       batch.update(profileRef, { username: value, updatedAt: serverTimestamp() });
       batch.update(userRef, { username: value });
       await batch.commit();
@@ -436,15 +450,7 @@ const ProfilePage = () => {
 
   // Create a new post
   const createPost = async ({ text, mediaType, mediaFile }) => {
-    let mediaUrl = '';
-    if (mediaFile) {
-      const ext = mediaFile.name.split('.').pop();
-      const name = `${Date.now()}.${ext}`;
-      const storage = getStorage();
-      const ref = storageRef(storage, `posts/${uid}/${name}`);
-      await uploadBytes(ref, mediaFile);
-      mediaUrl = await getDownloadURL(ref);
-    }
+    const mediaUrl = await uploadMediaAndGetURL(mediaFile, `posts/${uid}`);
     const newPost = {
       authorId: uid,
       authorName: profile.username,
@@ -485,15 +491,7 @@ const ProfilePage = () => {
 
   // Update a post
   const handleUpdate = async (id, { content, mediaFile }) => {
-    let mediaUrl;
-    if (mediaFile) {
-      const ext = mediaFile.name.split('.').pop();
-      const name = `${Date.now()}.${ext}`;
-      const storage = getStorage();
-      const ref = storageRef(storage, `posts/${uid}/${name}`);
-      await uploadBytes(ref, mediaFile);
-      mediaUrl = await getDownloadURL(ref);
-    }
+    const mediaUrl = mediaFile ? await uploadMediaAndGetURL(mediaFile, `posts/${uid}`) : null;
     const updates = { content, updatedAt: serverTimestamp() };
     if (mediaUrl) updates.mediaUrl = mediaUrl;
     await updateDoc(doc(db, 'posts', id), updates);
@@ -554,16 +552,9 @@ const ProfilePage = () => {
     }
   };
 
+  // Create a new project
   const createProject = async ({ title, description, mediaFile, mediaType, collaborators }) => {
-    let mediaUrl = '';
-    if (mediaFile) {
-      const ext = mediaFile.name.split('.').pop();
-      const name = `${Date.now()}.${ext}`;
-      const storage = getStorage();
-      const ref = storageRef(storage, `personal_projects/${uid}/${name}`);
-      await uploadBytes(ref, mediaFile);
-      mediaUrl = await getDownloadURL(ref);
-    }
+    const mediaUrl = await uploadMediaAndGetURL(mediaFile, `personal_projects/${uid}`);
     const newProject = {
       authorId: uid,
       title: title.trim(),
@@ -588,6 +579,7 @@ const ProfilePage = () => {
     }));
   };
 
+  // Delete a project
   const handleProjectDelete = async id => {
     await deleteDoc(doc(db, 'personal_projects', id));
     setProjects(prev => prev.filter(p => p.id !== id));
@@ -600,16 +592,9 @@ const ProfilePage = () => {
     }));
   };
 
+  // Update a project
   const handleProjectUpdate = async (id, { title, description, collaborators, mediaFile }) => {
-    let mediaUrl;
-    if (mediaFile) {
-      const ext = mediaFile.name.split('.').pop();
-      const name = `${Date.now()}.${ext}`;
-      const storage = getStorage();
-      const ref = storageRef(storage, `personal_projects/${uid}/${name}`);
-      await uploadBytes(ref, mediaFile);
-      mediaUrl = await getDownloadURL(ref);
-    }
+    const mediaUrl = mediaFile ? await uploadMediaAndGetURL(mediaFile, `personal_projects/${uid}`) : null;
     const updates = { title, description, collaborators, updatedAt: serverTimestamp() };
     if (mediaUrl) updates.mediaUrl = mediaUrl;
     await updateDoc(doc(db, 'personal_projects', id), updates);
@@ -628,6 +613,7 @@ const ProfilePage = () => {
     );
   };
 
+  // Like a project once per user
   const handleProjectLike = async (id, liked) => {
     const projectRef = doc(db, 'personal_projects', id);
     await updateDoc(projectRef, {
@@ -644,6 +630,7 @@ const ProfilePage = () => {
     ));
   };
 
+  // Add a new comment to a project
   const addProjectComment = async (projectId, content, parentId = null) => {
     if (!content.trim()) return;
     try {
@@ -667,6 +654,7 @@ const ProfilePage = () => {
     }
   };
 
+  // Edit an existing project comment
   const editProjectComment = async (projectId, commentId, newContent) => {
     if (!newContent.trim()) return;
     try {
@@ -728,7 +716,6 @@ const ProfilePage = () => {
   };
 
   const getUserProfile = getAuthorProfile; // just for naming
-
 
   // Edit an existing comment
   const editComment = async (postId, commentId, newContent) => {
@@ -794,6 +781,7 @@ const ProfilePage = () => {
       console.error('Error deleting comment:', error);
     }
   };
+  
   const isPrivilegedRole = ['mentor', 'admin'].includes(profile?.role);
   const element = isPrivilegedRole || !profile?.element ? 'red' : profile.element;
   const isViewerPrivileged = ['mentor', 'admin'].includes(viewerProfile?.role);

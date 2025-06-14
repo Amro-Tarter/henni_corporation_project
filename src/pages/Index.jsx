@@ -12,19 +12,6 @@ import AboutSection from '../components/home/AboutSection';
 import MusicPlayer from '../components/MusicPlayer';
 import ScrollDown from '../components/ui/ScrollDown';
 
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  whileInView: { opacity: 1, y: 0 },
-  transition: { duration: 0.8, ease: 'easeOut' },
-};
-
-const staggerChildren = {
-  initial: {},
-  whileInView: {
-    transition: { staggerChildren: 0.2 },
-  },
-};
-
 const HomePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 via-rose-50 to-yellow-100" dir="rtl">

@@ -189,43 +189,6 @@ export default function Team() {
               </p>
             </motion.div>
 
-            {/* CEO Section */}
-            <motion.section ref={ceoRef} id="ceo" className="mb-20 scroll-mt-24">
-              <motion.div className="flex items-center justify-right gap-3 mb-8">
-                <Crown className="w-8 h-8 text-amber-500" />
-                <h2 className="px-4 text-3xl font-bold text-gray-800 bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent leading-[1.5]">
-                  המנהל
-                </h2>
-              </motion.div>
-              {loadingStaff ? (
-                <ElementalLoader />
-              ) : ceoData.length === 0 ? (
-                <TeamEmptyState
-                  onReset={() => setSearchQuery("")}
-                  message="לא נמצא מנהל"
-                />
-              ) : (
-                <RoleSection
-                  key="ceo"
-                  role="מנהל"
-                  members={ceoData.map(c => ({
-                    ...c,
-                    role: "מנהל",
-                    username: c.username,
-                    photo: c.photo,
-                    bio: c.bio,
-                    email: c.email,
-                    in_role: /ceo|מנכ״ל/i.test(c.in_role)   ? "מייסדת ומנכ\"לית" : c.in_role,
-                    mentorName: c.mentorName
-                  }))}
-                  sectionInView={sectionInView}
-                  cardProps={{
-                    className: "bg-gradient-to-br from-amber-50/80 to-orange-50/80 backdrop-blur-lg border border-amber-200/60 hover:border-amber-300/80 "
-                  }}
-                />
-              )}
-            </motion.section>
-
             {/* Staff Section */}
             <motion.section ref={staffRef} id="staff" className="mb-20 scroll-mt-24">
               <motion.div className="flex items-center justify-right gap-3 mb-8">
@@ -242,23 +205,20 @@ export default function Team() {
                   message="לא נמצאו חברי צוות"
                 />
               ) : (
-                <RoleSection
-                  key="staff"
-                  role="צוות"
-                  members={staffData.map(s => ({
+              <RoleSection
+                key="staff"
+                role="צוות"
+                members={[...ceoData, ...staffData]
+                  .map(s => ({
                     ...s,
-                    role: s.in_role || "צוות",
-                    username: s.username,
-                    photo: s.photo,
-                    bio: s.bio,
-                    email: s.email,
-                    mentorName: s.mentorName
+                    in_role: /(ceo|מנכ״ל|מנכ״לית)/i.test(s.in_role || "") ? 'מייסדת ומנכ״לית' : s.in_role || "צוות",
+                    role: /(ceo|מנכ״ל|מנכ״לית)/i.test(s.in_role || "") ? "מנכ״לית" : "צוות",
                   }))}
-                  sectionInView={sectionInView}
-                  cardProps={{
-                    className: "bg-white/80 backdrop-blur-lg border border-blue-100/60 hover:border-blue-200/80"
-                  }}
-                />
+                sectionInView={sectionInView}
+                cardProps={{
+                  className: "bg-white/80 backdrop-blur-lg border border-blue-100/60 hover:border-blue-200/80"
+                }}
+              />
               )}
             </motion.section>
 

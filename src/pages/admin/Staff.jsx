@@ -240,11 +240,11 @@ function Staff() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5]">
-                נהל צוות העמותה
-              </h1>
-            </div>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5]">
+              נהל צוות העמותה
+            </h1>
+          </div>
           </motion.div>
 
           {/* Search and Add Button */}
