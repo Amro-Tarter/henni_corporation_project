@@ -948,7 +948,7 @@ const Home = () => {
                   </div>
 
                   {/* Posts Container with consistent margins */}
-                  <div className="w-full space-y-4">
+                  <div className="w-full space-y-4 pb-24">
                     {/* --- Combined Posts & Projects Section --- */}
                     {(() => {
                       // Helper to get JS Date from Firestore Timestamp or Date
@@ -964,17 +964,57 @@ const Home = () => {
                       const allFeed = [...posts, ...projects].sort((a, b) => getDate(b) - getDate(a));
                       // Combine and sort for 'following' tab
                       const followingFeed = [...followingPosts, ...followingProjects].sort((a, b) => getDate(b) - getDate(a));
+                      // Combine post and project comments
+                      const combinedComments = {
+                        ...postComments,
+                        ...projectComments
+                      };
+
+                      // Combined comment handlers that check item type
+                      const handleAddCommentCombined = (itemId, text, parentId = null) => {
+                        const item = allFeed.find(item => item.id === itemId);
+                        if (item?.title) {
+                          // This is a project
+                          return addProjectComment(itemId, text, parentId);
+                        } else {
+                          // This is a post
+                          return handleAddComment(itemId, text, parentId);
+                        }
+                      };
+
+                      const handleEditCommentCombined = (itemId, commentId, newText) => {
+                        const item = allFeed.find(item => item.id === itemId);
+                        if (item?.title) {
+                          // This is a project
+                          return editProjectComment(itemId, commentId, newText);
+                        } else {
+                          // This is a post
+                          return handleEditComment(itemId, commentId, newText);
+                        }
+                      };
+
+                      const handleDeleteCommentCombined = (itemId, commentId, isReply = false, parentId = null) => {
+                        const item = allFeed.find(item => item.id === itemId);
+                        if (item?.title) {
+                          // This is a project
+                          return deleteProjectComment(itemId, commentId, isReply, parentId);
+                        } else {
+                          // This is a post
+                          return handleDeleteComment(itemId, commentId, isReply, parentId);
+                        }
+                      };
+
                       return (
                         <PostList
                           posts={activeTab === 'all' ? allFeed : followingFeed}
                           onLike={handleLike}
                           onDelete={handleDeletePost}
                           onUpdate={handleUpdatePost}
-                          comments={postComments}
+                          comments={combinedComments}
                           currentUser={user}
-                          onAddComment={handleAddComment}
-                          onEditComment={handleEditComment}
-                          onDeleteComment={handleDeleteComment}
+                          onAddComment={handleAddCommentCombined}
+                          onEditComment={handleEditCommentCombined}
+                          onDeleteComment={handleDeleteCommentCombined}
                           element={element}
                           postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
                           getAuthorProfile={getAuthorProfile}
