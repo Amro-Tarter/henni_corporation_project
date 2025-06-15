@@ -34,7 +34,7 @@ import { handleElementCommunityChatMembership } from "../components/chat/utils/h
 import Rightsidebar from "../components/social/Rightsidebar";
 
 // Notification component
-function Notification({ message, type, onClose, elementColors, actions, duration = 3500 }) {
+function Notification({ message, type, onClose, actions, duration = 3500, elementColors }) {
   useEffect(() => {
     if (duration) {
       const timer = setTimeout(() => {
@@ -44,13 +44,44 @@ function Notification({ message, type, onClose, elementColors, actions, duration
     }
   }, [duration, onClose]);
 
+  // Determine colors
+  let bgColor, borderColor, textColor, hoverColor;
+  if (type === 'error') {
+    bgColor = 'bg-red-50';
+    borderColor = 'border border-red-200';
+    textColor = 'text-red-800';
+    hoverColor = 'hover:bg-red-200';
+  } else if (type === 'success') {
+    bgColor = 'bg-green-50';
+    borderColor = 'border border-green-200';
+    textColor = 'text-green-800';
+    hoverColor = 'hover:bg-green-200';
+  } else {
+    // Use elementColors for info/default
+    bgColor = elementColors?.light ? '' : 'bg-blue-50';
+    borderColor = elementColors?.light ? '' : 'border border-blue-200';
+    textColor = elementColors?.primary ? '' : 'text-blue-800';
+    hoverColor = elementColors?.hover ? '' : 'hover:bg-blue-200';
+  }
+
+  // Inline style for element colors (info/default)
+  const infoStyle = type === 'error' || type === 'success' ? {} : {
+    backgroundColor: elementColors?.light || undefined,
+    border: elementColors?.primary ? `1px solid ${elementColors.primary}33` : undefined,
+  };
+  const infoTextStyle = type === 'error' || type === 'success' ? {} : {
+    color: elementColors?.primary || undefined,
+  };
+  const infoHoverStyle = type === 'error' || type === 'success' ? {} : {
+    backgroundColor: elementColors?.hover || undefined,
+  };
+
   return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md px-4 sm:px-0">
-      <div className={`rounded-lg shadow-lg p-4 animate-fade-in flex items-center justify-between gap-4 ${
-        type === 'error' ? 'bg-red-50 border border-red-200' :
-        type === 'success' ? 'bg-green-50 border border-green-200' :
-        'bg-blue-50 border border-blue-200'
-      }`}>
+    <div className="fixed top-6 right-6 z-50 w-full max-w-md px-4 sm:px-0 mt-20">
+      <div
+        className={`rounded-lg shadow-lg p-4 animate-fade-in flex items-center justify-between gap-4 ${bgColor} ${borderColor}`}
+        style={infoStyle}
+      >
         <div className="flex items-center gap-3 flex-1">
           {type === 'error' && (
             <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,11 +93,7 @@ function Notification({ message, type, onClose, elementColors, actions, duration
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
           )}
-          <p className={`text-sm font-medium ${
-            type === 'error' ? 'text-red-800' :
-            type === 'success' ? 'text-green-800' :
-            'text-blue-800'
-          }`}>
+          <p className={`text-sm font-medium ${textColor}`} style={infoTextStyle}>
             {message}
           </p>
         </div>
@@ -78,11 +105,8 @@ function Notification({ message, type, onClose, elementColors, actions, duration
           )}
           <button
             onClick={onClose}
-            className={`p-1 rounded-full hover:bg-opacity-20 ${
-              type === 'error' ? 'hover:bg-red-200' :
-              type === 'success' ? 'hover:bg-green-200' :
-              'hover:bg-blue-200'
-            }`}
+            className={`p-1 rounded-full hover:bg-opacity-20 ${hoverColor}`}
+            style={infoHoverStyle}
           >
             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -321,7 +345,7 @@ export default function ChatApp() {
               participantNames: data.participantNames,
               participants: data.participants,
               communityType: data.communityType,
-              displayName: data.mentorName ? `קהילה של ${data.mentorName}` : 'קהילת מנטור',
+              displayName: data.mentorName ? `קהילה של ${data.mentorName}` : 'קהילת מנחה',
             });
             continue;
           } else if (data.type === "community" && (!data.communityType || data.communityType === "element")) {
@@ -337,7 +361,7 @@ export default function ChatApp() {
               ...base,
               participantNames: data.participantNames,
               communityType: data.communityType,
-              displayName: 'קהילת כל המנטורים',
+              displayName: 'קהילת כל המנחים',
             });
             continue;
           } else if (data.type === "community" && data.communityType === "all_mentors_with_admin") {
@@ -345,7 +369,7 @@ export default function ChatApp() {
               ...base,
               participantNames: data.participantNames,
               communityType: data.communityType,
-              displayName: 'קהילת מנטורים ומנהלים',
+              displayName: 'קהילת מנחים ומנהלים',
             });
             continue;
           }
@@ -524,7 +548,7 @@ export default function ChatApp() {
     if (!fileToSend && messageToSend.trim()) {
       const lowerMsg = messageToSend.toLowerCase();
       if (badWords.some(word => word && lowerMsg.includes(word.toLowerCase()))) {
-        setNotification({ message: 'ההודעה שלך מכילה מילים אסורות. אנא נסח מחדש.', type: 'error' });
+        setNotification({ message: 'ההודעה שלך מכילה מילים אסורות. אנא נסח מחדש.', type: 'error', elementColors: elementColors });
         setTimeout(() => setNotification(null), 3500);
         return;
       }
@@ -591,7 +615,7 @@ export default function ChatApp() {
       console.error("Error sending message:", error);
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
-      setNotification({ message: `שליחת ההודעה נכשלה: ${error.message}`, type: 'error' });
+      setNotification({ message: `שליחת ההודעה נכשלה: ${error.message}`, type: 'error', elementColors: elementColors });
       setTimeout(() => setNotification(null), 3500);
     }
   };
@@ -643,14 +667,14 @@ export default function ChatApp() {
       );
       const userSnapshot = await getDocs(userQuery);
       if (userSnapshot.empty) {
-        setNotification({ message: 'המשתמש לא קיים', type: 'error' });
+        setNotification({ message: 'המשתמש לא קיים', type: 'error', elementColors: elementColors });
         setTimeout(() => setNotification(null), 3500);
         return;
       }
       const partner = userSnapshot.docs[0];
       const partnerUid = partner.id;
       if (partnerUid === currentUser.uid) {
-        setNotification({ message: 'לא ניתן לשלוח הודעה לעצמך', type: 'error' });
+        setNotification({ message: 'לא ניתן לשלוח הודעה לעצמך', type: 'error', elementColors: elementColors });
         setTimeout(() => setNotification(null), 3500);
         return;
       }
@@ -694,7 +718,7 @@ export default function ChatApp() {
       setPartnerName("");
     } catch (error) {
       console.error("Error creating conversation:", error);
-      setNotification({ message: `שגיאה ביצירת שיחה: ${error.message}`, type: 'error' });
+      setNotification({ message: `שגיאה ביצירת שיחה: ${error.message}`, type: 'error', elementColors: elementColors });
       setTimeout(() => setNotification(null), 3500);
     }
   };
@@ -861,7 +885,7 @@ export default function ChatApp() {
               }
               await deleteDoc(doc(db, "conversations", conversationDoc.id));
             }
-            setNotification({ message: "כל הצ'אטים נמחקו בהצלחה!", type: 'success' });
+            setNotification({ message: "כל הצ'אטים נמחקו בהצלחה!", type: 'success', elementColors: elementColors });
             setTimeout(() => setNotification(null), 3500);
           }}
         >כן</button>,
@@ -888,7 +912,7 @@ export default function ChatApp() {
             for (const inquiryDoc of inquiriesSnapshot.docs) {
               await deleteDoc(doc(db, "system_of_inquiries", inquiryDoc.id));
             }
-            setNotification({ message: "כל הפניות נמחקו בהצלחה!", type: 'success' });
+            setNotification({ message: "כל הפניות נמחקו בהצלחה!", type: 'success', elementColors: elementColors });
             setTimeout(() => setNotification(null), 3500);
           }}
         >כן</button>,
@@ -1097,20 +1121,19 @@ export default function ChatApp() {
       <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 ${mobilePanel === 'conversations' ? 'mt-14' : 'mt-16'}`}>
 
         {/* {currentUser.role === 'admin' && (
-          <div className="flex flex-row gap-2 right-50">
-                        <button
+          <div className="flex flex-row gap-2 right-50 fixed justify-center items-center z-50 bg-white">
+            <button
               onClick={delete_all_conversations}
-              className="fixed self-center justify-center z-50 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
+              className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
             >
               מחק את כל הצ'אטים (אדמין)
             </button>
             <button
               onClick={delete_all_inquiries}
-              className="fixed self-center justify-center z-50 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
+              className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
             >
               מחק את כל הפניות (אדמין)
             </button>
-
           </div>
         )} */}
 
@@ -1449,7 +1472,7 @@ export default function ChatApp() {
                         });
                       }
                     } catch (error) {
-                      setNotification({ message: "שגיאה ביצירת קבוצה: " + error.message, type: 'error' });
+                      setNotification({ message: "שגיאה ביצירת קבוצה: " + error.message, type: 'error', elementColors: elementColors });
                       setTimeout(() => setNotification(null), 3500);
                     }
                   }}

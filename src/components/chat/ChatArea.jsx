@@ -133,7 +133,7 @@ export default function ChatArea({
   const handleGoToMentorChat = async () => {
     if (!currentUser?.mentorName || !currentUser?.uid) {
       if (setNotification) {
-        setNotification({ message: "לא מוגדר שם מנחה בפרופיל שלך. פנה למנהל המערכת.", type: 'warning' });
+        setNotification({ message: "לא מוגדר שם מנחה בפרופיל שלך. פנה למנהל המערכת.", type: 'warning', elementColors: elementColors });
         setTimeout(() => setNotification(null), 3500);
       }
       return;
@@ -173,7 +173,7 @@ export default function ChatArea({
           mentorUsername = mentorDoc.data().username;
         } else {
           if (setNotification) {
-            setNotification({ message: "לא נמצא משתמש מנחה עם שם זה. פנה למנהל המערכת.", type: 'error' });
+            setNotification({ message: "לא נמצא משתמש מנחה עם שם זה. פנה למנהל המערכת.", type: 'error', elementColors: elementColors });
             setTimeout(() => setNotification(null), 3500);
           }
           return;
@@ -182,7 +182,7 @@ export default function ChatArea({
     } catch (err) {
       console.error("Error finding mentor:", err);
       if (setNotification) {
-        setNotification({ message: "שגיאה בחיפוש מנחה. נסה שוב.", type: 'error' });
+        setNotification({ message: "שגיאה בחיפוש מנחה. נסה שוב.", type: 'error', elementColors: elementColors });
         setTimeout(() => setNotification(null), 3500);
       }
       return;
@@ -226,13 +226,13 @@ export default function ChatArea({
         navigate(`/chat/${newConvo.id}`);
       } else {
         if (setNotification) {
-          setNotification({ message: "שגיאה ביצירת צ'אט עם המנחה. נסה שוב.", type: 'error' });
+          setNotification({ message: "שגיאה ביצירת צ'אט עם המנחה. נסה שוב.", type: 'error', elementColors: elementColors });
           setTimeout(() => setNotification(null), 3500);
         }
       }
     } catch (err) {
       if (setNotification) {
-        setNotification({ message: "שגיאה ביצירת צ'אט עם המנחה. נסה שוב.", type: 'error' });
+        setNotification({ message: "שגיאה ביצירת צ'אט עם המנחה. נסה שוב.", type: 'error', elementColors: elementColors });
         setTimeout(() => setNotification(null), 3500);
       }
     } finally {
@@ -313,15 +313,7 @@ export default function ChatArea({
   }
 
   if (showSystemCalls) {
-    if (isLoadingInquiries) {
-      return (
-        <div className={`flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-4 sm:p-6 ${mobilePanel === 'selected inquiry' || mobilePanel === 'new inquiry' ? 'block' : 'hidden md:block'}`} dir="rtl">
-          <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-4 sm:p-8 text-center">
-            <div className="text-lg text-gray-500">טוען פנייה...</div>
-          </div>
-        </div>
-      );
-    }
+
 
     if (selectedInquiry) {
       return (
@@ -512,7 +504,7 @@ export default function ChatArea({
                     } catch (error) {
                       console.error("Error sending voice message:", error);
                       if (setNotification) {
-                        setNotification({ message: "Failed to send voice message. Please try again.", type: 'error' });
+                        setNotification({ message: "Failed to send voice message. Please try again.", type: 'error', elementColors: elementColors });
                         setTimeout(() => setNotification(null), 3500);
                       }
                       return;
@@ -530,7 +522,7 @@ export default function ChatArea({
                   } catch (error) {
                     console.error("Error sending message:", error);
                     if (setNotification) {
-                      setNotification({ message: "שגיאה בשליחת הודעה. נסה שוב.", type: 'error' });
+                      setNotification({ message: "שגיאה בשליחת הודעה. נסה שוב.", type: 'error', elementColors: elementColors });
                       setTimeout(() => setNotification(null), 3500);
                     }
                     setIsSendingImage(false);

@@ -105,7 +105,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
     console.log('handleMentorCommunity called with:', { mentorId, mentorUsername });
     // Find all mentees for this mentor
     const myParticipants = allUsers.filter(u => 
-      u.role === 'participant' && u.mentors.includes(mentorId)
+      u.role === 'participant' && Array.isArray(u.mentors) && u.mentors.includes(mentorId)
     );
     
     const participantIds = myParticipants.map(u => u.id);

@@ -90,7 +90,8 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
             setNotification && setNotification({ 
                 message: 'יש לבחור נמען מהרשימה.', 
                 type: 'error',
-                duration: 3500
+                duration: 3500,
+                elementColors: elementColors
             });
             return;
         }
@@ -100,7 +101,8 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
             setNotification && setNotification({ 
                 message: 'יש להזין נושא.', 
                 type: 'error',
-                duration: 3500
+                duration: 3500,
+                elementColors: elementColors
             });
             return;
         }
@@ -110,7 +112,8 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
             setNotification && setNotification({ 
                 message: 'יש להזין תוכן הפנייה.', 
                 type: 'error',
-                duration: 3500
+                duration: 3500,
+                elementColors: elementColors
             });
             return;
         }
@@ -166,7 +169,8 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
             setNotification && setNotification({ 
                 message: 'הפנייה נשלחה בהצלחה!', 
                 type: 'success',
-                duration: 2500
+                duration: 2500,
+                elementColors: elementColors
             });
             setTimeout(() => {
                 onClose();
@@ -177,7 +181,8 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
             setNotification && setNotification({ 
                 message: 'שגיאה בשליחת הפנייה: ' + err.message, 
                 type: 'error',
-                duration: 3500
+                duration: 3500,
+                elementColors: elementColors
             });
         }
     };
