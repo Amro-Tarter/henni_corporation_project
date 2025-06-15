@@ -12,6 +12,7 @@ import { db } from '@/config/firbaseConfig';
 import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useNavigate } from "react-router-dom";
 import SystemInquiries from './components/SystemInquiries';
+import { color } from "framer-motion";
 
 /**
  * ChatArea is the main chat window, displaying messages and input.
@@ -317,52 +318,130 @@ export default function ChatArea({
 
     if (selectedInquiry) {
       return (
-        <div className={`flex-1 flex flex-col items-center justify-center bg-gray-50 min-h-full p-4 sm:p-6 ${mobilePanel === 'selected inquiry' ? 'block' : 'hidden md:block'}`} dir="rtl">
-          <div className="w-full max-w-lg bg-white shadow-xl rounded-xl p-4 sm:p-8" style={{ border: `2px solid ${elementColors.primary}` }}>
-            <button
-              className="mb-4 text-blue-700 font-bold text-sm hover:underline flex items-center gap-1"
-              style={{ color: elementColors.primary }}
-              onClick={() => {
-                setSelectedInquiry(null);
-                if (window.innerWidth < 768) {
-                  setMobilePanel('inquiries list');
-                  navigate('/chat/inquiry');
-                }
-              }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              חזרה
-            </button>
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 break-words" style={{ color: elementColors.primary }}>{selectedInquiry.subject}</h2>
-            <div className="mb-2 text-sm text-gray-700">
-              <span className="font-semibold">מאת: </span>
-              {selectedInquiry.senderName || selectedInquiry.sender}
-              {selectedInquiry.senderRole === 'admin' && <span className="text-gray-500"> (מנהל)</span>}
-            </div>
-            <div className="mb-2 text-xs text-gray-500">
-              {selectedInquiry.createdAt?.toDate ? selectedInquiry.createdAt.toDate().toLocaleString() : ''}
-            </div>
-            <div className="mb-4 text-gray-800 whitespace-pre-line border rounded p-3 bg-gray-50 text-sm sm:text-base">
-              {selectedInquiry.content}
-            </div>
-            {selectedInquiry.fileUrl && (
-              <div className="mb-4">
-                <a
-                  href={selectedInquiry.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-700 underline font-semibold text-sm sm:text-base"
+        <div 
+          className={`flex-1 flex flex-col min-h-full h-full w-full p-0 ${mobilePanel === 'selected inquiry' ? 'block' : 'hidden md:block'}`}
+          dir="rtl"
+        >
+          <div className="flex flex-col h-full w-full items-center justify-center bg-gray-50">
+            <div className="w-full max-w-5xl bg-white shadow-lg rounded-xl border flex-1 flex flex-col m-0 overflow-hidden" 
+                 style={{ borderColor: elementColors.primary, minHeight: '90vh' }}>
+              
+              {/* Header - Gmail style */}
+              <div className="flex items-start justify-between p-6 border-b" 
+                   style={{ borderColor: elementColors.primary }}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div 
+                      className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border"
+                      style={{ 
+                        color: elementColors.primary, 
+                        backgroundColor: elementColors.background, 
+                        borderColor: elementColors.primary 
+                      }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" style={{ color: elementColors.primary, strokeWidth: 2 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V7a2 2 0 00-2-2H6a2 2 0 00-2 2v6m16 0v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4m16 0h-4a2 2 0 01-2 2H10a2 2 0 01-2-2H4" />
+                      </svg>
+                    </div>
+                    <h1 className="text-2xl font-bold truncate pr-2" style={{ color: elementColors.primary }}>
+                      {selectedInquiry.subject}
+                    </h1>
+                  </div>
+                  
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600" style={{ backgroundColor: elementColors.background }}>
+                    <div className="flex items-center">
+                      <span className="font-medium text-gray-700 ml-1">מאת:</span>
+                      <span className="truncate max-w-[180px]">{selectedInquiry.senderName || selectedInquiry.sender}</span>
+                      {selectedInquiry.senderRole === 'admin' && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">
+                          מנהל
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>{selectedInquiry.createdAt?.toDate ? selectedInquiry.createdAt.toDate().toLocaleString() : ''}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <button
+                  className="text-gray-400 hover:text-gray-700 transition-colors p-1 rounded-full"
+                  onClick={() => {
+                    setSelectedInquiry(null);
+                    if (window.innerWidth < 768) {
+                      setMobilePanel('inquiries list');
+                      navigate('/chat/inquiry');
+                    }
+                  }}
+                  aria-label="סגור"
                 >
-                  הורד קובץ מצורף
-                </a>
-                <div className="text-xs text-gray-500 mt-1">
-                  {selectedInquiry.fileName} ({Math.round((selectedInquiry.fileSize || 0) / 1024)} KB)
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              {/* Body Content */}
+              <div className="flex-1 flex flex-col px-6 py-6 md:px-10 md:py-8 overflow-y-auto">
+                <div className="text-gray-800 whitespace-pre-line text-base leading-relaxed mb-8 font-normal h-full rounded-lg" style={{ backgroundColor: elementColors.background }}>
+                  {selectedInquiry.content}
+                </div>
+                
+                {/* Attachment - Gmail style */}
+                {selectedInquiry.fileUrl && (
+                  <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg p-3 w-full max-w-md">
+                    <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.586-6.586a4 4 0 10-5.656-5.656l-6.586 6.586a6 6 0 108.486 8.486l6.586-6.586" />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <a
+                        href={selectedInquiry.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 hover:underline font-medium text-sm truncate block"
+                      >
+                        {selectedInquiry.fileName || 'קובץ מצורף'}
+                      </a>
+                      <span className="text-xs text-gray-500">
+                        {Math.round((selectedInquiry.fileSize || 0) / 1024)} KB
+                      </span>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Status Badge */}
+                <div className="mt-auto pt-6 border-t" style={{ borderColor: elementColors.primary }}>
+                  <div className="flex justify-between items-center">
+                    <div></div> {/* Spacer */}
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                      selectedInquiry.status === 'closed' 
+                        ? 'bg-gray-100 text-gray-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {selectedInquiry.status === 'closed' ? (
+                        <>
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          סגור
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          פתוח
+                        </>
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
-            )}
-            <div className="mt-6 text-xs text-gray-400">סטטוס: {selectedInquiry.status === 'closed' ? 'סגור' : 'פתוח'}</div>
+            </div>
           </div>
         </div>
       );

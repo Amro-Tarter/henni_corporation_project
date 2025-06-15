@@ -158,6 +158,7 @@ export default function ChatApp() {
   const [inquiries, setInquiries] = useState([]);
   const [isLoadingInquiries, setIsLoadingInquiries] = useState(false);
   const [notification, setNotification] = useState(null); // { message, type, actions }
+  const [selectedConversationId, setSelectedConversationId] = useState(null);
   // File upload state/logic (moved to hook)
   const {
     file,
@@ -726,114 +727,86 @@ export default function ChatApp() {
   // When a conversation is selected, always use the full object from conversations array
   const handleSelectConversation = (conv) => {
     if (showSystemCalls) return;
-
     if (!conv) {
-      setSelectedConversation(null);
+      setSelectedConversationId(null);
       navigate(`/chat`);
-      // On mobile, go back to conversations
       if (typeof window !== 'undefined' && window.innerWidth < 768) setMobilePanel('conversations');
       return;
     }
-    // If conv is an ID, or partial, find the full object
     const convId = conv.id || conv;
-    const fullConv = conversations.find(c => c.id === convId);
-    if (fullConv) {
-      // Create a lastRead key to track updates
-      const lastReadKey = `${fullConv.id}_${currentUser.uid}`;
-      setSelectedConversation(fullConv);
-      navigate(`/chat/${fullConv.id}`);
-      // On mobile, switch to chat area
-      if (typeof window !== 'undefined' && window.innerWidth < 768) setMobilePanel('chat');
-      // --- Reset unread count for current user and update lastRead timestamp ---
-      const conversationRef = doc(db, "conversations", fullConv.id);
-      updateDoc(conversationRef, {
-        [`unread.${currentUser.uid}`]: 0,
-        [`lastRead.${currentUser.uid}`]: serverTimestamp()
-      });
-      // Mark this conversation as updated
-      setLastReadUpdated(prev => ({
-        ...prev,
-        [lastReadKey]: true
-      }));
+    setSelectedConversationId(convId);
+    navigate(`/chat/${convId}`);
+    if (typeof window !== 'undefined' && window.innerWidth < 768) setMobilePanel('chat');
+    // --- Reset unread count for current user and update lastRead timestamp ---
+    const conversationRef = doc(db, "conversations", convId);
+    updateDoc(conversationRef, {
+      [`unread.${currentUser.uid}`]: 0,
+      [`lastRead.${currentUser.uid}`]: serverTimestamp()
+    });
+    // Mark this conversation as updated
+    const lastReadKey = `${convId}_${currentUser.uid}`;
+    setLastReadUpdated(prev => ({
+      ...prev,
+      [lastReadKey]: true
+    }));
+  };
+
+  // Effect: update selectedConversation when selectedConversationId or conversations changes
+  useEffect(() => {
+    if (!selectedConversationId || !conversations.length) {
+      setSelectedConversation(null);
+      return;
+    }
+    const found = conversations.find(c => c.id === selectedConversationId);
+    if (found) {
+      setSelectedConversation(found);
     } else {
-      // If not found, try to fetch directly and set
+      // Optionally fetch from Firestore if not found (rare)
       const fetchAndSet = async () => {
         if (showSystemCalls) return;
         try {
-          const conversationRef = doc(db, "conversations", convId);
+          const conversationRef = doc(db, "conversations", selectedConversationId);
           const conversationDoc = await getDoc(conversationRef);
           if (conversationDoc.exists()) {
             const data = conversationDoc.data();
             if (data.participants && data.participants.includes(currentUser.uid)) {
               const conversationData = {
-                id: convId,
+                id: selectedConversationId,
                 ...data,
                 lastUpdated: data.lastUpdated?.toDate(),
                 createdAt: data.createdAt?.toDate()
               };
               setSelectedConversation(conversationData);
-              navigate(`/chat/${convId}`);
             } else {
+              setSelectedConversation(null);
+              setSelectedConversationId(null);
               navigate('/chat');
             }
           } else {
+            setSelectedConversation(null);
+            setSelectedConversationId(null);
             navigate('/chat');
           }
         } catch (error) {
+          setSelectedConversation(null);
+          setSelectedConversationId(null);
           navigate('/chat');
         }
       };
       fetchAndSet();
     }
-  };
+  }, [selectedConversationId, conversations, currentUser.uid, navigate]);
 
-  // Refactor: Only update selectedConversation when chatId changes and conversation is found
+  // Refactor: Only update selectedConversationId when chatId changes
   useEffect(() => {
     if (showSystemCalls) return;
     if (!currentUser.uid || isLoadingConversations) return;
     if (chatId) {
-      const conversation = conversations.find(c => c.id === chatId);
-      if (conversation) {
-        setSelectedConversation(conversation);
-        // Navigation is handled in handleSelectConversation
-      } else {
-        // Try to fetch directly if not found
-        const fetchConversation = async () => {
-          try {
-            const conversationRef = doc(db, "conversations", chatId);
-            const conversationDoc = await getDoc(conversationRef);
-            if (conversationDoc.exists()) {
-              const data = conversationDoc.data();
-              if (data.participants && data.participants.includes(currentUser.uid)) {
-                const conversationData = {
-                  id: chatId,
-                  ...data,
-                  lastUpdated: data.lastUpdated?.toDate(),
-                  createdAt: data.createdAt?.toDate()
-                };
-                setSelectedConversation(conversationData);
-              } else {
-                setSelectedConversation(null);
-                navigate('/chat');
-              }
-            } else {
-              setSelectedConversation(null);
-              navigate('/chat');
-            }
-          } catch (error) {
-            setSelectedConversation(null);
-            navigate('/chat');
-          }
-        };
-        fetchConversation();
-      }
+      setSelectedConversationId(chatId);
     } else {
-      // Only clear if there is a selectedConversation and conversations are loaded
-      if (selectedConversation !== null) {
-        setSelectedConversation(null);
-      }
+      setSelectedConversationId(null);
     }
-  }, [chatId, conversations, currentUser.uid, isLoadingConversations, navigate]);
+  }, [chatId, currentUser.uid, isLoadingConversations, navigate]);
 
   // On mobile, if chat is closed, go back to conversations
   useEffect(() => {
@@ -850,7 +823,7 @@ export default function ChatApp() {
     if (pendingSelectedConversationId && conversations.length > 0) {
       const found = conversations.find(c => c.id === pendingSelectedConversationId);
       if (found) {
-        setSelectedConversation(found);
+        setSelectedConversationId(found.id);
         setPendingSelectedConversationId(null);
         navigate(`/chat/${found.id}`);
       }
@@ -952,7 +925,6 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, [currentUser.uid, selectedConversation, conversations]);
 
-
   // Auto-close chat if user is removed from a group they are viewing
   useEffect(() => {
     if (
@@ -977,12 +949,14 @@ export default function ChatApp() {
       if (lastPersonalRemovalMsg) {
         // Wait 2.5 seconds before closing the chat
         const timeout = setTimeout(() => {
+          setSelectedConversationId(null);
           setSelectedConversation(null);
           navigate('/chat');
         }, 2500);
         return () => clearTimeout(timeout);
       } else {
         // No personal message, close immediately
+        setSelectedConversationId(null);
         setSelectedConversation(null);
         navigate('/chat');
       }
@@ -1118,7 +1092,7 @@ export default function ChatApp() {
         <Navbar element={userElement} className="hidden md:block"/>
         <Rightsidebar element={userElement} onExpandChange={setIsRightOpen}/>
       </ThemeProvider>
-      <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 ${mobilePanel === 'conversations' ? 'mt-14' : 'mt-16'}`}>
+      <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 mt-16`}>
 
         {/* {currentUser.role === 'admin' && (
           <div className="flex flex-row gap-2 right-50 fixed justify-center items-center z-50 bg-white">
