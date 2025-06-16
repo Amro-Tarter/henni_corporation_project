@@ -36,7 +36,9 @@ import { handleElementCommunityChatMembership } from "../components/chat/utils/h
 import Rightsidebar from "../components/social/Rightsidebar";
 
 // Notification component
-function Notification({ message, type, onClose, actions, duration = 3500, elementColors }) {
+function Notification({ message, type, onClose, actions, duration = 3000, elementColors }) {
+  const [visible, setVisible] = useState(true);
+  const fadeDuration = 1000; // ms
 
   useEffect(() => {
       const audio = new window.Audio(innerNoteSound);
@@ -47,7 +49,10 @@ function Notification({ message, type, onClose, actions, duration = 3500, elemen
     if (duration) {
       
       const timer = setTimeout(() => {
-        onClose();
+        setVisible(false);
+        setTimeout(() => {
+          onClose();
+        }, fadeDuration);
       }, duration);
       return () => clearTimeout(timer);
     }
@@ -85,45 +90,58 @@ function Notification({ message, type, onClose, actions, duration = 3500, elemen
     backgroundColor: elementColors?.hover || undefined,
   };
 
-  return (
-    <div className="fixed top-6 right-6 z-50 w-full max-w-md px-4 sm:px-0 mt-20">
-      <div
-        className={`rounded-lg shadow-lg p-4 animate-fade-in flex items-center justify-between gap-4 ${bgColor} ${borderColor}`}
-        style={infoStyle}
-      >
-        <div className="flex items-center gap-3 flex-1">
-          {type === 'error' && (
-            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          )}
-          {type === 'success' && (
-            <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-            </svg>
-          )}
-          <p className={`text-sm font-medium ${textColor}`} style={infoTextStyle}>
-            {message}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {actions && (
-            <div className="flex items-center gap-2">
-              {actions}
-            </div>
-          )}
-          <button
-            onClick={onClose}
-            className={`p-1 rounded-full hover:bg-opacity-20 ${hoverColor}`}
-            style={infoHoverStyle}
-          >
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(() => {
+        onClose();
+    }, fadeDuration);
+};
+
+return (
+  <div
+    className={
+        `fixed top-6 left-1/2 z-50 w-full max-w-md px-4 sm:px-0 mt-10 flex justify-center transition-opacity duration-1000` +
+        (visible ? ' opacity-100' : ' opacity-0')
+    }
+    style={{ transform: 'translateX(-50%)' }}
+  >
+    <div
+      className={`rounded-lg shadow-lg p-4 animate-fade-in flex items-center justify-between gap-4 ${bgColor} ${borderColor}`}
+      style={infoStyle}
+    >
+      <div className="flex items-center gap-3 flex-1">
+        {type === 'error' && (
+          <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )}
+        {type === 'success' && (
+          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+        <p className={`text-sm font-medium ${textColor}`} style={infoTextStyle}>
+          {message}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        {actions && (
+          <div className="flex items-center gap-2">
+            {actions}
+          </div>
+        )}
+        <button
+          onClick={handleClose}
+          className={`p-1 rounded-full hover:bg-opacity-20 ${hoverColor}`}
+          style={infoHoverStyle}
+        >
+          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
     </div>
+  </div>
   );
 }
 
@@ -559,7 +577,6 @@ export default function ChatApp() {
       const lowerMsg = messageToSend.toLowerCase();
       if (badWords.some(word => word && lowerMsg.includes(word.toLowerCase()))) {
         setNotification({ message: 'ההודעה שלך מכילה מילים אסורות. אנא נסח מחדש.', type: 'error', elementColors: elementColors });
-        setTimeout(() => setNotification(null), 3500);
         return;
       }
     }
@@ -626,7 +643,6 @@ export default function ChatApp() {
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
       setNotification({ message: `שליחת ההודעה נכשלה: ${error.message}`, type: 'error', elementColors: elementColors });
-      setTimeout(() => setNotification(null), 3500);
     }
   };
 
@@ -678,14 +694,12 @@ export default function ChatApp() {
       const userSnapshot = await getDocs(userQuery);
       if (userSnapshot.empty) {
         setNotification({ message: 'המשתמש לא קיים', type: 'error', elementColors: elementColors });
-        setTimeout(() => setNotification(null), 3500);
         return;
       }
       const partner = userSnapshot.docs[0];
       const partnerUid = partner.id;
       if (partnerUid === currentUser.uid) {
         setNotification({ message: 'לא ניתן לשלוח הודעה לעצמך', type: 'error', elementColors: elementColors });
-        setTimeout(() => setNotification(null), 3500);
         return;
       }
       const participants = [currentUser.uid, partnerUid].sort();
@@ -729,7 +743,6 @@ export default function ChatApp() {
     } catch (error) {
       console.error("Error creating conversation:", error);
       setNotification({ message: `שגיאה ביצירת שיחה: ${error.message}`, type: 'error', elementColors: elementColors });
-      setTimeout(() => setNotification(null), 3500);
     }
   };
 
@@ -868,7 +881,6 @@ export default function ChatApp() {
               await deleteDoc(doc(db, "conversations", conversationDoc.id));
             }
             setNotification({ message: "כל הצ'אטים נמחקו בהצלחה!", type: 'success', elementColors: elementColors });
-            setTimeout(() => setNotification(null), 3500);
           }}
         >כן</button>,
         <button
@@ -895,7 +907,6 @@ export default function ChatApp() {
               await deleteDoc(doc(db, "system_of_inquiries", inquiryDoc.id));
             }
             setNotification({ message: "כל הפניות נמחקו בהצלחה!", type: 'success', elementColors: elementColors });
-            setTimeout(() => setNotification(null), 3500);
           }}
         >כן</button>,
         <button
@@ -1478,7 +1489,6 @@ export default function ChatApp() {
                       }
                     } catch (error) {
                       setNotification({ message: "שגיאה ביצירת קבוצה: " + error.message, type: 'error', elementColors: elementColors });
-                      setTimeout(() => setNotification(null), 3500);
                     }
                   }}
                   disabled={!groupName.trim()}

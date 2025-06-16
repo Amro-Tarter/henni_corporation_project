@@ -6,6 +6,8 @@ import { HiOutlineMailOpen, HiOutlineX } from 'react-icons/hi';
 import innerNoteSound from "@/assets/innerNoteSound.mp3"
 
 function InquirySystemNotification({ message, type, onClose, actions, duration = 3500, elementColors }) {
+    const [visible, setVisible] = useState(true);
+    const fadeDuration = 500; // ms
 
     useEffect(() => {
         const audio = new window.Audio(innerNoteSound);
@@ -16,7 +18,10 @@ function InquirySystemNotification({ message, type, onClose, actions, duration =
       if (duration) {
         
         const timer = setTimeout(() => {
-          onClose();
+          setVisible(false);
+          setTimeout(() => {
+            onClose();
+          }, fadeDuration);
         }, duration);
         return () => clearTimeout(timer);
       }
@@ -54,8 +59,21 @@ function InquirySystemNotification({ message, type, onClose, actions, duration =
       backgroundColor: elementColors?.hover || undefined,
     };
   
+    const handleClose = () => {
+        setVisible(false);
+        setTimeout(() => {
+            onClose();
+        }, fadeDuration);
+    };
+
     return (
-      <div className="fixed top-6 right-6 z-50 w-full max-w-md px-4 sm:px-0 mt-20">
+      <div
+        className={
+            `fixed top-6 left-1/2 z-50 w-full max-w-md px-4 sm:px-0 mt-10 flex justify-center transition-opacity duration-500` +
+            (visible ? ' opacity-100' : ' opacity-0')
+        }
+        style={{ transform: 'translateX(-50%)' }}
+      >
         <div
           className={`rounded-lg shadow-lg p-4 animate-fade-in flex items-center justify-between gap-4 ${bgColor} ${borderColor}`}
           style={infoStyle}
@@ -82,7 +100,7 @@ function InquirySystemNotification({ message, type, onClose, actions, duration =
               </div>
             )}
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className={`p-1 rounded-full hover:bg-opacity-20 ${hoverColor}`}
               style={infoHoverStyle}
             >
