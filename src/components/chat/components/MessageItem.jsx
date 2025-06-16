@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import getDirection from '../utils/identifyLang';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage';
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { functions as firebaseFunctions } from '@/config/firbaseConfig';
+
 
 const DEFAULT_AVATAR = 'https://www.gravatar.com/avatar/?d=mp&f=y';
 

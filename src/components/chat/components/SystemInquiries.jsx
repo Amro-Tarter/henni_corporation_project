@@ -3,9 +3,100 @@ import { db, storage } from '@/config/firbaseConfig';
 import { collection, addDoc, getDocs, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { HiOutlineMailOpen, HiOutlineX } from 'react-icons/hi';
+import innerNoteSound from "@/assets/innerNoteSound.mp3"
 
+function InquirySystemNotification({ message, type, onClose, actions, duration = 3500, elementColors }) {
 
-export default function SystemInquiries({ onClose, currentUser, elementColors, onHideSystemCalls, onSent, setNotification }) {
+    useEffect(() => {
+        const audio = new window.Audio(innerNoteSound);
+        audio.play();
+    }, []);
+  
+    useEffect(() => {
+      if (duration) {
+        
+        const timer = setTimeout(() => {
+          onClose();
+        }, duration);
+        return () => clearTimeout(timer);
+      }
+    }, [duration, onClose]);
+  
+    // Determine colors
+    let bgColor, borderColor, textColor, hoverColor;
+    if (type === 'error') {
+      bgColor = 'bg-red-50';
+      borderColor = 'border border-red-200';
+      textColor = 'text-red-800';
+      hoverColor = 'hover:bg-red-200';
+    } else if (type === 'success') {
+      bgColor = 'bg-green-50';
+      borderColor = 'border border-green-200';
+      textColor = 'text-green-800';
+      hoverColor = 'hover:bg-green-200';
+    } else {
+      // Use elementColors for info/default
+      bgColor = elementColors?.light ? '' : 'bg-blue-50';
+      borderColor = elementColors?.light ? '' : 'border border-blue-200';
+      textColor = elementColors?.primary ? '' : 'text-blue-800';
+      hoverColor = elementColors?.hover ? '' : 'hover:bg-blue-200';
+    }
+  
+    // Inline style for element colors (info/default)
+    const infoStyle = type === 'error' || type === 'success' ? {} : {
+      backgroundColor: elementColors?.light || undefined,
+      border: elementColors?.primary ? `1px solid ${elementColors.primary}33` : undefined,
+    };
+    const infoTextStyle = type === 'error' || type === 'success' ? {} : {
+      color: elementColors?.primary || undefined,
+    };
+    const infoHoverStyle = type === 'error' || type === 'success' ? {} : {
+      backgroundColor: elementColors?.hover || undefined,
+    };
+  
+    return (
+      <div className="fixed top-6 right-6 z-50 w-full max-w-md px-4 sm:px-0 mt-20">
+        <div
+          className={`rounded-lg shadow-lg p-4 animate-fade-in flex items-center justify-between gap-4 ${bgColor} ${borderColor}`}
+          style={infoStyle}
+        >
+          <div className="flex items-center gap-3 flex-1">
+            {type === 'error' && (
+              <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            {type === 'success' && (
+              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+            <p className={`text-sm font-medium ${textColor}`} style={infoTextStyle}>
+              {message}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {actions && (
+              <div className="flex items-center gap-2">
+                {actions}
+              </div>
+            )}
+            <button
+              onClick={onClose}
+              className={`p-1 rounded-full hover:bg-opacity-20 ${hoverColor}`}
+              style={infoHoverStyle}
+            >
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+export default function SystemInquiries({ onClose, currentUser, elementColors, onHideSystemCalls, onSent }) {
     const [systemCallRecipient, setSystemCallRecipient] = useState('');
     const [systemCallRecipientId, setSystemCallRecipientId] = useState('');
     const [systemCallSubject, setSystemCallSubject] = useState('');
@@ -20,6 +111,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
     const recipientInputRef = useRef(null);
     const [recipient, setRecipient] = useState('');
     const [users, setUsers] = useState([]);
+    const [inquirySystemNotification, setInquirySystemNotification] = useState(null);
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -87,7 +179,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
         
         if (!systemCallRecipientId) {
             setSystemCallError('יש לבחור נמען מהרשימה.');
-            setNotification && setNotification({ 
+            setInquirySystemNotification && setInquirySystemNotification({ 
                 message: 'יש לבחור נמען מהרשימה.', 
                 type: 'error',
                 duration: 3500,
@@ -98,7 +190,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
 
         if (!systemCallSubject.trim()) {
             setSystemCallError('יש להזין נושא.');
-            setNotification && setNotification({ 
+            setInquirySystemNotification && setInquirySystemNotification({ 
                 message: 'יש להזין נושא.', 
                 type: 'error',
                 duration: 3500,
@@ -109,7 +201,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
 
         if (!systemCallContent.trim()) {
             setSystemCallError('יש להזין תוכן הפנייה.');
-            setNotification && setNotification({ 
+            setInquirySystemNotification && setInquirySystemNotification({ 
                 message: 'יש להזין תוכן הפנייה.', 
                 type: 'error',
                 duration: 3500,
@@ -166,7 +258,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
             setSystemCallRecipientId('');
             setSystemCallError('');
             if (onSent) onSent();
-            setNotification && setNotification({ 
+            setInquirySystemNotification && setInquirySystemNotification({ 
                 message: 'הפנייה נשלחה בהצלחה!', 
                 type: 'success',
                 duration: 2500,
@@ -175,10 +267,11 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
             setTimeout(() => {
                 onClose();
             }, 2500);
+
         } catch (err) {
             setSystemCallError('שגיאה בשליחת הפנייה: ' + err.message);
             setIsSubmittingSystemCall(false);
-            setNotification && setNotification({ 
+            setInquirySystemNotification && setInquirySystemNotification({ 
                 message: 'שגיאה בשליחת הפנייה: ' + err.message, 
                 type: 'error',
                 duration: 3500,
@@ -321,6 +414,12 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                     </button>
                 </form>
             </div>
+            {inquirySystemNotification && (
+                <InquirySystemNotification
+                    {...inquirySystemNotification}
+                    onClose={() => setInquirySystemNotification(null)}
+                />
+            )}
             <style>{`
                 .animate-fade-in {
                     animation: fadeIn 0.5s;

@@ -29,14 +29,23 @@ import { useParams, useNavigate } from "react-router-dom";
 import { badWords } from "../components/chat/utils/badWords";
 import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
 import notificationSound from '../assets/notification.mp3';
+import inquiryNotificationSound from '../assets/inquirySound.mp3';
+import innerNoteSound from '../assets/innerNoteSound.mp3';
 import { handleMentorCommunityMembership } from "../components/chat/utils/handleMentorCommunityMembership";
 import { handleElementCommunityChatMembership } from "../components/chat/utils/handleElementCommunityMembership";
 import Rightsidebar from "../components/social/Rightsidebar";
 
 // Notification component
 function Notification({ message, type, onClose, actions, duration = 3500, elementColors }) {
+
+  useEffect(() => {
+      const audio = new window.Audio(innerNoteSound);
+      audio.play();
+  }, []);
+
   useEffect(() => {
     if (duration) {
+      
       const timer = setTimeout(() => {
         onClose();
       }, duration);
@@ -466,19 +475,19 @@ export default function ChatApp() {
       const profileDoc = await getDoc(doc(db, 'profiles', uid));
       let photoURL = null;
       if (profileDoc.exists()) {
-        photoURL = profileDoc.data().photoURL || null;
+        photoURL = profileDoc.data().photoURL || 'https://www.gravatar.com/avatar/?d=mp&f=y';
       }
 
       // Cache the result
       setUserAvatars(prev => ({
         ...prev,
-        [uid]: photoURL || '/default_user_pic.jpg'
+        [uid]: photoURL || 'https://www.gravatar.com/avatar/?d=mp&f=y'
       }));
 
-      return photoURL || '/default_user_pic.jpg';
+      return photoURL || 'https://www.gravatar.com/avatar/?d=mp&f=y';
     } catch (e) {
       console.error("Error fetching avatar:", e);
-      return '/default_user_pic.jpg';
+      return 'https://www.gravatar.com/avatar/?d=mp&f=y';
     }
   }
 
@@ -925,6 +934,28 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, [currentUser.uid, selectedConversation, conversations]);
 
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const q = query(
+      collection(db, 'system_of_inquiries'),
+      where('recipient', '==', currentUser.uid)
+    );
+
+    // Listen for new inquiries
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          // Play notification sound
+          const audio = new window.Audio(inquiryNotificationSound);
+          audio.play();
+        }
+      });
+    });
+
+    return () => unsubscribe();
+  }, [currentUser.uid]);
+
   // Auto-close chat if user is removed from a group they are viewing
   useEffect(() => {
     if (
@@ -1088,9 +1119,9 @@ export default function ChatApp() {
           actions={notification.actions}
         />
       )}
-      <ThemeProvider element={userElement}>
+      <ThemeProvider element={currentUser.role === 'admin' || currentUser.role === 'mentor' ? 'red' : userElement}>
         <Navbar element={userElement} className="hidden md:block"/>
-        <Rightsidebar element={userElement} onExpandChange={setIsRightOpen}/>
+        <Rightsidebar element={currentUser.role === 'admin' || currentUser.role === 'mentor' ? 'red' : userElement} onExpandChange={setIsRightOpen}/>
       </ThemeProvider>
       <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 mt-16`}>
 

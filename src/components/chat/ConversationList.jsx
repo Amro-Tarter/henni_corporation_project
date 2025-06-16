@@ -1,10 +1,10 @@
 import { useMemo, useEffect, useState, useRef } from "react";
 import { db } from '@/config/firbaseConfig';
-import { doc, getDoc, collection, query as firestoreQuery, where, getDocs, orderBy, onSnapshot, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, collection, query as firestoreQuery, where, getDocs, orderBy, onSnapshot, updateDoc, arrayUnion, query } from 'firebase/firestore';
 import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
 import { HiOutlineChatBubbleBottomCenterText, HiUserGroup, HiMiniUsers, HiMiniHome } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
-import notification from "@/assets/notification.mp3"
+import notificationSound from "@/assets/notification.mp3"
 import SystemInquiries from './components/SystemInquiries';
 
 /**
@@ -112,6 +112,8 @@ export default function ConversationList({
     setIsDropdownOpen(false);
   };
 
+
+
   // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event) {
@@ -146,6 +148,10 @@ export default function ConversationList({
     }, () => setIsLoadingInquiries(false));
     return () => unsubscribe();
   }, [showSystemCalls, currentUser?.uid]);
+
+  // play notification sound for new inquiries if the prev inquiries count is less than the current inquiries count
+
+
 
 
   // When an inquiry is clicked, mark as seen immediately (optimistic update)
