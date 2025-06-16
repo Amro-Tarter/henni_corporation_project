@@ -2,10 +2,11 @@ import { useMemo, useEffect, useState, useRef } from "react";
 import { db } from '@/config/firbaseConfig';
 import { doc, getDoc, collection, query as firestoreQuery, where, getDocs, orderBy, onSnapshot, updateDoc, arrayUnion, query } from 'firebase/firestore';
 import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
-import { HiOutlineChatBubbleBottomCenterText, HiUserGroup, HiMiniUsers, HiMiniHome } from "react-icons/hi2";
+import { HiOutlineChatBubbleBottomCenterText, HiUserGroup, HiMiniUsers, HiMiniHome, HiMagnifyingGlass } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
 import notificationSound from "@/assets/notification.mp3"
 import SystemInquiries from './components/SystemInquiries';
+import { useNotifications } from '../social/NotificationsComponent';
 
 /**
  * ConversationList displays the list of conversations.
@@ -45,6 +46,7 @@ export default function ConversationList({
   const [closedInquiriesCount, setClosedInquiriesCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [showCreateInquiryDialog, setShowCreateInquiryDialog] = useState(false);
+  const { removeInquiryNotification } = useNotifications();
 
   // Define filter items
   const filterItems = [
@@ -168,6 +170,8 @@ export default function ConversationList({
       });
       setInquiries(prev => prev.map(inq => inq.id === inquiry.id ? { ...inq, status: 'open' } : inq));
       setClosedInquiriesCount(prev => prev - 1);
+      // Remove the notification of it from the notification list
+      removeInquiryNotification(inquiry.id);
     }
   };
 
@@ -270,7 +274,10 @@ export default function ConversationList({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-
+          {/* Search icon */}
+          <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+            <HiMagnifyingGlass className="w-5 h-5" />
+          </span>
         </div>
         {/* Filter Dropdown */}
         <div className="mt-3 relative flex flex-row gap-2" ref={dropdownRef}>

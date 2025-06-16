@@ -303,10 +303,6 @@ export default function ChatApp() {
 
   // --- Conversation Filtering ---
   const filteredConversations = useMemo(() => {
-    if (currentUser.role === 'admin') {
-      // admin sees all conversations
-      return conversations;
-    }
     let filtered = conversations;
     if (activeTab === "private") {
       filtered = filtered.filter(conv => conv.type === "direct");
@@ -513,6 +509,7 @@ export default function ChatApp() {
   useEffect(() => {
     if (!selectedConversation || !selectedConversation.id) return;
     setIsLoadingMessages(true);
+
     
     // Create a query to get messages for the selected conversation
     const q = query(

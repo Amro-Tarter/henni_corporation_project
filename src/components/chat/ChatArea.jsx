@@ -13,6 +13,7 @@ import { useVoiceRecorder } from './hooks/useVoiceRecorder';
 import { useNavigate } from "react-router-dom";
 import SystemInquiries from './components/SystemInquiries';
 import { color } from "framer-motion";
+import getDirection from './utils/identifyLang';
 
 /**
  * ChatArea is the main chat window, displaying messages and input.
@@ -387,7 +388,11 @@ export default function ChatArea({
               
               {/* Body Content */}
               <div className="flex-1 flex flex-col px-6 py-6 md:px-10 md:py-8 overflow-y-auto">
-                <div className="text-gray-800 whitespace-pre-line text-base leading-relaxed mb-8 font-normal h-full rounded-lg" style={{ backgroundColor: elementColors.background }}>
+                <div
+                  className="text-gray-800 whitespace-pre-line text-base leading-relaxed mb-8 font-normal rounded-lg bg-scroll overflow-auto max-h-96"
+                  style={{ backgroundColor: elementColors.background }}
+                  dir={getDirection(selectedInquiry.content)}
+                >
                   {selectedInquiry.content}
                 </div>
                 
@@ -417,26 +422,13 @@ export default function ChatArea({
                 <div className="mt-auto pt-6 border-t" style={{ borderColor: elementColors.primary }}>
                   <div className="flex justify-between items-center">
                     <div></div> {/* Spacer */}
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                      selectedInquiry.status === 'closed' 
-                        ? 'bg-gray-100 text-gray-800' 
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {selectedInquiry.status === 'closed' ? (
-                        <>
-                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          סגור
-                        </>
-                      ) : (
-                        <>
+                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800`}>
+                      
                           <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                           פתוח
-                        </>
-                      )}
+                        
                     </span>
                   </div>
                 </div>
