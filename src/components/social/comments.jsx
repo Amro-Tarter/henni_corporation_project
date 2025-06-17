@@ -26,13 +26,13 @@ export const Comment = ({
   const isCommentAuthor = currentUser.uid === comment.authorId;
   const isPostOwner = currentUser.uid === postAuthorId;
   const canEditOrDelete = isCommentAuthor || isPostOwner;
-  
+
   const commentTime = comment.createdAt || comment.timestamp;
   const formattedTime = commentTime
     ? new Intl.DateTimeFormat('he-IL', {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      }).format(typeof commentTime === 'object' ? commentTime : commentTime.toDate())
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    }).format(typeof commentTime === 'object' ? commentTime : commentTime.toDate())
     : '';
 
   useEffect(() => {
@@ -50,15 +50,57 @@ export const Comment = ({
     setIsEditing(false);
   };
 
+  if (authorProfile === null) {
+    return (
+      <div className={`flex gap-3 ${isReply ? 'mr-12 mt-3' : 'mt-4'}`}>
+        {/* Default avatar */}
+        <img
+          src="/profile.jpg"
+          alt="Deleted user"
+          className={`w-8 h-8 rounded-full object-cover mt-1 ring-2 ring-${element}-accent ring-offset-1`}
+        />
+
+        {/* Comment body */}
+        <div className="flex-1">
+          <div className={`p-3 rounded-lg bg-${element}-soft relative`}>
+            <div className="flex justify-between">
+              {/* Placeholder username */}
+              <h4 className="font-semibold text-sm text-gray-500">משתמש שנמחק</h4>
+
+              {/* Trash button if post owner */}
+              {isPostOwner && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() =>
+                      onDelete(postId, comment.id, isReply, isReply ? comment.parentId : null)
+                    }
+                    className="p-1 text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Message content */}
+            <p className="text-sm mt-1 italic text-gray-500">
+              משתמש זה נמחק ולכן התגובה לא זמינה.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex gap-3 ${isReply ? 'mr-12 mt-3' : 'mt-4'}`}>  
+    <div className={`flex gap-3 ${isReply ? 'mr-12 mt-3' : 'mt-4'}`}>
       <img
-        src={authorProfile?.photoURL || '/default_user_pic.jpg'}
+        src={authorProfile?.photoURL || '/profile.jpg'}
         alt={authorProfile?.username || '...'}
         className={`w-8 h-8 rounded-full object-cover mt-1 ring-2 ring-${element}-accent ring-offset-1`}
       />
       <div className="flex-1">
-        <div className={`p-3 rounded-lg bg-${element}-soft relative`}>  
+        <div className={`p-3 rounded-lg bg-${element}-soft relative`}>
           <div className="flex justify-between">
             <h4 className="font-semibold text-sm">{authorProfile?.username}</h4>
             {canEditOrDelete && !isEditing && (
@@ -272,79 +314,80 @@ export const CommentInput = ({
           {warning}
         </div>
       }
-    <form onSubmit={handleSubmit} className="flex items-end gap-2 w-full relative">
-      <textarea
-        ref={ref}
-        value={text}
-        onChange={e => setText(e.target.value)}
-        placeholder={placeholder}
-        className={`w-full max-w-full p-3 border border-${element}-soft rounded-lg resize-none focus:ring-2 focus:ring-${element}-accent transition-all`}
-        rows={2}
-        dir="rtl"
-      />
-      {/* Emoji Picker Button */}
-      <button
-        type="button"
-        ref={emojiBtnRef}
-        onClick={openEmojiPicker}
-        className={`
-          ml-2 px-2 py-2 
+      <form onSubmit={handleSubmit} className="flex  sm:flex-row flex-col gap-2 w-full relative">
+        <textarea
+          ref={ref}
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder={placeholder}
+          className={`w-full sm:flex-1 p-3 border border-${element}-soft rounded-lg resize-none focus:ring-2 focus:ring-${element}-accent transition-all`}
+          rows={2}
+          dir="rtl"
+        />
+        <div className="flex items-center w-full sm:w-auto sm:justify-end gap-2">
+          {/* Emoji Picker Button */}
+          <button
+            type="button"
+            ref={emojiBtnRef}
+            onClick={openEmojiPicker}
+            className={`
+          p-2 sm:px-2 sm:py-2
           rounded-md 
           bg-${element}-soft 
           text-${element} 
           hover:bg-${element}-accent 
           hover:text-white 
           transition-colors 
-          flex items-center emoji-picker-btn
         `}
-        aria-label="הוסף אימוג׳י"
-      >
-        <Smile size={18} />
-      </button>
-
-      {/* Emoji Picker in Portal */}
-      {showEmoji &&
-        createPortal(
-          <div
-            ref={pickerRef}
-            style={{
-              position: 'fixed',
-              left: emojiPos.x,
-              top: emojiPos.y,
-              zIndex: 1000,
-            }}
-            className="emoji-mart-portal"
+            aria-label="הוסף אימוג׳י"
           >
-            <EmojiPicker
-              onEmojiClick={insertEmoji}
-              autoFocusSearch={false}
-              theme="light"
-              searchDisabled={false}
-              skinTonesDisabled={false}
-              width={350}
-              height={400}
-            />
-          </div>,
-          document.body
-        )}
+            <Smile size={18} />
+          </button>
 
-      {onCancel && (
-        <button
-          type="button"
-          onClick={() => { setText(''); onCancel(); }}
-          className="px-4 py-2 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-        >
-          ביטול
-        </button>
-      )}
-      <button
-        type="submit"
-        disabled={!text.trim()}
-        className={`px-4 py-2 bg-${element} text-white rounded-md hover:bg-${element}-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1`}
-      >
-        <Send size={16} /> {buttonText || 'שלח'}
-      </button>
-    </form>
+          {/* Emoji Picker in Portal */}
+          {showEmoji &&
+            createPortal(
+              <div
+                ref={pickerRef}
+                style={{
+                  position: 'fixed',
+                  left: emojiPos.x,
+                  top: emojiPos.y,
+                  zIndex: 1000,
+                }}
+                className="emoji-mart-portal"
+              >
+                <EmojiPicker
+                  onEmojiClick={insertEmoji}
+                  autoFocusSearch={false}
+                  theme="light"
+                  searchDisabled={false}
+                  skinTonesDisabled={false}
+                  width={350}
+                  height={400}
+                />
+              </div>,
+              document.body
+            )}
+
+          {onCancel && (
+            <button
+              type="button"
+              onClick={() => { setText(''); onCancel(); }}
+              className="px-4 py-2 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors text-sm"
+            >
+              ביטול
+            </button>
+          )}
+          <button
+            type="submit"
+            disabled={!text.trim()}
+            className={`px-4 py-2 bg-${element} text-white rounded-md hover:bg-${element}-accent disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 text-sm`}
+          >
+            <Send size={16} /> {buttonText || 'שלח'}
+          </button>
+        </div>
+      </form>
     </>
   );
 };
