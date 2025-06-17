@@ -17,7 +17,8 @@ import {
   Volume2,
   Pause,
   Play,
-  MessageCircle
+  MessageCircle,
+  Menu
 } from "lucide-react";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc } from "firebase/firestore";
@@ -38,7 +39,6 @@ function AdminAudioUpload({ onClose }) {
     if (selectedFile && selectedFile.type.startsWith('audio/')) {
       setFile(selectedFile);
       setError('');
-      // Create preview URL for audio
       if (audioRef.current) {
         audioRef.current.src = URL.createObjectURL(selectedFile);
       }
@@ -83,19 +83,12 @@ function AdminAudioUpload({ onClose }) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatDuration = (duration) => {
-    const minutes = Math.floor(duration / 60);
-    const seconds = Math.floor(duration % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
     setError('');
     setSuccess('');
     
-    // Simulate progress for better UX
     const progressInterval = setInterval(() => {
       setUploadProgress(prev => {
         if (prev >= 90) {
@@ -148,7 +141,6 @@ function AdminAudioUpload({ onClose }) {
 
   return (
     <div className="space-y-6">
-      {/* Header with icon */}
       <div className="text-center">
         <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
           <Music className="w-8 h-8 text-white" />
@@ -157,7 +149,6 @@ function AdminAudioUpload({ onClose }) {
         <p className="text-gray-600 dark:text-gray-300 text-sm">בחר או גרור קובץ MP3 כדי להעלות</p>
       </div>
 
-      {/* File Upload Area */}
       <div
         className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 cursor-pointer ${
           isDragging 
@@ -197,7 +188,6 @@ function AdminAudioUpload({ onClose }) {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* File Info Card */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-3 rtl:space-x-reverse">
@@ -224,7 +214,6 @@ function AdminAudioUpload({ onClose }) {
                 </button>
               </div>
 
-              {/* Audio Preview */}
               <div className="flex items-center space-x-3 rtl:space-x-reverse">
                 <button
                   onClick={(e) => {
@@ -249,13 +238,9 @@ function AdminAudioUpload({ onClose }) {
         <audio
           ref={audioRef}
           onEnded={() => setIsPlaying(false)}
-          onLoadedMetadata={(e) => {
-            // You can add duration display here if needed
-          }}
         />
       </div>
 
-      {/* Upload Progress */}
       {uploading && (
         <div className="space-y-3">
           <div className="flex justify-between items-center">
@@ -273,7 +258,6 @@ function AdminAudioUpload({ onClose }) {
         </div>
       )}
 
-      {/* Messages */}
       {error && (
         <div className="flex items-center space-x-2 rtl:space-x-reverse p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
           <X className="w-5 h-5 text-red-500 flex-shrink-0" />
@@ -288,7 +272,6 @@ function AdminAudioUpload({ onClose }) {
         </div>
       )}
 
-      {/* Action Buttons */}
       <div className="flex space-x-3 rtl:space-x-reverse">
         <button
           onClick={handleUpload}
@@ -337,7 +320,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       label: "משתמשים", 
       icon: Users 
     },
-     { 
+    { 
       path: "/admin/Mentorship", 
       label: "מנטורים", 
       icon: GraduationCap 
@@ -372,7 +355,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       label: "טפסים", 
       icon: ClipboardList 
     }
-
   ];
 
   const isActiveLink = (path, exact = false) => {
@@ -383,162 +365,182 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   };
 
   return (
-    <div 
-      className={`h-full bg-red-900 text-white transition-all duration-300 ease-in-out shadow-xl ${
-        isCollapsed ? 'w-16' : 'w-64'
-      }`}
-      dir="rtl"
-    >
-      {/* Header */}
-      <div className="p-4 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          {!isCollapsed && (
-            <div className="flex flex-col">
-              <h2 className="text-xl font-bold text-white">לוח מנהל</h2>
-              <span className="text-orange-100 text-sm">ניהול המערכת</span>
-            </div>
-          )}
-          
-          <button
-            onClick={onToggle}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors duration-200"
-            aria-label={isCollapsed ? "הרחב תפריט" : "כווץ תפריט"}
+    <>
+      {/* Mobile overlay when sidebar is open */}
+      {!isCollapsed && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onToggle}
+        />
+      )}
+      
+      <div 
+        className={`fixed lg:relative h-full bg-red-900 text-white transition-all duration-300 ease-in-out shadow-xl z-50 ${
+          isCollapsed ? 'w-16' : 'w-64'
+        } ${isCollapsed ? 'lg:translate-x-0' : 'translate-x-0'}`}
+        dir="rtl"
+      >
+        {/* Header */}
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center justify-between">
+            {!isCollapsed && (
+              <div className="flex flex-col">
+                <h2 className="text-xl font-bold text-white">לוח מנהל</h2>
+                <span className="text-orange-100 text-sm">ניהול המערכת</span>
+              </div>
+            )}
+            
+            <button
+              onClick={onToggle}
+              className="p-2 rounded-lg hover:bg-white/10 transition-colors duration-200 group"
+              aria-label={isCollapsed ? "הרחב תפריט" : "כווץ תפריט"}
+            >
+              {isCollapsed ? (
+                <Menu size={20} className="group-hover:scale-110 transition-transform" />
+              ) : (
+                <ChevronLeft 
+                  size={20} 
+                  className="transform transition-all duration-200 group-hover:scale-110" 
+                />
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="p-4 space-y-2 overflow-y-auto flex-1">
+          {/* Back to main site */}
+          <Link
+            to="/"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/10 group ${
+              isCollapsed ? 'justify-center' : ''
+            }`}
+            title={isCollapsed ? "חזור לאתר הראשי" : ""}
           >
-            <ChevronLeft 
-              size={20} 
-              className={`transform transition-transform duration-200 ${
-                isCollapsed ? 'rotate-180' : ''
-              }`} 
-            />
+            <Home size={20} className="flex-shrink-0 group-hover:scale-110 transition-transform" />
+            {!isCollapsed && (
+              <span className="group-hover:translate-x-1 transition-transform duration-200">
+                חזור לאתר הראשי
+              </span>
+            )}
+          </Link>
+
+          {/* Divider */}
+          <div className="h-px bg-white/10 my-4"></div>
+
+          {/* Menu Items */}
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = isActiveLink(item.path, item.exact);
+            
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative ${
+                  isActive 
+                    ? 'bg-white/20 text-white shadow-md' 
+                    : 'hover:bg-white/10 hover:text-white'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={isCollapsed ? item.label : ""}
+              >
+                {/* Active indicator */}
+                {isActive && !isCollapsed && (
+                  <div className="absolute right-0 top-0 bottom-0 w-1 bg-orange-400 rounded-l"></div>
+                )}
+                
+                <Icon 
+                  size={20} 
+                  className={`flex-shrink-0 transition-transform duration-200 ${
+                    isActive ? 'text-orange-200' : 'group-hover:scale-110'
+                  }`} 
+                />
+                
+                {!isCollapsed && (
+                  <span className={`group-hover:translate-x-1 transition-transform duration-200 ${
+                    isActive ? 'font-semibold' : ''
+                  } whitespace-nowrap`}>
+                    {item.label}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Upload Button */}
+        <div className="p-4 border-t border-white/10">
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className={`group relative overflow-hidden flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 w-full ${
+              isCollapsed ? 'justify-center' : ''
+            }`}
+            title={isCollapsed ? "העלה מוזיקה" : ""}
+          >
+            <div className="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+            <Music className="w-5 h-5 flex-shrink-0 relative z-10 group-hover:scale-110 transition-transform" />
+            {!isCollapsed && <span className="relative z-10 whitespace-nowrap">העלה קובץ מוזיקה</span>}
+            
+            {/* Tooltip for collapsed state */}
+            {isCollapsed && (
+              <div className="absolute right-full mr-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                העלה קובץ מוזיקה
+              </div>
+            )}
           </button>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="p-4 space-y-2">
-        {/* Back to main site */}
-        <Link
-          to="/"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/10 group ${
-            isCollapsed ? 'justify-center' : ''
-          }`}
-          title={isCollapsed ? "חזור לאתר הראשי" : ""}
-        >
-          <Home size={20} className="flex-shrink-0" />
-          {!isCollapsed && (
-            <span className="group-hover:translate-x-1 transition-transform duration-200">
-              חזור לאתר הראשי
-            </span>
-          )}
-        </Link>
-
-        {/* Divider */}
-        <div className="h-px bg-white/10 my-4"></div>
-
-        {/* Menu Items */}
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = isActiveLink(item.path, item.exact);
-          
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative ${
-                isActive 
-                  ? 'bg-white/20 text-white shadow-md' 
-                  : 'hover:bg-white/10 hover:text-white'
-              } ${isCollapsed ? 'justify-center' : ''}`}
-              title={isCollapsed ? item.label : ""}
-            >
-              {/* Active indicator */}
-              {isActive && (
-                <div className="absolute right-0 top-0 bottom-0 w-1 bg-orange-400 rounded-l"></div>
-              )}
-              
-              <Icon 
-                size={20} 
-                className={`flex-shrink-0 transition-transform duration-200 ${
-                  isActive ? 'text-orange-200' : 'group-hover:scale-110'
-                }`} 
-              />
-              
-              {!isCollapsed && (
-                <span className={`group-hover:translate-x-1 transition-transform duration-200 ${
-                  isActive ? 'font-semibold' : ''
-                }`}>
-                  {item.label}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Enhanced Upload Button */}
-      <div className="px-4">
-        <button
-          onClick={() => setShowUploadModal(true)}
-          className={`group relative overflow-hidden flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 w-full ${
-            isCollapsed ? 'justify-center' : ''
-          }`}
-          title="העלה מוזיקה"
-        >
-          <div className="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
-          <Music className="w-5 h-5 flex-shrink-0 relative z-10" />
-          {!isCollapsed && <span className="relative z-10">העלה קובץ מוזיקה</span>}
-        </button>
-      </div>
-
-      {/* Footer */}
-      {!isCollapsed && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-          <div className="text-center">
-            <p className="text-xs text-orange-100/70">
-              עמותת לגלות את האור
-            </p>
-            <p className="text-xs text-white/50 mt-1">
-              © 2025 כל הזכויות שמורות
-            </p>
+        {/* Footer */}
+        {!isCollapsed && (
+          <div className="p-4 border-t border-white/10">
+            <div className="text-center">
+              <p className="text-xs text-orange-100/70">
+                עמותת לגלות את האור
+              </p>
+              <p className="text-xs text-white/50 mt-1">
+                © 2025 כל הזכויות שמורות
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Collapsed tooltip helper */}
-      {isCollapsed && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
-          <div className="w-8 h-1 bg-white/20 rounded-full"></div>
-        </div>
-      )}
+        {/* Collapsed indicator */}
+        {isCollapsed && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
+            <div className="w-8 h-1 bg-white/20 rounded-full"></div>
+          </div>
+        )}
 
-      {/* Enhanced Upload Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div
-            className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100"
-            onClick={e => e.stopPropagation()}
-            dir="rtl"
-          >
-            <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 rounded-t-3xl">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">העלאת מוזיקה</h2>
-                <button 
-                  onClick={() => setShowUploadModal(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+            <div
+              className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100"
+              onClick={e => e.stopPropagation()}
+              dir="rtl"
+            >
+              <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 rounded-t-3xl">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">העלאת מוזיקה</h2>
+                  <button 
+                    onClick={() => setShowUploadModal(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-colors group"
+                  >
+                    <X className="w-5 h-5 text-gray-500 group-hover:text-red-500 transition-colors" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                <AdminAudioUpload onClose={() => setShowUploadModal(false)} />
               </div>
             </div>
-            
-            <div className="p-6">
-              <AdminAudioUpload onClose={() => setShowUploadModal(false)} />
-            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
+
 
 export default Sidebar;
