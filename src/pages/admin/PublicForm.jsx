@@ -11,7 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../config/firbaseConfig";
 import { useAuth } from "../../context/AuthContext";
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader';
+import ElementalLoader from '../../theme/ElementalLoader';
 
 export default function PublicForm() {
   const { formId } = useParams();
@@ -177,7 +177,7 @@ export default function PublicForm() {
     }
   };
 
-  if (loading) return <CleanElementalOrbitLoader />;
+  if (loading) return <ElementalLoader />;
   if (!form) return <p className="text-center text-red-600">הטופס לא נמצא.</p>;
 
   return (

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { db } from '../../config/firbaseConfig';
 import { collection, getDocs, addDoc, deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+import ElementalLoader from '../../theme/ElementalLoader'
 
 // Function to generate a simple mock Firestore-like ID for client-side management
 const generateClientId = () => {
@@ -229,7 +229,7 @@ export default function AdminFormManager() {
         }
     };
 
-    if (loading) return <CleanElementalOrbitLoader />;
+    if (loading) return <ElementalLoader />;
 
     return (
         <DashboardLayout>

@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import getDirection from '../utils/identifyLang';
-import { getStorage, ref, getDownloadURL } from 'firebase/storage';
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import { functions as firebaseFunctions } from '@/config/firbaseConfig';
+import { downloadFile } from '../utils/fileHelpers';
 
 const DEFAULT_AVATAR = 'https://www.gravatar.com/avatar/?d=mp&f=y';
 
@@ -254,7 +252,7 @@ const MessageItem = ({
           {showFullImage && (
             <div
               onClick={() => setShowFullImage(false)}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 cursor-zoom-out"
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 cursor-zoom-out"
             >
               {/* Close Button */}
               <button
@@ -265,23 +263,23 @@ const MessageItem = ({
               >
                 ×
               </button>
-              {/* Download Button */}
-              <a
-                href={message.mediaURL}
-                download={message.fileName || 'image'}
-                onClick={e => e.stopPropagation()}
-                className="absolute top-4 right-4 text-white bg-black/60 rounded-full p-2 hover:bg-black/80 z-60"
-                title="הורד תמונה"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-                </svg>
-              </a>
               <img
                 src={message.mediaURL}
                 alt="תמונה בגודל מלא"
                 className="max-w-full max-h-full object-contain"
               />
+              {/* Download Button */}
+              <button
+                onClick={e => { e.stopPropagation(); downloadFile(message.mediaURL, message.fileName || 'image'); }}
+                className="px-6 py-2 text-white rounded-lg shadow transition font-bold hover:scale-95"
+                style={{ textAlign: 'center', backgroundColor: elementColors.primary }}
+                title="הורד תמונה"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-6 h-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                </svg>
+              </button>
+
               {/* Filename */}
               {message.fileName && (
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white bg-black/60 rounded px-3 py-1 text-sm select-all">

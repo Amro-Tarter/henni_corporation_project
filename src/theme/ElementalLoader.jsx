@@ -9,7 +9,7 @@ const ELEMENTS = [
   { key: 'fire',  emoji: '🔥', color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
 ];
 
-export default function CleanElementalOrbitLoader() {
+export default function ElementalLoader() {
   const [activeElement, setActiveElement] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   

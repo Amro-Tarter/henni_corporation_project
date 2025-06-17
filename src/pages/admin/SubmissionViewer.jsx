@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, doc, getDoc, query, where, orderBy } from "firebase/firestore"; // Import query, where, orderBy
 import { db } from "../../config/firbaseConfig";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader';
+import ElementalLoader from '../../theme/ElementalLoader';
 import { useParams, Link } from 'react-router-dom';
 
 export default function SubmissionViewer() {
@@ -83,7 +83,7 @@ export default function SubmissionViewer() {
         }
     };
 
-    if (loading || loadingSubs) return <CleanElementalOrbitLoader />;
+    if (loading || loadingSubs) return <ElementalLoader />;
     if (!isAdmin) return <p className="text-center text-red-600">אין הרשאה</p>;
 
     return (

@@ -7,6 +7,7 @@ import {
   getDoc,
   updateDoc,
   increment,
+  setDoc,
   query,
   where,
 } from 'firebase/firestore';
@@ -19,6 +20,7 @@ import {
   Heart,
   TreePine,
   X,
+  Eye,
   Edit2,
   Check,
   TrendingUp,
@@ -79,7 +81,12 @@ const AboutSection = ({ currentUser }) => {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
   const [isStatsInView, setIsStatsInView] = useState(false);
-  const [statsData, setStatsData] = useState({ visits: 0, users: 0, projects: 0 });
+  const [statsData, setStatsData] = useState({ 
+    visits: 0, 
+    uniqueVisits: 0, // Added uniqueVisits
+    users: 0, 
+    projects: 0 
+  });
 
   const isAdmin = currentUser?.role === 'admin';
 
@@ -87,32 +94,69 @@ const AboutSection = ({ currentUser }) => {
   const modalRef = useRef();
   const statsRef = useRef(null);
 
-  // Increment visit counter
+  // --- NEW UNIQUE VISITOR LOGIC ---
   useEffect(() => {
-    const statsRefDoc = doc(db, 'siteStats', 'counters');
-    updateDoc(statsRefDoc, { visits: increment(1) }).catch(async () => {
-      const snap = await getDoc(statsRefDoc);
-      if (!snap.exists()) {
-        await updateDoc(statsRefDoc, { visits: 1 });
-      }
-    });
-  }, []);
+    const UNIQUE_VISITOR_KEY = 'site_unique_visit';
+    const VISIT_EXPIRATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-  // Fetch stats data
+    const recordUniqueVisit = async () => {
+      const lastVisit = localStorage.getItem(UNIQUE_VISITOR_KEY);
+      const currentTime = new Date().getTime();
+
+      // If no last visit recorded or last visit was more than 24 hours ago
+      if (!lastVisit || (currentTime - parseInt(lastVisit, 10)) > VISIT_EXPIRATION_MS) {
+        localStorage.setItem(UNIQUE_VISITOR_KEY, currentTime.toString());
+
+        const statsRefDoc = doc(db, 'siteStats', 'counters');
+        try {
+          // Atomically increment uniqueVisits
+          await updateDoc(statsRefDoc, { uniqueVisits: increment(1) });
+        } catch (error) {
+          // If document doesn't exist, create it with uniqueVisits: 1
+          const snap = await getDoc(statsRefDoc);
+          if (!snap.exists()) {
+            await setDoc(statsRefDoc, { uniqueVisits: 1, visits: 0, users: 0, projects: 0 });
+          } else {
+            console.error("Error incrementing unique visits, but document exists:", error);
+          }
+        }
+      }
+
+      // Always increment total visits (if you still want to track them separately)
+      const statsRefDoc = doc(db, 'siteStats', 'counters');
+      try {
+        await updateDoc(statsRefDoc, { visits: increment(1) });
+      } catch (error) {
+        const snap = await getDoc(statsRefDoc);
+        if (!snap.exists()) {
+          await setDoc(statsRefDoc, { visits: 1, uniqueVisits: 0, users: 0, projects: 0 });
+        } else {
+          console.error("Error incrementing total visits, but document exists:", error);
+        }
+      }
+    };
+
+    recordUniqueVisit();
+  }, []); // Run once on mount
+
+  // Fetch stats data (updated to fetch uniqueVisits)
   useEffect(() => {
     async function fetchStats() {
       try {
-        // Visits
-        const snap = await getDoc(doc(db, 'siteStats', 'counters'));
+        const statsDocRef = doc(db, 'siteStats', 'counters');
+        const snap = await getDoc(statsDocRef);
+
         const visits = snap.exists() ? snap.data().visits || 0 : 0;
-        // Projects
+        const uniqueVisits = snap.exists() ? snap.data().uniqueVisits || 0 : 0; // Fetch uniqueVisits
+
         const elemSnap = await getDocs(collection(db, 'elemental_projects'));
         const persSnap = await getDocs(collection(db, 'personal_projects'));
         const projects = elemSnap.size + persSnap.size;
-        // Users
+
         const usersSnap = await getDocs(collection(db, 'users'));
         const users = usersSnap.size;
-        setStatsData({ visits, users, projects });
+
+        setStatsData({ visits, uniqueVisits, users, projects }); // Update state
       } catch (err) {
         console.error('Error loading stats:', err);
       }
@@ -163,7 +207,7 @@ const AboutSection = ({ currentUser }) => {
               userData.email?.split('@')[0] ||
               'מנהל',
             role: userData.role,
-            in_role: userData.in_role, // Keep the in_role field for sorting
+            in_role: userData.in_role,
             title:
               userData.title ||
               profileData.title ||
@@ -237,26 +281,26 @@ const AboutSection = ({ currentUser }) => {
     },
   ];
 
-
-  // Combined stats config (dynamic + static)
+  // Combined stats config (updated to show uniqueVisits)
   const combinedStatsConfig = [
-    {
-      value: statsData.visits,
-      label: 'מבקרים ייחודיים באתר',
-      icon: <Lightbulb className="h-6 w-6 text-pink-500" />,
-      color: 'pink',
-    },
+    
     {
       value: statsData.users,
       label: 'משתמשים נרשמים',
       icon: <Users className="h-6 w-6 text-blue-500" />,
-      color: 'blue', // Added blue color for dynamic stats
+      color: 'blue',
     },
     {
       value: statsData.projects,
       label: 'פרויקטים שבוצעו',
       icon: <TrendingUp className="h-6 w-6 text-green-500" />,
       color: 'green',
+    },
+    {
+      value: statsData.uniqueVisits,
+      label: 'צפיות כוללות',
+      icon: <Eye className="h-6 w-6 text-purple-500" />,
+      color: 'purple',
     },
   ];
 
@@ -312,7 +356,7 @@ const AboutSection = ({ currentUser }) => {
     }
   };
 
-  // Newsletter dummy logic (replace with real form/modal/route as needed)
+  // Newsletter dummy logic
   function NewsletterModal() {
     return (
       <AnimatePresence>
@@ -379,7 +423,7 @@ const AboutSection = ({ currentUser }) => {
         icon: 'text-green-600',
         border: 'border-green-200',
       },
-      blue: { // Added blue for the dynamic users stat
+      blue: {
         bg: 'from-blue-100 to-blue-50',
         text: 'text-blue-800',
         icon: 'text-blue-600',
@@ -401,13 +445,6 @@ const AboutSection = ({ currentUser }) => {
 
       {/* Newsletter modal */}
       <NewsletterModal />
-
-      {/* All Team Modal (removed as per instructions to link to /team) */}
-      {/* <AnimatePresence>
-        {showAllTeam && (
-          // ... (removed "All Team Modal" content) ...
-        )}
-      </AnimatePresence> */}
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -548,8 +585,10 @@ const AboutSection = ({ currentUser }) => {
 
           {loading ? (
             <div className="flex justify-center items-center py-8">
-              <div className="w-8 h-8 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin"></div>
-              <span className="mr-3 text-gray-600">טוען ...</span>
+              <div className="flex flex-col items-center">
+                <Users className="h-12 w-12 animate-spin text-orange-500 mb-3" />
+                <span className="mr-3 text-gray-600">טוען ...</span>
+              </div>
             </div>
           ) : teamMembers.length === 0 ? (
             <div className="text-center py-8 text-gray-600">
@@ -627,65 +666,66 @@ const AboutSection = ({ currentUser }) => {
                     </h3>
                     {!editMode ? (
                       <>
-                        <p className="text-lg text-orange-500 font-medium mb-4">
-                          {teamMembers[selectedMember].title}
-                        </p>
-                        <p className="text-gray-700 leading-relaxed">
+            <p className="text-gray-600 leading-relaxed mb-4">
                           {teamMembers[selectedMember].bio}
                         </p>
+                        <div className="flex items-center justify-center md:justify-start gap-2 text-sm text-gray-500 mb-4">
+                          <MapPin className="h-4 w-4" />
+                          <span>{teamMembers[selectedMember].email}</span>
+                        </div>
                         {isAdmin && (
                           <Button
-                            variant="ghost"
-                            className="mt-4 text-sm text-orange-600"
                             onClick={startEdit}
+                            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 mx-auto md:mx-0"
                           >
-                            <Edit2 className="inline-block w-4 h-4 mr-2" />
-                            ערוך פרופיל
+                            <Edit2 className="h-4 w-4" />
+                            עריכת פרופיל
                           </Button>
                         )}
-                        <div className="mt-6 flex justify-center md:justify-end">
-                          <Button
-                            onClick={closeMemberModal}
-                            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg"
-                          >
-                            סגור
-                          </Button>
-                        </div>
                       </>
                     ) : (
-                      <>
-                        <input
-                          name="title" // Changed 'username' to 'name' for input
-                          className="border rounded-lg px-4 py-2 w-full my-2 text-right"
-                          value={editData.title || ''}
-                          onChange={handleEditChange}
-                          placeholder="תפקיד"
-                        />
-                        <textarea
-                          name="bio" // Changed 'username' to 'name' for textarea
-                          className="border rounded-lg px-4 py-2 w-full my-2 text-right"
-                          value={editData.bio || ''}
-                          onChange={handleEditChange}
-                          placeholder="תיאור"
-                          rows={4}
-                        />
-                        <div className="flex gap-4 justify-end mt-4">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            תפקיד
+                          </label>
+                          <input
+                            type="text"
+                            name="title"
+                            value={editData.title || ''}
+                            onChange={handleEditChange}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-right focus:outline-none focus:border-orange-400"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            ביוגרפיה
+                          </label>
+                          <textarea
+                            name="bio"
+                            value={editData.bio || ''}
+                            onChange={handleEditChange}
+                            rows={4}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-right focus:outline-none focus:border-orange-400 resize-none"
+                          />
+                        </div>
+                        <div className="flex gap-3 justify-center md:justify-start">
+                          <Button
+                            onClick={saveEdit}
+                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                          >
+                            <Check className="h-4 w-4" />
+                            שמור
+                          </Button>
                           <Button
                             onClick={cancelEdit}
                             variant="outline"
-                            className="text-gray-600 border-gray-300"
+                            className="border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm"
                           >
                             ביטול
                           </Button>
-                          <Button
-                            onClick={saveEdit}
-                            className="bg-green-500 hover:bg-green-600 text-white"
-                          >
-                            <Check className="inline-block w-4 h-4 ml-2" />
-                            שמור
-                          </Button>
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -694,11 +734,6 @@ const AboutSection = ({ currentUser }) => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Scroll Down Indicator */}
-      <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
-        <ScrollDown targetId="team-section" style="default" offset={80} />
-      </div>
     </section>
   );
 };

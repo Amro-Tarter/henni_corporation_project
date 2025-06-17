@@ -1,5 +1,5 @@
 //ProfileInfo.jsx
-import React, { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { MapPin, Camera, MessageSquare, Users, Image, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '../ui/sonner';
@@ -13,16 +13,27 @@ const elementOptions = [
   { value: 'metal', label: 'מתכת', icon: '⚒️' },
 ];
 
+// Helper function to find the option by value
 const findOption = v => elementOptions.find(o => o.value === v) || { icon: '', label: '' };
 
-const Stat = ({ icon, count, label, element }) => (
-  <div className="flex flex-col items-center hover:scale-105 transition-transform">
-    {icon && <div className={`text-${element} mb-1`}>{icon}</div>}
-    <div className={`text-2xl sm:text-3xl font-bold text-${element}`}>{count}</div>
-    <div className={`text-sm text-${element}-accent`}>{label}</div>
-  </div>
-);
+// the info component
+const Stat = ({ icon, count, label, element }) => {
+  // use the pipe | to split into two lines
+  const [topLabel, bottomLabel] = label.includes('|') ? label.split('|') : [label, ''];
 
+  return (
+    <div className="flex flex-col items-center hover:scale-105 transition-transform text-center">
+      {icon && <div className={`text-${element} mb-1`}>{icon}</div>}
+      <div className={`text-2xl sm:text-3xl font-bold text-${element}`}>{count}</div>
+      <div className="flex flex-col leading-tight text-sm">
+        <span className={`text-${element}-accent`}>{topLabel}</span>
+        {bottomLabel && <span className={`text-${element}-accent`}>{bottomLabel}</span>}
+      </div>
+    </div>
+  );
+};
+
+// Tooltip component for hover
 const Tooltip = ({ text, children }) => (
   <div className="group relative inline-flex">
     {children}
@@ -51,16 +62,28 @@ const ProfileInfo = ({
   onFollowToggle
 }) => {
 
+  // detrmine the labels based on ownership
   const followersLabel = isOwner
     ? "העוקבים שלי"
-    : `העוקבים של ${username}`;
+    : `העוקבים של|${username}`;
 
   const followingLabel = isOwner
     ? "אני עוקב אחרי"
-    : `${username} עוקב אחרי `;
+    : `${username}|עוקב אחרי`;
 
+  // scroll to see full profile info if not owner and on desktop
+  const profileRef = useRef(null);
 
-  const handlePicChange = async e => {
+  useEffect(() => {
+    if (!isOwner && window.innerWidth >= 640) {
+      setTimeout(() => {
+        profileRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [isOwner]);
+
+  // handles personal pic change
+  const handlePicChange = async e => { // e is the event from the file input
     const file = e.target.files[0];
     if (!file) return;
     try {
@@ -72,6 +95,7 @@ const ProfileInfo = ({
     }
   };
 
+  // handles background pic change
   const handleBackgroundChange = async e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -86,48 +110,48 @@ const ProfileInfo = ({
 
   return (
     <>
-      <section className="w-full overflow-visible">
+      <section ref={profileRef} className="w-full overflow-visible">
         {/* Background image and profile pic */}
         <div className={`relative w-full h-36 sm:h-48 md:h-64 bg-${element}-soft overflow-visible`}>
+          {/* Show background image if available */}
           {backgroundPic && (
             <img src={backgroundPic} alt="Cover background" className="object-cover w-full h-full rounded-lg" />
           )}
+          {/* Show background image edit button if user is the owner */}
           {isOwner && (
             <label className={`
-        absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center justify-center p-1 sm:p-2
-        bg-${element}-accent opacity-80 hover:opacity-70
-        rounded-full cursor-pointer group
-      `}>
+              absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center justify-center p-1 sm:p-2
+              bg-${element}-accent opacity-80 hover:opacity-70
+              rounded-full cursor-pointer group
+            `}>
               <Image className="text-white w-5 h-5" />
               <span className={`
-          absolute left-full ml-1 sm:ml-2
-          bg-${element}-accent bg-opacity-75 text-white text-xs rounded px-2 py-1
-          opacity-0 group-hover:opacity-100 whitespace-nowrap
-        `}>
+                absolute left-full ml-1 sm:ml-2
+                bg-${element}-accent bg-opacity-75 text-white text-xs rounded px-2 py-1
+                opacity-0 group-hover:opacity-100 whitespace-nowrap
+              `}>
                 שינוי תמונת רקע
               </span>
               <input type="file" accept="image/*" className="hidden" onChange={handleBackgroundChange} />
             </label>
           )}
-
+          {/* Profile picture container */}
           <div className="absolute -bottom-14 sm:-bottom-16 right-6 sm:right-24 z-10">
             <div className={`
-        relative w-28 h-28 sm:w-40 sm:h-40 border-4 border-${element} rounded-full overflow-hidden
-        shadow-lg bg-${element}-soft hover:scale-105 transition-transform duration-300 group
-      `}>
+              relative w-28 h-28 sm:w-40 sm:h-40 border-4 border-${element} rounded-full overflow-hidden
+              shadow-lg bg-${element}-soft hover:scale-105 transition-transform duration-300 group
+            `}>
               <img src={profilePic} alt={`${username} avatar`} className="object-cover w-full h-full rounded-full" />
+              {/* Show profile picture edit overlay if user is the owner */}
               {isOwner && (
                 <label className={`
-            absolute inset-0 flex items-center justify-center
-            bg-black bg-opacity-0 hover:bg-opacity-40 transition-opacity cursor-pointer rounded-full
-          `}>
+                  absolute inset-0 flex items-center justify-center
+                  bg-black bg-opacity-0 hover:bg-opacity-40 transition-opacity cursor-pointer rounded-full
+                `}>
                   <Camera className="text-white w-6 h-6 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-110 transition-all duration-200 " />
                   <input type="file" accept="image/*" className="hidden" onChange={handlePicChange} />
                 </label>
               )}
-              <div className={`absolute -bottom-2 -left-2 bg-${element}-soft rounded-full p-1 shadow-md`}>
-                <span className="text-xl" title={findOption(element).label}>{findOption(element).icon}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -137,7 +161,7 @@ const ProfileInfo = ({
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
             <div className="flex items-center gap-2 sm:gap-3 text-${element}">
               <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 text-${element}`}>{username}</h1>
-
+              {/* Show info icon if user is the owner */}
               {isOwner && (
                 <Tooltip text="באפשרותך לערוך את הפרטים שלך דרך עמוד ההגדרות">
                   <Info className="text-gray-500 hover:text-gray-600 w-4 h-4 cursor-pointer transition-colors" />
@@ -145,13 +169,13 @@ const ProfileInfo = ({
               )}
             </div>
 
-            {/* Element Display (READ ONLY) */}
+            {/* Role and element badge */}
             {['mentor', 'admin'].includes(role) ? (
               <Tooltip text="תפקיד המשתמש">
                 <div className={`
-        relative inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-${element}-soft text-${element}
-        shadow-md ring-1 ring-${element}-accent
-      `}
+                  relative inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-${element}-soft text-${element}
+                  shadow-md ring-1 ring-${element}-accent
+                `}
                   style={{ pointerEvents: "none", userSelect: "none" }}>
                   <span className="text-xl sm:text-2xl">
                     {role === 'mentor' && '🧑‍🏫'}
@@ -166,9 +190,9 @@ const ProfileInfo = ({
               <Tooltip text={isOwner ? "האלמנט שלך" : "האלמנט של המשתמש הזה"}>
                 <div
                   className={`
-        relative inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-${element}-soft text-${element}
-        shadow-md ring-1 ring-${element}-accent
-      `}
+                    relative inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-${element}-soft text-${element}
+                    shadow-md ring-1 ring-${element}-accent
+                  `}
                   style={{ pointerEvents: "none", userSelect: "none" }}
                 >
                   <span className="text-xl sm:text-2xl">{findOption(element).icon}</span>
@@ -177,6 +201,7 @@ const ProfileInfo = ({
               </Tooltip>
             )}
           </div>
+
           {/* Location*/}
           <div className={`mt-4 flex flex-wrap items-center gap-2 text-base text-${element}`}>
             <MapPin className="w-5 h-5 ml-1" />
@@ -198,11 +223,11 @@ const ProfileInfo = ({
               <button
                 onClick={() => onFollowToggle(uid)}
                 className={`
-            w-full sm:w-auto px-8 sm:px-20 py-2 sm:py-3 rounded-full text-sm font-medium shadow-md transition-transform hover:scale-105
-            ${isFollowing
-                    ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                    : `bg-${element} text-white hover:bg-${element}-accent`}
-          `}
+                  w-full sm:w-auto px-8 sm:px-20 py-2 sm:py-3 rounded-full text-sm font-medium shadow-md transition-transform hover:scale-105
+                  ${isFollowing
+                          ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                          : `bg-${element} text-white hover:bg-${element}-accent`}
+                `}
               >
                 {isFollowing ? 'בטל מעקב' : 'עקוב'}
               </button>
@@ -215,8 +240,8 @@ const ProfileInfo = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
             className={`
-        mt-8 grid grid-cols-3 sm:gap-x-40 gap-y-4 sm:flex sm:justify-center bg-${element}-soft rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow duration-300
-      `}
+              mt-8 grid grid-cols-3 sm:gap-x-40 gap-y-4 sm:flex sm:justify-center bg-${element}-soft rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow duration-300
+            `}
           >
             <Stat element={element} icon={<MessageSquare className="w-5 h-5" />} count={postsCount} label="פוסטים" />
             <Stat element={element} icon={<Users className="w-5 h-5" />} count={followersCount} label={followersLabel} />

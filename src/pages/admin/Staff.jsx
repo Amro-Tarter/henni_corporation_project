@@ -3,7 +3,7 @@ import { collection, getDocs, doc, updateDoc, addDoc, deleteDoc } from "firebase
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../config/firbaseConfig";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+import ElementalLoader from '../../theme/ElementalLoader'
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner"; 
 import { 
@@ -228,7 +228,7 @@ function Staff() {
       s.in_role.toLowerCase().includes(search.toLowerCase()) ||
       (s.bio && s.bio.toLowerCase().includes(search.toLowerCase()))
   );
-  if (loading) return <CleanElementalOrbitLoader/>;
+  if (loading) return <ElementalLoader/>;
 
   return (
     <DashboardLayout>

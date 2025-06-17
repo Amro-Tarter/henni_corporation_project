@@ -318,7 +318,7 @@ const Post = ({
           >
             {/* User profile picture */}
             <img
-              src={authorProfile?.photoURL || '/default_user_pic.jpg'}
+              src={authorProfile?.photoURL || '/profile.jpg'}
               alt={authorProfile?.username || 'משתמש'}
               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
             />
@@ -574,7 +574,7 @@ const Post = ({
             >
               {currentUser && currentUser.role !== 'staff' ? (
                 <div className="flex gap-3 mb-4">
-                  <img src={currentUser.photoURL || '/default_user_pic.jpg'} alt="" className="w-8 h-8 rounded-full" />
+                  <img src={currentUser.photoURL || '/profile.jpg'} alt="" className="w-8 h-8 rounded-full" />
                   <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
                 </div>
               ) : (

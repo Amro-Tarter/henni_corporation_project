@@ -29,44 +29,119 @@ import { useParams, useNavigate } from "react-router-dom";
 import { badWords } from "../components/chat/utils/badWords";
 import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
 import notificationSound from '../assets/notification.mp3';
+import inquiryNotificationSound from '../assets/inquirySound.mp3';
+import innerNoteSound from '../assets/innerNoteSound.mp3';
 import { handleMentorCommunityMembership } from "../components/chat/utils/handleMentorCommunityMembership";
 import { handleElementCommunityChatMembership } from "../components/chat/utils/handleElementCommunityMembership";
 import Rightsidebar from "../components/social/Rightsidebar";
 
 // Notification component
-function Notification({ message, type, onClose, elementColors, actions }) {
-  return (
+function Notification({ message, type, onClose, actions, duration = 3000, elementColors }) {
+  const [visible, setVisible] = useState(true);
+  const fadeDuration = 1000; // ms
+
+  useEffect(() => {
+      const audio = new window.Audio(innerNoteSound);
+      audio.play();
+  }, []);
+
+  useEffect(() => {
+    if (duration) {
+      
+      const timer = setTimeout(() => {
+        setVisible(false);
+        setTimeout(() => {
+          onClose();
+        }, fadeDuration);
+      }, duration);
+      return () => clearTimeout(timer);
+    }
+  }, [duration, onClose]);
+
+  // Determine colors
+  let bgColor, borderColor, textColor, hoverColor;
+  if (type === 'error') {
+    bgColor = 'bg-red-50';
+    borderColor = 'border border-red-200';
+    textColor = 'text-red-800';
+    hoverColor = 'hover:bg-red-200';
+  } else if (type === 'success') {
+    bgColor = 'bg-green-50';
+    borderColor = 'border border-green-200';
+    textColor = 'text-green-800';
+    hoverColor = 'hover:bg-green-200';
+  } else {
+    // Use elementColors for info/default
+    bgColor = elementColors?.light ? '' : 'bg-blue-50';
+    borderColor = elementColors?.light ? '' : 'border border-blue-200';
+    textColor = elementColors?.primary ? '' : 'text-blue-800';
+    hoverColor = elementColors?.hover ? '' : 'hover:bg-blue-200';
+  }
+
+  // Inline style for element colors (info/default)
+  const infoStyle = type === 'error' || type === 'success' ? {} : {
+    backgroundColor: elementColors?.light || undefined,
+    border: elementColors?.primary ? `1px solid ${elementColors.primary}33` : undefined,
+  };
+  const infoTextStyle = type === 'error' || type === 'success' ? {} : {
+    color: elementColors?.primary || undefined,
+  };
+  const infoHoverStyle = type === 'error' || type === 'success' ? {} : {
+    backgroundColor: elementColors?.hover || undefined,
+  };
+
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(() => {
+        onClose();
+    }, fadeDuration);
+};
+
+return (
+  <div
+    className={
+        `fixed top-6 left-1/2 z-50 w-full max-w-md px-4 sm:px-0 mt-10 flex justify-center transition-opacity duration-1000` +
+        (visible ? ' opacity-100' : ' opacity-0')
+    }
+    style={{ transform: 'translateX(-50%)' }}
+  >
     <div
-      className={
-        `fixed z-50 min-w-[260px] px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in border-2
-        top-4 left-1/2 -translate-x-1/2 w-[90vw] max-w-sm
-        sm:top-8 sm:left-auto sm:right-8 sm:-translate-x-0 sm:w-auto sm:max-w-xs
-        md:top-20`
-      }
-      style={{
-        background: type === 'success' ? elementColors?.light : type === 'error' ? '#fff0f0' : '#fef9c3',
-        borderColor: type === 'success' ? elementColors?.primary : type === 'error' ? '#f87171' : '#facc15',
-        color: type === 'success' ? elementColors?.primary : type === 'error' ? '#b91c1c' : '#b45309',
-      }}
-      role="alert"
+      className={`rounded-lg shadow-lg p-4 animate-fade-in flex items-center justify-between gap-4 ${bgColor} ${borderColor}`}
+      style={infoStyle}
     >
-      <span className="font-bold text-lg">
-        {type === 'success' ? '✔️' : type === 'error' ? '❌' : '⚠️'}
-      </span>
-      <span className="flex-1 text-sm font-medium">{message}</span>
-      {actions ? (
-        <div className="flex gap-2">{actions}</div>
-      ) : (
+      <div className="flex items-center gap-3 flex-1">
+        {type === 'error' && (
+          <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        )}
+        {type === 'success' && (
+          <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+          </svg>
+        )}
+        <p className={`text-sm font-medium ${textColor}`} style={infoTextStyle}>
+          {message}
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        {actions && (
+          <div className="flex items-center gap-2">
+            {actions}
+          </div>
+        )}
         <button
-          className="ml-2 text-xl font-bold hover:opacity-70 transition"
-          onClick={onClose}
-          aria-label="סגור הודעה"
-          style={{ color: type === 'success' ? elementColors?.primary : type === 'error' ? '#b91c1c' : '#b45309' }}
+          onClick={handleClose}
+          className={`p-1 rounded-full hover:bg-opacity-20 ${hoverColor}`}
+          style={infoHoverStyle}
         >
-          ×
+          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
-      )}
+      </div>
     </div>
+  </div>
   );
 }
 
@@ -103,13 +178,14 @@ export default function ChatApp() {
   const [pendingSelectedConversationId, setPendingSelectedConversationId] = useState(null);
   const [groupAvatarFile, setGroupAvatarFile] = useState(null);
   const [groupAvatarPreview, setGroupAvatarPreview] = useState(null);
-  const [mobilePanel, setMobilePanel] = useState('conversations'); // 'conversations' | 'chat'
+  const [mobilePanel, setMobilePanel] = useState('conversations'); // 'conversations' | 'chat' | 'inquiries list' | 'selected inquiry' | 'new inquiry'
   const [isRightOpen, setIsRightOpen] = useState(false);
   const [showSystemCalls, setShowSystemCalls] = useState(false);
   const [selectedInquiry, setSelectedInquiry] = useState(null);
   const [inquiries, setInquiries] = useState([]);
   const [isLoadingInquiries, setIsLoadingInquiries] = useState(false);
   const [notification, setNotification] = useState(null); // { message, type, actions }
+  const [selectedConversationId, setSelectedConversationId] = useState(null);
   // File upload state/logic (moved to hook)
   const {
     file,
@@ -227,10 +303,6 @@ export default function ChatApp() {
 
   // --- Conversation Filtering ---
   const filteredConversations = useMemo(() => {
-    if (currentUser.role === 'admin') {
-      // admin sees all conversations
-      return conversations;
-    }
     let filtered = conversations;
     if (activeTab === "private") {
       filtered = filtered.filter(conv => conv.type === "direct");
@@ -297,7 +369,7 @@ export default function ChatApp() {
               participantNames: data.participantNames,
               participants: data.participants,
               communityType: data.communityType,
-              displayName: data.mentorName ? `קהילה של ${data.mentorName}` : 'קהילת מנטור',
+              displayName: data.mentorName ? `קהילה של ${data.mentorName}` : 'קהילת מנחה',
             });
             continue;
           } else if (data.type === "community" && (!data.communityType || data.communityType === "element")) {
@@ -313,7 +385,7 @@ export default function ChatApp() {
               ...base,
               participantNames: data.participantNames,
               communityType: data.communityType,
-              displayName: 'קהילת כל המנטורים',
+              displayName: 'קהילת כל המנחים',
             });
             continue;
           } else if (data.type === "community" && data.communityType === "all_mentors_with_admin") {
@@ -321,7 +393,7 @@ export default function ChatApp() {
               ...base,
               participantNames: data.participantNames,
               communityType: data.communityType,
-              displayName: 'קהילת מנטורים ומנהלים',
+              displayName: 'קהילת מנחים ומנהלים',
             });
             continue;
           }
@@ -417,19 +489,19 @@ export default function ChatApp() {
       const profileDoc = await getDoc(doc(db, 'profiles', uid));
       let photoURL = null;
       if (profileDoc.exists()) {
-        photoURL = profileDoc.data().photoURL || null;
+        photoURL = profileDoc.data().photoURL || 'https://www.gravatar.com/avatar/?d=mp&f=y';
       }
 
       // Cache the result
       setUserAvatars(prev => ({
         ...prev,
-        [uid]: photoURL || '/default_user_pic.jpg'
+        [uid]: photoURL || 'https://www.gravatar.com/avatar/?d=mp&f=y'
       }));
 
-      return photoURL || '/default_user_pic.jpg';
+      return photoURL || 'https://www.gravatar.com/avatar/?d=mp&f=y';
     } catch (e) {
       console.error("Error fetching avatar:", e);
-      return '/default_user_pic.jpg';
+      return 'https://www.gravatar.com/avatar/?d=mp&f=y';
     }
   }
 
@@ -437,6 +509,7 @@ export default function ChatApp() {
   useEffect(() => {
     if (!selectedConversation || !selectedConversation.id) return;
     setIsLoadingMessages(true);
+
     
     // Create a query to get messages for the selected conversation
     const q = query(
@@ -500,8 +573,7 @@ export default function ChatApp() {
     if (!fileToSend && messageToSend.trim()) {
       const lowerMsg = messageToSend.toLowerCase();
       if (badWords.some(word => word && lowerMsg.includes(word.toLowerCase()))) {
-        setNotification({ message: 'ההודעה שלך מכילה מילים אסורות. אנא נסח מחדש.', type: 'error' });
-        setTimeout(() => setNotification(null), 3500);
+        setNotification({ message: 'ההודעה שלך מכילה מילים אסורות. אנא נסח מחדש.', type: 'error', elementColors: elementColors });
         return;
       }
     }
@@ -567,8 +639,7 @@ export default function ChatApp() {
       console.error("Error sending message:", error);
       // Remove optimistic message on error
       setMessages(prev => prev.filter(msg => msg.id !== optimisticId));
-      setNotification({ message: `שליחת ההודעה נכשלה: ${error.message}`, type: 'error' });
-      setTimeout(() => setNotification(null), 3500);
+      setNotification({ message: `שליחת ההודעה נכשלה: ${error.message}`, type: 'error', elementColors: elementColors });
     }
   };
 
@@ -619,15 +690,13 @@ export default function ChatApp() {
       );
       const userSnapshot = await getDocs(userQuery);
       if (userSnapshot.empty) {
-        setNotification({ message: 'המשתמש לא קיים', type: 'error' });
-        setTimeout(() => setNotification(null), 3500);
+        setNotification({ message: 'המשתמש לא קיים', type: 'error', elementColors: elementColors });
         return;
       }
       const partner = userSnapshot.docs[0];
       const partnerUid = partner.id;
       if (partnerUid === currentUser.uid) {
-        setNotification({ message: 'לא ניתן לשלוח הודעה לעצמך', type: 'error' });
-        setTimeout(() => setNotification(null), 3500);
+        setNotification({ message: 'לא ניתן לשלוח הודעה לעצמך', type: 'error', elementColors: elementColors });
         return;
       }
       const participants = [currentUser.uid, partnerUid].sort();
@@ -670,122 +739,93 @@ export default function ChatApp() {
       setPartnerName("");
     } catch (error) {
       console.error("Error creating conversation:", error);
-      setNotification({ message: `שגיאה ביצירת שיחה: ${error.message}`, type: 'error' });
-      setTimeout(() => setNotification(null), 3500);
+      setNotification({ message: `שגיאה ביצירת שיחה: ${error.message}`, type: 'error', elementColors: elementColors });
     }
   };
 
   // When a conversation is selected, always use the full object from conversations array
   const handleSelectConversation = (conv) => {
     if (showSystemCalls) return;
-
     if (!conv) {
-      setSelectedConversation(null);
+      setSelectedConversationId(null);
       navigate(`/chat`);
-      // On mobile, go back to conversations
       if (typeof window !== 'undefined' && window.innerWidth < 768) setMobilePanel('conversations');
       return;
     }
-    // If conv is an ID, or partial, find the full object
     const convId = conv.id || conv;
-    const fullConv = conversations.find(c => c.id === convId);
-    if (fullConv) {
-      // Create a lastRead key to track updates
-      const lastReadKey = `${fullConv.id}_${currentUser.uid}`;
-      setSelectedConversation(fullConv);
-      navigate(`/chat/${fullConv.id}`);
-      // On mobile, switch to chat area
-      if (typeof window !== 'undefined' && window.innerWidth < 768) setMobilePanel('chat');
-      // --- Reset unread count for current user and update lastRead timestamp ---
-      const conversationRef = doc(db, "conversations", fullConv.id);
-      updateDoc(conversationRef, {
-        [`unread.${currentUser.uid}`]: 0,
-        [`lastRead.${currentUser.uid}`]: serverTimestamp()
-      });
-      // Mark this conversation as updated
-      setLastReadUpdated(prev => ({
-        ...prev,
-        [lastReadKey]: true
-      }));
+    setSelectedConversationId(convId);
+    navigate(`/chat/${convId}`);
+    if (typeof window !== 'undefined' && window.innerWidth < 768) setMobilePanel('chat');
+    // --- Reset unread count for current user and update lastRead timestamp ---
+    const conversationRef = doc(db, "conversations", convId);
+    updateDoc(conversationRef, {
+      [`unread.${currentUser.uid}`]: 0,
+      [`lastRead.${currentUser.uid}`]: serverTimestamp()
+    });
+    // Mark this conversation as updated
+    const lastReadKey = `${convId}_${currentUser.uid}`;
+    setLastReadUpdated(prev => ({
+      ...prev,
+      [lastReadKey]: true
+    }));
+  };
+
+  // Effect: update selectedConversation when selectedConversationId or conversations changes
+  useEffect(() => {
+    if (!selectedConversationId || !conversations.length) {
+      setSelectedConversation(null);
+      return;
+    }
+    const found = conversations.find(c => c.id === selectedConversationId);
+    if (found) {
+      setSelectedConversation(found);
     } else {
-      // If not found, try to fetch directly and set
+      // Optionally fetch from Firestore if not found (rare)
       const fetchAndSet = async () => {
         if (showSystemCalls) return;
         try {
-          const conversationRef = doc(db, "conversations", convId);
+          const conversationRef = doc(db, "conversations", selectedConversationId);
           const conversationDoc = await getDoc(conversationRef);
           if (conversationDoc.exists()) {
             const data = conversationDoc.data();
             if (data.participants && data.participants.includes(currentUser.uid)) {
               const conversationData = {
-                id: convId,
+                id: selectedConversationId,
                 ...data,
                 lastUpdated: data.lastUpdated?.toDate(),
                 createdAt: data.createdAt?.toDate()
               };
               setSelectedConversation(conversationData);
-              navigate(`/chat/${convId}`);
             } else {
+              setSelectedConversation(null);
+              setSelectedConversationId(null);
               navigate('/chat');
             }
           } else {
+            setSelectedConversation(null);
+            setSelectedConversationId(null);
             navigate('/chat');
           }
         } catch (error) {
+          setSelectedConversation(null);
+          setSelectedConversationId(null);
           navigate('/chat');
         }
       };
       fetchAndSet();
     }
-  };
+  }, [selectedConversationId, conversations, currentUser.uid, navigate]);
 
-  // Refactor: Only update selectedConversation when chatId changes and conversation is found
+  // Refactor: Only update selectedConversationId when chatId changes
   useEffect(() => {
     if (showSystemCalls) return;
     if (!currentUser.uid || isLoadingConversations) return;
     if (chatId) {
-      const conversation = conversations.find(c => c.id === chatId);
-      if (conversation) {
-        setSelectedConversation(conversation);
-        // Navigation is handled in handleSelectConversation
-      } else {
-        // Try to fetch directly if not found
-        const fetchConversation = async () => {
-          try {
-            const conversationRef = doc(db, "conversations", chatId);
-            const conversationDoc = await getDoc(conversationRef);
-            if (conversationDoc.exists()) {
-              const data = conversationDoc.data();
-              if (data.participants && data.participants.includes(currentUser.uid)) {
-                const conversationData = {
-                  id: chatId,
-                  ...data,
-                  lastUpdated: data.lastUpdated?.toDate(),
-                  createdAt: data.createdAt?.toDate()
-                };
-                setSelectedConversation(conversationData);
-              } else {
-                setSelectedConversation(null);
-                navigate('/chat');
-              }
-            } else {
-              setSelectedConversation(null);
-              navigate('/chat');
-            }
-          } catch (error) {
-            setSelectedConversation(null);
-            navigate('/chat');
-          }
-        };
-        fetchConversation();
-      }
+      setSelectedConversationId(chatId);
     } else {
-      // Only clear if there is a selectedConversation and conversations are loaded
-      if (selectedConversation !== null) {
-        setSelectedConversation(null);
-      }
+      setSelectedConversationId(null);
     }
-  }, [chatId, conversations, currentUser.uid, isLoadingConversations, navigate]);
+  }, [chatId, currentUser.uid, isLoadingConversations, navigate]);
 
   // On mobile, if chat is closed, go back to conversations
   useEffect(() => {
@@ -802,7 +842,7 @@ export default function ChatApp() {
     if (pendingSelectedConversationId && conversations.length > 0) {
       const found = conversations.find(c => c.id === pendingSelectedConversationId);
       if (found) {
-        setSelectedConversation(found);
+        setSelectedConversationId(found.id);
         setPendingSelectedConversationId(null);
         navigate(`/chat/${found.id}`);
       }
@@ -837,8 +877,7 @@ export default function ChatApp() {
               }
               await deleteDoc(doc(db, "conversations", conversationDoc.id));
             }
-            setNotification({ message: "כל הצ'אטים נמחקו בהצלחה!", type: 'success' });
-            setTimeout(() => setNotification(null), 3500);
+            setNotification({ message: "כל הצ'אטים נמחקו בהצלחה!", type: 'success', elementColors: elementColors });
           }}
         >כן</button>,
         <button
@@ -864,8 +903,7 @@ export default function ChatApp() {
             for (const inquiryDoc of inquiriesSnapshot.docs) {
               await deleteDoc(doc(db, "system_of_inquiries", inquiryDoc.id));
             }
-            setNotification({ message: "כל הפניות נמחקו בהצלחה!", type: 'success' });
-            setTimeout(() => setNotification(null), 3500);
+            setNotification({ message: "כל הפניות נמחקו בהצלחה!", type: 'success', elementColors: elementColors });
           }}
         >כן</button>,
         <button
@@ -904,6 +942,27 @@ export default function ChatApp() {
     return () => unsubscribe();
   }, [currentUser.uid, selectedConversation, conversations]);
 
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const q = query(
+      collection(db, 'system_of_inquiries'),
+      where('recipient', '==', currentUser.uid)
+    );
+
+    // Listen for new inquiries
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach(change => {
+        if (change.type === 'added') {
+          // Play notification sound
+          const audio = new window.Audio(inquiryNotificationSound);
+          audio.play();
+        }
+      });
+    });
+
+    return () => unsubscribe();
+  }, [currentUser.uid]);
 
   // Auto-close chat if user is removed from a group they are viewing
   useEffect(() => {
@@ -929,12 +988,14 @@ export default function ChatApp() {
       if (lastPersonalRemovalMsg) {
         // Wait 2.5 seconds before closing the chat
         const timeout = setTimeout(() => {
+          setSelectedConversationId(null);
           setSelectedConversation(null);
           navigate('/chat');
         }, 2500);
         return () => clearTimeout(timeout);
       } else {
         // No personal message, close immediately
+        setSelectedConversationId(null);
         setSelectedConversation(null);
         navigate('/chat');
       }
@@ -1066,35 +1127,35 @@ export default function ChatApp() {
           actions={notification.actions}
         />
       )}
-      <ThemeProvider element={userElement}>
+      <ThemeProvider element={currentUser.role === 'admin' || currentUser.role === 'mentor' ? 'red' : userElement}>
         <Navbar element={userElement} className="hidden md:block"/>
-        <Rightsidebar element={userElement} onExpandChange={setIsRightOpen}/>
+        <Rightsidebar element={currentUser.role === 'admin' || currentUser.role === 'mentor' ? 'red' : userElement} onExpandChange={setIsRightOpen}/>
       </ThemeProvider>
-      <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 ${mobilePanel === 'conversations' ? 'mt-14' : 'mt-16'}`}>
+      <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 mt-16`}>
 
-        {currentUser.role === 'admin' && (
-          <div className="flex flex-row gap-2">
-            <button
-              onClick={delete_all_inquiries}
-              className="fixed self-center justify-center z-50 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
-            >
-              מחק את כל הפניות (אדמין)
-            </button>
+        {/* {currentUser.role === 'admin' && (
+          <div className="flex flex-row gap-2 right-50 fixed justify-center items-center z-50 bg-white">
             <button
               onClick={delete_all_conversations}
-              className="fixed self-center justify-center z-50 bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
+              className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
             >
               מחק את כל הצ'אטים (אדמין)
             </button>
+            <button
+              onClick={delete_all_inquiries}
+              className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
+            >
+              מחק את כל הפניות (אדמין)
+            </button>
           </div>
-        )}
+        )} */}
 
       
         
         {/* Main Panels */}
         {/* Conversation List Panel */}
         <div
-          className={`flex-1 md:max-w-xs md:block ${mobilePanel === 'conversations' ? 'block' : 'hidden'} md:block h-full duration-500 ease-in-out ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}`}
+          className={`flex-1 md:max-w-xs md:block ${mobilePanel === 'conversations' || mobilePanel === 'inquiries list' ? 'block' : 'hidden'} md:block h-full duration-500 ease-in-out ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'} transition-all`}
           style={{ minWidth: 0 }}
         >
           <ConversationList
@@ -1128,25 +1189,37 @@ export default function ChatApp() {
             inquiries={inquiries}
             isLoadingInquiries={isLoadingInquiries}
             allConversations={conversations}
+            mobilePanel={mobilePanel}
+            setMobilePanel={setMobilePanel}
+            setNotification={setNotification}
           />
         </div>
         {/* Chat Area Panel */}
         <div
-          className={`flex-1 md:block ${mobilePanel === 'chat' ? 'block' : 'hidden'} h-full`}
+          className={`flex-1 md:block ${mobilePanel === 'chat' || mobilePanel === 'selected inquiry' || mobilePanel === 'new inquiry' ? 'block' : 'hidden'} h-full transition-all duration-500 ease-in-out`}
           style={{ minWidth: 0 }}
         >
           {/* Mobile back button */}
-          {typeof window !== 'undefined' && window.innerWidth < 768 && selectedConversation && (
+          {typeof window !== 'undefined' && window.innerWidth < 768 && (selectedConversation || selectedInquiry) && (
             <button
-              className="md:hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded mb-2 mt-2 ml-2"
-              onClick={() => setMobilePanel('conversations')}
+              className="md:hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded mb-2 mt-2 ml-2 transition-colors"
+              onClick={() => {
+                if (selectedInquiry) {
+                  setMobilePanel('inquiries list');
+                  setSelectedInquiry(null);
+                  navigate('/chat/inquiry');
+                } else {
+                  setMobilePanel('conversations');
+                  setSelectedConversation(null);
+                  navigate('/chat');
+                }
+              }}
             >
-              ← חזרה לרשימת שיחות
+              ← חזרה לרשימת {selectedInquiry ? 'פניות' : 'שיחות'}
             </button>
           )}
           <div className={`flex-1 flex flex-col h-full`}>
             <ChatArea 
-              mobilePanel={mobilePanel}
               selectedConversation={selectedConversation}
               currentUser={currentUser}
               messages={messages}
@@ -1161,7 +1234,7 @@ export default function ChatApp() {
               preview={preview}
               isUploading={isUploading}
               uploadProgress={uploadProgress}
-              handleFileChange={ handleFileChange}
+              handleFileChange={handleFileChange}
               removeFile={removeFile}
               elementColors={elementColors}
               userAvatars={userAvatars}
@@ -1169,8 +1242,9 @@ export default function ChatApp() {
               setShowNewGroupDialog={currentUser.role === 'admin' ? undefined : setShowNewGroupDialog}
               conversations={conversations}
               setSelectedConversation={handleSelectConversation}
-              setMobilePanel={setMobilePanel}
               showSystemCalls={showSystemCalls}
+              mobilePanel={mobilePanel}
+              setMobilePanel={setMobilePanel}
               onHideSystemCalls={() => {
                 setShowSystemCalls(false);
                 setSelectedInquiry(null);
@@ -1411,8 +1485,7 @@ export default function ChatApp() {
                         });
                       }
                     } catch (error) {
-                      setNotification({ message: "שגיאה ביצירת קבוצה: " + error.message, type: 'error' });
-                      setTimeout(() => setNotification(null), 3500);
+                      setNotification({ message: "שגיאה ביצירת קבוצה: " + error.message, type: 'error', elementColors: elementColors });
                     }
                   }}
                   disabled={!groupName.trim()}

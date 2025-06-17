@@ -1,6 +1,7 @@
+// CreateProject.jsx
 import React, { useState, useRef, useEffect } from 'react';
-import { UserPlus, Upload, X, Send, Smile } from 'lucide-react'; // Lucide icons
-import { FaPhotoVideo, FaVideo } from 'react-icons/fa';           // FontAwesome icons
+import { UserPlus, X, Smile } from 'lucide-react';
+import { FaPhotoVideo, FaVideo } from 'react-icons/fa';
 import EmojiPicker from 'emoji-picker-react';
 import { containsBadWord } from '../social/utils/containsBadWord';
 import ElementalLoader from '/src/theme/ElementalLoader.jsx';
@@ -24,29 +25,30 @@ const CreateProject = ({
   const [collabSearch, setCollabSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const textareaRef = useRef();
-  const emojiBtnRef = useRef();
-  const fileInputRef = useRef();
-  const usersPopupRef = useRef();
+  const emojiBtnRef = useRef(); // To position the emoji picker below the emoji button
+  const fileInputRef = useRef(); // To click the hidden file input when the user clicks "תמונה"/"וידאו"
+  const usersPopupRef = useRef(); // To handle clicks outside the users popup
   const MAX_FIELD_LENGTH = 50;
 
-
+  // Handle outside clicks to close the users popup
   useEffect(() => {
     if (!showUsers) return;
+    // runs on every click on the window
     function handleClick(e) {
       if (
         usersPopupRef.current &&
-        !usersPopupRef.current.contains(e.target) &&
-        e.target.getAttribute('aria-label') !== 'הוסף משתפי פעולה'
+        !usersPopupRef.current.contains(e.target) && // Checks if clicked inside the popup
+        e.target.getAttribute('aria-label') !== 'הוסף משתפי פעולה' // Ignore clicks on the button
       ) {
         setShowUsers(false);
       }
     }
     window.addEventListener('mousedown', handleClick);
-    return () => window.removeEventListener('mousedown', handleClick);
+    return () => window.removeEventListener('mousedown', handleClick); // cleanup
   }, [showUsers]);
 
 
-  // Emoji picker positioning
+  // Emoji picker positioning so it appears below the emoji button
   useEffect(() => {
     if (showEmoji && emojiBtnRef.current) {
       const rect = emojiBtnRef.current.getBoundingClientRect();
@@ -74,6 +76,7 @@ const CreateProject = ({
     fileInputRef.current.click();
   };
 
+  // Handle media file selection
   const onFileChange = e => {
     const f = e.target.files[0];
     if (f) {
@@ -82,21 +85,24 @@ const CreateProject = ({
     }
   };
 
+  // add collaborators
   const handleAddCollaborator = uid => {
     if (!collaborators.includes(uid)) {
       setCollaborators([...collaborators, uid]);
     }
   };
 
+  // remove collaborators
   const handleRemoveCollaborator = uid => {
     setCollaborators(collaborators.filter(id => id !== uid));
   };
 
+  // handle submit of the form
   const handleSubmit = async e => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) {
       setWarning('חובה למלא כותרת ותיאור לפרויקט!');
-      setTimeout(() => setWarning(''), 3000);
+      setTimeout(() => setWarning(''), 3500);
       return;
     }
     if (containsBadWord(title) || containsBadWord(description)) {
@@ -292,7 +298,7 @@ const CreateProject = ({
                       className={`flex items-center bg-${element}-soft px-2 py-1 rounded-full text-xs gap-2 border border-${element}-accent hover:bg-${element}-soft/80 transition`}
                       style={{ marginLeft: 4 }}
                     >
-                      <img src={u.photoURL || '/default_user_pic.jpg'} className="w-5 h-5 rounded-full mr-1" alt={u.username} />
+                      <img src={u.photoURL || '/profile.jpg'} className="w-5 h-5 rounded-full mr-1" alt={u.username} />
                       <span className={`text-${element}-dark font-medium`}>{u.username}</span>
                       <button
                         onClick={() => handleRemoveCollaborator(uid)}
@@ -335,7 +341,7 @@ const CreateProject = ({
                               setCollabSearch('');
                             }}
                           >
-                            <img src={user.photoURL || '/default_user_pic.jpg'} className="w-6 h-6 rounded-full" alt={user.username} />
+                            <img src={user.photoURL || '/profile.jpg'} className="w-6 h-6 rounded-full" alt={user.username} />
                             <span className="text-sm">{user.username}</span>
                           </div>
                         ))}

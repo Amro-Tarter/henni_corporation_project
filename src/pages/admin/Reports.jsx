@@ -26,7 +26,7 @@ import { db } from "../../config/firbaseConfig";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Search, Filter, FileText, Calendar, Target, TrendingUp, MessageSquare } from "lucide-react";
 import { toast } from 'sonner';
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+import ElementalLoader from '../../theme/ElementalLoader'
 
 function Reports() {
   const [reports, setReports] = useState([]);
@@ -209,7 +209,7 @@ function Reports() {
   };
 
 
-  if (loading) return <CleanElementalOrbitLoader />;
+  if (loading) return <ElementalLoader />;
 
   return (
     <DashboardLayout>

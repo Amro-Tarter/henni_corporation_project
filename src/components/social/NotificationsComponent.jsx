@@ -699,6 +699,14 @@ export const NotificationsProvider = ({ children }) => {
     }
   };
 
+  // Function to remove inquiry notification by inquiryId
+  const removeInquiryNotification = (inquiryId) => {
+    setNotifications(prevNotifications =>
+      prevNotifications.filter(n => !(n.type === 'inquiry' && n.inquiryId === inquiryId))
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
+  };
+
   const handleNotificationClick = async (notification) => {
     console.log('handleNotificationClick:', notification);
     
@@ -1102,7 +1110,8 @@ export const NotificationsProvider = ({ children }) => {
     NotificationsModal,
     loading,
     notifications,
-    isProcessing
+    isProcessing,
+    removeInquiryNotification
   };
 
   return (

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect, useCallback } from 'react';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '../../config/firbaseConfig'; // Corrected import syntax
+import { db } from '../../config/firbaseConfig';
 import { toast } from 'sonner';
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import {
@@ -9,11 +9,11 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faUsers, faChartLine, faClipboardList, faHandHoldingUsd, faFire, faUserTie, faStar, faClock, faHandshake, 
-  faChartPie, faThumbsUp, faCommentDots, faDollarSign, faPercent , faHandPointUp, faChartSimple, faListUl
+  faChartPie, faThumbsUp, faCommentDots, faDollarSign, faPercent , faHandPointUp, faChartSimple, faListUl,
+  faArrowUp, faArrowDown, faEye, 
 } from '@fortawesome/free-solid-svg-icons'; 
 import { useNavigate } from 'react-router-dom';
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
-
+import ElementalLoader from '../../theme/ElementalLoader';
 
 const DashboardHome = () => {
   const navigate = useNavigate();
@@ -31,7 +31,7 @@ const DashboardHome = () => {
 
   const [totalPartners, setTotalPartners] = useState(0);
   const [activePartnersCount, setActivePartnersCount] = useState(0);
-  const [allPartnersList, setAllPartnersList] = useState([]); // New state for all partners
+  const [allPartnersList, setAllPartnersList] = useState([]);
 
   const [userRoleDistribution, setUserRoleDistribution] = useState([]);
   const [topPosts, setTopPosts] = useState([]);
@@ -41,27 +41,92 @@ const DashboardHome = () => {
   const [partnershipStatusDistribution, setPartnershipStatusDistribution] = useState([]);
   const [averageInvolvementRating, setAverageInvolvementRating] = useState(0);
   const [averageOverallProgressRating, setAverageOverallProgressRating] = useState(0);
-  const [totalReports, setTotalReports] = useState(0); // New state for total reports
-
-  // State to store all users data for lookup
+  const [totalReports, setTotalReports] = useState(0);
   const [allUsersData, setAllUsersData] = useState([]);
 
-  const PIE_COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00C49F', '#FFBB28', '#FF8042', '#A28DFF'];
+  const PIE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
 
+  // Enhanced stat card component
+  const StatCard = ({ title, value, icon, color, trend, subtitle, onClick, className = "" }) => (
+    <div 
+      className={`group relative overflow-hidden bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 ${onClick ? 'cursor-pointer' : ''} ${className}`}
+      onClick={onClick}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-gray-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div className="relative p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`p-3 rounded-xl bg-gradient-to-br ${color} shadow-lg`}>
+            <FontAwesomeIcon icon={icon} className="text-white text-xl" />
+          </div>
+          {trend && (
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+              trend > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              <FontAwesomeIcon icon={trend > 0 ? faArrowUp : faArrowDown} className="text-xs" />
+              {Math.abs(trend)}%
+            </div>
+          )}
+        </div>
+        <h3 className="text-sm font-medium text-gray-600 mb-2">{title}</h3>
+        <p className="text-2xl font-bold text-gray-900 mb-1">{value}</p>
+        {subtitle && <p className="text-xs text-gray-500">{subtitle}</p>}
+      </div>
+    </div>
+  );
+
+  // Enhanced chart container
+  const ChartContainer = ({ title, children, className = "", actions }) => (
+    <div className={`bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden ${className}`}>
+      <div className="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-800">{title}</h3>
+          {actions && <div className="flex items-center gap-2">{actions}</div>}
+        </div>
+      </div>
+      <div className="p-6">{children}</div>
+    </div>
+  );
+
+  // Enhanced user card component
+  const UserCard = ({ user, onClick, metric, metricLabel, rank }) => (
+    <div 
+      className="group relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 cursor-pointer overflow-hidden"
+      onClick={onClick}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-transparent to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div className="relative p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+              {rank}
+            </div>
+            <div>
+              <p className="font-medium text-gray-800 truncate">{user.displayName}</p>
+              <p className="text-xs text-gray-500">@{user.username || 'user'}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-lg font-bold text-indigo-600">{metric}</p>
+            <p className="text-xs text-gray-500">{metricLabel}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // --- Fetch All Data ---
+        // Fetch all data (keeping the existing logic)
         const usersSnapshot = await getDocs(query(collection(db, "users")));
         const fetchedUsersData = usersSnapshot.docs.map(doc => ({ 
           id: doc.id, 
           ...doc.data(), 
           createdAt: doc.data().createdAt?.toDate() 
         }));
-        setAllUsersData(fetchedUsersData); // Store fetched users data in state
+        setAllUsersData(fetchedUsersData);
 
         const profilesSnapshot = await getDocs(query(collection(db, "profiles")));
         const profilesMap = {};
@@ -86,7 +151,7 @@ const DashboardHome = () => {
           ...doc.data(), 
           createdAt: doc.data().createdAt?.toDate() 
         }));
-        setTotalReports(reportsData.length); // Set total reports count
+        setTotalReports(reportsData.length);
 
         const donationsSnapshot = await getDocs(query(collection(db, "donations")));
         const donationsData = donationsSnapshot.docs.map(doc => ({ 
@@ -97,13 +162,12 @@ const DashboardHome = () => {
         
         const partnersSnapshot = await getDocs(query(collection(db, "partners")));
         const partnersData = partnersSnapshot.docs.map(doc => ({ ...doc.data() }));
-        setAllPartnersList(partnersData); // Store all partners data in state
+        setAllPartnersList(partnersData);
 
-        // --- Process Data for Graphs and Lists ---
-
-        // 1. User Growth (Monthly/Daily)
+        // Process all the data (keeping existing logic)
+        // User Growth
         const userGrowthMap = new Map();
-        fetchedUsersData.forEach(user => { // Use fetchedUsersData here
+        fetchedUsersData.forEach(user => {
           if (user.createdAt instanceof Date) { 
             const dateKey = user.createdAt.toISOString().split('T')[0]; 
             userGrowthMap.set(dateKey, (userGrowthMap.get(dateKey) || 0) + 1);
@@ -119,8 +183,7 @@ const DashboardHome = () => {
         });
         setUserGrowthData(finalUserGrowthData);
 
-
-        // 2. Daily Activity (New Users + New Posts + New Reports + New Donations)
+        // Daily Activity
         const dailyActivityMap = new Map();
         const aggregateActivity = (data) => {
           data.forEach(item => {
@@ -132,7 +195,7 @@ const DashboardHome = () => {
             }
           });
         };
-        aggregateActivity(fetchedUsersData); // Use fetchedUsersData here
+        aggregateActivity(fetchedUsersData);
         aggregateActivity(postsData);
         aggregateActivity(reportsData);
         aggregateActivity(donationsData);
@@ -140,11 +203,9 @@ const DashboardHome = () => {
           .sort((a, b) => new Date(a.date) - new Date(b.date));
         setDailyActivityData(sortedDailyActivity);
 
-
-        // 3. Total Post Counts
         setTotalPosts(postsData.length);
 
-        // 4. Most Followed Users
+        // Most Followed Users
         const followedUsersList = Object.keys(profilesMap)
           .filter(userId => profilesMap[userId].followersCount > 0)
           .map(userId => ({
@@ -157,7 +218,7 @@ const DashboardHome = () => {
           .slice(0, 6);
         setMostFollowedUsers(followedUsersList);
 
-        // 5. Most Active Mentors (based on reports submitted)
+        // Most Active Mentors
         const mentorActivityMap = new Map();
         reportsData.forEach(report => {
           if (report.mentor_id) {
@@ -169,13 +230,13 @@ const DashboardHome = () => {
             id: mentorId,
             displayName: profilesMap[mentorId]?.displayName || fetchedUsersData.find(u => u.id === mentorId)?.username || 'מנטור לא ידוע',
             reportsCount: count,
-            username: fetchedUsersData.find(u => u.id === mentorId)?.username || profilesMap[mentorId]?.displayName || 'מנטור לא ידוע' // Add username for navigation
+            username: fetchedUsersData.find(u => u.id === mentorId)?.username || profilesMap[mentorId]?.displayName || 'מנטור לא ידוע'
           }))
           .sort((a, b) => b.reportsCount - a.reportsCount)
           .slice(0, 5);
         setMostActiveMentors(activeMentorsList);
 
-        // 6. Donations Analytics
+        // Donations Analytics
         let totalAmount = 0;
         let recurringCount = 0;
         const currencyMap = new Map();
@@ -204,8 +265,7 @@ const DashboardHome = () => {
         setDonationsByPaymentMethod(Array.from(paymentMethodMap.entries()).map(([name, value]) => ({ name, value })));
         setDonationsByPurpose(Array.from(purposeMap.entries()).map(([name, value]) => ({ name, value })));
 
-
-        // 7. Partners Analytics
+        // Partners Analytics
         setTotalPartners(partnersData.length);
         const activePartners = partnersData.filter(partner => partner.status === 'active').length;
         setActivePartnersCount(activePartners);
@@ -215,16 +275,16 @@ const DashboardHome = () => {
         });
         setPartnershipStatusDistribution(Array.from(partnershipStatusMap.entries()).map(([name, value]) => ({ name, value })));
 
-        // 8. User Role Distribution
+        // User Role Distribution
         const userRoleMap = new Map();
-        fetchedUsersData.forEach(user => { // Use fetchedUsersData here
+        fetchedUsersData.forEach(user => {
           if (user.role) {
             userRoleMap.set(user.role, (userRoleMap.get(user.role) || 0) + 1);
           }
         });
         setUserRoleDistribution(Array.from(userRoleMap.entries()).map(([name, value]) => ({ name, value })));
 
-        // 9. Top Posts by Engagement
+        // Top Posts
         const topPostsList = postsData
           .map(post => {
             const authorUser = fetchedUsersData.find(u => u.id === post.authorId);
@@ -232,38 +292,28 @@ const DashboardHome = () => {
 
             return {
               id: post.id,
-              // Use content for title, truncate if too long
               title: post.content ? post.content.substring(0, 50) + (post.content.length > 50 ? '...' : '') : 'ללא כותרת',
               engagement: (post.likesCount || 0) + (post.commentsCount || 0),
               likes: post.likesCount || 0,
               comments: post.commentsCount || 0,
               authorId: post.authorId,
-              authorDisplayName: authorDisplayName // Add author's display name
+              authorDisplayName: authorDisplayName
             };
           })
           .sort((a, b) => b.engagement - a.engagement)
-          .slice(0, 5); // Top 5
+          .slice(0, 5);
         setTopPosts(topPostsList);
 
-        // 10. Average Report Rating/Involvement
+        // Average Ratings
         let totalInvolvementRating = 0;
         let totalOverallProgressRating = 0;
         let involvementCount = 0;
         let overallProgressCount = 0;
 
         const ratingMap = {
-          "נמוכה": 1,
-          "בינונית": 2,
-          "גבוהה": 3,
-          "מאוד גבוהה": 4,
-          "נמוך": 1, 
-          "בינוני": 2,
-          "גבוה": 3,
-          "מאוד גבוה": 4,
-          "חלש": 1, 
-          "סביר": 2,
-          "טוב": 3,
-          "מצוין": 4,
+          "נמוכה": 1, "בינונית": 2, "גבוהה": 3, "מאוד גבוהה": 4,
+          "נמוך": 1, "בינוני": 2, "גבוה": 3, "מאוד גבוה": 4,
+          "חלש": 1, "סביר": 2, "טוב": 3, "מצוין": 4,
         };
 
         reportsData.forEach(report => {
@@ -291,460 +341,578 @@ const DashboardHome = () => {
     };
 
     fetchData();
-  }, []); // Run once on component mount
+  }, []);
 
-  // Helper for Pie Chart Labels
   const renderCustomizedLabel = ({ cx, cy, midAngle, outerRadius, percent, index, name }) => {
     const RADIAN = Math.PI / 180;
-    const radius = outerRadius + 10; // Position outside the slice
+    const radius = outerRadius + 15;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
     return (
-      <text x={x} y={y} fill="black" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs font-medium">
+      <text x={x} y={y} fill="#374151" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" className="text-xs font-medium">
         {`${name}: ${(percent * 100).toFixed(0)}%`}
       </text>
     );
   };
 
-  // Function to get username from user ID for navigation - now uses allUsersData state
-  // Using useCallback to memoize the function, preventing unnecessary re-creations
   const getUserUsername = useCallback((userId) => {
-    const user = allUsersData.find(u => u.id === userId); // Access allUsersData from state
+    const user = allUsersData.find(u => u.id === userId);
     return user?.username || user?.displayName || 'unknown_user';
-  }, [allUsersData]); // Dependency array: re-create if allUsersData changes
- 
-  if (loading) return <CleanElementalOrbitLoader/>;
+  }, [allUsersData]);
+
+  if (loading) return <ElementalLoader/>;
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <FontAwesomeIcon icon={faChartLine} className="text-3xl text-indigo-600" />
-              <h2 className="text-3xl font-extrabold text-gray-900">לוח מחוונים - אנליטיקה</h2>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 py-8 px-4 sm:px-6 lg:px-8" dir="rtl">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
+              <FontAwesomeIcon icon={faChartLine} className="text-3xl text-white" />
             </div>
-            <p className="mt-2 text-sm text-gray-700">סקירה כללית של נתוני המערכת</p>
+            <div className="text-right">
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">לוח מחוונים</h1>
+              <p className="text-lg text-gray-600">סקירה כללית של נתוני המערכת</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <StatCard
+            title="סה״כ משתמשים"
+            value={allUsersData.length.toLocaleString()}
+            icon={faUsers}
+            color="from-blue-500 to-blue-600"
+            trend={12}
+            subtitle="משתמשים רשומים"
+          />
+          <StatCard
+            title="סה״כ פוסטים"
+            value={totalPosts.toLocaleString()}
+            icon={faClipboardList}
+            color="from-green-500 to-green-600"
+            trend={8}
+            subtitle="פוסטים פעילים"
+          />
+          <StatCard
+            title="סה״כ תרומות"
+            value={totalDonationsAmount.toLocaleString('he-IL', { style: 'currency', currency: 'ILS' })}
+            icon={faHandHoldingUsd}
+            color="from-purple-500 to-purple-600"
+            trend={15}
+            subtitle="מסך התרומות"
+          />
+          <StatCard
+            title="דוחות מנטורים"
+            value={totalReports.toLocaleString()}
+            icon={faUserTie}
+            color="from-orange-500 to-orange-600"
+            trend={-3}
+            subtitle="דוחות שהוגשו"
+          />
+        </div>
+
+        {/* Platform Overview */}
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
+              <FontAwesomeIcon icon={faChartLine} className="text-white text-lg" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">סקירת פלטפורמה כללית</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ChartContainer title="צמיחת משתמשים (מצטבר)" className="lg:col-span-1">
+              {userGrowthData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <LineChart data={userGrowthData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }} 
+                    />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="Total Users" 
+                      stroke="#6366f1" 
+                      strokeWidth={3}
+                      dot={{ fill: '#6366f1', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6, fill: '#4f46e5' }} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-80 text-gray-500">
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faChartLine} className="text-4xl mb-4 text-gray-300" />
+                    <p>אין נתוני צמיחת משתמשים להצגה</p>
+                  </div>
+                </div>
+              )}
+            </ChartContainer>
+
+            <ChartContainer title="פעילות יומית" className="lg:col-span-1">
+              {dailyActivityData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={dailyActivityData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }} 
+                    />
+                    <Legend />
+                    <Bar 
+                      dataKey="total" 
+                      fill="#10b981" 
+                      name="סה׳׳כ פעילות"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-80 text-gray-500">
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faClock} className="text-4xl mb-4 text-gray-300" />
+                    <p>אין נתוני פעילות יומית להצגה</p>
+                  </div>
+                </div>
+              )}
+            </ChartContainer>
+          </div>
+        </div>
+
+        {/* User Analytics */}
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl">
+              <FontAwesomeIcon icon={faUsers} className="text-white text-lg" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">ניתוח משתמשים</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <ChartContainer title="התפלגות תפקידי משתמשים" className="lg:col-span-1">
+              {userRoleDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={userRoleDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {userRoleDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-80 text-gray-500">
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faChartPie} className="text-4xl mb-4 text-gray-300" />
+                    <p>אין נתוני תפקידים להצגה</p>
+                  </div>
+                </div>
+              )}
+            </ChartContainer>
+
+            <div className="lg:col-span-2 space-y-8">
+              <ChartContainer title="משתמשים עם הכי הרבה עוקבים">
+                {mostFollowedUsers.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {mostFollowedUsers.map((user, index) => (
+                      <UserCard
+                        key={user.id}
+                        user={user}
+                        onClick={() => navigate(`/profile/${user.username || user.displayName}`)}
+                        metric={user.followers}
+                        metricLabel="עוקבים"
+                        rank={index + 1}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-40 text-gray-500">
+                    <p>אין נתוני עוקבים להצגה</p>
+                  </div>
+                )}
+              </ChartContainer>
+
+              <ChartContainer title="מנטורים פעילים ביותר">
+                {mostActiveMentors.length > 0 ? (
+                  <div className="space-y-3">
+                    {mostActiveMentors.map((mentor, index) => (
+                      <UserCard
+                        key={mentor.id}
+                        user={mentor}
+                        onClick={() => navigate('/admin/reports')}
+                        metric={mentor.reportsCount}
+                        metricLabel="דוחות"
+                        rank={index + 1}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-40 text-gray-500">
+                    <p>אין נתוני מנטורים להצגה</p>
+                  </div>
+                )}
+              </ChartContainer>
+            </div>
+          </div>
+        </div>
+{/* Content & Engagement */}
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl">
+              <FontAwesomeIcon icon={faFire} className="text-white text-lg" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">תוכן ומעורבות</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ChartContainer title="פוסטים בעלי המעורבות הגבוהה ביותר">
+              {topPosts.length > 0 ? (
+                <div className="space-y-4">
+                  {topPosts.map((post, index) => (
+                    <div 
+                      key={post.id}
+                      className="group bg-gradient-to-r from-white to-gray-50 rounded-xl p-4 border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-300 cursor-pointer"
+                      onClick={() => navigate('/admin/posts')}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="w-6 h-6 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                              {index + 1}
+                            </div>
+                            <span className="text-sm text-gray-600">מאת: {post.authorDisplayName}</span>
+                          </div>
+                          <p className="text-sm text-gray-800 mb-3 leading-relaxed">{post.title}</p>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-1">
+                              <FontAwesomeIcon icon={faThumbsUp} className="text-blue-500 text-sm" />
+                              <span className="text-sm text-gray-600">{post.likes}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <FontAwesomeIcon icon={faCommentDots} className="text-green-500 text-sm" />
+                              <span className="text-sm text-gray-600">{post.comments}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-indigo-600">{post.engagement}</div>
+                          <div className="text-xs text-gray-500">מעורבות כללית</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-80 text-gray-500">
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faEye} className="text-4xl mb-4 text-gray-300" />
+                    <p>אין נתוני פוסטים להצגה</p>
+                  </div>
+                </div>
+              )}
+            </ChartContainer>
+
+            <div className="space-y-8">
+              <ChartContainer title="נתוני מנטורינג">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-4 text-center">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FontAwesomeIcon icon={faStar} className="text-white text-lg" />
+                    </div>
+                    <div className="text-2xl font-bold text-indigo-700 mb-1">{averageInvolvementRating}</div>
+                    <div className="text-sm text-indigo-600">ממוצע מעורבות</div>
+                  </div>
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-4 text-center">
+
+                    <div className="text-2xl font-bold text-emerald-700 mb-1">{averageOverallProgressRating}</div>
+                    <div className="text-sm text-emerald-600">ממוצע התקדמות</div>
+                  </div>
+                </div>
+              </ChartContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Financial Analytics */}
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl">
+              <FontAwesomeIcon icon={faDollarSign} className="text-white text-lg" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800">ניתוח כספי</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <StatCard
+              title="ממוצע תרומה"
+              value={averageDonationAmount.toLocaleString('he-IL', { style: 'currency', currency: 'ILS' })}
+              icon={faPercent}
+              color="from-emerald-500 to-emerald-600"
+              subtitle="לכל תרומה"
+            />
+            <StatCard
+              title="תרומות קבועות"
+              value={recurringDonationsCount.toLocaleString()}
+              icon={faHandPointUp}
+              color="from-blue-500 to-blue-600"
+              subtitle="תרומות חוזרות"
+            />
+            <StatCard
+              title="שיתופי פעולה פעילים"
+              value={activePartnersCount.toLocaleString()}
+              icon={faHandshake}
+              color="from-purple-500 to-purple-600"
+              subtitle={`מתוך ${totalPartners} כולל`}
+            />
           </div>
 
-          {loading ? (
-            <CleanElementalOrbitLoader /> // Using the custom loader here
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-              
-              {/* SECTION: Web/Platform Overview Analytics */}
-              <div className="xl:col-span-3 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 col-span-full mb-4 flex items-center gap-2">
-                  <FontAwesomeIcon icon={faChartLine} className="text-indigo-600" />
-                  סקירת פלטפורמה כללית
-                </h2>
-                {/* User Growth Chart */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faUsers} className="text-indigo-500" />
-                    צמיחת משתמשים (מצטבר)
-                  </h3>
-                  {userGrowthData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={userGrowthData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Line type="monotone" dataKey="Total Users" stroke="#8884d8" activeDot={{ r: 8 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <p className="text-center text-gray-600">אין נתוני צמיחת משתמשים להצגה.</p>
-                  )}
-                </div>
-
-                {/* Daily Activity Chart */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faClock} className="text-green-500" />
-                    פעילות יומית (משתמשים, פוסטים, דוחות, תרומות)
-                  </h3>
-                  {dailyActivityData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={dailyActivityData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="total" fill="#82ca9d" name="סה" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <p className="text-center text-gray-600">אין נתוני פעילות יומית להצגה.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* SECTION: User-Centric Analytics */}
-              <div className="xl:col-span-3 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 col-span-full mb-4 flex items-center gap-2">
-                  <FontAwesomeIcon icon={faUsers} className="text-purple-600" />
-                  ניתוח משתמשים
-                </h2>
-                {/* User Role Distribution */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faChartPie} className="text-purple-500" />
-                    התפלגות תפקידי משתמשים
-                  </h3>
-                  {userRoleDistribution.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={userRoleDistribution}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={renderCustomizedLabel}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {userRoleDistribution.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <p className="text-center text-gray-600">אין נתוני תפקידי משתמשים להצגה.</p>
-                  )}
-                </div>
-
-                {/* Most Followed Users - Clickable Cards */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md"> 
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faStar} className="text-yellow-500" />
-                    משתמשים עם הכי הרבה עוקבים
-                  </h3>
-                  {mostFollowedUsers.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4"> 
-                      {mostFollowedUsers.map(user => (
-                        <div 
-                          key={user.id} 
-                          className="flex flex-col items-center justify-center bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer border border-gray-200"
-                          onClick={() => navigate(`/profile/${user.username || user.displayName}`)} 
-                        >
-                          <FontAwesomeIcon icon={faUsers} className="text-indigo-400 text-3xl mb-2" />
-                          <span className="text-lg font-semibold text-gray-800 text-center">{user.displayName}</span>
-                          <span className="text-sm text-indigo-600 font-bold mt-1">{user.followers} עוקבים</span>
-                        </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <ChartContainer title="תרומות לפי מטבע" className="lg:col-span-1">
+              {donationsByCurrency.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={donationsByCurrency}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {donationsByCurrency.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                       ))}
-                    </div>
-                  ) : (
-                    <p className="text-center text-gray-600">אין נתוני עוקבים להצגה.</p>
-                  )}
-                </div>
-
-                {/* Most Active Mentors - Now Clickable */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md"> 
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faUserTie} className="text-purple-500" />
-                    מנטורים פעילים ביותר (לפי דוחות)
-                  </h3>
-                  {mostActiveMentors.length > 0 ? (
-                    <ul className="space-y-2">
-                      {mostActiveMentors.map(mentor => (
-                        <li 
-                          key={mentor.id} 
-                          className="flex justify-between items-center bg-white p-3 rounded-md shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
-                          onClick={() => navigate(`/admin/reports`)} /*${mentor.username || mentor.displayName}*/
-                        >
-                          <span className="text-gray-700 font-medium">{mentor.displayName}</span>
-                          <span className="text-purple-600 font-bold">{mentor.reportsCount} דוחות</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-center text-gray-600">אין נתוני פעילות מנטורים להצגה.</p>
-                  )}
-                </div>
-              </div>
-
-
-              {/* SECTION: Content & Engagement Analytics */}
-              <div className="xl:col-span-3 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 col-span-full mb-4 flex items-center gap-2">
-                  <FontAwesomeIcon icon={faThumbsUp} className="text-pink-600" />
-                  ניתוח תוכן ומעורבות
-                </h2>
-                {/* Total Posts Count */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md"> 
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faClipboardList} className="text-blue-500" />
-                    סה"כ פוסטים במערכת
-                  </h3>
-                  <p className="text-3xl font-extrabold text-center text-blue-600">{totalPosts}</p>
-                </div>
-                {/* Top Posts by Engagement - Now Clickable */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                   <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faThumbsUp} className="text-pink-500" />
-                    פוסטים מובילים לפי מעורבות
-                   </h3>
-                  {topPosts.length > 0 ? (
-                    <ul className="space-y-2">
-                      {topPosts.map(post => (
-                        <li 
-                          key={post.id} 
-                          className="bg-white p-3 rounded-md shadow-sm flex flex-col items-start cursor-pointer hover:shadow-md transition-shadow duration-200"
-                          onClick={() => navigate(`/profile/${getUserUsername(post.authorId)}`)} 
-                        >
-                          <span className="text-gray-700 font-medium text-right w-full mb-1">{post.title}</span>
-                          <span className="text-sm text-gray-500 mb-2">מאת: {post.authorDisplayName}</span> 
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <span className="flex items-center gap-1"><FontAwesomeIcon icon={faThumbsUp} className="text-blue-400" /> {post.likes}</span>
-                            <span className="flex items-center gap-1"><FontAwesomeIcon icon={faCommentDots} className="text-green-400" /> {post.comments}</span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-center text-gray-600">אין פוסטים מובילים להצגה.</p>
-                  )}
-                </div>
-
-                {/* Average Report Ratings */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faChartLine} className="text-cyan-500" />
-                    ממוצע דירוגי דוחות
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    ממוצע דירוגי המעורבות וההתקדמות הכללית מתוך דוחות המנטורים.
-                    {totalReports > 0 && <span className="block mt-1"> ( סכ"ה דוחות במערכת: {totalReports} )</span>}
-                  </p>
-                  <div className="space-y-2">
-                    <p className="text-lg text-gray-700 flex items-center gap-2">
-                      <FontAwesomeIcon icon={faHandPointUp} className="text-cyan-500" />
-                      <span className="font-medium">מעורבות ומוטיבציה:</span>{' '}
-                      <span className="font-bold text-cyan-600">
-                        {averageInvolvementRating > 0 ? `${averageInvolvementRating} / 4` : 'אין נתונים'}
-                      </span>
-                    </p>
-                    <p className="text-lg text-gray-700 flex items-center gap-2">
-                      <FontAwesomeIcon icon={faChartSimple} className="text-cyan-500" />
-                      <span className="font-medium">התקדמות כללית:</span>{' '}
-                      <span className="font-bold text-cyan-600">
-                        {averageOverallProgressRating > 0 ? `${averageOverallProgressRating} / 4` : 'אין נתונים'}
-                      </span>
-                    </p>
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-80 text-gray-500">
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faDollarSign} className="text-4xl mb-4 text-gray-300" />
+                    <p>אין נתוני תרומות להצגה</p>
                   </div>
                 </div>
-              </div>
+              )}
+            </ChartContainer>
 
-
-              {/* SECTION: Financial & Partnership Analytics */}
-              <div className="xl:col-span-3 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-8">
-                <h2 className="text-2xl font-bold text-gray-800 col-span-full mb-4 flex items-center gap-2">
-                  <FontAwesomeIcon icon={faDollarSign} className="text-teal-600" />
-                  ניתוח פיננסיה ושוטפים
-                </h2>
-                {/* Donations Overview */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faHandHoldingUsd} className="text-teal-500" />
-                    סקירת תרומות
-                  </h3>
-                  <div className="space-y-2">
-                    <p className="text-lg text-gray-700">
-                      <span className="font-medium">סה"כ סכום תרומות:</span>{' '}
-                      <span className="font-bold text-teal-600">{totalDonationsAmount.toLocaleString('he-IL', { style: 'currency', currency: 'ILS' })}</span>
-                    </p>
-                    <p className="text-lg text-gray-700">
-                      <span className="font-medium">ממוצע תרומה:</span>{' '}
-                      <span className="font-bold text-teal-600">{averageDonationAmount.toLocaleString('he-IL', { style: 'currency', currency: 'ILS' })}</span>
-                    </p>
-                    <p className="text-lg text-gray-700">
-                      <span className="font-medium">תרומות חוזרות:</span>{' '}
-                      <span className="font-bold text-teal-600">{recurringDonationsCount}</span>
-                    </p>
+            <ChartContainer title="תרומות לפי אמצעי תשלום" className="lg:col-span-1">
+              {donationsByPaymentMethod.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={donationsByPaymentMethod}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {donationsByPaymentMethod.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-80 text-gray-500">
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faChartSimple} className="text-4xl mb-4 text-gray-300" />
+                    <p>אין נתוני אמצעי תשלום להצגה</p>
                   </div>
                 </div>
+              )}
+            </ChartContainer>
 
-                {/* Donations by Currency */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faDollarSign} className="text-green-500" />
-                    תרומות לפי מטבע
-                  </h3>
-                  {donationsByCurrency.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={donationsByCurrency}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={renderCustomizedLabel}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {donationsByCurrency.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => value.toLocaleString('he-IL', { style: 'currency', currency: 'ILS' })} />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <p className="text-center text-gray-600">אין נתוני תרומות לפי מטבע להצגה.</p>
-                  )}
-                </div>
-
-                {/* Donations by Payment Method */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faHandHoldingUsd} className="text-blue-500" />
-                    תרומות לפי אמצעי תשלום
-                  </h3>
-                  {donationsByPaymentMethod.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={donationsByPaymentMethod}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={renderCustomizedLabel}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {donationsByPaymentMethod.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <p className="text-center text-gray-600">אין נתוני תרומות לפי אמצעי תשלום להצגה.</p>
-                  )}
-                </div>
-
-                {/* Donations by Designated Purpose */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faClipboardList} className="text-purple-500" />
-                    תרומות לפי מטרה ייעודית
-                  </h3>
-                  {donationsByPurpose.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={donationsByPurpose}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={renderCustomizedLabel}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {donationsByPurpose.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <p className="text-center text-gray-600">אין נתוני תרומות לפי מטרה ייעודית להצגה.</p>
-                  )}
-                </div>
-
-                {/* Partners Overview */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faHandshake} className="text-orange-500" />
-                    סקירת שותפים
-                  </h3>
-                  <div className="space-y-2 mb-4">
-                    <p className="text-lg text-gray-700">
-                      <span className="font-medium">סה"כ שותפים:</span>{' '}
-                      <span className="font-bold text-orange-600">{totalPartners}</span>
-                    </p>
-                    <p className="text-lg text-gray-700">
-                      <span className="font-medium">שותפים פעילים:</span>{' '}
-                      <span className="font-bold text-orange-600">{activePartnersCount}</span>
-                    </p>
+            <ChartContainer title="תרומות לפי מטרה" className="lg:col-span-1">
+              {donationsByPurpose.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={donationsByPurpose}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={renderCustomizedLabel}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {donationsByPurpose.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-80 text-gray-500">
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faListUl} className="text-4xl mb-4 text-gray-300" />
+                    <p>אין נתוני מטרות תרומה להצגה</p>
                   </div>
-                  <h4 className="text-base font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faListUl} className="text-gray-500" />
-                    כל השותפים:
-                  </h4>
-                  {allPartnersList.length > 0 ? (
-                    <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2 bg-white">
-                      <ul className="space-y-1">
-                        {allPartnersList.map(partner => (
-                          <li 
-                            key={partner.id} 
-                            className="text-gray-700 text-sm py-1 px-2 rounded-md hover:bg-gray-100 cursor-pointer transition-colors duration-150"
-                            onClick={() => navigate('/admin/Partners')}
-                          >
-                            {partner.name}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <p className="text-center text-gray-600 text-sm">אין שותפים להצגה.</p>
-                  )}
                 </div>
+              )}
+            </ChartContainer>
+          </div>
+        </div>
 
-                {/* Partnership Status Distribution */}
-                <div className="bg-gray-50 p-6 rounded-lg shadow-md">
-                  <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <FontAwesomeIcon icon={faChartPie} className="text-indigo-500" />
-                    התפלגות סטטוס שותפים
-                  </h3>
-                  {partnershipStatusDistribution.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={partnershipStatusDistribution}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={renderCustomizedLabel}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {partnershipStatusDistribution.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <p className="text-center text-gray-600">אין נתוני סטטוס שותפים להצגה.</p>
-                  )}
-                </div>
-              </div>
-
+        {/* Partnership Analytics */}
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl">
+              <FontAwesomeIcon icon={faHandshake} className="text-white text-lg" />
             </div>
-          )}
+            <h2 className="text-2xl font-bold text-gray-800">ניתוח שיתופי פעולה</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ChartContainer title="התפלגות סטטוס שיתופי פעולה">
+              {partnershipStatusDistribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart data={partnershipStatusDistribution} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'white', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }} 
+                    />
+                    <Bar 
+                      dataKey="value" 
+                      fill="#06b6d4" 
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-80 text-gray-500">
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faHandshake} className="text-4xl mb-4 text-gray-300" />
+                    <p>אין נתוני שיתופי פעולה להצגה</p>
+                  </div>
+                </div>
+              )}
+            </ChartContainer>
+
+            <ChartContainer title="רשימת שותפים">
+              {allPartnersList.length > 0 ? (
+                <div className="space-y-3 max-h-80 overflow-y-auto">
+                  {allPartnersList.slice(0, 10).map((partner, index) => (
+                    <div 
+                      key={index}
+                      className="bg-gradient-to-r from-white to-gray-50 rounded-lg p-4 border border-gray-200 hover:border-cyan-300 hover:shadow-md transition-all duration-300"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="font-medium text-gray-800">{partner.organization_name || 'שם ארגון לא זמין'}</h4>
+                          <p className="text-sm text-gray-600">{partner.contact_person || 'איש קשר לא זמין'}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            partner.status === 'active' 
+                              ? 'bg-green-100 text-green-700' 
+                              : partner.status === 'pending'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {partner.status === 'active' ? 'פעיל' : 
+                             partner.status === 'pending' ? 'ממתין' : 
+                             partner.status || 'לא זמין'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {allPartnersList.length > 10 && (
+                    <div className="text-center py-2">
+                      <button 
+                        onClick={() => navigate('/admin/partners')}
+                        className="text-cyan-600 hover:text-cyan-700 text-sm font-medium"
+                      >
+                        הצג עוד {allPartnersList.length - 10} שותפים...
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-80 text-gray-500">
+                  <div className="text-center">
+                    <FontAwesomeIcon icon={faHandshake} className="text-4xl mb-4 text-gray-300" />
+                    <p>אין שותפים רשומים</p>
+                  </div>
+                </div>
+              )}
+            </ChartContainer>
+          </div>
+        </div>
+
+        {/* Footer Summary */}
+        <div className="bg-gradient-to-r from-indigo-50 via-white to-purple-50 rounded-2xl p-8 border border-indigo-200">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg">
+                <FontAwesomeIcon icon={faChartLine} className="text-2xl text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800">סיכום כללי</h3>
+            </div>
+            <p className="text-lg text-gray-600 mb-6">
+              המערכת מונה {allUsersData.length.toLocaleString()} משתמשים רשומים, 
+              {totalPosts.toLocaleString()} פוסטים פעילים, 
+              ו{totalReports.toLocaleString()} דוחות מנטורים שהוגשו.
+            </p>
+            <div className="flex items-center justify-center gap-6 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <FontAwesomeIcon icon={faHandHoldingUsd} className="text-green-500" />
+                <span>סה״כ תרומות: {totalDonationsAmount.toLocaleString('he-IL', { style: 'currency', currency: 'ILS' })}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <FontAwesomeIcon icon={faHandshake} className="text-blue-500" />
+                <span>שותפים פעילים: {activePartnersCount}/{totalPartners}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
-}
+};
 
 export default DashboardHome;

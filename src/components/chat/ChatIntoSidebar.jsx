@@ -5,6 +5,7 @@ import { db } from '@/config/firbaseConfig';
 import { ELEMENT_COLORS } from './utils/ELEMENT_COLORS';
 import { useNavigate, Link } from "react-router-dom";
 import { All_mentors_with_admin_icon, All_mentors_icon, Mentor_icon } from './utils/icons_library';
+import { downloadFile } from './utils/fileHelpers';
 
 export default function ChatInfoSidebar({ open, onClose, conversation, currentUser, messages, elementColors, setSelectedConversation, setNotification }) {
   const [showAllImages, setShowAllImages] = useState(false);
@@ -28,6 +29,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   // Add state for image modal and fullscreen image
   const [showImagesModal, setShowImagesModal] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
+  const defaultAvatar = 'https://www.gravatar.com/avatar/?d=mp&f=y';
 
   useEffect(() => {
     if (open) {
@@ -167,7 +169,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         const profileDocRef = doc(db, "profiles", partnerUid);
         const profileDoc = await getDoc(profileDocRef);
         if (profileDoc.exists()) {
-          partnerProfilePic = profileDoc.data().photoURL || null;
+          partnerProfilePic = profileDoc.data().photoURL || defaultAvatar;
         }
       } catch (e) {
         partnerProfilePic = null;
@@ -448,14 +450,13 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                 className="max-h-[90vh] max-w-[98vw] rounded shadow-lg mb-4 bg-white"
                 style={{ margin: '0 auto' }}
               />
-              <a
-                href={fullscreenImage}
-                download
+              <button
+                onClick={() => downloadFile(fullscreenImage, 'image')}
                 className="px-6 py-2 text-white rounded-lg shadow transition font-bold hover:scale-95"
                 style={{ textAlign: 'center', backgroundColor: elementColors.primary }}
               >
                 הורד תמונה
-              </a>
+              </button>
             </div>
           </div>,
           document.body
@@ -532,6 +533,8 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
     const handleKickMember = async (uid) => {
       if (uid === adminUid) return;
       const username = usernames[uid] || uid;
+      //use notificatoin of the chatApp
+      
       if (!window.confirm(`האם אתה בטוח שברצונך להסיר את ${username} מהקבוצה?`)) return;
       try {
         const groupRef = doc(db, "conversations", conversation.id);
@@ -662,7 +665,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         <div className="flex flex-col items-center mb-6">
           <div className="relative">
             <img
-              src={avatarPreview || liveAvatarURL || conversation.avatarURL || '/default_group_avatar.jpg'}
+              src={avatarPreview || liveAvatarURL || conversation.avatarURL || defaultAvatar}
               alt={conversation.groupName || 'קבוצה'}
               className="w-20 h-20 rounded-full object-cover border-4 mb-2"
               style={{ borderColor: elementColors.primary, backgroundColor: elementColors.light }}
@@ -689,7 +692,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
         </div>
         <div className="text-gray-500 text-sm -mt-6 mb-4 text-center">מספר חברים: {memberUids.length}</div>
         {/* Admin badge */}
-        <div className="mb-3 text-xs text-gray-500 text-center">מנהל: {usernames[adminUid] || adminUid} <span className="ml-1 px-2 py-0.5 bg-yellow-300 text-yellow-900 rounded-full">Admin</span></div>
+        <div className="mb-3 text-xs text-gray-500 text-center"> המנהל של הקבוצה:  <span className="ml-1 px-2 py-0.5 rounded-full" style={{ backgroundColor: elementColors.primary, color: elementColors.light }}>{usernames[adminUid] || adminUid}</span></div>
         {/* Add member UI (admin only) */}
         {isAdmin && (
           <div className="mb-6">
@@ -777,7 +780,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
               : memberUids.map(uid => (
                   <div key={uid} className="flex items-center gap-3 bg-white rounded-lg shadow p-2 transition-all border border-gray-100 hover:shadow-md">
                     <img
-                      src={userAvatars[uid] || '/default_user_pic.jpg'}
+                      src={userAvatars[uid] || defaultAvatar}
                       alt={usernames[uid] || ''}
                       className="w-9 h-9 rounded-full object-cover border border-primary-100 bg-gray-100"
                       style={{ minWidth: 36 }}
@@ -786,7 +789,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                       <div className="font-medium text-gray-900 truncate flex items-center gap-1">
                         {usernames[uid] || ''}
                         {uid === currentUser.uid && <span className="ml-1 px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full text-xs">אתה</span>}
-                        {uid === adminUid && <span className="ml-1 px-2 py-0.5 bg-yellow-300 text-yellow-900 rounded-full text-xs">מנהל</span>}
+                        {uid === adminUid && <span className="ml-1 px-2 py-0.5 rounded-full text-xs" style={{ backgroundColor: elementColors.primary, color: elementColors.light }}>מנהל קבוצה</span>}
                       </div>
                       {userElements && userElements[uid] && (
                         <span className="flex items-center gap-1 text-xs text-gray-500 ml-2">
@@ -947,14 +950,13 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                 className="max-h-[90vh] max-w-[98vw] rounded shadow-lg mb-4 bg-white"
                 style={{ margin: '0 auto' }}
               />
-              <a
-                href={fullscreenImage}
-                download
+              <button
+                onClick={() => downloadFile(fullscreenImage, 'image')}
                 className="px-6 py-2 text-white rounded-lg shadow transition font-bold hover:scale-95"
                 style={{ textAlign: 'center', backgroundColor: elementColors.primary }}
               >
                 הורד תמונה
-              </a>
+              </button>
             </div>
           </div>,
           document.body
@@ -966,7 +968,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
   const partnerUids = conversation.participants.filter(uid => uid !== currentUser.uid);
   const partnerNames = conversation.participantNames?.filter(name => name !== currentUser.username) || [];
   const mentorName = currentUser.mentorName;
-  const partnerProfilePic = conversation.partnerProfilePic || '/default_user_pic.jpg';
+  const partnerProfilePic = conversation.partnerProfilePic || defaultAvatar;
   const partnerName = partnerNames[0] || partnerUids[0] || 'משתמש לא מזוהה';
   // All images sent in the conversation
   const images = messages.filter(m => m.mediaType === 'image' && m.mediaURL);
@@ -979,9 +981,9 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       // Get the correct profile picture for each user
       let profilePic;
       if (idx === 0) {
-        profilePic = conversation.user1ProfilePic || '/default_user_pic.jpg';
+        profilePic = conversation.user1ProfilePic || defaultAvatar;
       } else {
-        profilePic = conversation.user2ProfilePic || conversation.partnerProfilePic || '/default_user_pic.jpg';
+        profilePic = conversation.user2ProfilePic || conversation.partnerProfilePic || defaultAvatar;
       }
       // Make sure we filter images by the actual sender ID
       const userImages = messages.filter(m => 
@@ -1114,14 +1116,13 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                 className="max-h-[90vh] max-w-[98vw] rounded shadow-lg mb-4 bg-white"
                 style={{ margin: '0 auto' }}
               />
-              <a
-                href={fullscreenImage}
-                download
+              <button
+                onClick={() => downloadFile(fullscreenImage, 'image')}
                 className="px-6 py-2 text-white rounded-lg shadow transition font-bold hover:scale-95"
                 style={{ textAlign: 'center', backgroundColor: elementColors.primary }}
               >
                 הורד תמונה
-              </a>
+              </button>
             </div>
           </div>,
           document.body
@@ -1162,7 +1163,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
       {/* Partner Picture and Name */}
       <div className="flex flex-col items-center mb-6">
         <img
-          src={partnerProfilePic || '/default_user_pic.jpg'}
+          src={partnerProfilePic || defaultAvatar}
           alt={partnerName}
           className="w-20 h-20 rounded-full object-cover border-4 mb-2"
           style={{ borderColor: elementColors.primary, backgroundColor: elementColors.light }}

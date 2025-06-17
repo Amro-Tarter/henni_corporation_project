@@ -82,7 +82,7 @@ const ChatHeader = ({ chatTitle, avatar, icon, type, onInfoClick, mentorName, cu
   }
 
   return (
-    <div className="p-2 sm:p-3 z-30 shadow-xl border-gray-200 text-right flex items-center gap-2 sm:gap-3 relative bg-white">
+    <div className={`p-2 sm:p-3 z-30 shadow-xl border-gray-200 text-right flex items-center gap-2 sm:gap-3 relative bg-white ${currentUser.role === 'admin' ? 'md:mt-1' : ''}`}>
       {/* Mobile back arrow button */}
       {onBack && (
         <button

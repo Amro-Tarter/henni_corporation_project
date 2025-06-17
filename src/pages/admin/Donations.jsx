@@ -12,7 +12,7 @@ import {
     faCheckSquare, faInfoCircle, faProjectDiagram, faUserFriends, faPlus, faTimes,
     faMoneyBillWave, faPiggyBank, faHandshake, faClock, faTrashAlt // Import faTrashAlt
 } from '@fortawesome/free-solid-svg-icons';
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+import ElementalLoader from '../../theme/ElementalLoader'
 
 // Modal Component for Add Donation Form
 const Modal = ({ children, onClose }) => {
@@ -227,7 +227,7 @@ function Donations() {
 
 
     if (!isAuthReady || loading) {
-        return <CleanElementalOrbitLoader />;
+        return <ElementalLoader />;
     }
 
     return (
@@ -558,7 +558,6 @@ function Donations() {
 
                 {/* Donations List Section */}
                 <div className="md:col-span-3 mt-8">
-                    <h3 className="text-2xl font-bold text-gray-800 mb-4 text-center">רשימת תרומות קיימות</h3>
                     {donationsList.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {donationsList.map(donation => (

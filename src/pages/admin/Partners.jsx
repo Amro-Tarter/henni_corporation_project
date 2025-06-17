@@ -11,7 +11,7 @@ import {
   faHandshake, faTag, faGlobe, faImage, faInfoCircle, faPlus, faTimes,
   faEdit, faTrash // Added Edit and Trash icons
 } from '@fortawesome/free-solid-svg-icons';
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
+import ElementalLoader from '../../theme/ElementalLoader'
 
 
 // Reusable Modal Component
@@ -294,7 +294,7 @@ function Partners() {
 
 
   if (!isAuthReady || loading) {
-    return <CleanElementalOrbitLoader />;
+    return <ElementalLoader />;
   }
 
   return (
@@ -726,7 +726,6 @@ function Partners() {
 
         {/* Partners List Section */}
         <div className="md:col-span-3 mt-8">
-          <h3 className="text-2xl font-bold text-gray-800 mb-4 text-center">רשימת שותפים קיימים</h3>
           {partnersList.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {partnersList.map(partner => (

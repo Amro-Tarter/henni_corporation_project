@@ -33,3 +33,29 @@ export function compressImage(file) {
     img.src = URL.createObjectURL(file);
   });
 }
+
+export const downloadFile = async (url, filename) => {
+  try {
+    // Fetch the file
+    const response = await fetch(url);
+    const blob = await response.blob();
+    
+    // Create blob URL and trigger download
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    }, 100);
+  } catch (error) {
+    console.error('Download failed:', error);
+    // Fallback: Open in new tab
+    window.open(url, '_blank');
+  }
+};
