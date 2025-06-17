@@ -340,7 +340,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
               flex items-center justify-start ${!isExpanded ? 'pl-3 pr-3.5' : 'px-3'} gap-3
               transition-all duration-200 ease-in-out
               ${showNotifications
-                  ? `text-white bg-${element}-accent shadow-sm`
+                  ? `text-white bg-${element} shadow-sm`
                   : `text-gray-700 hover:bg-${element}-soft`
                 }
             `}

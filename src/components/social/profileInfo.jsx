@@ -1,4 +1,5 @@
 //ProfileInfo.jsx
+import { useEffect, useRef } from 'react';
 import { MapPin, Camera, MessageSquare, Users, Image, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '../ui/sonner';
@@ -16,13 +17,21 @@ const elementOptions = [
 const findOption = v => elementOptions.find(o => o.value === v) || { icon: '', label: '' };
 
 // the info component
-const Stat = ({ icon, count, label, element }) => (
-  <div className="flex flex-col items-center hover:scale-105 transition-transform">
-    {icon && <div className={`text-${element} mb-1`}>{icon}</div>}
-    <div className={`text-2xl sm:text-3xl font-bold text-${element}`}>{count}</div>
-    <div className={`text-sm text-${element}-accent`}>{label}</div>
-  </div>
-);
+const Stat = ({ icon, count, label, element }) => {
+  // use the pipe | to split into two lines
+  const [topLabel, bottomLabel] = label.includes('|') ? label.split('|') : [label, ''];
+
+  return (
+    <div className="flex flex-col items-center hover:scale-105 transition-transform text-center">
+      {icon && <div className={`text-${element} mb-1`}>{icon}</div>}
+      <div className={`text-2xl sm:text-3xl font-bold text-${element}`}>{count}</div>
+      <div className="flex flex-col leading-tight text-sm">
+        <span className={`text-${element}-accent`}>{topLabel}</span>
+        {bottomLabel && <span className={`text-${element}-accent`}>{bottomLabel}</span>}
+      </div>
+    </div>
+  );
+};
 
 // Tooltip component for hover
 const Tooltip = ({ text, children }) => (
@@ -56,11 +65,22 @@ const ProfileInfo = ({
   // detrmine the labels based on ownership
   const followersLabel = isOwner
     ? "העוקבים שלי"
-    : `העוקבים של ${username}`;
+    : `העוקבים של|${username}`;
 
   const followingLabel = isOwner
     ? "אני עוקב אחרי"
-    : `${username} עוקב אחרי `;
+    : `${username}|עוקב אחרי`;
+
+  // scroll to see full profile info if not owner and on desktop
+  const profileRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOwner && window.innerWidth >= 640) {
+      setTimeout(() => {
+        profileRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [isOwner]);
 
   // handles personal pic change
   const handlePicChange = async e => { // e is the event from the file input
@@ -90,7 +110,7 @@ const ProfileInfo = ({
 
   return (
     <>
-      <section className="w-full overflow-visible">
+      <section ref={profileRef} className="w-full overflow-visible">
         {/* Background image and profile pic */}
         <div className={`relative w-full h-36 sm:h-48 md:h-64 bg-${element}-soft overflow-visible`}>
           {/* Show background image if available */}
