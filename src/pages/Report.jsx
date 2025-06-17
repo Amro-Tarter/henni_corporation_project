@@ -16,7 +16,7 @@ function MentorReportForm() {
 
   // State for user ID and authentication readiness
   const [currentUserId, setCurrentUserId] = useState(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isAuthReady, setIsAuthReady] = useState(false); 
   // Add mentor element state
   const [mentorElement, setMentorElement] = useState('fire');
 
