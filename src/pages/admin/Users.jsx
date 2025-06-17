@@ -3,11 +3,6 @@ import { collection, query, getDocs, orderBy, updateDoc, doc, deleteDoc, getDoc,
 import { db } from "../../config/firbaseConfig";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faLeaf,
-  faHammer,
-  faWind,
-  faWater,
-  faFire,
   faEdit,
   faTrash,
   faEye,
@@ -16,43 +11,46 @@ import {
   faUsers,
   faFilter,
   faSave,
-  faSpinner
+  faSpinner,
+  faCrown,
+  faBullseye,
+  faStar,
+  faMapMarkerAlt,
+  faEnvelope,
+  faUserShield
 } from '@fortawesome/free-solid-svg-icons';
-import { Search, Filter, User, Users as UsersIcon, Shield, Zap, MapPin, Mail } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Search, Filter, Users as UsersIcon, ChevronDown } from "lucide-react";
+import AirIcon from '@mui/icons-material/Air';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import PendingUsersButton from "../../components/team/addUserButton";
 import { useUser } from "../../hooks/useUser";
 import ElementalLoader from "@/theme/ElementalLoader";
-import AirIcon from '@mui/icons-material/Air';
-import CleanElementalOrbitLoader from '../../theme/ElementalLoader'
 
-// Constants
-const ELEMENT_OPTIONS = [
-  { value: 'fire', label: 'אש', icon: '🔥', gradient: 'from-rose-700 via-amber-550 to-yellow-500', color: 'text-red-500' },
-  { value: 'water', label: 'מים', icon: '💧', gradient: 'from-indigo-500 via-blue-400 to-teal-300', color: 'text-blue-500' },
-  { value: 'earth', label: 'אדמה', icon: '🌱', gradient: 'from-lime-700 via-amber-600 to-stone-400', color: 'text-green-500' },
-  { value: 'air', label: 'אוויר',   icon: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
-  { value: 'metal', label: 'מתכת', icon: '⚒️', gradient: 'from-zinc-300 via-slate-500 to-neutral-700', color: 'text-neutral-500' }
+// Enhanced Constants with new element structure
+const ELEMENTS = [
+  { key: 'earth', emoji: '🌱', color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100', textColor: 'text-green-600', name: 'אדמה' },
+  { key: 'metal', emoji: '⚒️', color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100', textColor: 'text-gray-600', name: 'מתכת' },
+  { key: 'air', emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100', textColor: 'text-blue-600', name: 'אוויר' },
+  { key: 'water', emoji: '💧', color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600', name: 'מים' },
+  { key: 'fire', emoji: '🔥', color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100', textColor: 'text-red-600', name: 'אש' },
 ];
 
-const ROLE_OPTIONS = [
-  { value: 'admin', label: 'מנהל', icon: '👑', color: 'text-purple-600' },
-  { value: 'mentor', label: 'מנטור', icon: '🎯', color: 'text-blue-600' },
-  { value: 'participant', label: 'משתתף', icon: '🌟', color: 'text-green-600' },
+const ROLES = [
+  { key: 'admin', emoji: '👑', icon: faCrown, name: 'מנהל', color: 'text-purple-600', bgColor: 'bg-purple-100' },
+  { key: 'mentor', emoji: '🎯', icon: faBullseye, name: 'מנטור', color: 'text-blue-600', bgColor: 'bg-blue-100' },
+  { key: 'participant', emoji: '🌟', icon: faStar, name: 'משתתף', color: 'text-green-600', bgColor: 'bg-green-100' },
 ];
 
-const ELEMENT_ICONS = {
-  fire: faFire,
-  water: faWater,
-  earth: faLeaf,
-  air: faWind,
-  metal: faHammer
+
+// Utility functions
+const getElementConfig = (elementKey) => {
+  return ELEMENTS.find(el => el.key === elementKey) || ELEMENTS[0];
 };
 
 
+// Enhanced Edit User Modal
 const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
   const [formData, setFormData] = useState({
     username: user.username || '',
@@ -62,23 +60,10 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
     role: user.role || 'participant',
     displayName: user.profile?.displayName || '',
     bio: user.profile?.bio || '',
-    photoURL: user.profile?.photoURL || ''
+    photoURL: user.profile?.photoURL || '',
+    mentors: user.mentors || []
   });
   const [isLoading, setIsLoading] = useState(false);
-
-  const elementOptions = [
-    { value: 'fire', label: 'אש' },
-    { value: 'water', label: 'מים' },
-    { value: 'earth', label: 'אדמה' },
-    { value: 'air', label: 'אוויר' },
-    { value: 'metal', label: 'מתכת' }
-  ];
-
-  const roleOptions = [
-    { value: 'admin', label: 'מנהל' },
-    { value: 'mentor', label: 'מנטור' },
-    { value: 'participant', label: 'משתתף' },
-  ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -88,12 +73,13 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
       onClose();
     } catch (error) {
       console.error('Error saving user:', error);
+      toast.error('שגיאה בשמירת המשתמש');
     } finally {
       setIsLoading(false);
     }
   };
 
- return (
+  return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -105,145 +91,187 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-3xl p-8 max-h-[90vh] overflow-y-auto border border-slate-200"
+        className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-4xl p-8 max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700"
         dir="rtl"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <FontAwesomeIcon icon={faEdit} className="text-white" />
+          <div className="flex items-center space-x-4 space-x-reverse">
+            <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <FontAwesomeIcon icon={faEdit} className="text-white text-xl" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-slate-800 dark:text-white">
+              <h3 className="text-3xl font-bold text-slate-800 dark:text-white">
                 עריכת משתמש
               </h3>
-              <p className="text-slate-500">{user.username}</p>
+              <p className="text-slate-500 dark:text-slate-400 text-lg">{user.username}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-all duration-200"
+            className="p-3 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all duration-200"
           >
-            <FontAwesomeIcon icon={faTimes} />
+            <FontAwesomeIcon icon={faTimes} size="lg" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">שם משתמש</label>
-              <input
-                type="text"
-                value={formData.username}
-                onChange={(e) => setFormData({...formData, username: e.target.value})}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">שם תצוגה</label>
-              <input
-                type="text"
-                value={formData.displayName}
-                onChange={(e) => setFormData({...formData, displayName: e.target.value})}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">אימייל</label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
-              required
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {formData.role === 'participant' && (
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">אלמנט</label>
-              <select
-                value={formData.element}
-                onChange={(e) => setFormData({...formData, element: e.target.value})}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
-              >
-                <option value="">בחר אלמנט</option>
-                {elementOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.icon} {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-           )}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">תפקיד</label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({...formData, role: e.target.value})}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
-              >
-                {roleOptions.map(option => (
-                  <option key={option.value} value={option.value}>
-                    {option.icon} {option.label}
-                  </option>
-                ))}
-              </select>
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Basic Info */}
+          <div className="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-6">
+            <h4 className="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+              <FontAwesomeIcon icon={faUserShield} className="text-blue-600" />
+              מידע בסיסי
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">שם משתמש</label>
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => setFormData({...formData, username: e.target.value})}
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">שם תצוגה</label>
+                <input
+                  type="text"
+                  value={formData.displayName}
+                  onChange={(e) => setFormData({...formData, displayName: e.target.value})}
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">מיקום</label>
-            <input
-              type="text"
-              value={formData.location}
-              onChange={(e) => setFormData({...formData, location: e.target.value})}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white"
-            />
+          {/* Contact & Location */}
+          <div className="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-6">
+            <h4 className="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+              <FontAwesomeIcon icon={faEnvelope} className="text-green-600" />
+              פרטי התקשרות
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">אימייל</label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">מיקום</label>
+                <input
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  placeholder="עיר, מדינה..."
+                />
+              </div>
+            </div>
           </div>
 
+          {/* Role & Element */}
+          <div className="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-6">
+            <h4 className="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+              <FontAwesomeIcon icon={faCrown} className="text-purple-600" />
+              תפקיד ואלמנט
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">תפקיד</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => setFormData({...formData, role: e.target.value})}
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                >
+                  {ROLES.map(role => (
+                    <option key={role.key} value={role.key}>
+                       {role.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {formData.role === 'participant' && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">אלמנט</label>
+                  <select
+                    value={formData.element}
+                    onChange={(e) => setFormData({...formData, element: e.target.value})}
+                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  >
+                    <option value="">בחר אלמנט</option>
+                    {ELEMENTS.map(element => (
+                      <option key={element.key} value={element.key}>
+                         {element.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Mentors Selection for Participants */}
           {formData.role === 'participant' && (
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">מנטורים</label>
-              <select
-                multiple
-                value={formData.mentors || []}
-                onChange={(e) => {
-                  const selected = Array.from(e.target.selectedOptions, opt => opt.value);
-                  setFormData({ ...formData, mentors: selected });
-                }}
-                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white min-h-[120px]"
-              >
-                {availableMentors.map(mentor => (
-                  <option key={mentor.id} value={mentor.id} className="py-2">
-                    {mentor.profile?.displayName || mentor.username}
-                  </option>
-                ))}
-              </select>
+            <div className="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-6">
+              <h4 className="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                <FontAwesomeIcon icon={faUserFriends} className="text-blue-600" />
+                מנטורים
+              </h4>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">בחר מנטורים</label>
+                <select
+                  multiple
+                  value={formData.mentors || []}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.selectedOptions, opt => opt.value);
+                    setFormData({ ...formData, mentors: selected });
+                  }}
+                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 min-h-[120px]"
+                >
+                  {availableMentors.map(mentor => (
+                    <option key={mentor.id} value={mentor.id} className="py-2">
+                      {mentor.profile?.displayName || mentor.username}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  החזק Ctrl/Cmd לבחירת מספר מנטורים
+                </p>
+              </div>
             </div>
           )}
 
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700 mb-2">ביו</label>
-            <textarea
-              value={formData.bio}
-              onChange={(e) => setFormData({...formData, bio: e.target.value})}
-              rows={4}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 focus:bg-white resize-none"
-              placeholder="ספר על עצמך..."
-            />
+          {/* Bio */}
+          <div className="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-6">
+            <h4 className="text-lg font-semibold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+              <FontAwesomeIcon icon={faEdit} className="text-indigo-600" />
+              אודות
+            </h4>
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">ביוגרפיה</label>
+              <textarea
+                value={formData.bio}
+                onChange={(e) => setFormData({...formData, bio: e.target.value})}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 resize-none"
+                placeholder="ספר על עצמך..."
+              />
+            </div>
           </div>
 
-          <div className="flex justify-end gap-4 pt-6 border-t border-slate-200">
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-4 pt-6 border-t border-slate-200 dark:border-slate-600">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-3 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-all duration-200 font-medium"
+              className="px-6 py-3 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200 font-medium"
             >
               ביטול
             </button>
@@ -266,7 +294,7 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
   );
 };
 
-// Delete Confirmation Modal
+// Enhanced Delete Confirmation Modal
 const DeleteConfirmModal = ({ user, onConfirm, onCancel, isLoading }) => {
   return (
     <motion.div
@@ -280,35 +308,41 @@ const DeleteConfirmModal = ({ user, onConfirm, onCancel, isLoading }) => {
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.9, opacity: 0, y: 20 }}
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-red-200"
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-red-200 dark:border-red-800"
         dir="rtl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center mb-4">
-          <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center ml-4">
-            <FontAwesomeIcon icon={faTrash} className="text-red-600" />
+        <div className="flex items-center mb-6">
+          <div className="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center ml-4">
+            <FontAwesomeIcon icon={faTrash} className="text-red-600 text-xl" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-            אישור מחיקה
-          </h3>
+          <div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+              אישור מחיקה
+            </h3>
+            <p className="text-red-600 text-sm">פעולה בלתי הפיכה</p>
+          </div>
         </div>
-        <p className="text-slate-600 dark:text-slate-300 mb-6">
-          האם אתה בטוח שברצונך למחוק את המשתמש <strong className="text-red-600">{user.username}</strong>?
-          <br />
-          <span className="text-sm text-red-500 font-medium">פעולה זו לא ניתנת לביטול ותמחק את כל הנתונים המשויכים.</span>
-        </p>
+        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 mb-6">
+          <p className="text-slate-700 dark:text-slate-300 mb-2">
+            האם אתה בטוח שברצונך למחוק את המשתמש <strong className="text-red-600">{user.username}</strong>?
+          </p>
+          <p className="text-sm text-red-600 font-medium">
+            פעולה זו תמחק לצמיתות את כל הנתונים, הפוסטים והתגובות של המשתמש.
+          </p>
+        </div>
         <div className="flex justify-end gap-3">
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="px-4 py-2 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+            className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
             ביטול
           </button>
           <button
             onClick={() => onConfirm(user.id)}
             disabled={isLoading}
-            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
+            className="px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center shadow-lg hover:shadow-xl transition-all duration-200"
           >
             {isLoading ? (
               <FontAwesomeIcon icon={faSpinner} className="animate-spin ml-2" />
@@ -323,18 +357,15 @@ const DeleteConfirmModal = ({ user, onConfirm, onCancel, isLoading }) => {
   );
 };
 
-
+// Cascade delete function
 async function cascadeDeleteUser(uid, db) {
   try {
-    // Delete user document
     await deleteDoc(doc(db, "users", uid));
     console.log(`User ${uid} deleted from users collection.`);
 
-    // Delete profile document
     await deleteDoc(doc(db, "profiles", uid));
     console.log(`Profile ${uid} deleted.`);
 
-    // Delete all messages in conversations
     const messagesRef = collection(db, "conversations", uid, "messages");
     const messagesSnap = await getDocs(messagesRef);
     for (const msgDoc of messagesSnap.docs) {
@@ -343,22 +374,18 @@ async function cascadeDeleteUser(uid, db) {
     await deleteDoc(doc(db, "conversations", uid));
     console.log(`Messages for user ${uid} deleted.`);
 
-    // Delete posts and their comments
     const postsQuery = query(collection(db, "posts"), where("authorId", "==", uid));
     const postsSnapshot = await getDocs(postsQuery);
     for (const postDoc of postsSnapshot.docs) {
-      // Delete all comments for this post
       const commentsRef = collection(db, "posts", postDoc.id, "comments");
       const commentsSnapshot = await getDocs(commentsRef);
       for (const commentDoc of commentsSnapshot.docs) {
         await deleteDoc(doc(db, "posts", postDoc.id, "comments", commentDoc.id));
       }
-      // Delete the post itself
       await deleteDoc(doc(db, "posts", postDoc.id));
     }
     console.log(`Posts and comments for user ${uid} deleted.`);
 
-    // Delete comments by this user in other posts
     const allPostsQuery = query(collection(db, "posts"));
     const allPostsSnapshot = await getDocs(allPostsQuery);
     for (const postDoc of allPostsSnapshot.docs) {
@@ -372,7 +399,6 @@ async function cascadeDeleteUser(uid, db) {
     }
     console.log(`Comments by user ${uid} in other posts deleted.`);
 
-    // Delete mentorship relationships
     const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", uid));
     const mentorSnapshot = await getDocs(mentorQuery);
     for (const msDoc of mentorSnapshot.docs) {
@@ -386,9 +412,6 @@ async function cascadeDeleteUser(uid, db) {
     }
     console.log(`Mentorship relationships for user ${uid} deleted.`);
 
-    // Delete any other user-related data
-    // Add more collections as needed
-
     return true;
   } catch (error) {
     console.error("Error in cascadeDeleteUser:", error);
@@ -396,19 +419,9 @@ async function cascadeDeleteUser(uid, db) {
   }
 }
 
-// Utility functions
-const getElementConfig = (element) => {
-  return ELEMENT_OPTIONS.find(opt => opt.value === element) || ELEMENT_OPTIONS[0];
-};
-
-const getRoleConfig = (role) => {
-  return ROLE_OPTIONS.find(opt => opt.value === role) || ROLE_OPTIONS[2];
-};
-
-// User Card Component
+// Enhanced User Card Component
 const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
   const elementConfig = getElementConfig(user.element);
-  const roleConfig = getRoleConfig(user.role);
 
   return (
     <motion.div
@@ -416,56 +429,50 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
       initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.95 }}
-      whileHover={{ y: -5, transition: { duration: 0.2 } }}
-      className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 relative group border border-slate-200 dark:border-slate-700"
+      whileHover={{ y: -8, transition: { duration: 0.2 } }}
+      className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 relative group border border-slate-200 dark:border-slate-700"
     >
-      {/* Element Header */}
-      {user.role === 'participant' ? (
-        <div className={`h-2 bg-gradient-to-r ${elementConfig.gradient}`} />
-      ) : (
-        <div className="h-2 bg-red-900" />
-      )}
 
       {/* Admin Actions */}
       {isAdmin && (
-        <div className="absolute top-4 left-3 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 flex flex-col gap-2 z-20">
+        <div className="absolute top-6 left-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 flex flex-col gap-2 z-20">
           {user.role !== 'staff' && (
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => onView(user)}
-              className="p-2.5 bg-blue-600 text-white rounded-xl shadow-lg hover:bg-blue-700 transition-colors backdrop-blur-sm"
+              className="p-3 bg-blue-600 text-white rounded-2xl shadow-lg hover:bg-blue-700 transition-colors backdrop-blur-sm"
               title="צפייה בפרופיל"
             >
-              <FontAwesomeIcon icon={faEye} size="sm" />
+              <FontAwesomeIcon icon={faEye} />
             </motion.button>
           )}
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onEdit(user)}
-            className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-lg hover:bg-emerald-700 transition-colors backdrop-blur-sm"
+            className="p-3 bg-emerald-600 text-white rounded-2xl shadow-lg hover:bg-emerald-700 transition-colors backdrop-blur-sm"
             title="עריכה"
           >
-            <FontAwesomeIcon icon={faEdit} size="sm" />
+            <FontAwesomeIcon icon={faEdit} />
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => onDelete(user)}
-            className="p-2.5 bg-red-600 text-white rounded-xl shadow-lg hover:bg-red-700 transition-colors backdrop-blur-sm"
+            className="p-3 bg-red-600 text-white rounded-2xl shadow-lg hover:bg-red-700 transition-colors backdrop-blur-sm"
             title="מחיקה"
           >
-            <FontAwesomeIcon icon={faTrash} size="sm" />
+            <FontAwesomeIcon icon={faTrash} />
           </motion.button>
         </div>
       )}
 
-      <div className="p-6">
+      <div className="p-8">
         {/* Profile Picture */}
-        <div className="flex justify-center mb-5">
+        <div className="flex justify-center mb-6">
           <div className="relative">
-            <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white dark:border-slate-700 shadow-lg">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-slate-700 shadow-xl">
               <img
                 src={user.profile?.photoURL || "https://placehold.co/100x100/e2e8f0/64748b?text=User"}
                 alt={user.username}
@@ -477,83 +484,63 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
                 }}
               />
             </div>
-            {/* Element Badge */}
-            {user.role === 'participant' && (
-              <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gradient-to-r ${elementConfig.gradient} flex items-center justify-center shadow-md border-2 border-white dark:border-slate-700`}>
-                <FontAwesomeIcon
-                  icon={ELEMENT_ICONS[user.element] || faLeaf}
-                  className="text-white text-sm"
-                />
-              </div>
-            )}
+           
           </div>
         </div>
 
         {/* User Info */}
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white truncate">
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white truncate mb-2">
               {user.profile?.displayName || user.username}
-            </h3>
-            <div className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${roleConfig.color} bg-opacity-10`}>
-              <span>{roleConfig.icon}</span>
-              <span>{roleConfig.label}</span>
-            </div>
+            </h3>     
           </div>
 
-          {/* Contact Info */}
-          <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-            <div className="flex items-center justify-center gap-2">
-              <Mail size={14} />
-              <span className="truncate">{user.email}</span>
+        {/* Contact Info */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
+              <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" />
+              <span className="text-sm truncate">{user.email}</span>
             </div>
-            
             {user.location && (
-              <div className="flex items-center justify-center gap-2">
-                <MapPin size={14} />
-                <span className="truncate">{user.location}</span>
+              <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
+                <FontAwesomeIcon icon={faMapMarkerAlt} className="w-4 h-4" />
+                <span className="text-sm truncate">{user.location}</span>
               </div>
             )}
           </div>
 
-          {/* Element Display */}
-          {user.role === 'participant' && (
-            <div className="flex items-center justify-center gap-2 text-sm">
-              <span className={elementConfig.color}>
-                <FontAwesomeIcon icon={ELEMENT_ICONS[user.element] || faLeaf} />
-              </span>
-              <span className="text-slate-600 dark:text-slate-400">
-                {elementConfig.label}
-              </span>
-            </div>
-          )}
-
-          {/* Role-specific Info */}
-          {user.role === 'mentor' && user.mentorshipCount > 0 && (
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-full text-sm">
-              <FontAwesomeIcon icon={faUserFriends} />
-              <span>{user.mentorshipCount} חניכים</span>
-            </div>
-          )}
-
-          {user.role === 'participant' && user.mentorProfiles?.length > 0 && (
-            <div className="space-y-1">
-              <div className="text-xs text-slate-500 dark:text-slate-400">מנטורים:</div>
-              <div className="flex flex-wrap justify-center gap-1">
-                {user.mentorProfiles.slice(0, 2).map((mentor, index) => (
-                  <span
-                    key={mentor.id}
-                    className="inline-block px-2 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-md text-xs truncate max-w-20"
-                    title={mentor.profile?.displayName || mentor.username}
-                  >
-                    {mentor.profile?.displayName || mentor.username}
-                  </span>
-                ))}
-                {user.mentorProfiles.length > 2 && (
-                  <span className="inline-block px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 rounded-md text-xs">
-                    +{user.mentorProfiles.length - 2}
-                  </span>
+          {/* Element Info for Participants */}
+          {user.role === 'participant' && user.element && (
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
+              <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${elementConfig.textColor} ${elementConfig.bgColor} dark:bg-opacity-20`}>
+                {typeof elementConfig.emoji === 'string' ? (
+                  <span>{elementConfig.emoji}</span>
+                ) : (
+                  <div className="w-4 h-4">
+                    {elementConfig.emoji}
+                  </div>
                 )}
+                <span>אלמנט {elementConfig.name}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Bio Preview */}
+          {user.profile?.bio && (
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
+              <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                {user.profile.bio}
+              </p>
+            </div>
+          )}
+
+          {/* Mentors Count for Participants */}
+          {user.role === 'participant' && user.mentors && user.mentors.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
+              <div className="flex items-center justify-center gap-2 text-blue-600 dark:text-blue-400">
+                <FontAwesomeIcon icon={faUserFriends} className="w-4 h-4" />
+                <span className="text-sm font-medium">{user.mentors.length} מנטורים</span>
               </div>
             </div>
           )}
@@ -563,531 +550,480 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
   );
 });
 
-UserCard.displayName = 'UserCard';
-
-// Filter Component
-const FilterPanel = React.memo(({ 
-  searchTerm, 
-  setSearchTerm, 
-  elementFilter, 
-  setElementFilter, 
-  locationFilter, 
-  setLocationFilter, 
-  roleFilter, 
-  setRoleFilter, 
-  onClearFilters,
-  resultCount 
-}) => {
-   const [isElementDropdownOpen, setIsElementDropdownOpen] = useState(false);
-  const selectedElementOption = ELEMENT_OPTIONS.find(opt => opt.value === elementFilter);
-
-  return (
-    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-6 mb-8 border border-slate-200 dark:border-slate-700">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <FontAwesomeIcon icon={faFilter} className="text-white" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white">סינון וחיפוש</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {resultCount} משתמשים נמצאו
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={onClearFilters}
-          className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all duration-200 text-sm font-medium"
-        >
-          נקה הכל
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Search */}
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            חיפוש משתמשים
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="שם משתמש או שם תצוגה..."
-              className="w-full px-4 py-3 pr-11 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 dark:bg-slate-700 focus:bg-white dark:focus:bg-slate-600 text-slate-800 dark:text-slate-200"
-            />
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <Search size={18} className="text-slate-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Element Filter */}
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            סינון לפי אלמנט
-          </label>
-        <button
-          type="button"
-          className="w-full flex items-center justify-between px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
-          onClick={() => setIsElementDropdownOpen(!isElementDropdownOpen)}
-        >
-          <div className="flex items-center gap-2">
-            {selectedElementOption?.icon && (
-              // Directly render the icon here if it's a React component, or a string
-              // For AirIcon:
-              selectedElementOption.value === 'air' ? selectedElementOption.icon :
-              // For FontAwesomeIcon for other elements
-              (selectedElementOption.icon && typeof selectedElementOption.icon === 'string' ?
-                selectedElementOption.icon : // This will render emojis
-                (ELEMENT_ICONS[selectedElementOption.value] ? <FontAwesomeIcon icon={ELEMENT_ICONS[selectedElementOption.value]} /> : null)
-              )
-            )}
-            {selectedElementOption ? selectedElementOption.label : 'כל האלמנטים'}
-          </div>
-          {/* You might want a chevron icon here */}
-          <FontAwesomeIcon icon={faFilter} className="text-slate-400" />
-        </button>
-          {/* Custom Dropdown Options */}
-        <AnimatePresence>
-          {isElementDropdownOpen && (
-            <motion.ul
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              
-  className="absolute z-10 w-64 mt-1 bg-white dark:bg-slate-700 rounded-xl shadow-lg border border-slate-200 dark:border-slate-600 overflow-hidden max-h-60 " // Changed w-64 to w-max and added right-0
-            >
-              <li
-                className="px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200"
-                onClick={() => {
-                  setElementFilter('');
-                  setIsElementDropdownOpen(false);
-                }}
-              >
-                כל האלמנטים
-              </li>
-              {ELEMENT_OPTIONS.map(option => (
-                <li
-                  key={option.value}
-                  className="px-4 py-3 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 flex items-center gap-2"
-                  onClick={() => {
-                    setElementFilter(option.value);
-                    setIsElementDropdownOpen(false);
-                  }}
-                >
-                  {/* Render the icon component directly */}
-                  {option.value === 'air' ? option.icon : (
-                    typeof option.icon === 'string' ? option.icon : (
-                      ELEMENT_ICONS[option.value] ? <FontAwesomeIcon icon={ELEMENT_ICONS[option.value]} /> : null
-                    )
-                  )}
-                  {option.label}
-                </li>
-              ))}
-            </motion.ul>
-          )}
-        </AnimatePresence>
-        </div>
-
-        {/* Location Filter */}
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            סינון לפי מיקום
-          </label>
-          <input
-            type="text"
-            value={locationFilter}
-            onChange={(e) => setLocationFilter(e.target.value)}
-            placeholder="הזן מיקום..."
-            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 dark:bg-slate-700 focus:bg-white dark:focus:bg-slate-600 text-slate-800 dark:text-slate-200"
-          />
-        </div>
-
-        {/* Role Filter */}
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            סינון לפי תפקיד
-          </label>
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
-          >
-            <option value="">כל התפקידים</option>
-            {ROLE_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.icon} {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-FilterPanel.displayName = 'FilterPanel';
-
-// Empty State Component
-const EmptyState = React.memo(({ hasFilters, onClearFilters }) => (
+// Enhanced Stats Cards Component
+const StatsCard = ({ title, value, icon, color, bgColor, subtitle }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="text-center py-16"
+    whileHover={{ scale: 1.02, y: -4 }}
+    className={`${bgColor} dark:bg-slate-800 rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-200 dark:border-slate-700`}
   >
-    <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-      <FontAwesomeIcon icon={faUsers} className="text-4xl text-slate-400" />
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-slate-600 dark:text-slate-400 text-sm font-medium mb-2">{title}</p>
+        <p className={`text-4xl font-bold ${color} mb-1`}>{value}</p>
+        {subtitle && (
+          <p className="text-slate-500 dark:text-slate-500 text-xs">{subtitle}</p>
+        )}
+      </div>
+      <div className={`w-16 h-16 ${color.replace('text-', 'bg-').replace('-600', '-100')} dark:bg-opacity-20 rounded-2xl flex items-center justify-center`}>
+        <FontAwesomeIcon icon={icon} className={`${color} text-2xl`} />
+      </div>
     </div>
-    <h3 className="text-2xl font-bold text-slate-700 dark:text-slate-300 mb-2">
-      {hasFilters ? 'לא נמצאו משתמשים' : 'אין משתמשים להצגה'}
-    </h3>
-    <p className="text-slate-500 dark:text-slate-400 mb-6 max-w-md mx-auto">
-      {hasFilters 
-        ? 'נסה לשנות את פרמטרי החיפוש או לנקות את הסינון'
-        : 'עדיין לא נוספו משתמשים למערכת'
-      }
-    </p>
-    {hasFilters && (
-      <button
-        onClick={onClearFilters}
-        className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors duration-200 font-medium shadow-lg"
-      >
-        נקה סינון
-      </button>
-    )}
   </motion.div>
-));
+);
 
-EmptyState.displayName = 'EmptyState';
-
-// Main Users Component
-function Users() {
-  // State management
+// Main User Management Component
+const UserManagement = () => {
+  const { user: currentUser, loading: userLoading } = useUser();
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedRole, setSelectedRole] = useState('all');
+  const [selectedElement, setSelectedElement] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [elementFilter, setElementFilter] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
-  const [roleFilter, setRoleFilter] = useState("");
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [viewingUser, setViewingUser] = useState(null);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [availableMentors, setAvailableMentors] = useState([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    admins: 0,
+    mentors: 0,
+    participants: 0,
+    byElement: {}
+  });
+
+  // Check if current user is admin
+  const isAdmin = currentUser?.role === 'admin';
+
+  // Fetch users
+ const fetchUsers = useCallback(async () => {
+  if (!currentUser) return;
   
-  const { user: currentUser } = useUser();
-
-  // Memoized computed values
-  const isAdmin = useMemo(() => 
-    currentUser?.isAdmin || currentUser?.role === 'admin', 
-    [currentUser]
-  );
-
- const displayedUsers = useMemo(() => {
-  return users
-    .filter(user => user.role !== "staff") 
-    .filter(user => {
-      const matchesSearch = !searchTerm || 
-        (user.username?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (user.profile?.displayName?.toLowerCase().includes(searchTerm.toLowerCase()));
-      
-      const matchesElement = !elementFilter || user.element === elementFilter;
-      const matchesLocation = !locationFilter || 
-        (user.location?.toLowerCase().includes(locationFilter.toLowerCase()));
-      const matchesRole = !roleFilter || user.role === roleFilter;
-      
-      return matchesSearch && matchesElement && matchesLocation && matchesRole;
-    });
-}, [users, searchTerm, elementFilter, locationFilter, roleFilter]);
-
-
-  const hasActiveFilters = useMemo(() => 
-    searchTerm || elementFilter || locationFilter || roleFilter,
-    [searchTerm, elementFilter, locationFilter, roleFilter]
-  );
-
-  // Optimized data fetching
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
-      const querySnapshot = await getDocs(q);
-      const usersData = [];
-
-      // Batch all profile fetches
-      const profilePromises = querySnapshot.docs.map(async (userDoc) => {
-        const userData = { id: userDoc.id, ...userDoc.data() };
-        
+  setLoading(true);
+  try {
+    const usersRef = collection(db, "users");
+    const usersQuery = query(usersRef, orderBy("createdAt", "desc"));
+    const snapshot = await getDocs(usersQuery);
+    
+    // Extract user IDs for batch profile fetching
+    const userIds = snapshot.docs.map(doc => doc.id);
+    
+    // Batch fetch all profiles in parallel (max 10 per batch due to Firestore limitations)
+    const batchSize = 10;
+    const profileBatches = [];
+    
+    for (let i = 0; i < userIds.length; i += batchSize) {
+      const batchIds = userIds.slice(i, i + batchSize);
+      const batchPromises = batchIds.map(async (userId) => {
         try {
-          // Fetch profile data
-          const profileSnap = await getDoc(doc(db, "profiles", userDoc.id));
-          if (profileSnap.exists()) {
-            userData.profile = profileSnap.data();
-          }
-
-          // Fetch role-specific data
-          if (userData.role === 'mentor') {
-            const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", userDoc.id));
-            const mentorSnapshot = await getDocs(mentorQuery);
-            userData.mentorshipCount = mentorSnapshot.size;
-          }
-
-          if (userData.role === 'participant' && userData.mentors?.length > 0) {
-            const mentorProfiles = await Promise.all(
-              userData.mentors.map(async (mentorId) => {
-                const mentorDoc = await getDoc(doc(db, "users", mentorId));
-                if (mentorDoc.exists()) {
-                  const mentorProfile = await getDoc(doc(db, "profiles", mentorId));
-                  return {
-                    id: mentorId,
-                    ...mentorDoc.data(),
-                    profile: mentorProfile.exists() ? mentorProfile.data() : null
-                  };
-                }
-                return null;
-              })
-            );
-            userData.mentorProfiles = mentorProfiles.filter(Boolean);
-          }
-
+          const profileDoc = await getDoc(doc(db, "profiles", userId));
+          return {
+            id: userId,
+            profile: profileDoc.exists() ? profileDoc.data() : null
+          };
         } catch (error) {
-          console.error(`Error fetching data for user ${userDoc.id}:`, error);
+          console.warn(`Could not fetch profile for user ${userId}:`, error);
+          return { id: userId, profile: null };
         }
-
-        return userData;
       });
-
-      const resolvedUsers = await Promise.all(profilePromises);
-      setUsers(resolvedUsers);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast.error("שגיאה בטעינת המשתמשים");
-    } finally {
-      setLoading(false);
+      
+      profileBatches.push(Promise.all(batchPromises));
     }
+    
+    // Wait for all profile batches to complete
+    const profileResults = await Promise.all(profileBatches);
+    const profileMap = new Map();
+    
+    // Flatten results and create a map for quick lookup
+    profileResults.flat().forEach(result => {
+      profileMap.set(result.id, result.profile);
+    });
+    
+    // Process users with their profiles
+    const fetchedUsers = [];
+    const mentors = [];
+    
+    for (const docSnap of snapshot.docs) {
+      const userData = { 
+        id: docSnap.id, 
+        ...docSnap.data(),
+        profile: profileMap.get(docSnap.id) || null
+      };
+      
+      fetchedUsers.push(userData);
+      
+      // Collect mentors for the dropdown
+      if (userData.role === 'mentor') {
+        mentors.push(userData);
+      }
+    }
+    
+    const nonStaff = fetchedUsers.filter(u => u.role !== 'staff');
+    setUsers(nonStaff);
+    setAvailableMentors(mentors);
+    calculateStats(fetchedUsers);
+    
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    toast.error("שגיאה בטעינת המשתמשים");
+  } finally {
+    setLoading(false);
+  }
+}, [currentUser]);
+
+  // Calculate statistics
+  const calculateStats = useCallback((usersList) => {
+    const newStats = {
+      total: usersList.length,
+      admins: usersList.filter(u => u.role === 'admin').length,
+      mentors: usersList.filter(u => u.role === 'mentor').length,
+      participants: usersList.filter(u => u.role === 'participant').length,
+      byElement: {}
+    };
+
+    // Calculate by element
+    ELEMENTS.forEach(element => {
+      newStats.byElement[element.key] = usersList.filter(u => u.element === element.key).length;
+    });
+
+    setStats(newStats);
   }, []);
 
-  // Fetch available mentors
-  const fetchAvailableMentors = useCallback(async () => {
-    try {
-      const q = query(collection(db, "users"), where("role", "==", "mentor"));
-      const querySnapshot = await getDocs(q);
-      const mentors = await Promise.all(
-        querySnapshot.docs.map(async (mentorDoc) => {
-          const userData = { id: mentorDoc.id, ...mentorDoc.data() };
-          const profileSnap = await getDoc(doc(db, "profiles", mentorDoc.id));
-          if (profileSnap.exists()) {
-            userData.profile = profileSnap.data();
-          }
-          return userData;
-        })
+  // Filter users
+  const filterUsers = useMemo(() => {
+    let filtered = users.filter(u => u.role !== 'staff');
+
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(user =>
+        user.username?.toLowerCase().includes(term) ||
+        user.email?.toLowerCase().includes(term) ||
+        user.profile?.displayName?.toLowerCase().includes(term) ||
+        user.location?.toLowerCase().includes(term)
       );
-      setAvailableMentors(mentors);
-    } catch (error) {
-      console.error("Error fetching mentors:", error);
     }
-  }, []);
 
-  // Event handlers
-  const handleSaveUser = useCallback(async (userId, formData) => {
-    const userRef = doc(db, "users", userId);
+    // Role filter
+    if (selectedRole !== 'all') {
+      filtered = filtered.filter(user => user.role === selectedRole);
+    }
 
+    // Element filter
+    if (selectedElement !== 'all') {
+      filtered = filtered.filter(user => user.element === selectedElement);
+    }
+
+    return filtered;
+  }, [users, searchTerm, selectedRole, selectedElement]);
+
+  // Save user changes
+  const handleSaveUser = async (userId, formData) => {
     try {
-      // 1) Fetch current data so we know the old role
-      const userSnap = await getDoc(userRef);
-      const oldRole = userSnap.data()?.role;
+      const userRef = doc(db, "users", userId);
+      const profileRef = doc(db, "profiles", userId);
 
-      // 2) Update all the common fields in one shot
+      // Update user document
       await updateDoc(userRef, {
         username: formData.username,
-        email:    formData.email,
-        element: formData.role === 'participant'
-           ? formData.element
-           : '',        location: formData.location,
-        role:     formData.role,
-        updatedAt: new Date(),
-        // if switching to participant, write their selected mentors
-        mentors: formData.role === 'participant' ? (formData.mentors || []) : [],
-        // always clear bio/displayName/photoURL in the user doc itself
-        bio: formData.role === 'staff' ? '' : formData.bio,
-        displayName: formData.role === 'staff' ? '' : formData.displayName,
-        photoURL: formData.role === 'staff' ? '' : formData.photoURL,
+        email: formData.email,
+        element: formData.element,
+        location: formData.location,
+        role: formData.role,
+        mentors: formData.mentors || [],
+        updatedAt: new Date()
       });
-      // 3) Now enforce the “empty array” rule whenever the role flips
-      if (oldRole !== formData.role) {
-        if (formData.role === 'mentor') {
-          // newly a mentor → ensure a participants field exists
-          await updateDoc(userRef, { participants: [] });
-        }
-        else if (formData.role === 'participant') {
-          // newly a participant → ensure a mentors field exists (we already seeded it above), and remove any stray participants property
-          await updateDoc(userRef, { mentors: formData.mentors || [], participants: [] });
-        }
-        else {
-          // any other role: drop both arrays
-          await updateDoc(userRef, { mentors: [], participants: [] });
-        }
-      }
 
-      // 4) Profile logic (unchanged) …
-      const profileRef = doc(db, "profiles", userId);
-      const profileSnap = await getDoc(profileRef);
-      if (formData.role === "staff") {
-        if (profileSnap.exists()) await deleteDoc(profileRef);
-      } else {
-        const data = {
-          displayName: formData.displayName,
-          bio:         formData.bio,
-          photoURL:    formData.photoURL,
-          role:        formData.role,
-          updatedAt:   new Date(),
-        };
-        if (profileSnap.exists()) await updateDoc(profileRef, data);
-        else              await setDoc(profileRef, { ...data, createdAt: new Date() });
-      }
+      // Update or create profile document
+      await setDoc(profileRef, {
+        displayName: formData.displayName || formData.username,
+        bio: formData.bio || '',
+        photoURL: formData.photoURL || '',
+        updatedAt: new Date()
+      }, { merge: true });
 
       toast.success("המשתמש עודכן בהצלחה");
-      await fetchUsers();
-    }
-    catch (error) {
+      fetchUsers(); // Refresh users list
+    } catch (error) {
       console.error("Error updating user:", error);
-      toast.error("שגיאה בעדכון המשתמש");
       throw error;
     }
-  }, [fetchUsers]);
+  };
 
-
-  const handleDeleteUser = useCallback(async (userId) => {
-    setIsDeleting(true);
+  // Delete user
+  const handleDeleteUser = async (userId) => {
+    setIsDeleteLoading(true);
     try {
-      // Import the cascadeDeleteUser function (assumed to be available)
       await cascadeDeleteUser(userId, db);
-
       toast.success("המשתמש נמחק בהצלחה");
-      setUsers(prev => prev.filter(u => u.id !== userId));
       setDeletingUser(null);
+      fetchUsers(); // Refresh users list
     } catch (error) {
       console.error("Error deleting user:", error);
       toast.error("שגיאה במחיקת המשתמש");
     } finally {
-      setIsDeleting(false);
+      setIsDeleteLoading(false);
     }
-  }, []);
-
-  const clearFilters = useCallback(() => {
-    setSearchTerm("");
-    setElementFilter("");
-    setLocationFilter("");
-    setRoleFilter("");
-  }, []);
-
-  const handleViewUser = useCallback((user) => {
-    // Navigate to user profile - implement based on your routing
-    window.open(`/profile/${user.username}`, '_blank');
-  }, []);
+  };
 
   // Effects
   useEffect(() => {
-    fetchUsers();
-    fetchAvailableMentors();
-  }, [fetchUsers, fetchAvailableMentors]);
-  if (loading) return <CleanElementalOrbitLoader/>;
+    if (!userLoading && currentUser) {
+      fetchUsers();
+    }
+  }, [currentUser, userLoading, fetchUsers]);
+
+  useEffect(() => {
+    setFilteredUsers(filterUsers);
+  }, [filterUsers]);
+
+  // Show loading state
+  if (userLoading || loading) {
+    return (
+          <ElementalLoader />
+    );
+  }
+
+  // Show unauthorized message for non-admins
+  if (!isAdmin) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center p-8">
+            <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FontAwesomeIcon icon={faUserShield} className="text-red-600 text-2xl" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">
+              אין הרשאה
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400">
+              אתה צריך הרשאות מנהל כדי לצפות בדף זה
+            </p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
-      {/* Header */}
-    <div className="flex justify-center items-center mb-8 relative">
-      {isAdmin && (
-        <div className="absolute left-0">
-          <PendingUsersButton />
+      <div className="min-h-screen p-6" dir="rtl">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Header */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div>
+                <h1 className="text-4xl font-bold text-slate-800 dark:text-white">
+                  ניהול משתמשים
+                </h1>
+                <p className="text-slate-600 dark:text-slate-400 text-lg">
+                  נהל את כל המשתמשים במערכת
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <PendingUsersButton />
+            </div>
+          </div>
+
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatsCard
+              title="סך הכל משתמשים"
+              value={stats.total}
+              icon={faUsers}
+              color="text-blue-600"
+              bgColor="bg-white"
+              subtitle="משתמשים רשומים"
+            />
+            <StatsCard
+              title="מנהלים"
+              value={stats.admins}
+              icon={faCrown}
+              color="text-purple-600"
+              bgColor="bg-white"
+              subtitle="הרשאות מנהל"
+            />
+            <StatsCard
+              title="מנטורים"
+              value={stats.mentors}
+              icon={faBullseye}
+              color="text-indigo-600"
+              bgColor="bg-white"
+              subtitle="מנטורים פעילים"
+            />
+            <StatsCard
+              title="משתתפים"
+              value={stats.participants}
+              icon={faStar}
+              color="text-green-600"
+              bgColor="bg-white"
+              subtitle="משתתפים פעילים"
+            />
+          </div>
+
+          {/* Element Statistics */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
+            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-3">
+              <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
+              התפלגות לפי אלמנטים
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {ELEMENTS.map(element => (
+                <div key={element.key} className={`${element.bgColor} dark:bg-slate-700 rounded-2xl p-6 text-center`}>
+                  <div className="text-3xl mb-2">
+                    {typeof element.emoji === 'string' ? element.emoji : <AirIcon style={{color: '#87ceeb'}} />}
+                  </div>
+                  <div className={`text-2xl font-bold ${element.textColor} mb-1`}>
+                    {stats.byElement[element.key] || 0}
+                  </div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400">
+                    {element.name}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Search */}
+              <div className="flex-1 relative">
+                <Search className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 h-5 w-5" />
+                <input
+                  type="text"
+                  placeholder="חיפוש משתמשים..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pr-12 pl-4 py-4 border border-slate-300 dark:border-slate-600 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-slate-50 dark:bg-slate-700 text-slate-800 dark:text-slate-200"
+                />
+              </div>
+
+              {/* Filters Toggle */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 px-6 py-4 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+              >
+                <Filter className="h-5 w-5" />
+                <span>מסננים</span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+              </button>
+            </div>
+
+            {/* Expandable Filters */}
+            <AnimatePresence>
+              {showFilters && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-600 grid grid-cols-1 md:grid-cols-2 gap-6"
+                >
+                  {/* Role Filter */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">תפקיד</label>
+                    <select
+                      value={selectedRole}
+                      onChange={(e) => setSelectedRole(e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
+                    >
+                      <option value="all">כל התפקידים</option>
+                      {ROLES.map(role => (
+                        <option key={role.key} value={role.key}>
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Element Filter */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">אלמנט</label>
+                    <select
+                      value={selectedElement}
+                      onChange={(e) => setSelectedElement(e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200"
+                    >
+                      <option value="all">כל האלמנטים</option>
+                      {ELEMENTS.map(element => (
+                        <option key={element.key} value={element.key}>
+                           {element.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Users Grid */}
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-3">
+                <UsersIcon className="h-6 w-6 text-blue-600" />
+                משתמשים ({filteredUsers.length})
+              </h2>
+            </div>
+
+            {filteredUsers.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <UsersIcon className="h-8 w-8 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-medium text-slate-800 dark:text-white mb-2">
+                  לא נמצאו משתמשים
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400">
+                  נסה לשנות את הפילטרים או את מונחי החיפוש
+                </p>
+              </div>
+            ) : (
+              <motion.div
+                layout
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+              >
+                <AnimatePresence mode="popLayout">
+                  {filteredUsers.map(user => (
+                    <UserCard
+                      key={user.id}
+                      user={user}
+                      isAdmin={isAdmin}
+                      onEdit={setEditingUser}
+                      onDelete={setDeletingUser}
+                      onView={setViewingUser}
+                    />
+                  ))}
+                </AnimatePresence>
+              </motion.div>
+            )}
         </div>
-      )}
-      <div className="flex flex-col items-center gap-4">
-        <div className="p-6 space-y-8">
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8"
-          >
-            <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5] px-4">
-              קהילת משתמשי העמותה
-            </h1>
-          </motion.div>
-        </div>
+
+        {/* Modals */}
+        <AnimatePresence>
+          {editingUser && (
+            <EditUserModal
+              user={editingUser}
+              onClose={() => setEditingUser(null)}
+              onSave={handleSaveUser}
+              availableMentors={availableMentors}
+            />
+          )}
+
+          {deletingUser && (
+            <DeleteConfirmModal
+              user={deletingUser}
+              onConfirm={handleDeleteUser}
+              onCancel={() => setDeletingUser(null)}
+              isLoading={isDeleteLoading}
+            />
+          )}
+        </AnimatePresence>
       </div>
-    </div>
-
-
-      {/* Filters */}
-      <FilterPanel
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        elementFilter={elementFilter}
-        setElementFilter={setElementFilter}
-        locationFilter={locationFilter}
-        setLocationFilter={setLocationFilter}
-        roleFilter={roleFilter}
-        setRoleFilter={setRoleFilter}
-        onClearFilters={clearFilters}
-        resultCount={displayedUsers.length}
-      />
-  
-
-      {/* Content */}
-      {loading ? (
-        <div className="flex justify-center py-16">
-        </div>
-      ) : displayedUsers.length > 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-        >
-          <AnimatePresence mode="popLayout">
-            {displayedUsers.map((user) => (
-              <UserCard
-                key={user.id}
-                user={user}
-                isAdmin={isAdmin}
-                onEdit={setEditingUser}
-                onDelete={setDeletingUser}
-                onView={handleViewUser}
-              />
-            ))}
-            
-          </AnimatePresence>
-        </motion.div>
-      ) : (
-        <EmptyState
-          hasFilters={hasActiveFilters}
-          onClearFilters={clearFilters}
-        />
-      )}
-
-      {/* Modals */}
-      <AnimatePresence>
-        {editingUser && (
-          <EditUserModal
-            user={editingUser}
-            onClose={() => setEditingUser(null)}
-            onSave={handleSaveUser}
-            availableMentors={availableMentors}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {deletingUser && (
-          <DeleteConfirmModal
-            user={deletingUser}
-            onConfirm={handleDeleteUser}
-            onCancel={() => setDeletingUser(null)}
-            isLoading={isDeleting}
-          />
-        )}
-      </AnimatePresence>
     </DashboardLayout>
   );
-}
-export default Users;
+};
+
+export default UserManagement;
