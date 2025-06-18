@@ -33,6 +33,7 @@ export default function Navigation() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
 
+
   useEffect(() => {
     const newParticles = Array.from({ length: 20 }, (_, i) => ({
       id: i,
@@ -65,6 +66,7 @@ export default function Navigation() {
   const authDropdownRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const menuRef  = useRef(null);   
 
   // Fetch username/profile & role
   useEffect(() => {
@@ -108,6 +110,22 @@ export default function Navigation() {
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
   }, [showAuthDropdown]);
+
+  // CLOSE MOBILE MENU on outside click
+  useEffect(() => {
+    const onClickOutsideMenu = e => {
+      if (
+        isMenuOpen &&
+        menuRef.current &&
+        !menuRef.current.contains(e.target) &&        // click outside menu
+        !e.target.closest('button[aria-label="פתח תפריט"]') // but not the hamburger button
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutsideMenu);
+    return () => document.removeEventListener('mousedown', onClickOutsideMenu);
+  }, [isMenuOpen]);
 
   const handleSignIn = () => window.location.href = '/login';
   const handleSignOut = async () => {
@@ -344,13 +362,14 @@ export default function Navigation() {
           aria-hidden="true"
         />
          {/* --- Mobile Menu Content --- */}
-        <div
-          className={cn(
-            'fixed top-0 right-0 h-full w-72 z-50 bg-red-900 transform transition-transform duration-300 ease-in-out flex flex-col',
-            isMenuOpen ? 'translate-x-0' : 'translate-x-full'
-          )}
-          dir="rtl" // Apply RTL direction to the mobile menu
-        >
+          <div
+            ref={menuRef}    
+            className={cn(
+              'fixed top-0 right-0 h-full w-72 z-50 bg-red-900 transform transition-transform duration-300 ease-in-out flex flex-col',
+              isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+            )}
+            dir="rtl"
+          >
           <div className="flex justify-between items-center p-4 border-b border-white/20">
             <a href="/" className="flex items-center gap-2">
               <img src="/logoo.svg" alt="לגלות את האור - הנני" className="h-10 w-auto" />
