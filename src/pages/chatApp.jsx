@@ -1199,25 +1199,7 @@ export default function ChatApp() {
           className={`flex-1 md:block ${mobilePanel === 'chat' || mobilePanel === 'selected inquiry' || mobilePanel === 'new inquiry' ? 'block' : 'hidden'} h-full transition-all duration-500 ease-in-out`}
           style={{ minWidth: 0 }}
         >
-          {/* Mobile back button */}
-          {typeof window !== 'undefined' && window.innerWidth < 768 && (selectedConversation || selectedInquiry) && (
-            <button
-              className="md:hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded mb-2 mt-2 ml-2 transition-colors"
-              onClick={() => {
-                if (selectedInquiry) {
-                  setMobilePanel('inquiries list');
-                  setSelectedInquiry(null);
-                  navigate('/chat/inquiry');
-                } else {
-                  setMobilePanel('conversations');
-                  setSelectedConversation(null);
-                  navigate('/chat');
-                }
-              }}
-            >
-              ← חזרה לרשימת {selectedInquiry ? 'פניות' : 'שיחות'}
-            </button>
-          )}
+          
           <div className={`flex-1 flex flex-col h-full`}>
             <ChatArea 
               selectedConversation={selectedConversation}
