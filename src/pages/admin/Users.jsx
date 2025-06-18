@@ -328,11 +328,11 @@ async function cascadeDeleteUser(uid, db) {
   try {
     // Delete user document
     await deleteDoc(doc(db, "users", uid));
-    console.log(`User ${uid} deleted from users collection.`);
+    //(`User ${uid} deleted from users collection.`);
 
     // Delete profile document
     await deleteDoc(doc(db, "profiles", uid));
-    console.log(`Profile ${uid} deleted.`);
+    //(`Profile ${uid} deleted.`);
 
     // Delete all messages in conversations
     const messagesRef = collection(db, "conversations", uid, "messages");
@@ -341,7 +341,7 @@ async function cascadeDeleteUser(uid, db) {
       await deleteDoc(doc(db, "conversations", uid, "messages", msgDoc.id));
     }
     await deleteDoc(doc(db, "conversations", uid));
-    console.log(`Messages for user ${uid} deleted.`);
+    //(`Messages for user ${uid} deleted.`);
 
     // Delete posts and their comments
     const postsQuery = query(collection(db, "posts"), where("authorId", "==", uid));
@@ -356,7 +356,7 @@ async function cascadeDeleteUser(uid, db) {
       // Delete the post itself
       await deleteDoc(doc(db, "posts", postDoc.id));
     }
-    console.log(`Posts and comments for user ${uid} deleted.`);
+    //(`Posts and comments for user ${uid} deleted.`);
 
     // Delete comments by this user in other posts
     const allPostsQuery = query(collection(db, "posts"));
@@ -370,7 +370,7 @@ async function cascadeDeleteUser(uid, db) {
         }
       }
     }
-    console.log(`Comments by user ${uid} in other posts deleted.`);
+    //(`Comments by user ${uid} in other posts deleted.`);
 
     // Delete mentorship relationships
     const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", uid));
@@ -384,7 +384,7 @@ async function cascadeDeleteUser(uid, db) {
     for (const msDoc of participantSnapshot.docs) {
       await deleteDoc(doc(db, "mentorship", msDoc.id));
     }
-    console.log(`Mentorship relationships for user ${uid} deleted.`);
+    //(`Mentorship relationships for user ${uid} deleted.`);
 
     // Delete any other user-related data
     // Add more collections as needed

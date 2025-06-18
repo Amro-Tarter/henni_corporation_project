@@ -305,7 +305,7 @@ const PendingUsersModal = ({ onClose }) => {
           role: selectedRole,
           ...(selectedRole === "participant" && { associatedMentor: mentorId || null }),
         });
-        console.log('Profile created for user:', roleSelectionUser.id);
+        //('Profile created for user:', roleSelectionUser.id);
       } else {
         const profileUpdateData = {
           role: selectedRole,

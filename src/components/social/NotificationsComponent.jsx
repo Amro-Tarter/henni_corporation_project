@@ -21,7 +21,7 @@ export const useNotifications = () => {
 
 // Provider component
 export const NotificationsProvider = ({ children }) => {
-  console.log('NotificationsProvider mounted');
+  //('NotificationsProvider mounted');
   const [notifications, setNotifications] = useState([]);
   const [profilePictures, setProfilePictures] = useState({});
   const [showNotifications, setShowNotifications] = useState(false);
@@ -48,7 +48,7 @@ export const NotificationsProvider = ({ children }) => {
   // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      console.log('Auth state changed:', currentUser);
+      //('Auth state changed:', currentUser);
       setUser(currentUser);
       setLoading(false);
     });
@@ -58,7 +58,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // Fetch user profile to get following list
   useEffect(() => {
-    console.log('useEffect: getUserProfile, user:', user);
+    //('useEffect: getUserProfile, user:', user);
     if (!user) return;
 
     const getUserProfile = async () => {
@@ -77,7 +77,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // On mount, fetch seenPostNotifications from Firestore
   useEffect(() => {
-    console.log('useEffect: fetchSeenPosts, user:', user);
+    //('useEffect: fetchSeenPosts, user:', user);
     if (!user) return;
     
     const fetchSeenPosts = async () => {
@@ -101,7 +101,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // Fetch user's posts and posts they've commented on
   useEffect(() => {
-    console.log('useEffect: getUserPostsAndComments, user:', user);
+    //('useEffect: getUserPostsAndComments, user:', user);
     if (!user) return;
 
     const fetchUserPostsAndComments = async () => {
@@ -131,7 +131,7 @@ export const NotificationsProvider = ({ children }) => {
         });
         setUserCommentedPosts(commentedPostIds);
 
-        console.log('User posts:', userPostIds.size, 'User commented posts:', commentedPostIds.size);
+        //('User posts:', userPostIds.size, 'User commented posts:', commentedPostIds.size);
       } catch (error) {
         console.error('Error fetching user posts and comments:', error);
       }
@@ -142,7 +142,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // Fetch seen comment notifications
   useEffect(() => {
-    console.log('useEffect: fetchSeenComments, user:', user);
+    //('useEffect: fetchSeenComments, user:', user);
     if (!user) return;
     
     const fetchSeenComments = async () => {
@@ -166,7 +166,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // Listen for conversations/messages
   useEffect(() => {
-    console.log('useEffect: conversations/messages, user:', user);
+    //('useEffect: conversations/messages, user:', user);
     if (!user) return;
 
     const conversationsQuery = query(
@@ -176,18 +176,18 @@ export const NotificationsProvider = ({ children }) => {
 
     const unsubscribe = onSnapshot(conversationsQuery, async (snapshot) => {
       try {
-        console.log('🔔 onSnapshot: conversations, docs:', snapshot.docs.length);
+        //('🔔 onSnapshot: conversations, docs:', snapshot.docs.length);
         const notificationList = [];
         let totalUnread = 0;
         let messageUnread = 0;
 
         for (const conversationDoc of snapshot.docs) {
           const conversation = conversationDoc.data();
-          console.log('📝 Processing conversation:', conversationDoc.id, {
-            type: conversation.type,
-            unread: conversation.unread,
-            userUnreadCount: conversation.unread?.[user.uid]
-          });
+          //('📝 Processing conversation:', conversationDoc.id, {
+          //  type: conversation.type,
+          //  unread: conversation.unread,
+          //  userUnreadCount: conversation.unread?.[user.uid]
+          //});
           
           // Keep handling unread messages from all conversation types (direct, group, community)
           if (conversation.unread && conversation.unread[user.uid] > 0) {
@@ -195,7 +195,7 @@ export const NotificationsProvider = ({ children }) => {
             totalUnread += unreadCount;
             messageUnread += unreadCount;
 
-            console.log(`💬 Found ${unreadCount} unread messages in conversation ${conversationDoc.id}`);
+            //(`💬 Found ${unreadCount} unread messages in conversation ${conversationDoc.id}`);
 
             try {
               const messagesQuery = query(
@@ -205,7 +205,7 @@ export const NotificationsProvider = ({ children }) => {
               );
               
               const messagesSnapshot = await getDocs(messagesQuery);
-              console.log(`📨 Messages in conversation ${conversationDoc.id}:`, messagesSnapshot.docs.length);
+              //(`📨 Messages in conversation ${conversationDoc.id}:`, messagesSnapshot.docs.length);
               
               if (!messagesSnapshot.empty) {
                 let conversationName = '';
@@ -234,7 +234,7 @@ export const NotificationsProvider = ({ children }) => {
                   ...doc.data()
                 }));
                 
-                console.log('📨 Latest messages:', allMessages.slice(0, 3));
+                //('📨 Latest messages:', allMessages.slice(0, 3));
 
                 // More flexible message filtering
                 const messages = allMessages.filter(msg => {
@@ -251,7 +251,7 @@ export const NotificationsProvider = ({ children }) => {
                   return false;
                 }).slice(0, unreadCount);
 
-                console.log(`✅ Filtered messages for notifications (${messages.length}):`, messages);
+                //(`✅ Filtered messages for notifications (${messages.length}):`, messages);
 
                 // Create notifications for valid messages
                 for (const message of messages) {
@@ -291,13 +291,13 @@ export const NotificationsProvider = ({ children }) => {
                     conversationType: conversation.type || 'direct'
                   };
 
-                  console.log('✅ Creating notification:', notification);
+                  //('✅ Creating notification:', notification);
                   notificationList.push(notification);
                 }
 
                 // If no valid messages found but we have unread count, create a generic notification
                 if (messages.length === 0 && unreadCount > 0) {
-                  console.log('⚠️ No specific messages found, creating generic notification');
+                  //('⚠️ No specific messages found, creating generic notification');
                   notificationList.push({
                     id: `${conversationDoc.id}_generic`,
                     type: 'message',
@@ -312,7 +312,7 @@ export const NotificationsProvider = ({ children }) => {
                   });
                 }
               } else {
-                console.log(`⚠️ No messages found in conversation ${conversationDoc.id} despite unread count > 0`);
+                //(`⚠️ No messages found in conversation ${conversationDoc.id} despite unread count > 0`);
               }
             } catch (error) {
               console.error("❌ Error fetching message details for conversation:", conversationDoc.id, error);
@@ -321,7 +321,7 @@ export const NotificationsProvider = ({ children }) => {
           }
         }
 
-        console.log('🔔 Final notification list:', notificationList);
+        //('🔔 Final notification list:', notificationList);
 
         notificationList.sort((a, b) => {
           const timeA = a.timestamp?.toMillis?.() || a.timestamp?.getTime?.() || 0;
@@ -344,7 +344,7 @@ export const NotificationsProvider = ({ children }) => {
         setMessageUnreadCount(messageUnread);
         setUnreadCount(messageUnread + postUnreadCount + commentUnreadCount);
         
-        console.log('📊 Set messageUnreadCount:', messageUnread, 'Total unreadCount:', messageUnread + postUnreadCount + commentUnreadCount);
+        //('📊 Set messageUnreadCount:', messageUnread, 'Total unreadCount:', messageUnread + postUnreadCount + commentUnreadCount);
       } catch (error) {
         console.error('❌ Error processing notifications:', error);
         setNotifications(prev => prev.filter(n => n.type === 'post' || n.type === 'comment')); // Keep post and comment notifications
@@ -358,7 +358,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // Listen for new posts from followed users only (wait for seenPosts to load)
   useEffect(() => {
-    console.log('useEffect: posts listener, user:', user, 'userProfile:', userProfile, 'seenPostsLoaded:', seenPostsLoaded);
+    //('useEffect: posts listener, user:', user, 'userProfile:', userProfile, 'seenPostsLoaded:', seenPostsLoaded);
     if (!user || !userProfile?.following || userProfile.following.length === 0 || !seenPostsLoaded) return;
 
     const postsQuery = query(
@@ -370,7 +370,7 @@ export const NotificationsProvider = ({ children }) => {
 
     const unsubscribe = onSnapshot(postsQuery, async (snapshot) => {
       try {
-        console.log('onSnapshot: posts, docs:', snapshot.docs.length);
+        //('onSnapshot: posts, docs:', snapshot.docs.length);
         const postNotifications = [];
         
         for (const postDoc of snapshot.docs) {
@@ -438,7 +438,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // Listen for new comments on posts user is involved in
   useEffect(() => {
-    console.log('useEffect: comments listener, user:', user, 'seenCommentsLoaded:', seenCommentsLoaded, 'userPosts:', userPosts.size, 'userCommentedPosts:', userCommentedPosts.size);
+    //('useEffect: comments listener, user:', user, 'seenCommentsLoaded:', seenCommentsLoaded, 'userPosts:', userPosts.size, 'userCommentedPosts:', userCommentedPosts.size);
     if (!user || !seenCommentsLoaded || (userPosts.size === 0 && userCommentedPosts.size === 0)) return;
 
     // Combine user's posts and posts they've commented on
@@ -457,7 +457,7 @@ export const NotificationsProvider = ({ children }) => {
 
       const unsubscribe = onSnapshot(commentsQuery, async (snapshot) => {
         try {
-          console.log(`onSnapshot: comments for post ${postId}, docs:`, snapshot.docs.length);
+          //(`onSnapshot: comments for post ${postId}, docs:`, snapshot.docs.length);
           const commentNotifications = [];
 
           for (const commentDoc of snapshot.docs) {
@@ -609,7 +609,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // Fetch profile pictures
   useEffect(() => {
-    console.log('useEffect: fetchProfilePictures, notifications:', notifications.length);
+    //('useEffect: fetchProfilePictures, notifications:', notifications.length);
     const fetchProfilePictures = async () => {
       const pictures = {};
       for (const notification of notifications) {
@@ -635,7 +635,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // Modal behavior effects
   useEffect(() => {
-    console.log('useEffect: showNotifications', showNotifications);
+    //('useEffect: showNotifications', showNotifications);
     if (showNotifications) {
       const scrollY = window.scrollY;
       
@@ -655,7 +655,7 @@ export const NotificationsProvider = ({ children }) => {
   }, [showNotifications]);
 
   useEffect(() => {
-    console.log('useEffect: handleEscape, showNotifications', showNotifications);
+    //('useEffect: handleEscape, showNotifications', showNotifications);
     const handleEscape = (e) => {
       if (e.key === 'Escape' && showNotifications) {
         setShowNotifications(false);
@@ -675,7 +675,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // Helper to persist seen postId in Firestore
   const persistSeenPost = async (postId) => {
-    console.log('persistSeenPost called for postId:', postId);
+    //('persistSeenPost called for postId:', postId);
     if (!user || !postId) return;
     try {
       await updateDoc(firestoreDoc(db, 'profiles', user.uid), {
@@ -688,7 +688,7 @@ export const NotificationsProvider = ({ children }) => {
 
   // Helper to persist seen commentId in Firestore
   const persistSeenComment = async (commentId) => {
-    console.log('persistSeenComment called for commentId:', commentId);
+    //('persistSeenComment called for commentId:', commentId);
     if (!user || !commentId) return;
     try {
       await updateDoc(firestoreDoc(db, 'profiles', user.uid), {
@@ -708,7 +708,7 @@ export const NotificationsProvider = ({ children }) => {
   };
 
   const handleNotificationClick = async (notification) => {
-    console.log('handleNotificationClick:', notification);
+    //('handleNotificationClick:', notification);
     
     const notificationKey = notification.id;
     if (isProcessing || clickedNotifications[notificationKey]) return;
@@ -849,7 +849,7 @@ export const NotificationsProvider = ({ children }) => {
   };
 
   const handleClearAllNotifications = () => {
-    console.log('handleClearAllNotifications');
+    //('handleClearAllNotifications');
     if (isProcessing) return;
     
     setIsProcessing(true);
