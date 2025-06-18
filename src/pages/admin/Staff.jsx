@@ -279,7 +279,7 @@ function Staff() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-lg border border-white/20 p-6"
+                className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-lg border border-white/20 p-3"
               >
                 <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
                   <Plus className="text-green-500" size={24} />
@@ -760,42 +760,3 @@ function Staff() {
 }
 
 export default Staff;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 

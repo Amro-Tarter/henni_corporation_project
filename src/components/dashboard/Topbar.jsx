@@ -13,9 +13,9 @@ const Topbar = () => {
     <div className="w-full h-16 bg-white shadow-md flex items-center justify-between px-4 sm:px-6"> {/* Adjusted padding */}
       {/* User Greeting */}
       <div className="flex items-center gap-2 sm:gap-3 text-gray-700 font-semibold text-base sm:text-lg"> {/* Adjusted font size and gap */}
-        <FaUserCircle size={20} className="text-gray-600 sm:size-24" /> {/* Adjusted icon size */}
+        <FaUserCircle size={20} className="text-gray-600 sm:size-10" /> {/* Adjusted icon size */}
         <span className="hidden sm:inline">ברוך הבא מנהל</span> {/* Hide text on small screens */}
-        <span className="inline sm:hidden text-sm">ברוך הבא מנהל</span> {/* Show shortened text on small screens */}
+        <span className="inline sm:hidden text-sm">מנהל</span> {/* Show shortened text on small screens */}
       </div>
 
       {/* Logout Button */}

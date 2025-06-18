@@ -193,6 +193,7 @@ export default function AdminFormManager() {
             setError("לא ניתן למחוק טופס מובנה.");
             return;
         }
+        // Changed window.confirm to a custom modal later if needed, but keeping for now as per instructions.
         if (window.confirm("האם אתה בטוח שברצונך למחוק טופס זה?")) {
             setLoading(true);
             try {
@@ -234,20 +235,22 @@ export default function AdminFormManager() {
     return (
         <DashboardLayout>
             {/* Enhanced Header with Better Layout */}
-            <div className="max-w-7xl mx-auto px-4 py-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+            <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8"> {/* Added responsive padding */}
+                <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-4 sm:gap-8 mb-8"> {/* Adjusted flex direction, spacing for responsiveness */}
+
+                    {/* Left side - Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto order-2 sm:order-1"> {/* Stack buttons on mobile, row on sm+, adjust order */}
                         <button
                             onClick={() => setShowModal(true)}
-                            className="px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                            className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-sm sm:text-base"
                         >
                             <Plus size={18} />
                             טופס חדש
                         </button>
 
                         <Link
-                            to="/admin/submissions" // This link now goes to the generic submissions page where forms can be selected
-                            className="px-6 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                            to="/admin/submissions"
+                            className="w-full sm:w-auto px-4 py-2 sm:px-6 sm:py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-sm sm:text-base"
                         >
                             <Eye size={18} />
                             כל התשובות
@@ -255,29 +258,30 @@ export default function AdminFormManager() {
                     </div>
 
                     {/* Center - Title */}
-                    <div className="flex-1 text-center">
-                        <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5]"
-                        >מנהל טפסים</h1>
+                    <div className="flex-1 text-center order-1 sm:order-2 mb-4 sm:mb-0"> {/* Adjusted order, margin for responsiveness */}
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5]">
+                           מנהל טפסים
+                        </h1>
                     </div>
 
                     {/* Right side - Statistics or additional info */}
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <div className="flex items-center justify-center gap-4 text-sm text-gray-500 w-full sm:w-auto order-3"> {/* Centered on mobile, full width on mobile */}
                         <div className="text-center">
-                            <div className="font-semibold text-gray-900">{allForms.length}</div>
-                            <div>טפסים</div>
+                            <div className="font-semibold text-gray-900 text-lg">{allForms.length}</div>
+                            <div className="text-sm">טפסים</div>
                         </div>
                         <div className="text-center">
-                            <div className="font-semibold text-red-600">{builtinForms.length}</div>
-                            <div>מובנים</div>
+                            <div className="font-semibold text-red-600 text-lg">{builtinForms.length}</div>
+                            <div className="text-sm">מובנים</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Main Content */}
-            <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8"> {/* Added responsive padding */}
                 {error && (
-                    <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg">
+                    <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-400 rounded-r-lg text-sm sm:text-base"> {/* Adjusted text size */}
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
                                 <X className="h-5 w-5 text-red-400" />
@@ -291,26 +295,31 @@ export default function AdminFormManager() {
 
                 {/* Built-in Forms Section */}
                 <div className="mb-12">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-red-100 rounded-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6"> {/* Adjusted flex direction for mobile */}
+                        <div className="p-2 bg-red-100 rounded-lg flex-shrink-0">
                             <FileText size={24} className="text-red-600" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-semibold text-gray-900">טפסים מובנים</h2>
-                            <p className="text-gray-600 text-sm">טפסים מוכנים מראש לשימוש מיידי</p>
+                            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">טפסים מובנים</h2> {/* Responsive font size */}
+                            <p className="text-gray-600 text-sm sm:text-base">טפסים מוכנים מראש לשימוש מיידי</p> {/* Responsive font size */}
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {builtinForms.map((form) => (
                             <div key={form.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1">
-                                <div className="flex items-start justify-between mb-4">
-                                    <h3 className="text-lg font-semibold text-gray-900 leading-tight flex-1 ml-3">{form.title}</h3>
+                                <div className="flex items-center justify-between mb-4">
+                                    {/* Form Title - flex-grow and min-w-0 ensure it shrinks and wraps */}
+                                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900 leading-tight flex-grow ml-3 min-w-0">
+                                        {form.title}
+                                    </h3>
+
+                                    {/* Action Buttons and Tag - flex-shrink-0 ensures they maintain size */}
                                     <div className="flex items-center gap-2 flex-shrink-0">
-                                        <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">מובנה</span>
+                                        <h5 className="px-2 py-0.5 sm:px-3 sm:py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">מובנה</h5>
                                         <button
                                             onClick={() => toggleBuiltInStatus(form.id, form.built_in)}
-                                            className="p-2 bg-red-200 text-red-700 hover:bg-red-300 rounded-lg transition-colors duration-200"
+                                            className="p-1 sm:p-2 bg-red-200 text-red-700 hover:bg-red-300 rounded-lg transition-colors duration-200"
                                             title="הגדר כטופס רגיל"
                                         >
                                             <Bookmark size={16} />
@@ -318,28 +327,26 @@ export default function AdminFormManager() {
                                     </div>
                                 </div>
                                 <div className="space-y-3 mb-4">
-                                    <div className="flex items-center justify-between text-sm text-gray-600">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-sm text-gray-600"> {/* Responsive flex direction */}
                                         <span>שדות: {form.fields?.length || 0}</span>
-                                        {/* Responses count will be specific to each form's subcollection */}
-                                        <span>תגובות: {form.responses || 0}</span>
+                                        <span className="mt-1 sm:mt-0">תגובות: {form.responses || 0}</span> {/* Adjust margin for stacking */}
                                     </div>
                                     <div className="text-xs text-gray-500">
                                         נוצר: {new Date(form.createdAt?.toDate ? form.createdAt.toDate() : form.createdAt).toLocaleDateString('he-IL')}
                                     </div>
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="flex flex-col sm:flex-row gap-2"> {/* Responsive flex direction for buttons */}
                                     <Link
                                         to={`/form/${form.id}`}
-                                        className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 text-center rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2"
+                                        className="flex-1 px-3 py-2 sm:px-4 sm:py-2 bg-gray-100 text-gray-700 text-center rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                                     >
                                         <Eye size={16} />
                                         צפייה
                                     </Link>
-                                    {/* Link to specific submissions for this form */}
                                     <Link
                                         to={`/admin/submissions/${form.id}`}
-                                        className="flex-1 px-4 py-2 bg-red-50 text-red-600 text-center rounded-lg hover:bg-red-100 transition-colors duration-200 flex items-center justify-center gap-2"
+                                        className="flex-1 px-3 py-2 sm:px-4 sm:py-2 bg-red-50 text-red-600 text-center rounded-lg hover:bg-red-100 transition-colors duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                                     >
                                         <ExternalLink size={16} />
                                         תגובות
@@ -352,24 +359,24 @@ export default function AdminFormManager() {
 
                 {/* User Forms Section */}
                 <div>
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-blue-100 rounded-lg">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-6"> {/* Adjusted flex direction for mobile */}
+                        <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
                             <Plus size={24} className="text-blue-600" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-semibold text-gray-900">הטפסים שלי</h2>
-                            <p className="text-gray-600 text-sm">טפסים שיצרת ונוהל על ידך</p>
+                            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900">הטפסים שלי</h2> {/* Responsive font size */}
+                            <p className="text-gray-600 text-sm sm:text-base">טפסים שיצרת ונוהל על ידך</p> {/* Responsive font size */}
                         </div>
                     </div>
 
                     {userForms.length === 0 ? (
-                        <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                            <FileText size={48} className="mx-auto text-gray-400 mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">אין טפסים עדיין</h3>
-                            <p className="text-gray-600 mb-4">צור את הטופס הראשון שלך כדי להתחיל</p>
+                        <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 px-4 sm:px-6"> {/* Responsive padding */}
+                            <FileText size={40} className="mx-auto text-gray-400 mb-4" /> {/* Adjusted icon size */}
+                            <h3 className="text-lg sm:text-xl font-medium text-gray-900 mb-2">אין טפסים עדיין</h3> {/* Responsive font size */}
+                            <p className="text-gray-600 mb-4 text-sm sm:text-base">צור את הטופס הראשון שלך כדי להתחיל</p> {/* Responsive font size */}
                             <button
                                 onClick={() => setShowModal(true)}
-                                className="px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors duration-200"
+                                className="px-5 py-2.5 sm:px-6 sm:py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors duration-200 text-sm sm:text-base"
                             >
                                 צור טופס חדש
                             </button>
@@ -379,19 +386,24 @@ export default function AdminFormManager() {
                             {userForms.map((form) => (
                                 <div key={form.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200 transform hover:-translate-y-1">
                                     <div className="flex items-start justify-between mb-4">
-                                        <h3 className="text-lg font-semibold text-gray-900 leading-tight flex-1 ml-3">{form.title}</h3>
+                                        {/* Form Title - flex-grow and min-w-0 ensure it shrinks and wraps */}
+                                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 leading-tight flex-grow ml-3 min-w-0">
+                                            {form.title}
+                                        </h3>
+
+                                        {/* Action Buttons and Tag - flex-shrink-0 ensures they maintain size */}
                                         <div className="flex items-center gap-2 flex-shrink-0">
-                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">משלי</span>
+                                            <span className="px-2 py-0.5 sm:px-3 sm:py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">משלי</span>
                                             <button
                                                 onClick={() => toggleBuiltInStatus(form.id, form.built_in)}
-                                                className="p-2 bg-blue-200 text-blue-700 hover:bg-blue-300 rounded-lg transition-colors duration-200"
+                                                className="p-1 sm:p-2 bg-blue-200 text-blue-700 hover:bg-blue-300 rounded-lg transition-colors duration-200"
                                                 title="הגדר כטופס מובנה"
                                             >
                                                 <Bookmark size={16} />
                                             </button>
                                             <button
                                                 onClick={() => deleteForm(form.id, form.built_in)}
-                                                className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors duration-200"
+                                                className="p-1 sm:p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors duration-200"
                                                 title="מחק טופס"
                                             >
                                                 <Trash2 size={16} />
@@ -400,28 +412,26 @@ export default function AdminFormManager() {
                                     </div>
 
                                     <div className="space-y-3 mb-4">
-                                        <div className="flex items-center justify-between text-sm text-gray-600">
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-sm text-gray-600"> {/* Responsive flex direction */}
                                             <span>שדות: {form.fields?.length || 0}</span>
-                                            {/* Responses count will be specific to each form's subcollection */}
-                                            <span>תגובות: {form.responses || 0}</span>
+                                            <span className="mt-1 sm:mt-0">תגובות: {form.responses || 0}</span> {/* Adjust margin for stacking */}
                                         </div>
                                         <div className="text-xs text-gray-500">
                                             נוצר: {form.createdAt?.toDate ? form.createdAt.toDate().toLocaleDateString('he-IL') : new Date(form.createdAt).toLocaleDateString('he-IL')}
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2"> {/* Responsive flex direction for buttons */}
                                         <Link
                                             to={`/form/${form.id}`}
-                                            className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 text-center rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2"
+                                            className="flex-1 px-3 py-2 sm:px-4 sm:py-2 bg-gray-100 text-gray-700 text-center rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                                         >
                                             <Eye size={16} />
                                             צפייה
                                         </Link>
-                                        {/* Link to specific submissions for this form */}
                                         <Link
                                             to={`/admin/submissions/${form.id}`}
-                                            className="flex-1 px-4 py-2 bg-blue-50 text-blue-600 text-center rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-2"
+                                            className="flex-1 px-3 py-2 sm:px-4 sm:py-2 bg-blue-50 text-blue-600 text-center rounded-lg hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-2 text-sm sm:text-base"
                                         >
                                             <ExternalLink size={16} />
                                             תגובות
@@ -436,21 +446,21 @@ export default function AdminFormManager() {
 
             {/* Modal for Creating New Form */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 rounded-t-xl">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"> {/* Add padding for very small screens */}
+                    <div className="bg-white rounded-xl max-w-xl md:max-w-4xl w-full max-h-[90vh] overflow-y-auto"> {/* Adjusted max-w for responsiveness */}
+                        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 sm:p-6 rounded-t-xl"> {/* Adjusted padding */}
                             <div className="flex items-center justify-between">
-                                <h2 className="text-2xl font-bold text-gray-900">צור טופס חדש</h2>
+                                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">צור טופס חדש</h2> {/* Responsive font size */}
                                 <button
                                     onClick={() => setShowModal(false)}
-                                    className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200"
+                                    className="p-1.5 sm:p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors duration-200" // Responsive padding
                                 >
                                     <X size={20} />
                                 </button>
                             </div>
                         </div>
 
-                        <div className="p-6">
+                        <div className="p-4 sm:p-6"> {/* Adjusted padding */}
                             {/* Form Title */}
                             <div className="mb-6">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -460,7 +470,7 @@ export default function AdminFormManager() {
                                     type="text"
                                     value={newFormTitle}
                                     onChange={(e) => setNewFormTitle(e.target.value)}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200"
+                                    className="w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors duration-200 text-sm sm:text-base" // Responsive padding and text size
                                     placeholder="הכנס כותרת לטופס..."
                                 />
                             </div>
@@ -468,12 +478,12 @@ export default function AdminFormManager() {
                             {/* Form Fields */}
                             <div className="space-y-6">
                                 {newFormFields.map((field, index) => (
-                                    <div key={field.id} className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                                    <div key={field.id} className="bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-6"> {/* Responsive padding */}
                                         <div className="flex items-center justify-between mb-4">
-                                            <h4 className="text-lg font-medium text-gray-900">שאלה {index + 1}</h4>
+                                            <h4 className="text-base sm:text-lg font-medium text-gray-900">שאלה {index + 1}</h4> {/* Responsive font size */}
                                             <button
                                                 onClick={() => removeQuestion(field.id)}
-                                                className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors duration-200"
+                                                className="p-1.5 sm:p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors duration-200" // Responsive padding
                                                 disabled={newFormFields.length === 1}
                                             >
                                                 <Trash2 size={16} />
@@ -489,7 +499,7 @@ export default function AdminFormManager() {
                                                     type="text"
                                                     value={field.label}
                                                     onChange={(e) => updateQuestion(field.id, "label", e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm sm:text-base" // Responsive padding and text size
                                                 />
                                             </div>
                                             <div>
@@ -499,7 +509,7 @@ export default function AdminFormManager() {
                                                 <select
                                                     value={field.type}
                                                     onChange={(e) => updateQuestion(field.id, "type", e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm sm:text-base" // Responsive padding and text size
                                                 >
                                                     {QUESTION_TYPES.map((type) => (
                                                         <option key={type.key} value={type.key}>
@@ -530,7 +540,7 @@ export default function AdminFormManager() {
                                                     <label className="text-sm font-medium text-gray-700">אפשרויות</label>
                                                     <button
                                                         onClick={() => addOption(field.id)}
-                                                        className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors duration-200"
+                                                        className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors duration-200" // Responsive padding
                                                     >
                                                         הוסף אפשרות
                                                     </button>
@@ -542,12 +552,12 @@ export default function AdminFormManager() {
                                                                 type="text"
                                                                 value={option}
                                                                 onChange={(e) => updateOption(field.id, optionIndex, e.target.value)}
-                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm sm:text-base" // Responsive padding and text size
                                                                 placeholder={`אפשרות ${optionIndex + 1}`}
                                                             />
                                                             <button
                                                                 onClick={() => removeOption(field.id, optionIndex)}
-                                                                className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors duration-200"
+                                                                className="p-1.5 sm:p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors duration-200" // Responsive padding
                                                             >
                                                                 <X size={16} />
                                                             </button>
@@ -564,7 +574,7 @@ export default function AdminFormManager() {
                             <div className="mt-6 text-center">
                                 <button
                                     onClick={addQuestion}
-                                    className="px-6 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200 flex items-center gap-2 mx-auto"
+                                    className="px-5 py-2.5 sm:px-6 sm:py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center gap-2 mx-auto text-sm sm:text-base" // Responsive padding and text size
                                 >
                                     <Plus size={18} />
                                     הוסף שאלה
@@ -573,18 +583,18 @@ export default function AdminFormManager() {
                         </div>
 
                         {/* Modal Footer */}
-                        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 rounded-b-xl">
-                            <div className="flex gap-3 justify-end">
+                        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 sm:p-6 rounded-b-xl"> {/* Adjusted padding */}
+                            <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end"> {/* Stack on mobile, row on sm+, reverse order */}
                                 <button
                                     onClick={() => setShowModal(false)}
-                                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200"
+                                    className="w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200 text-sm sm:text-base" // Responsive padding and text size
                                 >
                                     ביטול
                                 </button>
                                 <button
                                     onClick={saveForm}
                                     disabled={loading}
-                                    className="px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full sm:w-auto px-5 py-2.5 sm:px-6 sm:py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base" // Responsive padding and text size
                                 >
                                     {loading ? "שומר..." : "שמור טופס"}
                                 </button>
