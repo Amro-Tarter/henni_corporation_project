@@ -1118,7 +1118,7 @@ export default function ChatApp() {
 
 
   return (
-    <ThemeProvider>
+    <ThemeProvider element={currentUser.role === 'admin' || currentUser.role === 'mentor' ? 'red' : userElement}>
       {/* Notification */}
       {notification && (
         <Notification {...notification} onClose={() => setNotification(null)} />
