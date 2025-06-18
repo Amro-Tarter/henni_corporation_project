@@ -82,7 +82,7 @@ const ChatInput = memo(({
   }, []);
 
   return (
-    <div className="p-2 border-t border-gray-200 bg-white bottom-0 left-0 w-full relative mb-14 sm:mb-14 md:mb-0">
+    <div className="p-2 border-t border-gray-200 bg-white bottom-0 left-0 w-full relative mb-14 sm:mb-14 md:mb-14">
       {/* Image Preview */}
       {preview && (
         <div className="relative mb-2 sm:mb-3 border rounded p-2 bg-gray-50 overflow-x-auto max-w-full">
@@ -140,18 +140,18 @@ const ChatInput = memo(({
         </div>
 
         {/* Voice Recording Button & Controls */}
-        {!preview && !file && !newMessage.trim() && !audioURL && (
+        {!isMobile && !preview && !file && !newMessage.trim() && !audioURL && (
           <div className="flex items-center flex-shrink-0 w-auto justify-center">
             {!isRecording && (
               <button
                 type="button"
-                className={`text-gray-500 hover:text-red-600 transition-colors hover:scale-95 hover:bg-gray-100 rounded-full border border-gray-300 bg-white flex items-center justify-center ${isMobile ? 'w-9 h-9 p-1' : 'w-12 h-12 p-2'}`}
+                className={`text-gray-500 hover:text-red-600 transition-colors hover:scale-95 hover:bg-gray-100 rounded-full border border-gray-300 bg-white flex items-center justify-center w-12 h-12 p-2`}
                 style={{ color: elementColors.primary }}
                 onClick={startRecording}
                 title="הקלט הודעה קולית"
                 disabled={isUploading || isUploadingVoice}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className={isMobile ? "w-5 h-5" : "w-7 h-7"}>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="w-7 h-7">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18a4 4 0 004-4V7a4 4 0 10-8 0v7a4 4 0 004 4zm0 0v2m0 0h3m-3 0H9" />
                 </svg>
               </button>
@@ -162,7 +162,7 @@ const ChatInput = memo(({
                 <span className="text-gray-700 font-mono text-xs sm:text-sm">{formatTime(recordingTime)}</span>
                 <button
                   type="button"
-                  className={`text-white rounded-full hover:bg-gray-100 flex items-center justify-center ${isMobile ? 'w-7 h-7 p-1' : 'w-10 h-10 p-2'}`}
+                  className={`text-white rounded-full hover:bg-gray-100 flex items-center justify-center w-10 h-10 p-2`}
                   onClick={stopRecording}
                   style={{ backgroundColor: elementColors.backgroundColor }}
                 >
