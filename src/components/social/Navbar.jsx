@@ -617,7 +617,7 @@ const Navbar = ({ element }) => {
                   <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <User size={18} className="text-white" />
                   </div>
-                  <span>{user.displayName || user.email}</span>
+                  <span>{viewerProfile?.username || user.displayName || user.email}</span>
                 </div>
                 <button
                   onClick={async () => {
@@ -861,7 +861,7 @@ const Navbar = ({ element }) => {
                     <User size={18} className="text-white" />
                   </div>
                   <span className="text-sm font-medium">
-                    {user ? (user.displayName || 'החשבון שלי') : 'החשבון שלי'}
+                    {user ? (viewerProfile?.username || user.displayName || user.email || 'החשבון שלי') : 'החשבון שלי'}
                   </span>
                 </button>
 
