@@ -220,7 +220,7 @@ export default function AdminFormManager() {
             setAllForms(prev => prev.map(form =>
                 form.id === formId ? { ...form, built_in: !currentStatus } : form
             ));
-            console.log(`Form ${formId} built_in status toggled to: ${!currentStatus}`);
+            //(`Form ${formId} built_in status toggled to: ${!currentStatus}`);
         } catch (err) {
             console.error("Error toggling built-in status:", err);
             setError("שגיאה בשינוי סטטוס הטופס.");

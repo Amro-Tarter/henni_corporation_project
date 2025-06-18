@@ -51,7 +51,7 @@ const Contact = () => {
         timestamp: serverTimestamp() // Add a server-generated timestamp
       });
 
-      console.log("Document successfully written!");
+      //("Document successfully written!");
       setSubmitted(true);
       // Optionally clear the form after successful submission
       setFormData({

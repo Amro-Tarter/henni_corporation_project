@@ -28,9 +28,9 @@ import { ELEMENT_COLORS } from '../components/chat/utils/ELEMENT_COLORS';
 import { useParams, useNavigate } from "react-router-dom";
 import { badWords } from "../components/chat/utils/badWords";
 import { ThemeProvider } from '../theme/ThemeProvider.jsx'; // Use correct path
-import notificationSound from '../assets/notification.mp3';
-import inquiryNotificationSound from '../assets/inquirySound.mp3';
-import innerNoteSound from '../assets/innerNoteSound.mp3';
+import notificationSound from '@/assets/notification.mp3';
+import inquiryNotificationSound from '@/assets/inquirySound.mp3';
+import innerNoteSound from '@/assets/innerNoteSound.mp3';
 import { handleMentorCommunityMembership } from "../components/chat/utils/handleMentorCommunityMembership";
 import { handleElementCommunityChatMembership } from "../components/chat/utils/handleElementCommunityMembership";
 import Rightsidebar from "../components/social/Rightsidebar";
@@ -194,7 +194,6 @@ export default function ChatApp() {
     removeFile
   } = useFileUpload();
 
-  console.log("activeTab in chatApp:", activeTab);
 
   // --- User Search (for new chat dialog) ---
   const searchUsers = async (searchTerm) => {
@@ -479,6 +478,9 @@ export default function ChatApp() {
   }, [currentUser.uid]);
   // Utility to fetch a user's profile picture with caching and loaders
   async function fetchUserAvatar(uid) {
+    if (!uid) {
+      return 'https://www.gravatar.com/avatar/?d=mp&f=y';
+    }
     try {
       // Check if we already have it cached
       if (userAvatars[uid]) {
@@ -510,13 +512,12 @@ export default function ChatApp() {
     if (!selectedConversation || !selectedConversation.id) return;
     setIsLoadingMessages(true);
 
-    
     // Create a query to get messages for the selected conversation
     const q = query(
       collection(db, "conversations", selectedConversation.id, "messages"),
       orderBy("createdAt")
     );
-    
+
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       // Map the message documents to message objects with formatted dates
       const msgs = snapshot.docs.map((doc) => ({ 
@@ -525,22 +526,22 @@ export default function ChatApp() {
         duration: doc.data().duration || 0,
         createdAt: doc.data().createdAt?.toDate() 
       }));
-      
+
       setMessages(msgs);
-      setIsLoadingMessages(false);      // Build a set of unique sender UIDs (including currentUser)
-      const senderUids = new Set(msgs.map(m => m.sender));
-      senderUids.add(currentUser.uid);
-      
+      setIsLoadingMessages(false);
+      // Build a set of unique sender UIDs (including currentUser)
+      const senderUids = new Set(msgs.map(m => m.sender).filter(Boolean));
+      if (currentUser.uid) senderUids.add(currentUser.uid);
       // Add all participants for group/community chats
       if (selectedConversation.participants) {
-        selectedConversation.participants.forEach(uid => senderUids.add(uid));
+        selectedConversation.participants.filter(Boolean).forEach(uid => senderUids.add(uid));
       }
-      
       // Fetch avatars for all senders and participants
       const avatarEntries = await Promise.all(
-        Array.from(senderUids).map(async uid => [uid, await fetchUserAvatar(uid)])
+        Array.from(senderUids)
+          .filter(Boolean)
+          .map(async uid => [uid, await fetchUserAvatar(uid)])
       );
-      
       // Update avatar cache
       const newAvatars = Object.fromEntries(avatarEntries);
       setUserAvatars(prev => ({
@@ -548,7 +549,7 @@ export default function ChatApp() {
         ...newAvatars
       }));
     });
-    
+
     return () => unsubscribe();
   }, [selectedConversation?.id, currentUser.uid]);
 
@@ -1117,134 +1118,64 @@ export default function ChatApp() {
 
 
   return (
-    <div className="h-screen w-full flex flex-col overflow-hidden bg-gray-50">
+    <ThemeProvider>
+      {/* Notification */}
       {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={() => setNotification(null)}
-          elementColors={elementColors}
-          actions={notification.actions}
-        />
+        <Notification {...notification} onClose={() => setNotification(null)} />
       )}
-      <ThemeProvider element={currentUser.role === 'admin' || currentUser.role === 'mentor' ? 'red' : userElement}>
+
+      {/* Main Content (disabled when dialog is open) */}
+      <div
+        id="main-content"
+        className={showNewChatDialog || showNewGroupDialog ? "pointer-events-none select-none opacity-50" : ""}
+        aria-hidden={showNewChatDialog || showNewGroupDialog ? "true" : "false"}
+      >
         <Navbar element={userElement} className="hidden md:block"/>
         <Rightsidebar element={currentUser.role === 'admin' || currentUser.role === 'mentor' ? 'red' : userElement} onExpandChange={setIsRightOpen}/>
-      </ThemeProvider>
-      <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 mt-16`}>
+        <div className={`h-[calc(100vh-4rem)] w-full flex flex-row overflow-hidden bg-gray-50 mt-16`}>
 
-        {/* {currentUser.role === 'admin' && (
-          <div className="flex flex-row gap-2 right-50 fixed justify-center items-center z-50 bg-white">
-            <button
-              onClick={delete_all_conversations}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
-            >
-              מחק את כל הצ'אטים (אדמין)
-            </button>
-            <button
-              onClick={delete_all_inquiries}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
-            >
-              מחק את כל הפניות (אדמין)
-            </button>
-          </div>
-        )} */}
+          {/* {currentUser.role === 'admin' && (
+            <div className="flex flex-row gap-2 right-50 fixed justify-center items-center z-50 bg-white">
+              <button
+                onClick={delete_all_conversations}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
+              >
+                מחק את כל הצ'אטים (אדמין)
+              </button>
+              <button
+                onClick={delete_all_inquiries}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg shadow hover:bg-red-700 transition font-bold"
+              >
+                מחק את כל הפניות (אדמין)
+              </button>
+            </div>
+          )} */}
 
-      
         
-        {/* Main Panels */}
-        {/* Conversation List Panel */}
-        <div
-          className={`flex-1 md:max-w-xs md:block ${mobilePanel === 'conversations' || mobilePanel === 'inquiries list' ? 'block' : 'hidden'} md:block h-full duration-500 ease-in-out ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'} transition-all`}
-          style={{ minWidth: 0 }}
-        >
-          <ConversationList
-            currentUser={currentUser}
-            conversations={conversations}
-            selectedConversation={selectedConversation}
-            setSelectedConversation={handleSelectConversation}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            filteredConversations={showSystemCalls ? conversations.filter(c => c.type === 'system_call') : filteredConversations}
-            isLoadingConversations={isLoadingConversations}
-            setShowNewChatDialog={currentUser.role === 'admin' ? undefined : setShowNewChatDialog}
-            setShowNewGroupDialog={currentUser.role === 'admin' ? undefined : setShowNewGroupDialog}
-            getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
-            elementColorsMap={ELEMENT_COLORS}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            showSystemCalls={showSystemCalls}
-            onShowSystemCalls={() => setShowSystemCalls(true)}
-            onHideSystemCalls={() => {
-              setShowSystemCalls(false);
-              setSelectedInquiry(null);
-              navigate('/chat');
-            }}
-            selectedInquiry={selectedInquiry}
-            setSelectedInquiry={inq => {
-              setSelectedInquiry(inq);
-              if (inq) navigate(`/chat/inquiry/${inq.id}`);
-              else navigate('/chat');
-            }}
-            inquiries={inquiries}
-            isLoadingInquiries={isLoadingInquiries}
-            allConversations={conversations}
-            mobilePanel={mobilePanel}
-            setMobilePanel={setMobilePanel}
-            setNotification={setNotification}
-          />
-        </div>
-        {/* Chat Area Panel */}
-        <div
-          className={`flex-1 md:block ${mobilePanel === 'chat' || mobilePanel === 'selected inquiry' || mobilePanel === 'new inquiry' ? 'block' : 'hidden'} h-full transition-all duration-500 ease-in-out`}
-          style={{ minWidth: 0 }}
-        >
-          {/* Mobile back button */}
-          {typeof window !== 'undefined' && window.innerWidth < 768 && (selectedConversation || selectedInquiry) && (
-            <button
-              className="md:hidden flex items-center gap-2 px-3 py-2 text-sm text-gray-700 bg-gray-100 hover:bg-gray-200 rounded mb-2 mt-2 ml-2 transition-colors"
-              onClick={() => {
-                if (selectedInquiry) {
-                  setMobilePanel('inquiries list');
-                  setSelectedInquiry(null);
-                  navigate('/chat/inquiry');
-                } else {
-                  setMobilePanel('conversations');
-                  setSelectedConversation(null);
-                  navigate('/chat');
-                }
-              }}
-            >
-              ← חזרה לרשימת {selectedInquiry ? 'פניות' : 'שיחות'}
-            </button>
-          )}
-          <div className={`flex-1 flex flex-col h-full`}>
-            <ChatArea 
-              selectedConversation={selectedConversation}
+        
+          {/* Main Panels */}
+          {/* Conversation List Panel */}
+          <div
+            className={`flex-1 md:max-w-xs md:block ${mobilePanel === 'conversations' || mobilePanel === 'inquiries list' ? 'block' : 'hidden'} md:block h-full duration-500 ease-in-out ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'} transition-all`}
+            style={{ minWidth: 0 }}
+          >
+            <ConversationList
               currentUser={currentUser}
-              messages={messages}
-              newMessage={newMessage}
-              setNewMessage={setNewMessage}
-              sendMessage={sendMessage}
-              isSending={isSending}
-              isLoadingMessages={isLoadingMessages}
-              setShowNewChatDialog={currentUser.role === 'admin' ? undefined : setShowNewChatDialog}
-              getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
-              file={file}
-              preview={preview}
-              isUploading={isUploading}
-              uploadProgress={uploadProgress}
-              handleFileChange={handleFileChange}
-              removeFile={removeFile}
-              elementColors={elementColors}
-              userAvatars={userAvatars}
-              activeTab={activeTab}
-              setShowNewGroupDialog={currentUser.role === 'admin' ? undefined : setShowNewGroupDialog}
               conversations={conversations}
+              selectedConversation={selectedConversation}
               setSelectedConversation={handleSelectConversation}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              filteredConversations={showSystemCalls ? conversations.filter(c => c.type === 'system_call') : filteredConversations}
+              isLoadingConversations={isLoadingConversations}
+              setShowNewChatDialog={currentUser.role === 'admin' ? undefined : setShowNewChatDialog}
+              setShowNewGroupDialog={currentUser.role === 'admin' ? undefined : setShowNewGroupDialog}
+              getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
+              elementColorsMap={ELEMENT_COLORS}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
               showSystemCalls={showSystemCalls}
-              mobilePanel={mobilePanel}
-              setMobilePanel={setMobilePanel}
+              onShowSystemCalls={() => setShowSystemCalls(true)}
               onHideSystemCalls={() => {
                 setShowSystemCalls(false);
                 setSelectedInquiry(null);
@@ -1256,159 +1187,96 @@ export default function ChatApp() {
                 if (inq) navigate(`/chat/inquiry/${inq.id}`);
                 else navigate('/chat');
               }}
+              inquiries={inquiries}
               isLoadingInquiries={isLoadingInquiries}
+              allConversations={conversations}
+              mobilePanel={mobilePanel}
+              setMobilePanel={setMobilePanel}
               setNotification={setNotification}
             />
           </div>
-        </div>
-        {showNewChatDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
-              <h3 className="text-lg font-bold mb-4">צ'אט חדש</h3>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">שם השותף:</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded text-right"
-                    value={partnerName}
-                    onChange={(e) => handlePartnerSearch(e.target.value)}
-                    placeholder="הזן שם"
-                  />
-                  {isSearching && (
-                    <div className="absolute left-2 top-3">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
-                    </div>
-                  )}
-                  {searchResults.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
-                      {searchResults.map((user) => (
-                        <div
-                          key={user.id}
-                          className="p-2 hover:bg-gray-100 cursor-pointer text-right flex items-center gap-2"
-                          onClick={() => {
-                            setPartnerName(user.username);
-                            setSelectedUser(user);
-                            setSearchResults([]);
-                          }}
-                        >
-                          {user.photoURL && (
-                            <img src={user.photoURL} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
-                          )}
-                          <span>{user.username}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  className='px-4 py-2 text-white rounded-lg hover:scale-105 disabled:opacity-50'
-                  onClick={createNewConversation}
-                  disabled={!selectedUser}
-                  style={{ 
-                    backgroundColor: elementColors.primary
-                  }}
-                >
-                  צור
-                </button>
-                <button
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-200"
-                  onClick={() => {
-                    setShowNewChatDialog(false);
-                    setSearchResults([]);
-                  }}
-                >
-                  ביטול
-                </button>
-              </div>
+          {/* Chat Area Panel */}
+          <div
+            className={`flex-1 md:block ${mobilePanel === 'chat' || mobilePanel === 'selected inquiry' || mobilePanel === 'new inquiry' ? 'block' : 'hidden'} h-full transition-all duration-500 ease-in-out`}
+            style={{ minWidth: 0 }}
+          >
+            
+            <div className={`flex-1 flex flex-col h-full`}>
+              <ChatArea 
+                selectedConversation={selectedConversation}
+                currentUser={currentUser}
+                messages={messages}
+                newMessage={newMessage}
+                setNewMessage={setNewMessage}
+                sendMessage={sendMessage}
+                isSending={isSending}
+                isLoadingMessages={isLoadingMessages}
+                setShowNewChatDialog={currentUser.role === 'admin' ? undefined : setShowNewChatDialog}
+                getChatPartner={(participants, type, element, _unused, _unused2, groupName) => getChatPartner(participants, type, element, currentUser, conversations, groupName)}
+                file={file}
+                preview={preview}
+                isUploading={isUploading}
+                uploadProgress={uploadProgress}
+                handleFileChange={handleFileChange}
+                removeFile={removeFile}
+                elementColors={elementColors}
+                userAvatars={userAvatars}
+                activeTab={activeTab}
+                setShowNewGroupDialog={currentUser.role === 'admin' ? undefined : setShowNewGroupDialog}
+                conversations={conversations}
+                setSelectedConversation={handleSelectConversation}
+                showSystemCalls={showSystemCalls}
+                mobilePanel={mobilePanel}
+                setMobilePanel={setMobilePanel}
+                onHideSystemCalls={() => {
+                  setShowSystemCalls(false);
+                  setSelectedInquiry(null);
+                  navigate('/chat');
+                }}
+                selectedInquiry={selectedInquiry}
+                setSelectedInquiry={inq => {
+                  setSelectedInquiry(inq);
+                  if (inq) navigate(`/chat/inquiry/${inq.id}`);
+                  else navigate('/chat');
+                }}
+                isLoadingInquiries={isLoadingInquiries}
+                setNotification={setNotification}
+              />
             </div>
           </div>
-        )}
-        {showNewGroupDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
-              <h3 className="text-lg font-bold mb-4">קבוצה חדשה</h3>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">שם הקבוצה:</label>
-                <input
-                  type="text"
-                  className="w-full p-2 border rounded text-right mb-2"
-                  value={groupName}
-                  onChange={e => setGroupName(e.target.value)}
-                  placeholder="הזן שם קבוצה"
-                />
-                {/* Group avatar upload */}
-                <label className="block text-sm font-medium mb-2 mt-2">תמונת קבוצה (אופציונלי):</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="w-full p-2 border rounded text-right mb-2"
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    setGroupAvatarFile(file || null);
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = ev => setGroupAvatarPreview(ev.target.result);
-                      reader.readAsDataURL(file);
-                    } else {
-                      setGroupAvatarPreview(null);
-                    }
-                  }}
-                />
-                {groupAvatarPreview && (
-                  <div className="mb-2 flex justify-center"><img src={groupAvatarPreview} alt="Group Preview" className="w-20 h-20 object-cover rounded-full border" /></div>
-                )}
-                <label className="block text-sm font-medium mb-2 mt-2">הוסף חברים:</label>
+        </div>
+      </div>
+
+      {/* Dialogs (always enabled) */}
+      {showNewChatDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
+            <h3 className="text-lg font-bold mb-4">צ'אט חדש</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">שם השותף:</label>
+              <div className="relative">
                 <input
                   type="text"
                   className="w-full p-2 border rounded text-right"
-                  value={groupUserSearch}
-                  onChange={async (e) => {
-                    setGroupUserSearch(e.target.value);
-                    if (!e.target.value.trim()) {
-                      setGroupUserResults([]);
-                      return;
-                    }
-                    setIsSearching(true);
-                    // Get all users and filter client-side for better search
-                    const usersRef = collection(db, "users");
-                    const snapshot = await getDocs(usersRef);
-                    const results = snapshot.docs
-                      .filter(doc => {
-                        const username = doc.data().username || '';
-                        return doc.id !== currentUser.uid && 
-                               !selectedGroupUsers.some(u => u.id === doc.id) &&
-                               username.toLowerCase().includes(e.target.value.toLowerCase()) &&
-                               doc.data().role !== 'admin' &&
-                               doc.data().role !== 'staff';
-                      })
-                      .map(doc => ({
-                        id: doc.id,
-                        username: doc.data().username,
-                        photoURL: doc.data().photoURL
-                      }));
-                    setGroupUserResults(results);
-                    setIsSearching(false);
-                  }}
-                  placeholder="חפש משתמשים"
+                  value={partnerName}
+                  onChange={(e) => handlePartnerSearch(e.target.value)}
+                  placeholder="הזן שם"
                 />
                 {isSearching && (
                   <div className="absolute left-2 top-3">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
                   </div>
                 )}
-                {groupUserResults.length > 0 && (
+                {searchResults.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
-                    {groupUserResults.map((user) => (
+                    {searchResults.map((user) => (
                       <div
                         key={user.id}
                         className="p-2 hover:bg-gray-100 cursor-pointer text-right flex items-center gap-2"
                         onClick={() => {
-                          setSelectedGroupUsers([...selectedGroupUsers, user]);
-                          setGroupUserResults([]);
-                          setGroupUserSearch("");
+                          setPartnerName(user.username);
+                          setSelectedUser(user);
+                          setSearchResults([]);
                         }}
                       >
                         {user.photoURL && (
@@ -1419,83 +1287,169 @@ export default function ChatApp() {
                     ))}
                   </div>
                 )}
-                {selectedGroupUsers.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {selectedGroupUsers.map(user => (
-                      <div key={user.id} className="flex items-center gap-1 bg-gray-200 px-2 py-1 rounded-full">
-                        {user.username}
-                        <button className="ml-1 text-red-500" onClick={() => setSelectedGroupUsers(selectedGroupUsers.filter(u => u.id !== user.id))}>×</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-              <div className="flex gap-2">
-                <button
-                  className='px-4 py-2 text-white rounded-lg hover:scale-105 disabled:opacity-50'
-                  onClick={async () => {
-                    if (!groupName.trim()) return;
-                    try {
-                      const batch = writeBatch(db);
-                      const groupRef = doc(collection(db, "conversations"));
-                      const adminUid = currentUser.uid;
-                      const participants = [adminUid, ...selectedGroupUsers.map(u => u.id)];
-                      const participantNames = [currentUser.username, ...selectedGroupUsers.map(u => u.username)];
-                      const groupData = {
-                        type: "group",
-                        name: groupName.trim(),
-                        admin: adminUid,
-                        participants,
-                        participantNames,
-                        lastMessage: "",
-                        lastUpdated: serverTimestamp(),
-                        createdAt: serverTimestamp(),
-                      };
-                      batch.set(groupRef, groupData);
-                      await batch.commit();
-                      let avatarURL = null;
-                      if (groupAvatarFile) {
-                        // Upload avatar to Storage
-                        const avatarRef = storageRef(storage, `group_avatars/${groupRef.id}.jpg`);
-                        await uploadBytesResumable(avatarRef, groupAvatarFile);
-                        avatarURL = await getDownloadURL(avatarRef);
-                        await updateDoc(groupRef, { avatarURL });
-                      }
-                      const newGroupDoc = await getDoc(groupRef);
-                      setPendingSelectedConversationId(newGroupDoc.id);
-                      setShowNewGroupDialog(false);
-                      setGroupName("");
-                      setGroupUserSearch("");
-                      setGroupUserResults([]);
-                      setSelectedGroupUsers([]);
-                      setGroupAvatarFile(null);
-                      setGroupAvatarPreview(null);
-                      // Send personal system message to each added user (except admin) about group creation
-                      for (const user of selectedGroupUsers) {
-                        await addDoc(collection(db, "conversations", groupRef.id, "messages"), {
-                          text: `${currentUser.username} יצר את הקבוצה (${groupName.trim()}) והוסיפך אליה`,
-                          type: "system",
-                          systemSubtype: "personal",
-                          createdAt: serverTimestamp(),
-                          targetUid: user.id
-                        });
-                        // Increment unread count for the added user
-                        await updateDoc(groupRef, {
-                          [`unread.${user.id}`]: 1
-                        });
-                      }
-                    } catch (error) {
-                      setNotification({ message: "שגיאה ביצירת קבוצה: " + error.message, type: 'error', elementColors: elementColors });
+            </div>
+            <div className="flex gap-2">
+              <button
+                className='px-4 py-2 text-white rounded-lg hover:scale-105 disabled:opacity-50'
+                onClick={createNewConversation}
+                disabled={!selectedUser}
+                style={{ 
+                  backgroundColor: elementColors.primary
+                }}
+              >
+                צור
+              </button>
+              <button
+                className="px-4 py-2 border rounded-lg hover:bg-gray-200"
+                onClick={() => {
+                  setShowNewChatDialog(false);
+                  setSearchResults([]);
+                }}
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showNewGroupDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-96 text-right relative" dir="rtl">
+            <h3 className="text-lg font-bold mb-4">קבוצה חדשה</h3>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2">שם הקבוצה:</label>
+              <input
+                type="text"
+                className="w-full p-2 border rounded text-right mb-2"
+                value={groupName}
+                onChange={e => setGroupName(e.target.value)}
+                placeholder="הזן שם קבוצה"
+              />
+              {/* Group avatar upload */}
+              <label className="block text-sm font-medium mb-2 mt-2">תמונת קבוצה (אופציונלי):</label>
+              <input
+                type="file"
+                accept="image/*"
+                className="w-full p-2 border rounded text-right mb-2"
+                onChange={e => {
+                  const file = e.target.files[0];
+                  setGroupAvatarFile(file || null);
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = ev => setGroupAvatarPreview(ev.target.result);
+                    reader.readAsDataURL(file);
+                  } else {
+                    setGroupAvatarPreview(null);
+                  }
+                }}
+              />
+              {groupAvatarPreview && (
+                <div className="mb-2 flex justify-center"><img src={groupAvatarPreview} alt="Group Preview" className="w-20 h-20 object-cover rounded-full border" /></div>
+              )}
+              <label className="block text-sm font-medium mb-2 mt-2">הוסף חברים:</label>
+              <input
+                type="text"
+                className="w-full p-2 border rounded text-right"
+                value={groupUserSearch}
+                onChange={async (e) => {
+                  setGroupUserSearch(e.target.value);
+                  if (!e.target.value.trim()) {
+                    setGroupUserResults([]);
+                    return;
+                  }
+                  setIsSearching(true);
+                  // Get all users and filter client-side for better search
+                  const usersRef = collection(db, "users");
+                  const snapshot = await getDocs(usersRef);
+                  const results = snapshot.docs
+                    .filter(doc => {
+                      const username = doc.data().username || '';
+                      return doc.id !== currentUser.uid && 
+                             !selectedGroupUsers.some(u => u.id === doc.id) &&
+                             username.toLowerCase().includes(e.target.value.toLowerCase()) &&
+                             doc.data().role !== 'admin' &&
+                             doc.data().role !== 'staff';
+                    })
+                    .map(doc => ({
+                      id: doc.id,
+                      username: doc.data().username,
+                      photoURL: doc.data().photoURL
+                    }));
+                  setGroupUserResults(results);
+                  setIsSearching(false);
+                }}
+                placeholder="חפש משתמשים"
+              />
+              {isSearching && (
+                <div className="absolute left-2 top-3">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                </div>
+              )}
+              {groupUserResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
+                  {groupUserResults.map((user) => (
+                    <div
+                      key={user.id}
+                      className="p-2 hover:bg-gray-100 cursor-pointer text-right flex items-center gap-2"
+                      onClick={() => {
+                        setSelectedGroupUsers([...selectedGroupUsers, user]);
+                        setGroupUserResults([]);
+                        setGroupUserSearch("");
+                      }}
+                    >
+                      {user.photoURL && (
+                        <img src={user.photoURL} alt="avatar" className="w-6 h-6 rounded-full object-cover" />
+                      )}
+                      <span>{user.username}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {selectedGroupUsers.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {selectedGroupUsers.map(user => (
+                    <div key={user.id} className="flex items-center gap-1 bg-gray-200 px-2 py-1 rounded-full">
+                      {user.username}
+                      <button className="ml-1 text-red-500" onClick={() => setSelectedGroupUsers(selectedGroupUsers.filter(u => u.id !== user.id))}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                className='px-4 py-2 text-white rounded-lg hover:scale-105 disabled:opacity-50'
+                onClick={async () => {
+                  if (!groupName.trim()) return;
+                  try {
+                    const batch = writeBatch(db);
+                    const groupRef = doc(collection(db, "conversations"));
+                    const adminUid = currentUser.uid;
+                    const participants = [adminUid, ...selectedGroupUsers.map(u => u.id)];
+                    const participantNames = [currentUser.username, ...selectedGroupUsers.map(u => u.username)];
+                    const groupData = {
+                      type: "group",
+                      name: groupName.trim(),
+                      admin: adminUid,
+                      participants,
+                      participantNames,
+                      lastMessage: "",
+                      lastUpdated: serverTimestamp(),
+                      createdAt: serverTimestamp(),
+                    };
+                    batch.set(groupRef, groupData);
+                    await batch.commit();
+                    let avatarURL = null;
+                    if (groupAvatarFile) {
+                      // Upload avatar to Storage
+                      const avatarRef = storageRef(storage, `group_avatars/${groupRef.id}.jpg`);
+                      await uploadBytesResumable(avatarRef, groupAvatarFile);
+                      avatarURL = await getDownloadURL(avatarRef);
+                      await updateDoc(groupRef, { avatarURL });
                     }
-                  }}
-                  disabled={!groupName.trim()}
-                  style={{ backgroundColor: elementColors.primary }}
-                >
-                  צור קבוצה
-                </button>
-                <button
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-200"
-                  onClick={() => {
+                    const newGroupDoc = await getDoc(groupRef);
+                    setPendingSelectedConversationId(newGroupDoc.id);
                     setShowNewGroupDialog(false);
                     setGroupName("");
                     setGroupUserSearch("");
@@ -1503,15 +1457,47 @@ export default function ChatApp() {
                     setSelectedGroupUsers([]);
                     setGroupAvatarFile(null);
                     setGroupAvatarPreview(null);
-                  }}
-                >
-                  ביטול
-                </button>
-              </div>
+                    // Send personal system message to each added user (except admin) about group creation
+                    for (const user of selectedGroupUsers) {
+                      await addDoc(collection(db, "conversations", groupRef.id, "messages"), {
+                        text: `${currentUser.username} יצר את הקבוצה (${groupName.trim()}) והוסיפך אליה`,
+                        type: "system",
+                        systemSubtype: "personal",
+                        createdAt: serverTimestamp(),
+                        targetUid: user.id
+                      });
+                      // Increment unread count for the added user
+                      await updateDoc(groupRef, {
+                        [`unread.${user.id}`]: 1
+                      });
+                    }
+                  } catch (error) {
+                    setNotification({ message: "שגיאה ביצירת קבוצה: " + error.message, type: 'error', elementColors: elementColors });
+                  }
+                }}
+                disabled={!groupName.trim()}
+                style={{ backgroundColor: elementColors.primary }}
+              >
+                צור קבוצה
+              </button>
+              <button
+                className="px-4 py-2 border rounded-lg hover:bg-gray-200"
+                onClick={() => {
+                  setShowNewGroupDialog(false);
+                  setGroupName("");
+                  setGroupUserSearch("");
+                  setGroupUserResults([]);
+                  setSelectedGroupUsers([]);
+                  setGroupAvatarFile(null);
+                  setGroupAvatarPreview(null);
+                }}
+              >
+                ביטול
+              </button>
             </div>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </ThemeProvider>
   );
 }

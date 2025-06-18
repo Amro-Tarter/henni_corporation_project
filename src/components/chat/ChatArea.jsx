@@ -48,6 +48,21 @@ export default function ChatArea({
   mobilePanel,
   ...props
 }) {
+  // All hooks must be called before any return!
+  // Lock body scroll on mobile when chat is open
+  useEffect(() => {
+    let prevOverflow;
+    if (window.innerWidth < 768) {
+      prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+    // Always return a cleanup function
+    return () => {};
+  }, []);
+
   const { showEmojiPicker, setShowEmojiPicker, emojiPickerRef } = useEmojiPicker();
   const { messagesEndRef, messagesContainerRef } = useChatScroll(messages, selectedConversation);
   const [isSendingImage, setIsSendingImage] = useState(false);
@@ -182,7 +197,7 @@ export default function ChatArea({
         }
       }
     } catch (err) {
-      console.error("Error finding mentor:", err);
+      //console.error("Error finding mentor:", err);
       if (setNotification) {
         setNotification({ message: "שגיאה בחיפוש מנחה. נסה שוב.", type: 'error', elementColors: elementColors });
         setTimeout(() => setNotification(null), 3500);
@@ -320,7 +335,7 @@ export default function ChatArea({
     if (selectedInquiry) {
       return (
         <div 
-          className={`flex-1 flex flex-col min-h-full h-full w-full p-0 ${mobilePanel === 'selected inquiry' ? 'block' : 'hidden md:block'}`}
+          className={`flex-1 flex flex-col min-h-full h-full w-full p-0 pb-10 md:pb-0 ${mobilePanel === 'selected inquiry' ? 'block' : 'hidden md:block'}`}
           dir="rtl"
         >
           <div className="flex flex-col h-full w-full items-center justify-center bg-gray-50">
@@ -422,14 +437,7 @@ export default function ChatArea({
                 <div className="mt-auto pt-6 border-t" style={{ borderColor: elementColors.primary }}>
                   <div className="flex justify-between items-center">
                     <div></div> {/* Spacer */}
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800`}>
-                      
-                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          פתוח
-                        
-                    </span>
+                    
                   </div>
                 </div>
               </div>
@@ -459,7 +467,7 @@ export default function ChatArea({
   }
 
   return (
-    <div className='flex-1 flex flex-col bg-white h-full max-h-full transition-all duration-500 ease-in-out' dir="rtl">
+    <div className='flex-1 flex flex-col bg-white h-full max-h-full transition-all duration-500 ease-in-out' dir="rtl" style={{ height: '100vh', maxHeight: '100vh', overflow: 'hidden' }}>
       {selectedConversation ? (
         <>
           <ChatHeader
@@ -503,10 +511,10 @@ export default function ChatArea({
             partnerProfilePic={getDirectAvatar()}
             mentorName={currentUser.mentorName}
           />
-          <div className="flex flex-col flex-1 min-h-0 max-h-full overflow-y-auto transition-all duration-500 ease-in-out">
+          <div className="flex flex-col flex-1 min-h-0 max-h-full overflow-y-auto transition-all duration-500 ease-in-out" style={{ height: '100%', maxHeight: '100%' }}>
             <div
               className="flex-1 overflow-y-auto pb-10 transition-all duration-500 ease-in-out"
-              style={{ backgroundColor: elementColors.background }}
+              style={{ backgroundColor: elementColors.background, height: '100%', maxHeight: '100vh', overflowY: 'auto' }}
               ref={messagesContainerRef}
             >
               {isLoadingMessages ? (

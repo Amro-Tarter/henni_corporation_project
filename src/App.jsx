@@ -59,7 +59,7 @@ const usePageTracking = () => {
         page_location: window.location.href, // The full URL of the page
         page_title: document.title // The title of the HTML document (can be set dynamically per page if desired)
       });
-      console.log(`GA4 page_view event sent for: ${location.pathname}`);
+      //(`GA4 page_view event sent for: ${location.pathname}`);
     } else {
       console.warn('Google Analytics gtag not found. Make sure it is loaded in public/index.html');
     }

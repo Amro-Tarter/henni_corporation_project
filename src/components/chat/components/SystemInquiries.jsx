@@ -130,6 +130,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
     const [recipient, setRecipient] = useState('');
     const [users, setUsers] = useState([]);
     const [inquirySystemNotification, setInquirySystemNotification] = useState(null);
+    const MAX_FILE_SIZE = 5 * 100 * 1024 * 1024; // 500MB
 
     useEffect(() => {
         const fetchUsers = async () => {
@@ -188,7 +189,30 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
     };
 
     const handleSystemCallFileChange = (e) => {
-        setSystemCallFile(e.target.files[0] || null);
+        const file = e.target.files[0] || null;
+        if (file) {
+            // Allowed types: image, video, audio, pdf, doc, docx, txt
+            const allowedTypes = [
+                'image/', 'video/', 'audio/',
+                'application/pdf',
+                'application/msword',
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'text/plain'
+            ];
+            const isAllowed = allowedTypes.some(type => file.type.startsWith(type) || file.name.endsWith('.doc') || file.name.endsWith('.docx') || file.name.endsWith('.pdf') || file.name.endsWith('.txt'));
+            if (!isAllowed) {
+                setSystemCallError('סוג הקובץ אינו נתמך. ניתן לצרף קבצי תמונה, וידאו, קול, PDF, DOC, DOCX, TXT.');
+                setSystemCallFile(null);
+                return;
+            }
+            if (file.size > MAX_FILE_SIZE) {
+                setSystemCallError('הקובץ גדול מדי. הגודל המרבי הוא 100MB.');
+                setSystemCallFile(null);
+                return;
+            }
+            setSystemCallError('');
+        }
+        setSystemCallFile(file);
     };
 
     const handleSystemCallSubmit = async (e) => {
@@ -400,7 +424,7 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
                         <div className="flex items-center gap-3">
                             <input
                                 type="file"
-                                accept=".pdf,.doc,.docx,image/*"
+                                accept=".pdf,.doc,.docx,.txt,image/*,video/*,audio/*"
                                 className="w-full border rounded-lg p-2 text-right bg-gray-50"
                                 style={{ borderColor: elementColors?.primary, background: elementColors?.light }}
                                 onChange={handleSystemCallFileChange}
