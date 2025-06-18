@@ -1114,11 +1114,11 @@ export default function ChatApp() {
   }
 
   const elementColors = ELEMENT_COLORS[currentUser.element];
-  const userElement = currentUser.element;
+  const userElement = currentUser.element; 
 
 
   return (
-    <ThemeProvider>
+    <ThemeProvider element={currentUser.role === 'admin' || currentUser.role === 'mentor' ? 'red' : userElement}>
       {/* Notification */}
       {notification && (
         <Notification {...notification} onClose={() => setNotification(null)} />
@@ -1499,5 +1499,6 @@ export default function ChatApp() {
         </div>
       )}
     </ThemeProvider>
-  );
-}
+)}
+
+
