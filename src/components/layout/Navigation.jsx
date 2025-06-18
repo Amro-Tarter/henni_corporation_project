@@ -6,8 +6,7 @@ import {
   LogIn,
   LogOut,
   User,
-  BarChart2,
-  Flame
+  X
 } from 'lucide-react';
 import { auth } from '@/config/firbaseConfig';
 import {
@@ -148,13 +147,18 @@ export default function Navigation() {
 
   return (
     <>
-     <header
+      <header
         onMouseMove={handleMouseMoveBG}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         className={cn(
-            'fixed top-0 left-0 right-0 w-full overflow-visible z-50 transition-all duration-300 bg-red-900 py-3 shadow-md',
-          isScrolled && 'backdrop-blur-sm bg-red-900/90'
+          'fixed top-0 left-0 right-0 w-full overflow-visible z-50 transition-all duration-300 py-3 shadow-md',
+          /* mobile: transparent by default; desktop: solid red */
+          'bg-transparent md:bg-red-900',
+          /* when scrolled:
+             - mobile: switch to solid red
+             - desktop: apply semi-opaque + blur */
+          isScrolled && 'bg-red-900 md:bg-red-900/90 md:backdrop-blur-sm'
         )}
         dir="rtl"
       >
@@ -319,17 +323,19 @@ export default function Navigation() {
             </div>
           </div>
 
-          <button
-            onClick={() => setIsMenuOpen(true)}
-            className="lg:hidden text-white focus:outline-none"
-            aria-label="פתח תפריט"
-          >
-            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" className="w-6 h-6">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
+          <div className="lg:hidden">
+            <button
+              onClick={() => setIsMenuOpen(true)}
+              className="text-white focus:outline-none"
+              aria-label="פתח תפריט"
+            >
+              <svg viewBox="0 0 24 24" stroke="currentColor" fill="none" className="w-6 h-6">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          </div>
         </nav>
 
         <div
@@ -337,14 +343,139 @@ export default function Navigation() {
           style={{ width: `${scrollProgress}%`, opacity: scrollProgress > 0 ? 1 : 0 }}
           aria-hidden="true"
         />
-
+         {/* --- Mobile Menu Content --- */}
         <div
           className={cn(
             'fixed top-0 right-0 h-full w-72 z-50 bg-red-900 transform transition-transform duration-300 ease-in-out flex flex-col',
             isMenuOpen ? 'translate-x-0' : 'translate-x-full'
           )}
+          dir="rtl" // Apply RTL direction to the mobile menu
         >
-          {/* ... mobile menu content ... */}
+          <div className="flex justify-between items-center p-4 border-b border-white/20">
+            <a href="/" className="flex items-center gap-2">
+              <img src="/logoo.svg" alt="לגלות את האור - הנני" className="h-10 w-auto" />
+            </a>
+            <button
+              onClick={() => setIsMenuOpen(false)}
+              className="text-white focus:outline-none"
+              aria-label="סגור תפריט"
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          <ul className="flex flex-col gap-2 p-4 text-white">
+            {sections.map(item => (
+              <li key={item.id}>
+                <span
+                  onClick={e => handleSectionClick(e, item.id)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-lg font-medium hover:bg-white/10 cursor-pointer"
+                >
+                  <span className="text-2xl">{item.icon}</span>
+                  <span>{item.label}</span>
+                </span>
+              </li>
+            ))}
+            <li>
+              <a
+                href="https://mrng.to/pFaSV3RKqT"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center bg-white text-orange-600 px-3 py-2 rounded-lg shadow-md hover:bg-orange-50 transition-all duration-200 text-lg font-medium"
+              >
+                תרמו לנו
+              </a>
+            </li>
+          </ul>
+
+          <div className="flex items-center justify-around p-4 border-t border-white/20 mt-auto">
+            <a href="tel:+972502470857" className="text-white hover:text-green-400 p-2">
+              <Phone size={24} />
+            </a>
+            <a href="https://www.instagram.com/anatzigron" target="_blank" className="text-white hover:text-pink-300 p-2">
+              <Instagram size={24} />
+            </a>
+            <a href="https://www.facebook.com/share/19ap5ErBo5/" target="_blank" className="text-white hover:text-blue-300 p-2">
+              <Facebook size={24} />
+            </a>
+          </div>
+
+          <div className="relative p-4" ref={authDropdownRef}>
+            <button
+              onClick={toggleAuthDropdown}
+              className={cn(
+                'flex items-center gap-3 text-white px-3 py-2 rounded-lg hover:bg-white/10 transition-all w-full justify-center',
+                showAuthDropdown && 'bg-white/20'
+              )}
+            >
+              <div className="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center">
+                {currentUser ? <User size={20} /> : <LogIn size={20} />}
+              </div>
+              <span className="text-base font-medium whitespace-nowrap truncate">
+                {currentUser ? (username || 'החשבון שלי') : 'התחברות'}
+              </span>
+            </button>
+            {showAuthDropdown && (
+              <div className="absolute bottom-full mb-2 right-0 w-full bg-white rounded-md shadow-lg py-1 z-50">
+                {currentUser ? (
+                  <>
+                    <div className="px-4 py-2 text-sm text-gray-600 border-b border-gray-200 truncate">
+                      {currentUser.email}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const snap = await getDoc(doc(db, 'profiles', currentUser.uid));
+                        if (snap.exists()) navigate(`/profile/${snap.data().username}`);
+                        setIsMenuOpen(false); // Close mobile menu after navigation
+                        setShowAuthDropdown(false); // Close dropdown
+                      }}
+                      className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      הפרופיל שלי
+                    </button>
+                    <a href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                       onClick={() => { setIsMenuOpen(false); setShowAuthDropdown(false); }}>
+                      הגדרות
+                    </a>
+                    {(role === 'admin' || role === 'staff') && (
+                      <button
+                        onClick={() => { handleTabClick('dashboard', '/admin'); setIsMenuOpen(false); setShowAuthDropdown(false); }}
+                        className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        לוח בקרה
+                      </button>
+                    )}
+                    <hr className="my-1 border-gray-200" />
+                    <button
+                      onClick={handleSignOut}
+                      className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                    >
+                      <LogOut size={16} className="ml-2" />
+                      התנתקות
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => { handleSignIn(); setIsMenuOpen(false); setShowAuthDropdown(false); }}
+                      className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <LogIn size={16} className="ml-2" />
+                      התחבר
+                    </button>
+                    <a href="/signUp" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                       onClick={() => { setIsMenuOpen(false); setShowAuthDropdown(false); }}>
+                      הרשמה
+                    </a>
+                    <a href="/forgot-password" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                       onClick={() => { setIsMenuOpen(false); setShowAuthDropdown(false); }}>
+                      שכחתי סיסמה
+                    </a>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
