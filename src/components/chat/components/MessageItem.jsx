@@ -368,11 +368,11 @@ const MessageItem = ({
           )}
 
 
-          {/* Timestamp and Duration on the same line, different sides */}
+          {/* Timestamp and Duration on the same line, different sides (responsive) */}
           {message.duration > 0 ? (
-            <div className="flex items-center justify-between mt-1 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center items-stretch justify-between mt-1 w-full gap-1 sm:gap-0">
               <div
-                className={`text-xs text-center px-2 py-1 rounded-full backdrop-blur-sm ${isOwn ? 'order-1' : 'order-2'}`}
+                className={`text-xs text-center px-2 py-1 rounded-full backdrop-blur-sm ${isOwn ? 'sm:order-1 order-2' : 'sm:order-2 order-1'} w-full sm:w-auto`}
                 style={{
                   color: elementColors.darkHover,
                   backgroundColor: `${elementColors.darkHover}20`,
@@ -381,7 +381,7 @@ const MessageItem = ({
               >
                 {formattedTime}
               </div>
-              <div className={`text-xs text-white font-semibold px-3 py-1 rounded-full shadow backdrop-blur-sm ${isOwn ? 'order-2' : 'order-1'}`}
+              <div className={`text-xs text-white font-semibold px-3 py-1 rounded-full shadow backdrop-blur-sm ${isOwn ? 'sm:order-2 order-1' : 'sm:order-1 order-2'} w-full sm:w-auto`}
                 style={{ letterSpacing: 1, backgroundColor: elementColors.darkHover, minWidth: 70 }}
                 aria-label={'total audio duration'}
               >
