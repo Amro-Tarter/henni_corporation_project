@@ -1,11 +1,147 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaUserClock, FaTimes, FaCheck, FaMapMarkerAlt, FaUser, FaEnvelope, FaPhone, FaCalendarAlt, FaSearch, FaUsers } from 'react-icons/fa';
+import { FaUserClock, FaTimes, FaCheck, FaMapMarkerAlt, FaUser, FaEnvelope, FaPhone, FaCalendarAlt, FaSearch, FaUsers, FaTrash, FaExclamationTriangle } from 'react-icons/fa';
 import { doc, getDocs, collection, updateDoc, serverTimestamp, getDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { db } from '../../config/firbaseConfig';
 import { useUser } from '../../hooks/useUser';
 import { toast } from 'sonner';
 import { getFunctions, httpsCallable } from 'firebase/functions';
+
+// Rejection Confirmation Modal Component
+const RejectionConfirmationModal = ({ user, onConfirm, onCancel, isProcessing }) => {
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [notifyUser, setNotifyUser] = useState(false);
+
+  const predefinedReasons = [
+    'מידע לא מלא או לא מדויק',
+    'כפילות - משתמש כבר קיים במערכת',
+    'בקשה לא רלוונטית לתוכנית',
+    'אחר'
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[70]"
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md p-6"
+        dir="rtl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+            <FaExclamationTriangle className="text-red-600 dark:text-red-400 text-xl" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+              אישור דחיית בקשה
+            </h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              פעולה זו לא ניתנת לביטול
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+            <img
+              src={user.photoURL}
+              alt={user.displayName}
+              className="w-12 h-12 rounded-full object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`;
+              }}
+            />
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-white">{user.displayName}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300">{user.email}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+              סיבת הדחייה:
+            </label>
+            <select
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            >
+              <option value="">בחר סיבה</option>
+              {predefinedReasons.map((reason, index) => (
+                <option key={index} value={reason}>{reason}</option>
+              ))}
+            </select>
+          </div>
+
+          {rejectionReason === 'אחר' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+                פרט את הסיבה:
+              </label>
+              <textarea
+                placeholder="הכנס סיבה מפורטת לדחייה..."
+                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                rows={3}
+                onChange={(e) => setRejectionReason(e.target.value)}
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <div className="flex items-start gap-2">
+            <FaExclamationTriangle className="text-red-500 mt-0.5 flex-shrink-0" />
+            <div className="text-sm text-red-700 dark:text-red-300">
+              <p className="font-medium mb-1">שים לב:</p>
+              <ul className="space-y-1">
+                <li>• חשבון המשתמש יימחק לחלוטין מהמערכת</li>
+                <li>• כל הנתונים הקשורים יוסרו</li>
+                <li>• פעולה זו אינה ניתנת לביטול</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onCancel}
+            disabled={isProcessing}
+            className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-colors"
+          >
+            ביטול
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onConfirm(rejectionReason, notifyUser)}
+            disabled={isProcessing || !rejectionReason}
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors"
+          >
+            {isProcessing ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" />
+            ) : (
+              <FaTrash className="ml-2" />
+            )}
+            דחה בקשה
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
 
 // Role Selection Modal Component
 const RoleSelectionModal = ({ user, onConfirm, onCancel, isProcessing }) => {
@@ -196,6 +332,7 @@ const PendingUsersModal = ({ onClose }) => {
   const [sortBy, setSortBy] = useState('date');
   const [processingUserId, setProcessingUserId] = useState(null);
   const [roleSelectionUser, setRoleSelectionUser] = useState(null);
+  const [rejectionUser, setRejectionUser] = useState(null);
 
   useEffect(() => {
     loadPendingUsers();
@@ -305,7 +442,6 @@ const PendingUsersModal = ({ onClose }) => {
           role: selectedRole,
           ...(selectedRole === "participant" && { associatedMentor: mentorId || null }),
         });
-        //('Profile created for user:', roleSelectionUser.id);
       } else {
         const profileUpdateData = {
           role: selectedRole,
@@ -317,8 +453,6 @@ const PendingUsersModal = ({ onClose }) => {
         await updateDoc(profileRef, profileUpdateData);
       }
 
-
-      
       const mentorText = mentorId ? ' עם מנטור מוקצה' : '';
       toast.success(`הבקשה של ${roleSelectionUser.displayName} אושרה בהצלחה כ${getRoleDisplay(selectedRole)}${mentorText}`);
       setRoleSelectionUser(null);
@@ -331,26 +465,32 @@ const PendingUsersModal = ({ onClose }) => {
     }
   };
 
-  const handleRejectUser = async (userId, displayName) => {
-    try {
-      setProcessingUserId(userId);
-      
-      const functions = getFunctions();
-      const deleteUserFunction = httpsCallable(functions, 'deleteUser');
-      
-      // Delete user from Firebase Auth and all related documents
-      await deleteUserFunction({ uid: userId });
-      
-      // Update UI immediately without reloading
-      setPendingUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
-      toast.error(`הבקשה של ${displayName} נדחתה והוסרה`);
-    } catch (error) {
-      console.error('Error rejecting user:', error);
-      toast.error('שגיאה בדחיית הבקשה. אנא נסה שוב.');
-    } finally {
-      setProcessingUserId(null);
-    }
+  const handleRejectUser = (userToReject) => {
+    setRejectionUser(userToReject);
   };
+
+const handleConfirmReject = async (rejectionReason, notifyUser) => {
+  if (!rejectionUser) return;
+
+  try {
+    setProcessingUserId(rejectionUser.id);
+    
+    // Delete only from users collection
+    await deleteDoc(doc(db, 'users', rejectionUser.id));
+    
+    // Update UI
+    setPendingUsers(prevUsers => prevUsers.filter(user => user.id !== rejectionUser.id));
+    
+    toast.success(`הבקשה של ${rejectionUser.displayName} נדחתה`);
+    setRejectionUser(null);
+    
+  } catch (error) {
+    console.error('Error rejecting user:', error);
+    toast.error('שגיאה בדחיית הבקשה');
+  } finally {
+    setProcessingUserId(null);
+  }
+};
 
   const getRoleDisplay = (role) => {
     const roleMap = {
@@ -437,128 +577,138 @@ const PendingUsersModal = ({ onClose }) => {
                 className="w-full pr-10 pl-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
             </div>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            >
-              <option value="date">מיין לפי תאריך</option>
-              <option value="name">מיין לפי שם</option>
-              <option value="email">מיין לפי אימייל</option>
-              <option value="role">מיין לפי תפקיד</option>
-            </select>
+            <div className="flex-shrink-0">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              >
+                <option value="date">מיון לפי תאריך</option>
+                <option value="name">מיון לפי שם</option>
+                <option value="email">מיון לפי אימייל</option>
+                <option value="role">מיון לפי תפקיד</option>
+              </select>
+            </div>
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-hidden">
             {isLoading ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+              <div className="flex items-center justify-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
               </div>
             ) : filteredUsers.length === 0 ? (
-              <div className="text-center py-12">
-                <FaUserClock className="mx-auto text-6xl text-slate-300 dark:text-slate-600 mb-4" />
-                <p className="text-slate-500 dark:text-slate-400 text-lg">
-                  {searchTerm ? 'לא נמצאו תוצאות לחיפוש שלך' : 'אין בקשות הצטרפות ממתינות'}
+              <div className="text-center py-20">
+                <FaUsers className="mx-auto text-6xl text-slate-300 dark:text-slate-600 mb-4" />
+                <h3 className="text-xl font-semibold text-slate-600 dark:text-slate-300 mb-2">
+                  {searchTerm ? 'לא נמצאו תוצאות' : 'אין בקשות הצטרפות ממתינות'}
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400">
+                  {searchTerm ? 'נסה לשנות את מונחי החיפוש' : 'כל הבקשות טופלו'}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {filteredUsers.map((userItem) => (
-                  <motion.div
-                    key={userItem.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-lg border border-red-100 dark:border-red-900/30 hover:shadow-xl transition-shadow"
-                  >
-                    <div className="flex items-start gap-4 mb-4">
-                      <div className="relative">
-                        <img
-                          src={userItem.photoURL}
-                          alt={userItem.displayName}
-                          className="w-16 h-16 rounded-full object-cover border-2 border-red-200 dark:border-red-800"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userItem.displayName)}&background=random`;
-                          }}
-                          loading="lazy"
-                        />
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-red-500 border-2 border-white dark:border-slate-800" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-lg font-semibold text-slate-800 dark:text-white">
-                            {userItem.displayName}
-                          </h3>
-                          <span className={`text-xs px-2 py-1 rounded-full ${getRoleColor(userItem.role)}`}>
-                            {getRoleDisplay(userItem.role)}
-                          </span>
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center text-sm text-slate-600 dark:text-slate-300">
-                            <FaEnvelope className="ml-2 flex-shrink-0" />
-                            <span className="truncate">{userItem.email}</span>
-                          </div>
-                          {userItem.phone && (
-                            <div className="flex items-center text-sm text-slate-600 dark:text-slate-300">
-                              <FaPhone className="ml-2 flex-shrink-0" />
-                              <span dir="ltr">{userItem.phone}</span>
+              <div className="overflow-y-auto max-h-full">
+                <div className="space-y-4">
+                  {filteredUsers.map((pendingUser) => (
+                    <motion.div
+                      key={pendingUser.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4 flex-1">
+                          <img
+                            src={pendingUser.photoURL}
+                            alt={pendingUser.displayName}
+                            className="w-16 h-16 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-md"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingUser.displayName)}&background=random`;
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 truncate">
+                                {pendingUser.displayName}
+                              </h3>
+                              <span className={`text-xs px-2 py-1 rounded-full ${getRoleColor(pendingUser.role)}`}>
+                                {getRoleDisplay(pendingUser.role)}
+                              </span>
                             </div>
-                          )}
-                          {userItem.location && (
-                            <div className="flex items-center text-sm text-slate-600 dark:text-slate-300">
-                              <FaMapMarkerAlt className="ml-2 flex-shrink-0" />
-                              <span>{userItem.location}</span>
+                            
+                            <div className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                              <div className="flex items-center gap-2">
+                                <FaEnvelope className="text-slate-400 flex-shrink-0" />
+                                <span className="truncate">{pendingUser.email}</span>
+                              </div>
+                              
+                              {pendingUser.phone && (
+                                <div className="flex items-center gap-2">
+                                  <FaPhone className="text-slate-400 flex-shrink-0" />
+                                  <span>{pendingUser.phone}</span>
+                                </div>
+                              )}
+                              
+                              {pendingUser.location && (
+                                <div className="flex items-center gap-2">
+                                  <FaMapMarkerAlt className="text-slate-400 flex-shrink-0" />
+                                  <span className="truncate">{pendingUser.location}</span>
+                                </div>
+                              )}
+                              
+                              <div className="flex items-center gap-2">
+                                <FaCalendarAlt className="text-slate-400 flex-shrink-0" />
+                                <span>{formatDate(pendingUser.createdAt)}</span>
+                              </div>
                             </div>
-                          )}
-                          <div className="flex items-center text-sm text-slate-600 dark:text-slate-300">
-                            <FaCalendarAlt className="ml-2 flex-shrink-0" />
-                            <span>נרשם ב-{formatDate(userItem.createdAt)}</span>
+
+                            {pendingUser.bio && (
+                              <div className="mt-3 p-3 bg-white dark:bg-slate-700 rounded-lg">
+                                <p className="text-sm text-slate-700 dark:text-slate-300">
+                                  {pendingUser.bio}
+                                </p>
+                              </div>
+                            )}
                           </div>
                         </div>
+
+                        <div className="flex gap-2 mr-4">
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleAcceptUser(pendingUser)}
+                            disabled={processingUserId === pendingUser.id}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors text-sm"
+                          >
+                            {processingUserId === pendingUser.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                            ) : (
+                              <FaCheck />
+                            )}
+                            אשר
+                          </motion.button>
+                          
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handleRejectUser(pendingUser)}
+                            disabled={processingUserId === pendingUser.id}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors text-sm"
+                          >
+                            {processingUserId === pendingUser.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                            ) : (
+                              <FaTimes />
+                            )}
+                            דחה
+                          </motion.button>
+                        </div>
                       </div>
-                    </div>
-
-                    {userItem.bio && (
-                      <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
-                        {userItem.bio}
-                      </p>
-                    )}
-
-                    <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleAcceptUser(userItem)}
-                        disabled={processingUserId === userItem.id}
-                        className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors"
-                      >
-                        {processingUserId === userItem.id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" />
-                        ) : (
-                          <FaUsers className="ml-2" />
-                        )}
-                        אשר בקשה
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleRejectUser(userItem.id, userItem.displayName)}
-                        disabled={processingUserId === userItem.id}
-                        className="px-5 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors"
-                      >
-                        {processingUserId === userItem.id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2" />
-                        ) : (
-                          <FaTimes className="ml-2" />
-                        )}
-                        דחה בקשה
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -576,61 +726,20 @@ const PendingUsersModal = ({ onClose }) => {
           />
         )}
       </AnimatePresence>
-    </>
-  );
-};
 
-export default function PendingUsersButton() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
-  const { user } = useUser();
-
-  useEffect(() => {
-    if (user?.isAdmin) {
-      loadPendingCount();
-    }
-  }, [user]);
-
-  const loadPendingCount = async () => {
-    try {
-      const usersSnap = await getDocs(collection(db, 'users'));
-      const count = usersSnap.docs.filter(doc => !doc.data().is_active).length;
-      setPendingCount(count);
-    } catch (error) {
-      console.error('Error loading pending count:', error);
-    }
-  };
-
-  // Only show the button if user is admin
-  if (!user?.isAdmin) {
-    return null;
-  }
-
-  return (
-    <>
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => {
-          setIsModalOpen(true);
-          loadPendingCount();
-        }}
-        className="relative inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md transition-colors"
-      >
-        <FaUserClock className="ml-2" />
-        בקשות הצטרפות
-        {pendingCount > 0 && (
-          <span className="absolute -top-2 -left-2 bg-orange-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center">
-            {pendingCount}
-          </span>
-        )}
-      </motion.button>
-
+      {/* Rejection Confirmation Modal */}
       <AnimatePresence>
-        {isModalOpen && (
-          <PendingUsersModal onClose={() => setIsModalOpen(false)} />
+        {rejectionUser && (
+          <RejectionConfirmationModal
+            user={rejectionUser}
+            onConfirm={handleConfirmReject}
+            onCancel={() => setRejectionUser(null)}
+            isProcessing={processingUserId === rejectionUser.id}
+          />
         )}
       </AnimatePresence>
     </>
   );
-}
+};
+
+export default PendingUsersModal;
