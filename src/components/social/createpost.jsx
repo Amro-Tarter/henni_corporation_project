@@ -137,7 +137,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
     )}
     <div className="mb-10 flex justify-center px-4" dir="rtl">
       <div className={`w-full max-w-4xl bg-white rounded-2xl p-6 space-y-4 border border-${element}-accent`}>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit}>
           {/* Avatar + Textarea */}
           <div className="flex items-start gap-4">
             <img
@@ -206,11 +206,11 @@ const CreatePost = ({ addPost, profilePic, element }) => {
           />
 
           {/* Media & Blog Buttons */}
-          <div className="flex flex-wrap gap-4 justify-between">
+          <div className="flex flex-wrap gap-4 justify-between pt-3">
             <button
               type="button"
               onClick={() => pickMedia('video', 'video/*')}
-              className={`flex items-center gap-2 flex-1 justify-center bg-${element}-soft text-${element} border border-${element}-accent rounded-lg px-4 py-2 hover:bg-${element}-accent hover:text-white transition`}
+              className={`flex items-center gap-2 flex-1 justify-center rounded-lg px-4 py-2 transition bg-${element} text-white border border-${element} hover:shadow-lg hover:opacity-90`}
             >
               <FaVideo className="h-5 w-5" /> וידאו
             </button>
@@ -218,7 +218,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
             <button
               type="button"
               onClick={() => pickMedia('photo', 'image/*')}
-              className={`flex items-center gap-2 flex-1 justify-center bg-${element}-soft text-${element} border border-${element}-accent rounded-lg px-4 py-2 hover:bg-${element}-accent hover:text-white transition`}
+              className={`flex items-center gap-2 flex-1 justify-center rounded-lg px-4 py-2 transition bg-${element} text-white border border-${element} hover:shadow-lg hover:opacity-90`}
             >
               <FaPhotoVideo className="h-5 w-5" /> תמונה
             </button>
@@ -226,7 +226,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
             <button
               type="button"
               onClick={startBlog}
-              className={`flex items-center gap-2 flex-1 justify-center bg-${element}-soft text-${element} border border-${element}-accent rounded-lg px-4 py-2 hover:bg-${element}-accent hover:text-white transition `}
+              className={`flex items-center gap-2 flex-1 justify-center rounded-lg px-4 py-2 transition bg-${element} text-white border border-${element} hover:shadow-lg hover:opacity-90`}
             >
               <FaRegNewspaper className="h-5 w-5" /> בלוג
             </button>
@@ -234,7 +234,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
 
           {/* Media Preview */}
           {previewUrl && (
-            <div className="mt-4 flex justify-center">
+            <div className="mt-2 flex justify-center">
               {mediaType === 'photo' ? (
                 <img src={previewUrl} alt="Preview" className="max-w-xs rounded-lg shadow-md" />
               ) : (
@@ -244,7 +244,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
           )}
 
           {/* Submit + Cancel Buttons */}
-          <div className="flex justify-end">
+          <div className="flex justify-end mt-1">
             <div
               className={`flex gap-3 transition-all duration-500 ${
                 text.trim() || mediaFile ? 'opacity-100 max-h-20' : 'opacity-0 max-h-0 overflow-hidden'

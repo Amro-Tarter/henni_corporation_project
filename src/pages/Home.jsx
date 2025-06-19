@@ -798,7 +798,7 @@ const Home = () => {
 
   return (
     <ThemeProvider element={element}>
-      <div className="flex min-h-screen bg-element-base">
+      <div className="flex min-h-screen bg-gray-100">
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
           <LeftSidebar
             element={element}
@@ -821,7 +821,7 @@ const Home = () => {
           <div className={`mt-12 px-2 sm:px-4 flex justify-center transition-all duration-300 ${isLeftSidebarOpen ? 'lg:pl-50' : 'lg:pl-0'
             } ${isRightSidebarExpanded ? 'lg:pr-50' : 'lg:pr-0'
             }`}>
-            <div className="w-full max-w-4xl space-y-4 sm:space-y-6 mx-auto px-2 sm:px-4 lg:px-8 mb-16 lg:mb-0">
+            <div className="w-full max-w-4xl space-y-2 sm:space-y-3 mx-auto px-2 sm:px-4 lg:px-8 mb-16 lg:mb-0">
               {isLoading ? (
                 <div className="flex items-center justify-center h-64">
                   <ElementalLoader />
@@ -829,17 +829,17 @@ const Home = () => {
               ) : (
                 <>
                   {/* CreatePost */}
-                  <div className='pt-12'>
+                  <div className='pt-8'>
                     <CreatePost
                       addPost={addPost}
                       profilePic={profile.photoURL || '/default-avatar.png'}
                       element={element}
-                      className="shadow-md bg-element-post rounded-xl p-3 sm:p-4 w-full"
+                      className="shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-2 sm:p-4 w-full hover:-translate-y-1 border border-gray-100 mb-2"
                     />
                   </div>
                   {/* Creative Tab Navigation */}
-                  <div className="flex flex-col items-center mb-6 sm:mb-8 w-full">
-                    <div className="bg-element-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden">
+                  <div className="flex flex-col items-center w-full -mt-1">
+                    <div className="bg-white p-1 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 relative flex items-center justify-center gap-2 w-full max-w-md mx-auto overflow-hidden border border-gray-100 -mt-2">
                       {/* Sliding Underline */}
                       <div
                         className={`absolute bottom-[10px] h-[2px] bg-${element} transition-all duration-300 ease-in-out`}
@@ -854,7 +854,7 @@ const Home = () => {
                       <div className="flex-1">
                         <button
                           onClick={() => setActiveTab('all')}
-                          className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
+                          className={`relative w-full px-3 sm:px-4 py-2 rounded-xl font-semibold transition-colors duration-300
                             ${activeTab === 'all'
                               ? `text-${element} font-bold`
                               : 'text-element-text'
@@ -897,7 +897,7 @@ const Home = () => {
                       <div className="flex-1">
                         <button
                           onClick={() => setActiveTab('following')}
-                          className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
+                          className={`relative w-full px-3 sm:px-4 py-2 rounded-xl font-semibold transition-colors duration-300
                             ${activeTab === 'following'
                               ? `text-${element} font-bold`
                               : 'text-element-text'
@@ -932,18 +932,6 @@ const Home = () => {
                           </div>
                         </button>
                       </div>
-                    </div>
-
-                    {/* Posts Count Indicator */}
-                    <div className="mt-4 flex gap-4 sm:gap-8 text-sm text-element-text opacity-75 flex-wrap justify-center">
-                      <span className={`flex items-center gap-1 transition-all duration-300 ${activeTab === 'all' ? `text-${element} font-semibold` : ''
-                        }`}>
-                        <span className="font-medium">{posts.length + projects.length}</span> פוסטים כלליים
-                      </span>
-                      <span className={`flex items-center gap-1 transition-all duration-300 ${activeTab === 'following' ? `text-${element} font-semibold` : ''
-                        }`}>
-                        <span className="font-medium">{followingPosts.length + followingProjects.length}</span> פוסטים מעוקבים
-                      </span>
                     </div>
                   </div>
 
@@ -1016,7 +1004,7 @@ const Home = () => {
                           onEditComment={handleEditCommentCombined}
                           onDeleteComment={handleDeleteCommentCombined}
                           element={element}
-                          postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
+                          postClassName="shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-6 mb-6 hover:-translate-y-1 border border-gray-100"
                           getAuthorProfile={getAuthorProfile}
                           isLoading={isLoading}
                         />
