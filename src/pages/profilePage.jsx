@@ -133,7 +133,11 @@ const ProfilePage = () => {
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        if (userData.role) profileData = { ...profileData, role: userData.role };
+        profileData = {
+          ...profileData,
+          role: userData.role || profileData.role,
+          element: userData.element || profileData.element, // <-- optional merge
+        };
       }
       if (profileData) setProfile({ ...profileData, uid });
 

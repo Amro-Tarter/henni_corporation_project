@@ -160,7 +160,7 @@ const ProfileInfo = ({
           {/* Username/role/element */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
             <div className="flex items-center gap-2 sm:gap-3 text-${element}">
-              <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 text-${element}`}>{username}</h1>
+              <p className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 text-${element}`}>{username}</p>
               {/* Show info icon if user is the owner */}
               {isOwner && (
                 <Tooltip text="באפשרותך לערוך את הפרטים שלך דרך עמוד ההגדרות">
