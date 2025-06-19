@@ -361,10 +361,10 @@ const DeleteConfirmModal = ({ user, onConfirm, onCancel, isLoading }) => {
 async function cascadeDeleteUser(uid, db) {
   try {
     await deleteDoc(doc(db, "users", uid));
-    console.log(`User ${uid} deleted from users collection.`);
+    //(`User ${uid} deleted from users collection.`);
 
     await deleteDoc(doc(db, "profiles", uid));
-    console.log(`Profile ${uid} deleted.`);
+    //(`Profile ${uid} deleted.`);
 
     const messagesRef = collection(db, "conversations", uid, "messages");
     const messagesSnap = await getDocs(messagesRef);
@@ -372,7 +372,7 @@ async function cascadeDeleteUser(uid, db) {
       await deleteDoc(doc(db, "conversations", uid, "messages", msgDoc.id));
     }
     await deleteDoc(doc(db, "conversations", uid));
-    console.log(`Messages for user ${uid} deleted.`);
+    //(`Messages for user ${uid} deleted.`);
 
     const postsQuery = query(collection(db, "posts"), where("authorId", "==", uid));
     const postsSnapshot = await getDocs(postsQuery);
@@ -384,7 +384,7 @@ async function cascadeDeleteUser(uid, db) {
       }
       await deleteDoc(doc(db, "posts", postDoc.id));
     }
-    console.log(`Posts and comments for user ${uid} deleted.`);
+    //(`Posts and comments for user ${uid} deleted.`);
 
     const allPostsQuery = query(collection(db, "posts"));
     const allPostsSnapshot = await getDocs(allPostsQuery);
@@ -397,7 +397,7 @@ async function cascadeDeleteUser(uid, db) {
         }
       }
     }
-    console.log(`Comments by user ${uid} in other posts deleted.`);
+    //(`Comments by user ${uid} in other posts deleted.`);
 
     const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", uid));
     const mentorSnapshot = await getDocs(mentorQuery);
@@ -410,7 +410,7 @@ async function cascadeDeleteUser(uid, db) {
     for (const msDoc of participantSnapshot.docs) {
       await deleteDoc(doc(db, "mentorship", msDoc.id));
     }
-    console.log(`Mentorship relationships for user ${uid} deleted.`);
+    //(`Mentorship relationships for user ${uid} deleted.`);
 
     return true;
   } catch (error) {

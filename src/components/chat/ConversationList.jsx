@@ -221,7 +221,7 @@ export default function ConversationList({
   }
 
   return (
-    <div className={`w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] overflow-y-auto transition-all duration-500 ease-in-out ${mobilePanel === 'conversations' || mobilePanel === 'inquiries list' ? 'block' : 'hidden md:block'}`} dir="rtl" onClick={() => {setSelectedConversation(null); setSelectedInquiry(null);}}>
+    <div className={`w-full md:w-80 lg:w-80 z-50 shadow-md flex flex-col conversation-list bg-white h-[calc(100dvh-4rem)] transition-all duration-500 ease-in-out ${mobilePanel === 'conversations' || mobilePanel === 'inquiries list' ? 'block' : 'hidden md:block'}`} dir="rtl" onClick={() => {setSelectedConversation(null); setSelectedInquiry(null);}}>
       <div className="p-2 sm:p-4 sticky top-0 bg-white z-10 border-b border-gray-100 transition-all duration-500 ease-in-out">
         <div className="flex flex-row gap-2">
           <button
@@ -269,7 +269,7 @@ export default function ConversationList({
           <input
             type="text"
             placeholder="חיפוש"
-            className="w-full p-2 pr-8 bg-gray-100 rounded-lg text-xs md:text-sm text-right focus:ring-1 focus:outline-none transition-all duration-200"
+            className="w-full p-2 pr-8 bg-gray-100 rounded-lg text-base md:text-sm text-right focus:ring-1 focus:outline-none transition-all duration-200"
             style={{ borderColor: "transparent", outlineColor: elementColorsMap[currentUser?.element]?.primary || '#ccc' }}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -324,7 +324,7 @@ export default function ConversationList({
           )}
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto max-h-[calc(100dvh-4rem)] px-1 sm:px-2 transition-all duration-500 ease-in-out">
+        <div className="flex-1 overflow-y-auto max-h-[calc(100dvh-4rem)] px-1 sm:px-2 pb-24 md:pb-2 transition-all duration-500 ease-in-out">
         {showSystemCalls ? (
           isLoadingInquiries ? (
             <div className="p-4 text-center text-gray-500">טוען פניות...</div>
@@ -529,12 +529,11 @@ export default function ConversationList({
       {/* Floating create inquiry button for small screens */}
       {showSystemCalls && (
         <button
-          className="fixed bottom-6 right-6 z-50 bg-blue-600 text-white rounded-full shadow-lg px-6 py-3 text-lg font-bold md:hidden hover:bg-blue-700 transition-all"
+          className="fixed bottom-16 right-4 z-50 text-white rounded-full shadow-lg px-6 py-3 text-lg font-bold md:hidden transition-all"
           style={{ background: elementColorsMap[currentUser?.element]?.primary || '#2563eb' }}
           onClick={() => {
             setMobilePanel('new inquiry');
             setShowCreateInquiryDialog(true);
-
           }}
         >
           פנייה חדשה

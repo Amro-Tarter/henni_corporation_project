@@ -121,8 +121,8 @@ export default function SubmissionViewer() {
                 {formId && (
                     <>
                         <Link
-                            to="/admin/submissions"
-                            className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors mb-6"
+                            to="/admin/forms"
+                            className="inline-flex items-center px-4 py-2 bg-rose-500 text-white hover:bg-rose-600  rounded-md  transition-colors mb-6"
                         >
                             חזור לרשימת הטפסים
                         </Link>

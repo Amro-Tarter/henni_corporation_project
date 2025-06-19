@@ -97,7 +97,7 @@ const Navbar = ({ element }) => {
       if (!viewerUid) return;
 
       try {
-        console.log('Fetching viewer profile and role for:', viewerUid);
+        //('Fetching viewer profile and role for:', viewerUid);
 
         // Get the user's username first from profiles
         const profileSnap = await getDoc(doc(db, 'profiles', viewerUid));
@@ -111,7 +111,7 @@ const Navbar = ({ element }) => {
           if (!userSnapshot.empty) {
             const userData = userSnapshot.docs[0].data();
             const userRole = userData.role || null;
-            console.log('Found user role:', userRole);
+            //('Found user role:', userRole);
             setRole(userRole);
 
             // Set viewer profile with all data
@@ -121,15 +121,15 @@ const Navbar = ({ element }) => {
               role: userRole
             };
 
-            console.log('Setting viewer profile with role:', viewerProfileData);
+            //('Setting viewer profile with role:', viewerProfileData);
             setViewerProfile(viewerProfileData);
           } else {
-            console.log('No user document found for username:', username);
+            //('No user document found for username:', username);
             setRole(null);
             setViewerProfile(null);
           }
         } else {
-          console.log('No username found in profile');
+          //('No username found in profile');
           setRole(null);
           setViewerProfile(null);
         }
@@ -162,7 +162,7 @@ const Navbar = ({ element }) => {
                 if (!userSnapshot.empty) {
                   const userDoc = userSnapshot.docs[0];
                   const userData = userDoc.data();
-                  console.log('Found user data for:', profile.username, userData);
+                  //('Found user data for:', profile.username, userData);
                   return {
                     ...profile,
                     role: userData.role || null,
@@ -176,7 +176,7 @@ const Navbar = ({ element }) => {
               }
             }));
 
-            console.log('History with roles:', historyWithRoles);
+            //('History with roles:', historyWithRoles);
             setSearchHistory(historyWithRoles.filter(Boolean));
           }
         } catch (err) {
@@ -188,10 +188,10 @@ const Navbar = ({ element }) => {
   }, [user]);
 
   useEffect(() => {
-    console.log('Role state changed:', role);
+    //('Role state changed:', role);
   }, [role]);
 
-  console.log('Current role during render:', role);
+  //('Current role during render:', role);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -235,7 +235,7 @@ const Navbar = ({ element }) => {
           }
         }));
 
-        console.log('Search results with roles:', resultsWithRoles);
+        //('Search results with roles:', resultsWithRoles);
         setSearchResults(resultsWithRoles);
       } catch (err) {
         console.error('Error fetching profiles:', err);
@@ -320,7 +320,7 @@ const Navbar = ({ element }) => {
     if (!user || !profile) return;
 
     try {
-      console.log('Saving profile to history:', profile);
+      //('Saving profile to history:', profile);
 
       // Ensure we have all required fields
       if (!profile.username) {
@@ -343,7 +343,7 @@ const Navbar = ({ element }) => {
       // Add the new profile at the beginning and limit to 5
       const updatedHistory = [profileToSave, ...filteredHistory].slice(0, 5);
 
-      console.log('Updating search history:', updatedHistory);
+      //('Updating search history:', updatedHistory);
 
       // Update local state
       setSearchHistory(updatedHistory);
@@ -354,7 +354,7 @@ const Navbar = ({ element }) => {
         searchHistory: updatedHistory
       });
 
-      console.log('Successfully saved to history');
+      //('Successfully saved to history');
     } catch (err) {
       console.error('Error saving to search history:', err);
     }
@@ -362,7 +362,7 @@ const Navbar = ({ element }) => {
 
   // Add this function to handle search bar focus
   const handleSearchFocus = () => {
-    console.log('Search bar focused, showing dropdown');
+    //('Search bar focused, showing dropdown');
     setShowSearchDropdown(true);
     setShowHistory(true);
   };
@@ -372,7 +372,7 @@ const Navbar = ({ element }) => {
     const isStaff = role === 'staff';
     const isMentor = role === 'mentor';
 
-    console.log('RoleBasedNavItems rendering with:', { isAdmin, isStaff, isMentor, role });
+    //('RoleBasedNavItems rendering with:', { isAdmin, isStaff, isMentor, role });
 
     return (
       <>
@@ -593,7 +593,7 @@ const Navbar = ({ element }) => {
           <li className="pt-4 border-t border-white/10">
             <button
               onClick={() => {
-                console.log('Notification bell clicked (Navbar)');
+                //('Notification bell clicked (Navbar)');
                 setShowNotifications(true);
                 setIsMenuOpen(false);
               }}
@@ -834,7 +834,7 @@ const Navbar = ({ element }) => {
             <div className="flex items-center space-x-3 space-x-reverse border-r border-white/20 pr-4 mr-4">
               <button
                 onClick={() => {
-                  console.log('Notification bell clicked (Navbar)');
+                  //('Notification bell clicked (Navbar)');
                   setShowNotifications(true);
                 }}
                 className="relative text-white hover:text-yellow-300 transition-colors"

@@ -233,21 +233,22 @@ function Donations() {
     return (
         <DashboardLayout>
             <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
-                <div className="flex justify-center items-center mb-8 relative">
-                    <button
-                        onClick={() => setShowAddDonationForm(true)}
-                        className="flex gap-2 absolute left-0 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md transition-all duration-200"
-                    >
-                        <FontAwesomeIcon icon={faPlus} className="ml-2" />
-                        הוסף תרומה חדשה
-                    </button>
-                    <div className="flex flex-col items-center gap-4">
-                        <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5] px-6">
-                            ניהול תרומות
-                        </h1>
-                    </div>
+               <div className="flex flex-col sm:flex-row justify-center sm:justify-between items-center mb-8 relative px-4"> {/* Added px-4 for overall padding on smallest screens, adjusted flex and justify */}
+
+                <div className="flex flex-col items-center sm:items-end gap-2 sm:gap-4 w-full sm:w-auto text-center sm:text-right"> {/* Adjusted alignment and width based on dir="rtl" */}
+                    <h1 className="text-3xl sm:text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5] px-2 sm:px-6"> {/* Responsive font size, adjusted px */}
+                    ניהול תרומות
+                    </h1>
                 </div>
 
+                <button
+                    onClick={() => setShowAddDonationForm(true)}
+                    className="mt-4 sm:mt-0 flex items-center gap-2 px-4 py-2 text-sm sm:px-6 sm:py-3 sm:text-base bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md transition-all duration-200 whitespace-nowrap relative sm:static sm:left-auto"
+                >
+                    <FontAwesomeIcon icon={faPlus} className="ml-2" />
+                    הוסף תרומה חדשה
+                </button>
+                </div>
                 {showAddDonationForm && (
                     <Modal onClose={() => setShowAddDonationForm(false)}>
                         <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">טופס תרומה</h3>
