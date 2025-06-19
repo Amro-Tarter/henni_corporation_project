@@ -36,11 +36,12 @@ const ScrollDown = ({
       const element = document.getElementById(targetId);
       if (!element) return;
 
-      // Try to detect your navbar height; fallback to 80px
+      // Try to detect your navbar height; fallback to different values for mobile/desktop
       const header = document.querySelector('.navbar');
+      const isMobile = window.innerWidth < 768;
       const headerOffset = header instanceof HTMLElement
         ? header.offsetHeight
-        : 70;
+        : (isMobile ? 60 : 70);
 
       const elementPosition = element.getBoundingClientRect().top + window.scrollY;
       const offsetPosition = elementPosition - headerOffset;
@@ -58,48 +59,48 @@ const ScrollDown = ({
     }
   };
 
-  // Positioning helpers
+  // Responsive positioning helpers
   const getPositionClasses = () => {
     switch (position) {
       case "bottom-right":
-        return "fixed bottom-8 right-8";
+        return "fixed bottom-4 right-4 md:bottom-8 md:right-8";
       case "bottom-left":
-        return "fixed bottom-8 left-8";
+        return "fixed bottom-4 left-4 md:bottom-8 md:left-8";
       case "center-right":
-        return "fixed top-1/2 right-8 -translate-y-1/2";
+        return "fixed top-1/2 right-4 md:right-8 -translate-y-1/2";
       case "bottom-center":
       default:
-        return "fixed bottom-8 left-1/2 -translate-x-1/2";
+        return "fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2";
     }
   };
 
-  // Style variants
+  // Responsive style variants
   const getStyleVariant = () => {
     switch (style) {
       case "minimal":
         return {
           container: "bg-transparent",
-          button: "p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors",
-          icon: "w-8 h-8"
+          button: "p-1.5 md:p-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors",
+          icon: "w-6 h-6 md:w-8 md:h-8"
         };
       case "floating":
         return {
           container: "bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-lg border border-gray-200/50 dark:border-gray-700/50",
-          button: "p-4 text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-all hover:scale-110",
-          icon: "w-6 h-6"
+          button: "p-2.5 md:p-4 text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white transition-all hover:scale-110",
+          icon: "w-5 h-5 md:w-6 md:h-6"
         };
       case "pulsing":
         return {
           container: "bg-gradient-to-br from-blue-500/20 to-purple-600/20 backdrop-blur-sm",
-          button: "p-3 rounded-full bg-red-900 text-white shadow-lg transition-all",
-          icon: "w-7 h-7"
+          button: "p-2 md:p-3 rounded-full bg-red-900 text-white shadow-lg transition-all",
+          icon: "w-5 h-5 md:w-7 md:h-7"
         };
       case "default":
       default:
         return {
           container: "bg-gray-900/80 dark:bg-gray-800/80 backdrop-blur-sm",
-          button: "p-3 text-white hover:text-gray-200 transition-all hover:scale-105",
-          icon: "w-6 h-6"
+          button: "p-2 md:p-3 text-white hover:text-gray-200 transition-all hover:scale-105",
+          icon: "w-5 h-5 md:w-6 md:h-6"
         };
     }
   };
@@ -133,7 +134,7 @@ const ScrollDown = ({
               aria-label="Scroll down"
             >
               <motion.div
-                animate={{ y: [0, 5, 0] }}
+                animate={{ y: [0, 3, 0] }} // Reduced animation distance for mobile
                 transition={{
                   duration: 1.5,
                   repeat: Infinity,
