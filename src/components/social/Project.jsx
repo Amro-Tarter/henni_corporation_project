@@ -278,7 +278,7 @@ const Project = ({
             onClick={() => navigate(`/profile/${authorProfile?.username}`)}
           >
             <img
-              src={authorProfile?.photoURL || '/default_user_pic.jpg'}
+              src={authorProfile?.photoURL || '/profile.jpg'}
               alt={authorProfile?.username || 'משתמש'}
               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
             />
@@ -344,7 +344,7 @@ const Project = ({
                 if (!u) return null;
                 return (
                   <div key={uid} className={`flex items-center bg-${element}-soft px-2 py-1 rounded-full text-xs gap-2 border border-${element}-accent hover:bg-${element}-soft/80 transition`}>
-                    <img src={u.photoURL || '/default_user_pic.jpg'} className="w-5 h-5 rounded-full mr-1" alt={u.username} />
+                    <img src={u.photoURL || '/profile.jpg'} className="w-5 h-5 rounded-full mr-1" alt={u.username} />
                     <span className={`text-${element}-dark font-medium`}>{u.username}</span>
                     <button
                       type="button"
@@ -387,7 +387,7 @@ const Project = ({
                             setCollabSearch('');
                           }}
                         >
-                          <img src={user.photoURL || '/default_user_pic.jpg'} className="w-6 h-6 rounded-full" alt={user.username} />
+                          <img src={user.photoURL || '/profile.jpg'} className="w-6 h-6 rounded-full" alt={user.username} />
                           <span className="text-sm">{user.username}</span>
                         </div>
                       ))}
@@ -485,7 +485,7 @@ const Project = ({
                     title={`לבקר את הפרופיל של ${c.username}`}
                     tabIndex={0}
                   >
-                    <img src={c.photoURL || '/default_user_pic.jpg'} alt={c.username} className="w-6 h-6 rounded-full object-cover" />
+                    <img src={c.photoURL || '/profile.jpg'} alt={c.username} className="w-6 h-6 rounded-full object-cover" />
                     <span className="font-medium">{c.username}</span>
                   </button>
                 ))}

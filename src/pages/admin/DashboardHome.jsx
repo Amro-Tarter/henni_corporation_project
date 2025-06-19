@@ -365,7 +365,7 @@ const DashboardHome = () => {
 
   return (
     <DashboardLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 py-8 px-4 sm:px-6 lg:px-8" dir="rtl">
+      <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8" dir="rtl">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-4 mb-4">
