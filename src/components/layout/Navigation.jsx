@@ -61,9 +61,11 @@ export default function Navigation() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
   const [showAuthDropdown, setShowAuthDropdown] = useState(false);
+  const [showMobileAuthDropdown, setShowMobileAuthDropdown] = useState(false);
   const [username, setUsername] = useState('');
   const [role, setRole] = useState(null);
   const authDropdownRef = useRef(null);
+  const mobileAuthDropdownRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const menuRef  = useRef(null);   
@@ -106,10 +108,13 @@ export default function Navigation() {
       if (showAuthDropdown && authDropdownRef.current && !authDropdownRef.current.contains(e.target)) {
         setShowAuthDropdown(false);
       }
+      if (showMobileAuthDropdown && mobileAuthDropdownRef.current && !mobileAuthDropdownRef.current.contains(e.target)) {
+        setShowMobileAuthDropdown(false);
+      }
     };
     document.addEventListener('mousedown', onClickOutside);
     return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [showAuthDropdown]);
+  }, [showAuthDropdown, showMobileAuthDropdown]);
 
   // CLOSE MOBILE MENU on outside click
   useEffect(() => {
@@ -132,10 +137,27 @@ export default function Navigation() {
     await signOut(auth);
     Cookies.remove("authToken");
     setShowAuthDropdown(false);
+    setShowMobileAuthDropdown(false);
     setRole(null);
     navigate("/", { replace: true });
   };
   const toggleAuthDropdown = e => { e.stopPropagation(); setShowAuthDropdown(prev => !prev); };
+  const toggleMobileAuthDropdown = e => { e.stopPropagation(); setShowMobileAuthDropdown(prev => !prev); };
+
+  // Mobile-specific auth handlers
+  const handleMobileAuthClick = async () => {
+    if (currentUser) {
+      // If logged in, go to profile
+      if (username) {
+        navigate(`/profile/${username}`);
+        setIsMenuOpen(false);
+      }
+    } else {
+      // If not logged in, go to login page
+      navigate('/login');
+      setIsMenuOpen(false);
+    }
+  };
 
   const handleSectionClick = (e, id) => {
     e.preventDefault();
@@ -291,10 +313,12 @@ export default function Navigation() {
                         {currentUser.email}
                       </div>
                       <button
-                        onClick={async () => {
-                          const snap = await getDoc(doc(db, 'profiles', currentUser.uid));
-                          if (snap.exists()) navigate(`/profile/${snap.data().username}`);
-                        }}
+                        onClick={() => {
+                            if (username) {
+                              navigate(`/profile/${username}`);
+                              setShowAuthDropdown(false);
+                            }
+                          }}
                         className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
                         הפרופיל שלי
@@ -419,12 +443,13 @@ export default function Navigation() {
             </a>
           </div>
 
-          <div className="relative p-4" ref={authDropdownRef}>
+          {/* Mobile Auth Button - With Dropdown */}
+          <div className="relative p-4" ref={mobileAuthDropdownRef}>
             <button
-              onClick={toggleAuthDropdown}
+              onClick={toggleMobileAuthDropdown}
               className={cn(
                 'flex items-center gap-3 text-white px-3 py-2 rounded-lg hover:bg-white/10 transition-all w-full justify-center',
-                showAuthDropdown && 'bg-white/20'
+                showMobileAuthDropdown && 'bg-white/20'
               )}
             >
               <div className="w-9 h-9 bg-white/10 rounded-full flex items-center justify-center">
@@ -434,7 +459,7 @@ export default function Navigation() {
                 {currentUser ? (username || 'החשבון שלי') : 'התחברות'}
               </span>
             </button>
-            {showAuthDropdown && (
+            {showMobileAuthDropdown && (
               <div className="absolute bottom-full mb-2 right-0 w-full bg-white rounded-md shadow-lg py-1 z-50">
                 {currentUser ? (
                   <>
@@ -443,22 +468,30 @@ export default function Navigation() {
                     </div>
                     <button
                       onClick={async () => {
-                        const snap = await getDoc(doc(db, 'profiles', currentUser.uid));
-                        if (snap.exists()) navigate(`/profile/${snap.data().username}`);
-                        setIsMenuOpen(false); // Close mobile menu after navigation
-                        setShowAuthDropdown(false); // Close dropdown
+                        if (username) {
+                          navigate(`/profile/${username}`);
+                          setIsMenuOpen(false);
+                          setShowMobileAuthDropdown(false);
+                        }
                       }}
                       className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       הפרופיל שלי
                     </button>
-                    <a href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                       onClick={() => { setIsMenuOpen(false); setShowAuthDropdown(false); }}>
+                    <a 
+                      href="/settings" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => { setIsMenuOpen(false); setShowMobileAuthDropdown(false); }}
+                    >
                       הגדרות
                     </a>
                     {(role === 'admin' || role === 'staff') && (
                       <button
-                        onClick={() => { handleTabClick('dashboard', '/admin'); setIsMenuOpen(false); setShowAuthDropdown(false); }}
+                        onClick={() => { 
+                          handleTabClick('dashboard', '/admin'); 
+                          setIsMenuOpen(false); 
+                          setShowMobileAuthDropdown(false); 
+                        }}
                         className="block w-full text-right px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >
                         לוח בקרה
@@ -466,7 +499,10 @@ export default function Navigation() {
                     )}
                     <hr className="my-1 border-gray-200" />
                     <button
-                      onClick={handleSignOut}
+                      onClick={() => {
+                        handleSignOut();
+                        setIsMenuOpen(false);
+                      }}
                       className="flex w-full items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                     >
                       <LogOut size={16} className="ml-2" />
@@ -476,18 +512,28 @@ export default function Navigation() {
                 ) : (
                   <>
                     <button
-                      onClick={() => { handleSignIn(); setIsMenuOpen(false); setShowAuthDropdown(false); }}
+                      onClick={() => { 
+                        handleSignIn(); 
+                        setIsMenuOpen(false); 
+                        setShowMobileAuthDropdown(false); 
+                      }}
                       className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       <LogIn size={16} className="ml-2" />
                       התחבר
                     </button>
-                    <a href="/signUp" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                       onClick={() => { setIsMenuOpen(false); setShowAuthDropdown(false); }}>
+                    <a 
+                      href="/signUp" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => { setIsMenuOpen(false); setShowMobileAuthDropdown(false); }}
+                    >
                       הרשמה
                     </a>
-                    <a href="/forgot-password" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                       onClick={() => { setIsMenuOpen(false); setShowAuthDropdown(false); }}>
+                    <a 
+                      href="/forgot-password" 
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => { setIsMenuOpen(false); setShowMobileAuthDropdown(false); }}
+                    >
                       שכחתי סיסמה
                     </a>
                   </>
