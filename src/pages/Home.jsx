@@ -799,7 +799,7 @@ const Home = () => {
   return (
     <ThemeProvider element={element}>
       <div className="flex min-h-screen bg-gray-100">
-        <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
+        <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-[290px] border-r border-gray-200">
           <LeftSidebar
             element={element}
             viewerElement={user?.element}
@@ -810,7 +810,7 @@ const Home = () => {
           />
         </aside>
 
-        <div className={`flex-1 transition-all duration-300 lg:ml-64 ${isRightSidebarExpanded ? 'lg:mr-64' : 'lg:mr-16'}`}>
+        <div className={`flex-1 transition-all duration-300 lg:ml-[290px] ${isRightSidebarExpanded ? 'lg:mr-64' : 'lg:mr-16'}`}>
           <Navbar
             element={element}
             isLeftSidebarOpen={isLeftSidebarOpen}

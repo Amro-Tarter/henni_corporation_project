@@ -298,15 +298,15 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
   else if (viewerProfile?.role === 'participant') usersToShow = sameElementUsers;
 
   return (
-    <div className="w-64 h-[calc(100vh-56.8px)] bg-white shadow-lg overflow-y-auto">
+    <div className="w-90 h-[calc(100vh-56.8px)] bg-white shadow-lg overflow-y-auto">
       <div className="p-6">
         {/* Section Title */}
         <div className="mb-4 text-right flex items-center justify-between">
           <div>
-            <h2 className={`text-${element} text-lg mb-1 flex items-center gap-2`}>
+            <h1 className={`text-${element} text-xl mb-1 flex items-center gap-2`}>
               {elementSectionTitle}
               <span className="text-lg">{ELEMENT_ICONS[element]}</span>
-            </h2>
+            </h1>
             <div className={`w-12 h-0.5 bg-${element} rounded-full ml-auto`} />
           </div>
         </div>
@@ -336,7 +336,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
 
         {/* Chats Section Title */}
         <div className="mt-8 mb-2 text-right">
-          <h2 className={`text-${element} text-lg mb-1 flex items-center gap-2`}>
+          <h2 className={`text-${element} text-xl mb-1 flex items-center gap-2`}>
             צ'אטים
             <MessageSquare className={`w-5 h-5 text-${element}`} />
           </h2>
