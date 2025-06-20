@@ -10,6 +10,7 @@ import {
   setDoc,
   query,
   where,
+  addDoc,
 } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { Card, CardContent } from '@/components/ui/card';
@@ -30,6 +31,7 @@ import {
 import CTAButton from '@/components/CTAButton';
 import { Link } from 'react-router-dom';
 import ScrollDown from '@/components/ui/ScrollDown';
+import { toast, Toaster } from 'sonner';
 
 const DEFAULT_IMAGE = '/default_user_pic.jpg';
 
@@ -351,56 +353,66 @@ const AboutSection = ({ currentUser }) => {
       setTeamMembers(newTeam);
       setEditMode(false);
     } catch (err) {
-      alert('שגיאה בשמירת הפרופיל');
-      console.error('Error saving profile:', err);
+      toast.error('שגיאה בשמירת הפרופיל');
     }
   };
 
   // Newsletter dummy logic
-  function NewsletterModal() {
-    return (
-      <AnimatePresence>
-        {newsletterModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          >
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center relative">
-              <button
-                className="absolute top-4 left-4 bg-white rounded-full p-2 hover:bg-gray-100 shadow-md"
-                onClick={closeNewsletter}
-                aria-label="סגור"
-              >
-                <X className="h-5 w-5 text-gray-600" />
-              </button>
-              <TreePine className="mx-auto h-10 w-10 text-green-600 animate-pulse mb-2" />
-              <h2 className="font-bold text-xl mb-3 text-orange-800">הרשמה לניוזלטר</h2>
-              <form
-                onSubmit={e => {
-                  e.preventDefault();
-                  alert('נרשמת בהצלחה! (הדמיה)');
-                  closeNewsletter();
-                }}
-                className="space-y-4"
-              >
-                <input
-                  type="email"
-                  required
-                  placeholder="האימייל שלך"
-                  className="border rounded-lg px-4 py-2 w-full text-right focus:outline-none focus:border-orange-400"
-                />
-                <Button className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg py-2">
-                  הירשם
-                </Button>
-              </form>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    );
-  }
+  function NewsletterModal({ closeNewsletter }) {
+  const [email, setEmail] = useState("");
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    try {
+      // 1. Add the email to Firestore
+      await addDoc(collection(db, "newsletterSubscribers"), {
+        email,
+        createdAt: new Date(),
+      });
+      toast.success("נרשמת בהצלחה!");
+      closeNewsletter();
+    } catch (err) {
+      toast.error("אירעה שגיאה, אנא נסה שוב.");
+    }
+  };
+  return (
+        <AnimatePresence>
+          {newsletterModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            >
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center relative">
+                <button
+                  className="absolute top-4 left-4 bg-white rounded-full p-2 hover:bg-gray-100 shadow-md"
+                  onClick={closeNewsletter}
+                  aria-label="סגור"
+                >
+                  <X className="h-5 w-5 text-gray-600" />
+                </button>
+                <TreePine className="mx-auto h-10 w-10 text-green-600 animate-pulse mb-2" />
+                <h2 className="font-bold text-xl mb-3 text-orange-800">הרשמה לניוזלטר</h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                    placeholder="האימייל שלך"
+                    className="border rounded-lg px-4 py-2 w-full text-right focus:outline-none focus:border-orange-400"
+                  />
+                  <Button className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg py-2">
+                    הירשם
+                  </Button>
+                </form>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      );
+    }
 
   // Get color classes for stats
   const getColorClasses = color => {
@@ -444,7 +456,7 @@ const AboutSection = ({ currentUser }) => {
       <div className="absolute bottom-0 right-0 w-48 h-48 rounded-full bg-orange-300/15 translate-x-1/3 translate-y-1/3 blur-2xl"></div>
 
       {/* Newsletter modal */}
-      <NewsletterModal />
+      <NewsletterModal closeNewsletter={closeNewsletter} />
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
