@@ -24,7 +24,7 @@ import AirIcon from '@mui/icons-material/Air';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-import PendingUsersButton from "../../components/team/addUserButton";
+import { PendingUsersButton } from "../../components/team/addUserButton";
 import { useUser } from "../../hooks/useUser";
 import ElementalLoader from "@/theme/ElementalLoader";
 
@@ -586,6 +586,8 @@ const UserManagement = () => {
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [availableMentors, setAvailableMentors] = useState([]);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+
   const [stats, setStats] = useState({
     total: 0,
     admins: 0,
@@ -672,6 +674,10 @@ const UserManagement = () => {
     setLoading(false);
   }
 }, [currentUser]);
+  
+  const handleUserProcessed = () => {
+    fetchUsers(); // Refresh the main users list
+  };
 
   // Calculate statistics
   const calculateStats = useCallback((usersList) => {
@@ -824,7 +830,7 @@ const UserManagement = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <PendingUsersButton />
+              <PendingUsersButton onUserProcessed={handleUserProcessed} />
             </div>
           </div>
 

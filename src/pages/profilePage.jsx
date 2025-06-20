@@ -133,7 +133,11 @@ const ProfilePage = () => {
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        if (userData.role) profileData = { ...profileData, role: userData.role };
+        profileData = {
+          ...profileData,
+          role: userData.role || profileData.role,
+          element: userData.element || profileData.element, // <-- optional merge
+        };
       }
       if (profileData) setProfile({ ...profileData, uid });
 
@@ -803,10 +807,10 @@ const ProfilePage = () => {
 
   return (
     <ThemeProvider element={element}>
-      <div dir="rtl" className="min-h-screen flex flex-col bg-white">
+      <div dir="rtl" className="min-h-screen flex flex-col bg-gray-100">
         <Navbar element={element} />
         <div className="flex flex-1 pt-[56.8px]">
-          <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200 z-20">
+          <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-[290px] border-r border-gray-200 z-20">
             <LeftSidebar
               element={element}
               viewerElement={viewerElement}
@@ -820,7 +824,7 @@ const ProfilePage = () => {
             className={`
             flex-1 pt-2 space-y-12 sm:pb-6 pb-20 transition-all duration-500 ease-in-out
             px-2 sm:px-0
-            lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}
+            lg:ml-[290px] ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}
           `}
           >
             {/* Profile Info */}
