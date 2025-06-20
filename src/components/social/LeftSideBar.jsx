@@ -303,10 +303,10 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
         {/* Section Title */}
         <div className="mb-4 text-right flex items-center justify-between">
           <div>
-            <h1 className={`text-${element} text-xl mb-1 flex items-center gap-2`}>
+            <p className={`text-${element} text-xl mb-1 flex items-center gap-2`}>
               {elementSectionTitle}
               <span className="text-lg">{ELEMENT_ICONS[element]}</span>
-            </h1>
+            </p>
             <div className={`w-12 h-0.5 bg-${element} rounded-full ml-auto`} />
           </div>
         </div>
@@ -336,11 +336,11 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
 
         {/* Chats Section Title */}
         <div className="mt-8 mb-2 text-right">
-          <h2 className={`text-${element} text-xl mb-1 flex items-center gap-2`}>
+          <p className={`text-${element} text-xl mb-1 flex items-center gap-2`}>
             צ'אטים
             <MessageSquare className={`w-5 h-5 text-${element}`} />
-          </h2>
-          <div className={`w-10 h-0.5 bg-${element} rounded-full ml-auto`} />
+          </p>
+          <div className={`w-12 h-0.5 bg-${element} rounded-full ml-auto`} />
         </div>
         {/* Chats (role-based) */}
         {/* Participant */}

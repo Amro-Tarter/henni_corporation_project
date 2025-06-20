@@ -141,10 +141,10 @@ const Settings = () => {
             transition-all duration-500 ease-in-out
           `}
             >
-              <h1 className="text-3xl font-bold mb-6 flex items-center gap-2">
+              <p className="text-3xl font-bold mb-6 flex items-center gap-2">
                 <SettingsIcon className={`w-7 h-7 text-${element}`} />
                 הגדרות חשבון
-              </h1>
+              </p>
 
               <div className="space-y-6">
 
