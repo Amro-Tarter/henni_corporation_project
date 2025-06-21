@@ -8,15 +8,7 @@ import { toast } from 'sonner';
 
 // Rejection Confirmation Modal Component
 const RejectionConfirmationModal = ({ user, onConfirm, onCancel, isProcessing }) => {
-  const [rejectionReason, setRejectionReason] = useState('');
   const [notifyUser, setNotifyUser] = useState(false);
-
-  const predefinedReasons = [
-    'מידע לא מלא או לא מדויק',
-    'כפילות - משתמש כבר קיים במערכת',
-    'בקשה לא רלוונטית לתוכנית',
-    'אחר'
-  ];
 
   return (
     <motion.div
@@ -66,38 +58,6 @@ const RejectionConfirmationModal = ({ user, onConfirm, onCancel, isProcessing })
           </div>
         </div>
 
-        <div className="space-y-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
-              סיבת הדחייה:
-            </label>
-            <select
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-red-500 focus:border-transparent"
-            >
-              <option value="">בחר סיבה</option>
-              {predefinedReasons.map((reason, index) => (
-                <option key={index} value={reason}>{reason}</option>
-              ))}
-            </select>
-          </div>
-
-          {rejectionReason === 'אחר' && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
-                פרט את הסיבה:
-              </label>
-              <textarea
-                placeholder="הכנס סיבה מפורטת לדחייה..."
-                className="w-full p-3 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                rows={3}
-                onChange={(e) => setRejectionReason(e.target.value)}
-              />
-            </div>
-          )}
-        </div>
-
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
           <div className="flex items-start gap-2">
             <FaExclamationTriangle className="text-red-500 mt-0.5 flex-shrink-0" />
@@ -125,8 +85,8 @@ const RejectionConfirmationModal = ({ user, onConfirm, onCancel, isProcessing })
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => onConfirm(rejectionReason, notifyUser)}
-            disabled={isProcessing || !rejectionReason}
+            onClick={() => onConfirm( notifyUser)}
+            disabled={isProcessing}
             className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors"
           >
             {isProcessing ? (
@@ -470,7 +430,7 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
     setRejectionUser(userToReject);
   };
 
-  const handleConfirmReject = async (rejectionReason, notifyUser) => {
+  const handleConfirmReject = async (notifyUser) => {
     if (!rejectionUser) return;
 
     try {
