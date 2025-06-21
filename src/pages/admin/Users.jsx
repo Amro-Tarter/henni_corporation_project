@@ -582,11 +582,9 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
-  const [viewingUser, setViewingUser] = useState(null);
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [availableMentors, setAvailableMentors] = useState([]);
-  const [showPendingModal, setShowPendingModal] = useState(false);
 
   const handleViewUser = (user) => {
   window.open(`/profile/${user.username}`, '_blank');
