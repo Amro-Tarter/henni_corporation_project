@@ -152,7 +152,7 @@ export const Comment = ({
 
         <div className="flex items-center text-xs mt-1 text-gray-500 gap-4">
           <span>{formattedTime}{comment.edited && ' (נערך)'}</span>
-          {!isReply && !currentUser.role === 'staff' && (
+          {!isReply && currentUser.role !== 'staff' && (
             <button
               onClick={() => onReply(comment.id)}
               className={`flex items-center gap-1 text-${element} hover:bg-${element}-soft transition-colors rounded-lg px-2 py-1`}

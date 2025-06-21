@@ -7,7 +7,7 @@ import { db } from '@/config/firbaseConfig';
 import { MapPin, MessageSquare } from 'lucide-react';
 import AirIcon from '@mui/icons-material/Air';
 
-// Element icons and names in Hebrew
+// Element icons
 const ELEMENT_ICONS = {
   fire: '🔥',
   water: '💧',
@@ -45,13 +45,13 @@ function UserCard({ user, element, onClick, onFollowToggle, viewerProfile }) {
           className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
         />
         <div className="text-right overflow-hidden flex flex-col">
-          <h3
+          <p
             className="font-semibold text-gray-800 text-sm truncate max-w-[110px]"
             title={user.username}
             dir="rtl"
           >
             {user.username}
-          </h3>
+          </p>
           {user.location && (
             <span className="flex items-center gap-1 text-[11px] text-gray-400 font-normal truncate max-w-[110px]" dir="rtl">
               <MapPin className="w-3 h-3 text-gray-400" />
@@ -94,7 +94,7 @@ function ChatListItem({ chat, label, onClick, element }) {
 }
 
 function getSectionTitle({ viewerProfile, profileUser, isOwnProfile }) {
-  if (viewerProfile && viewerProfile.role === 'admin') return 'משתמשים באקראי';
+  if (viewerProfile && viewerProfile.role === 'admin') return 'משתמשים באתר';
   if (profileUser && profileUser.role === 'mentor') {
     if (viewerProfile && profileUser.uid === viewerProfile.uid) return 'הסטודנטים שלך';
     return `הסטודנטים של ${profileUser.username || 'המשתמש הזה'}`;
@@ -329,7 +329,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
             {viewerProfile?.role === 'mentor'
               ? 'לא נמצאו סטודנטים משויכים למנחה זה'
               : viewerProfile?.role === 'participant'
-                ? 'לא נמצאו משתמשים מאותו היסוד'
+                ? 'לא נמצאו משתמשים מאותו אלמנט'
                 : 'לא נמצאו משתמשים'}
           </p>
         )}
@@ -353,7 +353,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
                 label={
                   <>
                     צ'אט קהילתי
-                    <span className="text-lg">{ELEMENT_ICONS[viewerElement]}</span>
+                    <span className="text-lg mr-2">{ELEMENT_ICONS[viewerElement]}</span>
                   </>
                 }
                 onClick={() => setTimeout(() => navigate(`/chat/${communityChat.id}`), 300)}

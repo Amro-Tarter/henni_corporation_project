@@ -470,7 +470,7 @@ const Project = ({
           // -------- NOT EDITING MODE: SPACING ADDED! --------
           <div className="px-3 sm:px-5 pb-4 flex flex-col gap-6">
             <div>
-              <h2 className={`font-bold text-xl sm:text-2xl text-${element}`}>{title}</h2>
+              <p className={`font-bold text-xl sm:text-2xl text-${element}`}>{title}</p>
             </div>
             {collaboratorProfiles.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
