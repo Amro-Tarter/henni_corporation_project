@@ -588,6 +588,10 @@ const UserManagement = () => {
   const [availableMentors, setAvailableMentors] = useState([]);
   const [showPendingModal, setShowPendingModal] = useState(false);
 
+  const handleViewUser = (user) => {
+  window.open(`/profile/${user.username}`, '_blank');
+  };
+
   const [stats, setStats] = useState({
     total: 0,
     admins: 0,
@@ -999,7 +1003,7 @@ const UserManagement = () => {
                       isAdmin={isAdmin}
                       onEdit={setEditingUser}
                       onDelete={setDeletingUser}
-                      onView={setViewingUser}
+                      onView={handleViewUser}
                     />
                   ))}
                 </AnimatePresence>
