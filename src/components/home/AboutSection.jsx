@@ -299,7 +299,7 @@ const AboutSection = ({ currentUser }) => {
       color: 'green',
     },
     {
-      value: statsData.uniqueVisits,
+      value: statsData.visits,
       label: 'צפיות כוללות',
       icon: <Eye className="h-6 w-6 text-purple-500" />,
       color: 'purple',
