@@ -121,7 +121,7 @@ const EmailVerificationPending = () => {
                             <h2 className="text-3xl font-semibold mb-6 text-[#801100]">אנא אמת את כתובת האימייל שלך</h2>
                             <div className="text-[#801100] mb-8 text-lg max-w-2xl mx-auto bg-white px-6 py-6 rounded-xl shadow-sm border border-amber-100">
                                 <p className="mb-4">
-                                    חשבונך נוצר בהצלחה! שלחנו קישור אימות לכתובת האימייל שלך:
+                                    בקשתך הועברה בהצלחה! שלחנו קישור אימות לכתובת האימייל שלך:
                                 </p>
                                 <p className="font-medium text-[#D73502] mb-4 text-xl">
                                     {userEmail}
