@@ -586,7 +586,6 @@ const UserManagement = () => {
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [availableMentors, setAvailableMentors] = useState([]);
-  const [showPendingModal, setShowPendingModal] = useState(false);
 
   const [stats, setStats] = useState({
     total: 0,

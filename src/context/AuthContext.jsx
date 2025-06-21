@@ -5,9 +5,9 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  sendEmailVerification,          // ← NEW
+  sendEmailVerification,
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/config/firbaseConfig';
 
 const AuthContext = createContext();
@@ -38,20 +38,20 @@ const insistOnVerified = async (user) => {
 
 const login = async (email, password) => {
   const { user } = await signInWithEmailAndPassword(auth, email, password);
-  await insistOnVerified(user);          // block unverified login
+  await insistOnVerified(user); // block unverified login
   return user;
 };
 
 const signup = async (email, password) => {
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
-  await sendEmailVerification(user, {    // send immediately
+  await sendEmailVerification(user, {
     url: `${window.location.origin}/verify-email`,
     handleCodeInApp: true,
   });
-  return user;                           // caller can show “check your mail”
+  return user;
 };
 
-const logout        = () => signOut(auth);
+const logout = () => signOut(auth);
 const resetPassword = (email) => sendPasswordResetEmail(auth, email);
 
 const resendVerification = () => {
@@ -68,25 +68,39 @@ const resendVerification = () => {
 
 export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
-  const [loading,     setLoading]     = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         await user.reload(); // pull fresh emailVerified flag
-        const snap = await getDoc(doc(db, 'users', user.uid));
+
+        const userRef = doc(db, 'users', user.uid);
+        const snap = await getDoc(userRef);
+        const data = snap.exists() ? snap.data() : {};
+
+        // If email is now verified but Firestore field is still false → update it
+        if (user.emailVerified && data.is_email_verified === false) {
+          try {
+            await updateDoc(userRef, { is_email_verified: true });
+            console.log('Firestore: is_email_verified updated to true');
+          } catch (err) {
+            console.error('Failed to update is_email_verified in Firestore:', err);
+          }
+        }
 
         setCurrentUser({
-          uid:   user.uid,
+          uid: user.uid,
           email: user.email,
           emailVerified: user.emailVerified,
-          ...(snap.exists() ? snap.data() : {}),
+          ...data,
         });
       } else {
         setCurrentUser(null);
       }
       setLoading(false);
     });
+
     return unsub;
   }, []);
 

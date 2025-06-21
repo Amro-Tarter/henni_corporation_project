@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FaUserClock, FaBell } from 'react-icons/fa';
-import { collection, getDocs, onSnapshot, query, where } from 'firebase/firestore';
+import { FaUserClock } from 'react-icons/fa';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../../config/firbaseConfig';
 import PendingUsersModal from './PendingUsersModal';
 
@@ -10,10 +10,17 @@ const PendingUsersButton = ({ onUserProcessed }) => {
   const [pendingCount, setPendingCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Real-time listener for pending users count
+  // Real-time listener for users who are not active but have verified email
   useEffect(() => {
+    const usersRef = collection(db, 'users');
+    const q = query(
+      usersRef,
+      where('is_active', '==', false),
+      where('is_email_verified', '==', true) // ✅ only verified users
+    );
+
     const unsubscribe = onSnapshot(
-      query(collection(db, 'users'), where('is_active', '==', false)),
+      q,
       (snapshot) => {
         setPendingCount(snapshot.docs.length);
         setIsLoading(false);
@@ -29,9 +36,8 @@ const PendingUsersButton = ({ onUserProcessed }) => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    // Refresh the main users list when modal is closed
     if (onUserProcessed) {
-      onUserProcessed();
+      onUserProcessed(); // Refresh user list on modal close
     }
   };
 
@@ -63,4 +69,5 @@ const PendingUsersButton = ({ onUserProcessed }) => {
     </>
   );
 };
+
 export { PendingUsersButton };
