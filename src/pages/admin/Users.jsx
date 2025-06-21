@@ -582,10 +582,13 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
-  const [viewingUser, setViewingUser] = useState(null);
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [availableMentors, setAvailableMentors] = useState([]);
+
+  const handleViewUser = (user) => {
+  window.open(`/profile/${user.username}`, '_blank');
+  };
 
   const [stats, setStats] = useState({
     total: 0,
@@ -998,7 +1001,7 @@ const UserManagement = () => {
                       isAdmin={isAdmin}
                       onEdit={setEditingUser}
                       onDelete={setDeletingUser}
-                      onView={setViewingUser}
+                      onView={handleViewUser}
                     />
                   ))}
                 </AnimatePresence>

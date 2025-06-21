@@ -106,6 +106,7 @@ const ProfilePage = () => {
         if (userSnap.exists()) {
           const userData = userSnap.data();
           if (userData.role) viewerProfileData.role = userData.role;
+          if (userData.element) viewerProfileData.element = userData.element;
         }
 
         setViewerProfile(viewerProfileData);
@@ -804,7 +805,7 @@ const ProfilePage = () => {
     navigate('/notfound', { replace: true });
     return null;
   }
-
+  
   return (
     <ThemeProvider element={element}>
       <div dir="rtl" className="min-h-screen flex flex-col bg-gray-100">

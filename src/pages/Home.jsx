@@ -828,115 +828,119 @@ const Home = () => {
                 </div>
               ) : (
                 <>
-                  {/* CreatePost */}
-                  <div className='pt-8'>
-                    <CreatePost
-                      addPost={addPost}
-                      profilePic={profile.photoURL || '/default-avatar.png'}
-                      element={element}
-                      className="shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-2 sm:p-4 w-full hover:-translate-y-1 border border-gray-100 mb-2"
-                    />
-                  </div>
-                  {/* Creative Tab Navigation */}
-                  <div className="flex flex-col items-center w-full -mt-1">
-                    <div className="bg-white p-1 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 relative flex items-center justify-center gap-2 w-full max-w-md mx-auto overflow-hidden border border-gray-100 -mt-2">
-                      {/* Sliding Underline */}
-                      <div
-                        className={`absolute bottom-[10px] h-[2px] bg-${element} transition-all duration-300 ease-in-out`}
-                        style={{
-                          left: '0',
-                          width: '47%',
-                          transform: activeTab === 'all' ? 'translateX(113%)' : 'translateX(3%)'
-                        }}
+                  {/* CreatePost - Hidden for staff users */}
+                  {user?.role !== 'staff' && (
+                    <div className='pt-8'>
+                      <CreatePost
+                        addPost={addPost}
+                        profilePic={profile.photoURL || '/default-avatar.png'}
+                        element={element}
+                        className="shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-2 sm:p-4 w-full hover:-translate-y-1 border border-gray-100 mb-2"
                       />
+                    </div>
+                  )}
+                  {/* Creative Tab Navigation - Hidden for staff users */}
+                  {user?.role !== 'staff' && (
+                    <div className="flex flex-col items-center w-full -mt-1">
+                      <div className="bg-white p-1 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 relative flex items-center justify-center gap-2 w-full max-w-md mx-auto overflow-hidden border border-gray-100 -mt-2">
+                        {/* Sliding Underline */}
+                        <div
+                          className={`absolute bottom-[10px] h-[2px] bg-${element} transition-all duration-300 ease-in-out`}
+                          style={{
+                            left: '0',
+                            width: '47%',
+                            transform: activeTab === 'all' ? 'translateX(113%)' : 'translateX(3%)'
+                          }}
+                        />
 
-                      {/* All Posts Button */}
-                      <div className="flex-1">
-                        <button
-                          onClick={() => setActiveTab('all')}
-                          className={`relative w-full px-3 sm:px-4 py-2 rounded-xl font-semibold transition-colors duration-300
-                            ${activeTab === 'all'
-                              ? `text-${element} font-bold`
-                              : 'text-element-text'
-                            }
-                            hover:bg-element-hover/10
-                            focus:outline-none
-                            group
-                            `}
-                        >
-                          <div className="flex items-center justify-center gap-2">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className={`w-5 h-5 transition-colors duration-300 ${activeTab === 'all'
+                        {/* All Posts Button */}
+                        <div className="flex-1">
+                          <button
+                            onClick={() => setActiveTab('all')}
+                            className={`relative w-full px-3 sm:px-4 py-2 rounded-xl font-semibold transition-colors duration-300
+                              ${activeTab === 'all'
+                                ? `text-${element} font-bold`
+                                : 'text-element-text'
+                              }
+                              hover:bg-element-hover/10
+                              focus:outline-none
+                              group
+                              `}
+                          >
+                            <div className="flex items-center justify-center gap-2">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`w-5 h-5 transition-colors duration-300 ${activeTab === 'all'
+                                    ? `text-${element}`
+                                    : `opacity-70 group-hover:opacity-100 group-hover:text-${element}`
+                                  }`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                                />
+                              </svg>
+                              <span className={`text-sm sm:text-base transition-colors duration-300 ${activeTab === 'all'
                                   ? `text-${element}`
-                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${element}`
-                                }`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                              />
-                            </svg>
-                            <span className={`text-sm sm:text-base transition-colors duration-300 ${activeTab === 'all'
-                                ? `text-${element}`
-                                : `group-hover:text-${element}`
-                              }`}>כל הפוסטים</span>
-                          </div>
-                        </button>
-                      </div>
+                                  : `group-hover:text-${element}`
+                                }`}>כל הפוסטים</span>
+                            </div>
+                          </button>
+                        </div>
 
-                      {/* Divider */}
-                      <div className="h-8 w-px bg-element-border/30 self-center"></div>
+                        {/* Divider */}
+                        <div className="h-8 w-px bg-element-border/30 self-center"></div>
 
-                      {/* Following Posts Button */}
-                      <div className="flex-1">
-                        <button
-                          onClick={() => setActiveTab('following')}
-                          className={`relative w-full px-3 sm:px-4 py-2 rounded-xl font-semibold transition-colors duration-300
-                            ${activeTab === 'following'
-                              ? `text-${element} font-bold`
-                              : 'text-element-text'
-                            }
-                            hover:bg-element-hover/10
-                            focus:outline-none
-                            group
-                            `}
-                        >
-                          <div className="flex items-center justify-center gap-2">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className={`w-5 h-5 transition-colors duration-300 ${activeTab === 'following'
+                        {/* Following Posts Button */}
+                        <div className="flex-1">
+                          <button
+                            onClick={() => setActiveTab('following')}
+                            className={`relative w-full px-3 sm:px-4 py-2 rounded-xl font-semibold transition-colors duration-300
+                              ${activeTab === 'following'
+                                ? `text-${element} font-bold`
+                                : 'text-element-text'
+                              }
+                              hover:bg-element-hover/10
+                              focus:outline-none
+                              group
+                              `}
+                          >
+                            <div className="flex items-center justify-center gap-2">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`w-5 h-5 transition-colors duration-300 ${activeTab === 'following'
+                                    ? `text-${element}`
+                                    : `opacity-70 group-hover:opacity-100 group-hover:text-${element}`
+                                  }`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                                />
+                              </svg>
+                              <span className={`text-sm sm:text-base transition-colors duration-300 ${activeTab === 'following'
                                   ? `text-${element}`
-                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${element}`
-                                }`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                              />
-                            </svg>
-                            <span className={`text-sm sm:text-base transition-colors duration-300 ${activeTab === 'following'
-                                ? `text-${element}`
-                                : `group-hover:text-${element}`
-                              }`}>עוקב אחרי</span>
-                          </div>
-                        </button>
+                                  : `group-hover:text-${element}`
+                                }`}>עוקב אחרי</span>
+                            </div>
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Posts Container with consistent margins */}
-                  <div className="w-full space-y-4 pb-24">
+                  <div className={`w-full space-y-4 pb-24 ${user?.role === 'staff' ? 'pt-8' : ''}`}>
                     {/* --- Combined Posts & Projects Section --- */}
                     {(() => {
                       // Helper to get JS Date from Firestore Timestamp or Date
@@ -994,7 +998,7 @@ const Home = () => {
 
                       return (
                         <PostList
-                          posts={activeTab === 'all' ? allFeed : followingFeed}
+                          posts={user?.role === 'staff' ? allFeed : (activeTab === 'all' ? allFeed : followingFeed)}
                           onLike={handleLike}
                           onDelete={handleDeletePost}
                           onUpdate={handleUpdatePost}

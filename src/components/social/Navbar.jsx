@@ -464,7 +464,7 @@ const Navbar = ({ element }) => {
             <div className="mt-2 bg-white rounded-lg shadow-lg max-h-40 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {showHistory && searchHistory.length > 0 && !searchInput && (
                 <div className="p-3">
-                  <h3 className="font-semibold text-sm text-gray-800 mb-2">פרופילים אחרונים</h3>
+                  <p className="font-semibold text-sm text-gray-800 mb-2">פרופילים אחרונים</p>
                   <div className="space-y-2">
                     {searchHistory.map((profile, index) => (
                       <div
@@ -702,7 +702,7 @@ const Navbar = ({ element }) => {
                   <div className="absolute top-full left-0 right-0 bg-white mt-1 border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] z-50">
                     {showHistory && searchHistory.length > 0 && !searchInput && (
                       <div className="p-3">
-                        <h3 className="font-semibold text-sm text-gray-800 mb-2">פרופילים אחרונים</h3>
+                        <p className="font-semibold text-sm text-gray-800 mb-2">פרופילים אחרונים</p>
                         <div className="space-y-2">
                           {searchHistory.map((profile, index) => (
                             <div
