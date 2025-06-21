@@ -14,7 +14,7 @@ const ProtectedRoute = ({ children }) => {
         try {
           const userRef = doc(db, "users", user.uid);
           const userSnap = await getDoc(userRef);
-          if (userSnap.exists() && userSnap.data().is_active === true) {
+          if (userSnap.exists() && userSnap.data().is_active === true&& userSnap.data().is_email_verified === true) {
             setAllowed(true);
           } else {
             setAllowed(false);
