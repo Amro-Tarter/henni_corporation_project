@@ -89,7 +89,7 @@ const ProfilePage = () => {
     return () => clearTimeout(retryTimeout); //cancel the retry timeout so it doesn’t run unnecessarily
   }, [username]);
 
-  // Fetch viewer profile
+  // Fetch viewer profile (the logged-in user)
   useEffect(() => {
     const fetchViewerProfile = async () => {
       const auth = getAuth();
@@ -101,12 +101,14 @@ const ProfilePage = () => {
         const profileSnap = await getDoc(doc(db, 'profiles', viewerUid));
         let viewerProfileData = { uid: viewerUid, ...(profileSnap.exists() ? profileSnap.data() : {}) };
 
-        // Fetch user doc for role
+        // Fetch user doc to get role, element, participants
         const userSnap = await getDoc(doc(db, 'users', viewerUid));
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          if (userData.role) viewerProfileData.role = userData.role;
-          if (userData.element) viewerProfileData.element = userData.element;
+          viewerProfileData = {
+            ...viewerProfileData,
+            ...userData, // ⬅️ Merge everything from users, including `participants`
+          };
         }
 
         setViewerProfile(viewerProfileData);
@@ -417,7 +419,7 @@ const ProfilePage = () => {
         return;
       }
       // Use a batch to update both collections
-      const batch = writeBatch(db); 
+      const batch = writeBatch(db);
       batch.update(profileRef, { username: value, updatedAt: serverTimestamp() });
       batch.update(userRef, { username: value });
       await batch.commit();
@@ -787,7 +789,7 @@ const ProfilePage = () => {
       console.error('Error deleting comment:', error);
     }
   };
-  
+
   const isPrivilegedRole = ['mentor', 'admin'].includes(profile?.role);
   const element = isPrivilegedRole || !profile?.element ? 'red' : profile.element;
   const isViewerPrivileged = ['mentor', 'admin'].includes(viewerProfile?.role);
@@ -805,7 +807,7 @@ const ProfilePage = () => {
     navigate('/notfound', { replace: true });
     return null;
   }
-  
+
   return (
     <ThemeProvider element={element}>
       <div dir="rtl" className="min-h-screen flex flex-col bg-gray-100">
