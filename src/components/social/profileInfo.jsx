@@ -25,7 +25,7 @@ const Stat = ({ icon, count, label, element }) => {
     <div className="flex flex-col items-center hover:scale-105 transition-transform text-center">
       {icon && <div className={`text-${element} mb-1`}>{icon}</div>}
       <div className={`text-2xl sm:text-3xl font-bold text-${element}`}>{count}</div>
-      <div className="flex flex-col leading-tight text-sm">
+      <div className="flex flex-col leading-tight text-lg ">
         <span className={`text-${element}-accent`}>{topLabel}</span>
         {bottomLabel && <span className={`text-${element}-accent`}>{bottomLabel}</span>}
       </div>
@@ -62,7 +62,7 @@ const ProfileInfo = ({
   onFollowToggle
 }) => {
 
-  // detrmine the labels based on ownership
+  // determine the labels based on ownership
   const followersLabel = isOwner
     ? "העוקבים שלי"
     : `העוקבים של|${username}`;
@@ -111,137 +111,153 @@ const ProfileInfo = ({
   return (
     <>
       <section ref={profileRef} className="w-full overflow-visible">
-        {/* Background image and profile pic */}
+        {/* Background image */}
         <div className={`relative w-full h-36 sm:h-48 md:h-64 bg-${element}-soft overflow-visible`}>
-          {/* Show background image if available */}
           {backgroundPic && (
             <img src={backgroundPic} alt="Cover background" className="object-cover w-full h-full rounded-lg" />
           )}
-          {/* Show background image edit button if user is the owner */}
           {isOwner && (
             <label className={`
-              absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center justify-center p-1 sm:p-2
-              bg-${element}-accent opacity-80 hover:opacity-70
-              rounded-full cursor-pointer group
-            `}>
+            absolute bottom-2 left-2 sm:bottom-3 sm:left-3 flex items-center justify-center p-1 sm:p-2
+            bg-${element}-accent opacity-80 hover:opacity-70
+            rounded-full cursor-pointer group
+          `}>
               <Image className="text-white w-5 h-5" />
               <span className={`
-                absolute left-full ml-1 sm:ml-2
-                bg-${element}-accent bg-opacity-75 text-white text-xs rounded px-2 py-1
-                opacity-0 group-hover:opacity-100 whitespace-nowrap
-              `}>
+              absolute left-full ml-1 sm:ml-2
+              bg-${element}-accent bg-opacity-75 text-white text-xs rounded px-2 py-1
+              opacity-0 group-hover:opacity-100 whitespace-nowrap
+            `}>
                 שינוי תמונת רקע
               </span>
               <input type="file" accept="image/*" className="hidden" onChange={handleBackgroundChange} />
             </label>
           )}
-          {/* Profile picture container */}
-          <div className="absolute -bottom-14 sm:-bottom-16 right-6 sm:right-24 z-10">
-            <div className={`
-              relative w-28 h-28 sm:w-40 sm:h-40 border-4 border-${element} rounded-full overflow-hidden
-              shadow-lg bg-${element}-soft hover:scale-105 transition-transform duration-300 group
+        </div>
+
+        {/* Main profile row */}
+        <div className="px-2 sm:px-8 md:px-20 mb-4 relative z-20 overflow-visible text-right">
+          <div className="flex flex-row items-start w-full gap-4 sm:gap-8">
+
+            {/* Profile Pic */}
+            <div className="flex-shrink-0 flex flex-col items-center -mt-16" style={{ zIndex: 1 }}>
+              <div className={`
+              relative w-44 h-44 sm:w-56 sm:h-56 border-4 border-${element} rounded-full overflow-hidden
+              shadow-xl bg-${element}-soft hover:scale-105 transition-transform duration-300 group
             `}>
-              <img src={profilePic} alt={`${username} avatar`} className="object-cover w-full h-full rounded-full" />
-              {/* Show profile picture edit overlay if user is the owner */}
-              {isOwner && (
-                <label className={`
+                <img
+                  src={profilePic}
+                  alt={`${username} avatar`}
+                  className="object-cover w-full h-full rounded-full"
+                />
+                {isOwner && (
+                  <label className={`
                   absolute inset-0 flex items-center justify-center
                   bg-black bg-opacity-0 hover:bg-opacity-40 transition-opacity cursor-pointer rounded-full
                 `}>
-                  <Camera className="text-white w-6 h-6 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-110 transition-all duration-200 " />
-                  <input type="file" accept="image/*" className="hidden" onChange={handlePicChange} />
-                </label>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="px-4 sm:px-10 md:px-20 pt-16 sm:pt-14 mt-4 sm:mt-6 overflow-visible text-right">
-          {/* Username/role/element */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
-            <div className="flex items-center gap-2 sm:gap-3 text-${element}">
-              <p className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3 text-${element}`}>{username}</p>
-              {/* Show info icon if user is the owner */}
-              {isOwner && (
-                <Tooltip text="באפשרותך לערוך את הפרטים שלך דרך עמוד ההגדרות">
-                  <Info className="text-gray-500 hover:text-gray-600 w-4 h-4 cursor-pointer transition-colors" />
-                </Tooltip>
-              )}
+                    <Camera className="text-white w-8 h-8 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-110 transition-all duration-200" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handlePicChange} />
+                  </label>
+                )}
+              </div>
             </div>
 
-            {/* Role and element badge */}
-            {['mentor', 'admin'].includes(role) ? (
-              <Tooltip text="תפקיד המשתמש">
-                <div className={`
-                  relative inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-${element}-soft text-${element}
-                  shadow-md ring-1 ring-${element}-accent
-                `}
-                  style={{ pointerEvents: "none", userSelect: "none" }}>
-                  <span className="text-xl sm:text-2xl">
-                    {role === 'mentor' && '🧑‍🏫'}
-                    {role === 'admin' && '⭐'}
-                  </span>
-                  <span className="text-base sm:text-lg font-medium">
-                    {role === 'mentor' ? 'מנחה' : 'מנהל'}
-                  </span>
-                </div>
-              </Tooltip>
-            ) : (
-              <Tooltip text={isOwner ? "האלמנט שלך" : "האלמנט של המשתמש הזה"}>
-                <div
-                  className={`
-                    relative inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 rounded-full bg-${element}-soft text-${element}
-                    shadow-md ring-1 ring-${element}-accent
-                  `}
-                  style={{ pointerEvents: "none", userSelect: "none" }}
+            {/* Personal Info */}
+            <div className=" flex flex-col justify-start items-start text-right pr-2 pt-2 sm:pt-4 min-w-0 overflow-hidden">
+              {/* Username */}
+              <div className="flex items-center gap-3 mb-4">
+                <motion.h1
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className={`text-2xl sm:text-5xl font-bold text-${element}`}
                 >
-                  <span className="text-xl sm:text-2xl">{findOption(element).icon}</span>
-                  <span className="text-base sm:text-lg font-medium">{findOption(element).label}</span>
-                </div>
-              </Tooltip>
-            )}
-          </div>
+                  {username}
+                </motion.h1>
+                {isOwner && (
+                  <Tooltip text="באפשרותך לערוך את הפרטים שלך דרך עמוד ההגדרות">
+                    <Info className="text-gray-500 hover:text-gray-600 w-5 h-5 cursor-pointer transition-colors" />
+                  </Tooltip>
+                )}
+              </div>
+              {/* Location */}
+              <div className={`flex items-center gap-2 text-base sm:text-lg text-${element} mb-2`}>
+                <MapPin className="w-5 h-5 ml-1" />
+                <span>{location}</span>
+              </div>
+              {/* Bio */}
+              <div className="mb-0">
+                {bio ? (
+                  <p className={`text-${element} text-sm sm:text-lg leading-relaxed break-words break-all whitespace-pre-line text-right`}>
+                    {bio}
+                  </p>
+                ) : (
+                  <p className="text-gray-400 italic text-right">אין ביוגרפיה זמינה.</p>
+                )}
+              </div>
+            </div>
 
-          {/* Location*/}
-          <div className={`mt-4 flex flex-wrap items-center gap-2 text-base text-${element}`}>
-            <MapPin className="w-5 h-5 ml-1" />
-            <span>{location}</span>
-          </div>
-
-          {/* Bio */}
-          <div className={`mt-4 text-base leading-relaxed text-${element}`}>
-            {bio ? (
-              <p className={`text-${element} break-words break-all whitespace-pre-line`}>{bio}</p>
-            ) : (
-              <p className="text-gray-400 italic">אין ביוגרפיה זמינה.</p>
-            )}
-          </div>
-
-          {/* Follow button (mobile width full) */}
-          {!isOwner && (
-            <div className="flex justify-center mt-6">
+            {/* Role + Follow */}
+            <div className="flex flex-col items-end flex-shrink-0 w-40 pt-2 sm:pt-4">
+              <div className="mb-2">
+                {['mentor', 'admin'].includes(role) ? (
+                  <Tooltip text="תפקיד המשתמש">
+                    <div className={`
+                    inline-flex items-center gap-2 justify-center py-3 w-40 rounded-full bg-${element}-soft text-${element}
+                    shadow-lg ring-2 ring-${element}-accent hover:shadow-xl transition-shadow duration-300
+                  `}
+                      style={{ pointerEvents: "none", userSelect: "none" }}>
+                      <span className="text-3xl">
+                        {role === 'mentor' && '🧑‍🏫'}
+                        {role === 'admin' && '⭐'}
+                      </span>
+                      <span className="text-lg font-semibold">
+                        {role === 'mentor' ? 'מנחה' : 'מנהל'}
+                      </span>
+                    </div>
+                  </Tooltip>
+                ) : (
+                  <Tooltip text={isOwner ? "האלמנט שלך" : "האלמנט של המשתמש הזה"}>
+                    <div className={`
+                    inline-flex items-center gap-2 py-3 rounded-full bg-${element}-soft text-${element}
+                    shadow-lg ring-2 ring-${element}-accent hover:shadow-xl transition-shadow duration-300
+                  `}
+                      style={{ pointerEvents: "none", userSelect: "none" }}>
+                      <span className="text-3xl">{findOption(element).icon}</span>
+                      <span className="text-lg font-semibold">{findOption(element).label}</span>
+                    </div>
+                  </Tooltip>
+                )}
+              </div>
+              {!isOwner && (
               <button
                 onClick={() => onFollowToggle(uid)}
                 className={`
-                  w-full sm:w-auto px-8 sm:px-20 py-2 sm:py-3 rounded-full text-sm font-medium shadow-md transition-transform hover:scale-105
+                  inline-flex items-center justify-center
+                  w-40 py-3 mt-2 rounded-full shadow-lg ring-2
+                  text-lg font-semibold transition-transform hover:scale-105
                   ${isFollowing
-                          ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                          : `bg-${element} text-white hover:bg-${element}-accent`}
+                    ? `bg-red-100 text-red-600 ring-${element}-accent hover:bg-red-200`
+                    : `bg-${element} text-white ring-${element}-accent hover:bg-${element}-accent/90`}
                 `}
               >
                 {isFollowing ? 'בטל מעקב' : 'עקוב'}
               </button>
+            )}
             </div>
-          )}
+          </div>
+        </div>
 
-          {/* Stats Bar */}
+        {/* Stats Bar */}
+        <div className={`px-2 sm:px-8 md:px-20`}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
             className={`
-              mt-8 grid grid-cols-3 sm:gap-x-40 gap-y-4 sm:flex sm:justify-center bg-${element}-soft rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow duration-300
-            `}
+            grid grid-cols-3 sm:gap-x-40 gap-y-4 sm:flex sm:justify-center
+            bg-${element}-soft rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow duration-300
+          `}
           >
             <Stat element={element} icon={<MessageSquare className="w-5 h-5" />} count={postsCount} label="פוסטים" />
             <Stat element={element} icon={<Users className="w-5 h-5" />} count={followersCount} label={followersLabel} />
@@ -251,6 +267,7 @@ const ProfileInfo = ({
       </section>
     </>
   );
+
 };
 
 export default ProfileInfo;
