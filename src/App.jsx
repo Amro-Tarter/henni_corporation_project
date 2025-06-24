@@ -18,8 +18,9 @@ import Mentorship from'./pages/admin/Mentorship'
 import AdminFormManager from './pages/admin/AdminFormManager'
 import SubmissionViewer from './pages/admin/SubmissionViewer'
 import PublicForm from './pages/admin/PublicForm'
-
-
+import GoalsPage from './pages/GoalsPage';
+import InviteCollaborationPage from './pages/InviteCollaborationPage';
+import VisionPage from './pages/VisionPage';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import AccessibilityStatement from './pages/AccessibilityStatement';
@@ -108,6 +109,10 @@ const App = () => {
                   <Route path="/newsletter" element={<NewsletterPage />} />
                   <Route path="/artSkills" element={<ArtSkillsPage />} />
                   <Route path="/verify-email-pending" element={<EmailVerificationPending />} />
+                  <Route path="/invite-collaboration" element={<InviteCollaborationPage />} />
+                  <Route path="/goals" element={<GoalsPage />} />
+                  <Route path="/vision" element={<VisionPage />} />
+
 
                   {/* Protected Pages */}
                   <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />

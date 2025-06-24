@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { fadeSlideUp } from '@/lib/animations'; 
 import CTAButton from '@/components/CTAButton';
 import { auth } from '@/config/firbaseConfig';
 import { onAuthStateChanged } from 'firebase/auth';

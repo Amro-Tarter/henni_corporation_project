@@ -11,7 +11,7 @@ import {
   addDoc,
 } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
-import { Card, CardContent } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   HandHeart,
@@ -23,14 +23,10 @@ import {
   Check,
   MapPin,
   Mail,
-  Crown,
   Star,
-  Award,
-  ChevronRight,
   ChevronLeft,
 } from 'lucide-react';
 import CTAButton from '@/components/CTAButton';
-import { Link } from 'react-router-dom';
 import { toast, Toaster } from 'sonner';
 
 const DEFAULT_IMAGE = '/default_user_pic.jpg';
@@ -57,6 +53,7 @@ function AvatarImg({ src, alt, className = "" }) {
     </div>
   );
 }
+
 
 // Newsletter Modal Component
 const NewsletterModal = ({ isOpen, closeNewsletter }) => {
@@ -220,6 +217,7 @@ const AboutSection = ({ currentUser }) => {
   // State
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedFeature, setSelectedFeature] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newsletterModal, setNewsletterModal] = useState(false);
@@ -306,24 +304,27 @@ const AboutSection = ({ currentUser }) => {
 
   // Feature cards data
   const features = [
-    {
-      title: 'החזון שלנו',
-      icon: <Heart className="h-8 w-8 text-pink-600" />,
-      description:
-        'ב"עמותת לגלות את האור - הנני" אנו מאמינים שכל נער ונערה בישראל נושאים בתוכם אור ייחודי.',
-    },
-    {
-      title: 'המטרה שלנו',
-      icon: <Users className="h-8 w-8 text-orange-500" />,
-      description:
-        'יצירת דור חדש של מנהיגים צעירים, רגישים ומודעים – דרך הבמה היצירתית.',
-    },
-    {
-      title: 'ההשפעה שלנו',
-      icon: <HandHeart className="h-8 w-8 text-green-600" />,
-      description:
-        'יוצרים מהפכה שקטה מפתחים מנהיגות אותנטית דרך כוחה המעצים של האמנות',
-    },
+   {
+  title: 'החזון שלנו',
+  subtitle: 'לגלות את האור הייחודי בכל נער ונערה',
+  icon: <Heart className="h-8 w-8 text-pink-600" />,
+  description: 'ב"עמותת לגלות את האור - הנני" אנו מאמינים שכל נער ונערה בישראל נושאים בתוכם אור ייחודי.',
+  link: '/vision'                // ← here
+},
+{
+  title: 'המטרה שלנו',
+  subtitle: 'פיתוח מנהיגות אותנטית דרך האמנות',
+  icon: <Users className="h-8 w-8 text-orange-500" />,
+  description: 'יצירת דור חדש של מנהיגים צעירים, רגישים ומודעים – דרך הבמה היצירתית.',
+  link: '/goals' 
+  },
+  {
+    title: 'ההשפעה שלנו',
+    subtitle: 'יצירת מהפכה שקטה דרך האמנות',
+    icon: <HandHeart className="h-8 w-8 text-green-600" />,
+    description: 'יוצרים מהפכה שקטה מפתחים מנהיגות אותנטית דרך כוחה המעצים של האמנות',
+    link: '/invite-collaboration'
+  }
   ];
 
   // Modal logic
@@ -338,7 +339,6 @@ const AboutSection = ({ currentUser }) => {
     setSelectedMember(null);
     setEditData({});
   }, []);
-
   const openNewsletter = useCallback(() => setNewsletterModal(true), []);
   const closeNewsletter = useCallback(() => setNewsletterModal(false), []);
 
@@ -407,12 +407,11 @@ const AboutSection = ({ currentUser }) => {
 
       {/* Newsletter modal */}
       <NewsletterModal isOpen={newsletterModal} closeNewsletter={closeNewsletter} />
-
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <div className="text-center mb-8 md:mb-12">
-          <h2 className="font-bold text-3xl md:text-4xl text-orange-800 mb-3">
+          <h2 className="font-bold text-5xl md:text-5xl text-orange-800 mb-3 py-2">
             מנהיגות דיאלוגית של דור המחר
           </h2>
           <div className="h-1 w-20 bg-orange-500 mx-auto mb-4 rounded-full" />
@@ -421,40 +420,59 @@ const AboutSection = ({ currentUser }) => {
           </p>
         </div>
 
-        {/* Features */}
+        {/* Enhanced Features with Click to Expand */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-12">
           {features.map((feature, index) => (
             <div
               key={index}
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
-              className={`transition-all duration-300 ${
-                hoveredIndex === index ? 'transform -translate-y-1' : ''
+              onClick={() => openFeatureModal(feature)}
+              className={`group cursor-pointer transform transition-all duration-300 hover:-translate-y-1 ${
+                hoveredIndex === index ? 'scale-[1.02]' : ''
               }`}
             >
-              <Card
-                className={`h-full bg-white/90 backdrop-blur-sm border-0 shadow-md rounded-2xl ${
-                  hoveredIndex === index ? 'shadow-lg shadow-orange-200/50' : ''
-                }`}
-              >
-                <CardContent className="p-4 md:p-6 text-center h-full flex flex-col">
-                  <div className="mb-3 flex justify-center">
-                    <div
-                      className={`p-2 rounded-full bg-orange-50 ${
-                        hoveredIndex === index ? 'scale-110' : ''
-                      } transition-all duration-300`}
-                    >
-                      {feature.icon}
-                    </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-transparent hover:border-orange-200 transition-all duration-300 h-full">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  {/* Icon */}
+                  <div className={`p-4 rounded-full transition-all duration-300 ${
+                    hoveredIndex === index 
+                      ? 'bg-gradient-to-br from-orange-100 to-orange-200 scale-110' 
+                      : 'bg-gradient-to-br from-orange-50 to-orange-100'
+                  }`}>
+                    {feature.icon}
                   </div>
-                  <h3 className="text-lg md:text-xl font-bold mb-2 text-gray-900">
+                  
+                  {/* Title */}
+                  <h3 className="font-bold text-lg text-orange-800 group-hover:text-orange-900 transition-colors">
                     {feature.title}
                   </h3>
-                  <p className="text-sm md:text-base text-gray-600 leading-relaxed flex-grow">
+                  
+                  {/* Subtitle */}
+                  <p className="text-sm font-medium text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
+                    {feature.subtitle}
+                  </p>
+                  
+                  {/* Description */}
+                  <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">
                     {feature.description}
                   </p>
-                </CardContent>
-              </Card>
+                  
+                  {/* Click to expand indicator */}
+                  <Link
+                    to={feature.link}
+                    onClick={e => e.stopPropagation()}
+                    className={`inline-flex items-center gap-2 text-xs font-medium transition-all duration-300 ${
+                      hoveredIndex === index ? 'text-orange-600' : 'text-orange-500'
+                    }`}
+                  >
+                    <span>לחץ לקריאה נוספת</span>
+                    <ChevronLeft className={`h-3 w-3 transition-transform duration-300 ${
+                      hoveredIndex === index ? 'translate-x-1' : ''
+                    }`} />
+                  </Link>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -462,7 +480,7 @@ const AboutSection = ({ currentUser }) => {
         {/* Enhanced Team Section */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <h3 className="text-2xl md:text-3xl font-bold text-orange-800">צוות העמותה</h3>
+            <h3 className="text-4xl md:text-5xl font-bold text-orange-800 py-6">צוות העמותה</h3>
           </div>
           <p className="text-gray-600 mb-8 text-sm md:text-base max-w-2xl mx-auto">
             הכירו את האנשים המחויבים והמסורים שמובילים את החזון שלנו ופועלים יום יום למען קהילת הנוער בישראל

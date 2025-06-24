@@ -369,7 +369,7 @@ const Gallery = () => {
           viewport={{ once: true }}
           className="text-center mb-8"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-blue-700 mb-3">
+          <h2 className="font-bold text-5xl md:text-5xl text-blue-700 mb-3">
             גלריית היצירות שלנו
           </h2>
           <p className="text-lg text-blue-600/80 max-w-2xl mx-auto mb-8">

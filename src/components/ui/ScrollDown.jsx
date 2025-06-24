@@ -57,7 +57,8 @@ const ScrollDown = ({
       case "bottom-right": return "fixed bottom-4 right-4 md:bottom-8 md:right-8";
       case "bottom-left":  return "fixed bottom-4 left-4 md:bottom-8 md:left-8";
       case "center-right": return "fixed top-1/2 right-4 md:right-8 -translate-y-1/2";
-      default:              return "fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2";
+      default:         
+        return "fixed bottom-4 md:bottom-8 left-[45%] transform -translate-x-[55%]";
     }
   };
 

@@ -26,7 +26,7 @@ const SectionHeader = ({ title, subtitle, className = "" }) => (
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
       viewport={{ once: true }}
-      className="text-2xl md:text-3xl lg:text-4xl font-bold text-red-800 mb-3 leading-tight"
+      className="text-5xl font-bold text-5xl md:text-5xl text-red-800 mb-3 leading-tight"
     >
       {title}
     </motion.h2>
@@ -298,9 +298,7 @@ const ProgramSection = () => {
       <div className="container mx-auto px-4 md:px-6 max-w-6xl">
         {/* Main Header */}
         <SectionHeader 
-          title="מסע המנהיגות היצירתית"
-          subtitle="ארבע שנות עומק, תרגול והובלה דרך אמנות"
-          className="mb-10 md:mb-12"
+          title="מסע המנהיגות היצירתית" subtitle="ארבע שנות עומק, תרגול והובלה דרך אמנות" className="mb-10 md:mb-12 "
         />
 
         {/* Year Tabs */}
