@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, useInView } from 'framer-motion';
 import { Users, TrendingUp, Eye } from 'lucide-react';
 import CTAButton from '../CTAButton';
 import {
@@ -44,14 +43,14 @@ const JoinUs = () => {
 
   // Stats data from Firestore
   const [statsData, setStatsData] = useState({ 
-    visits: 0, 
-    uniqueVisits: 0,
+    visits: 520, 
+    uniqueVisits: 500,
     users: 0, 
     projects: 0 
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
 
-  // Combined stats config
+  // Combined stats configד
   const combinedStatsConfig = [
     {
       value: statsData.users,
@@ -66,7 +65,7 @@ const JoinUs = () => {
       color: 'green',
     },
     {
-      value: statsData.visits,
+      value: statsData.uniqueVisits,
       label: 'צפיות כוללות',
       icon: <Eye className="h-6 w-6 text-purple-500" />,
       color: 'purple',
@@ -76,47 +75,82 @@ const JoinUs = () => {
   // Record unique visitor and increment visit counts
   useEffect(() => {
     const UNIQUE_VISITOR_KEY = 'site_unique_visit';
-    const VISIT_EXPIRATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const VISIT_EXPIRATION_MS = 24 * 60 * 60 * 1000; // 24h
 
-    const recordUniqueVisit = async () => {
-      const lastVisit = localStorage.getItem(UNIQUE_VISITOR_KEY);
-      const currentTime = new Date().getTime();
+    const doUpdateAndFetch = async () => {
+      const now = Date.now();
+      const last = localStorage.getItem(UNIQUE_VISITOR_KEY);
+      const statsDocRef = doc(db, 'siteStats', 'counters');
 
-      // If no last visit recorded or last visit was more than 24 hours ago
-      if (!lastVisit || (currentTime - parseInt(lastVisit, 10)) > VISIT_EXPIRATION_MS) {
-        localStorage.setItem(UNIQUE_VISITOR_KEY, currentTime.toString());
-
-        const statsRefDoc = doc(db, 'siteStats', 'counters');
+      // Unique visits
+      if (!last || now - parseInt(last, 10) > VISIT_EXPIRATION_MS) {
+        localStorage.setItem(UNIQUE_VISITOR_KEY, now.toString());
         try {
-          // Atomically increment uniqueVisits
-          await updateDoc(statsRefDoc, { uniqueVisits: increment(1) });
-        } catch (error) {
-          // If document doesn't exist, create it with uniqueVisits: 1
-          const snap = await getDoc(statsRefDoc);
+          await updateDoc(statsDocRef, { uniqueVisits: increment(1) });
+        } catch {
+          const snap = await getDoc(statsDocRef);
           if (!snap.exists()) {
-            await setDoc(statsRefDoc, { uniqueVisits: 1, visits: 0, users: 0, projects: 0 });
-          } else {
-            console.error("Error incrementing unique visits, but document exists:", error);
+            await setDoc(statsDocRef, {
+              uniqueVisits: 1,
+              visits: 0,
+              users: 0,
+              projects: 0,
+            });
           }
         }
       }
 
-      // Always increment total visits
-      const statsRefDoc = doc(db, 'siteStats', 'counters');
+      // Total visits
       try {
-        await updateDoc(statsRefDoc, { visits: increment(1) });
-      } catch (error) {
-        const snap = await getDoc(statsRefDoc);
+        await updateDoc(statsDocRef, { visits: increment(1) });
+      } catch {
+        const snap = await getDoc(statsDocRef);
         if (!snap.exists()) {
-          await setDoc(statsRefDoc, { visits: 1, uniqueVisits: 0, users: 0, projects: 0 });
-        } else {
-          console.error("Error incrementing total visits, but document exists:", error);
+          await setDoc(statsDocRef, {
+            visits: 1,
+            uniqueVisits: 0,
+            users: 0,
+            projects: 0,
+          });
         }
+      }
+
+      // Fetch latest counters + counts
+      setIsLoadingStats(true);
+      try {
+        const snap = await getDoc(statsDocRef);
+        const visits = snap.exists() ? snap.data().visits || 0 : 0;
+        const uniqueVisits = snap.exists() ? snap.data().uniqueVisits || 0 : 0;
+
+        const projSnap1 = await getDocs(collection(db, 'elemental_projects'));
+        const projSnap2 = await getDocs(collection(db, 'personal_projects'));
+        const projects = projSnap1.size + projSnap2.size;
+
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const users = usersSnap.size;
+
+        setStatsData({ visits, uniqueVisits, users, projects });
+      } catch (e) {
+        console.error('Error loading stats:', e);
+        setStatsData({ visits: 0, uniqueVisits: 0, users: 0, projects: 0 });
+      } finally {
+        setIsLoadingStats(false);
       }
     };
 
-    recordUniqueVisit();
-  }, []); // Run once on mount
+    doUpdateAndFetch();
+  }, []);
+
+  // IntersectionObserver to kick off animation when stats come into view
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([entry]) => entry.isIntersecting && setIsStatsInView(true),
+      { threshold: 0.3 }
+    );
+    if (statsRef.current) obs.observe(statsRef.current);
+    return () => obs.disconnect();
+  }, []);
+
 
   // Fetch stats data from Firestore
   useEffect(() => {
@@ -387,7 +421,7 @@ const JoinUs = () => {
                   <p className="text-emerald-600 text-xs mt-1">— מיכל, חברת קהילה</p>
                 </div>
                 <CTAButton
-                  href="https://forms.monday.com/forms/af28672efe2a47320cd729b1d01f6841?r=euc1"
+                  href="/signup"
                   variant="earth"
                   size="md"
                   className="bg-emerald-600 text-white hover:bg-emerald-500 transition-colors w-full md:w-auto text-sm"

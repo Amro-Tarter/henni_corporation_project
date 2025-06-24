@@ -229,65 +229,69 @@ const AboutSection = ({ currentUser }) => {
   // Refs
   const modalRef = useRef();
 
-  // Fetch admins on mount
   useEffect(() => {
-    let active = true;
-    const fetchAdminUsers = async () => {
-      setLoading(true);
-      try {
-        const adminQuery = query(
-          collection(db, 'staff'),
-          where('in_role', 'not-in', ['ועדת ביקורת'])
-        );
-        const querySnapshot = await getDocs(adminQuery);
-        const admins = [];
-        for (const userDoc of querySnapshot.docs) {
-          const userData = userDoc.data();
-          const associatedId = userData.associated_id || userDoc.id;
-          const admin = {
-            id: userDoc.id,
-            associated_id: associatedId,
-            username:
-              userData.username ||
-              userData.email?.split('@')[0] ||
-              'מנהל',
-            role: userData.role,
-            in_role: userData.in_role,
+  let active = true;
+  const fetchSpecificStaff = async () => {
+    setLoading(true);
+    try {
+      // Define the exact usernames in the desired left→middle→right order
+      const targetUsernames = [
+        "עליזה עמיר",            // left
+        "ענת זגרון בוג'יו",     // middle (make sure this matches the exact DB value!)
+        "דקלה בר"                // right
+      ];
+
+      // Query only those three docs
+      const adminQuery = query(
+        collection(db, "staff"),
+        where("username", "in", targetUsernames)
+      );
+      const snapshot = await getDocs(adminQuery);
+
+      // Map into your admin shape and filter out inactive if needed
+      const admins = snapshot.docs
+        .map((docSnap) => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
+            associated_id: data.associated_id || docSnap.id,
+            username: data.username,
+            in_role: data.in_role,
             title:
-              userData.title ||
-              (userData.in_role === 'מייסדת ומנכ"לית' ? 'מייסדת ומנכ"לית' : userData.in_role),
-            photoURL: userData.photoURL || DEFAULT_IMAGE,
-            bio:
-              userData.bio ||
-              (userData.in_role === 'מייסדת ומנכ"לית'
-                ? 'מנכ"ל העמותה, מוביל את החזון והפעילות למען בני הנוער בישראל.'
-                : 'מנהל מערכת מנוסה המוביל את פעילות העמותה ומחויב לחזון ולמטרות שלנו.'),
-            email: userData.email,
-            is_active: userData.is_active !== false,
+              data.title ||
+              (data.in_role === "מייסדת ומנכ\"לית"
+                ? "מייסדת ומנכ\"לית"
+                : data.in_role),
+            photoURL: data.photoURL || DEFAULT_IMAGE,
+            bio: data.bio || "",
+            email: data.email,
+            is_active: data.is_active !== false,
           };
-          if (admin.is_active) admins.push(admin);
-        }
+        })
+        .filter((adm) => adm.is_active);
 
-        // Sort: מייסדת ומנכ"לית first, then staff members by name
-        admins.sort((a, b) => {
-          if (a.in_role === 'מייסדת ומנכ"לית' && b.in_role !== 'מייסדת ומנכ"לית') return -1;
-          if (b.in_role === 'מייסדת ומנכ"לית' && a.in_role !== 'מייסדת ומנכ"לית') return 1;
-          return a.username.localeCompare(b.username);
-        });
+      // Sort by the index in our targetUsernames array
+      admins.sort(
+        (a, b) =>
+          targetUsernames.indexOf(a.username) -
+          targetUsernames.indexOf(b.username)
+      );
 
-        if (active) setTeamMembers(admins);
-      } catch (error) {
-        console.error('Error fetching admin users:', error);
-        setTeamMembers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAdminUsers();
-    return () => {
-      active = false;
-    };
-  }, []);
+      if (active) setTeamMembers(admins);
+    } catch (err) {
+      console.error("Error fetching specific staff:", err);
+      setTeamMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchSpecificStaff();
+  return () => {
+    active = false;
+  };
+}, []);
+
 
   // Modal close on ESC
   useEffect(() => {

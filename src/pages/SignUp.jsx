@@ -27,7 +27,6 @@ const FLOAT_POS = [
     { top: '15%', left: '80%', anim: 'animate-float-5' },
 ];
 
-
 function Signup() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -36,9 +35,29 @@ function Signup() {
     const [location, setLocation] = useState("");
     const [phone, setPhone] = useState("");
     const inputStyle = "appearance-none rounded-md w-full px-3 py-3 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right";
+    const selectStyle = "appearance-none rounded-md w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right";
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    // New state variables for the added questions
+    const [howDidYouHear, setHowDidYouHear] = useState("");
+    const [howDidYouHearOther, setHowDidYouHearOther] = useState("");
+    const [commitmentLevel, setCommitmentLevel] = useState("");
+    const [commitmentLevelOther, setCommitmentLevelOther] = useState("");
+    const [artisticAffinity, setArtisticAffinity] = useState("");
+    const [artisticAffinityOther, setArtisticAffinityOther] = useState("");
+    const [goalAsVolunteer, setGoalAsVolunteer] = useState("");
+    const [goalAsVolunteerOther, setGoalAsVolunteerOther] = useState("");
+    const [artLeadershipConnection, setArtLeadershipConnection] = useState("");
+    const [artLeadershipConnectionOther, setArtLeadershipConnectionOther] = useState("");
+    const [skillsResources, setSkillsResources] = useState([]); // This will be an array for multi-select
+    const [skillsResourcesOther, setSkillsResourcesOther] = useState("");
+    const [financialSupport, setFinancialSupport] = useState("");
+    const [financialSupportOther, setFinancialSupportOther] = useState("");
+    const [preferredActivityArea, setPreferredActivityArea] = useState("");
+    const [preferredActivityAreaOther, setPreferredActivityAreaOther] = useState("");
+
 
     const navigate = useNavigate();
 
@@ -62,6 +81,26 @@ function Signup() {
             document.head.removeChild(styleSheet);
         };
     }, []);
+
+    const handleSkillsResourcesChange = (e) => {
+        const { value, checked } = e.target;
+        if (value === "Other") {
+            // Handle the "Other" checkbox specifically
+            if (checked) {
+                setSkillsResources([...skillsResources, value]);
+            } else {
+                setSkillsResources(skillsResources.filter(skill => skill !== value));
+                setSkillsResourcesOther(""); // Clear other text if unchecked
+            }
+        } else {
+            // Handle regular checkboxes
+            if (checked) {
+                setSkillsResources([...skillsResources, value]);
+            } else {
+                setSkillsResources(skillsResources.filter(skill => skill !== value));
+            }
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -88,6 +127,49 @@ function Signup() {
             setLoading(false);
             return;
         }
+
+        // Validate new required fields
+        if (!howDidYouHear || (howDidYouHear === "Other" && !howDidYouHearOther)) {
+            toast.error("אנא בחר/י כיצד הגעת לעמותה.");
+            setLoading(false);
+            return;
+        }
+        if (!commitmentLevel || (commitmentLevel === "Other" && !commitmentLevelOther)) {
+            toast.error("אנא בחר/י את רמת המחויבות והזמינות שלך.");
+            setLoading(false);
+            return;
+        }
+        if (!artisticAffinity || (artisticAffinity === "Other" && !artisticAffinityOther)) {
+            toast.error("אנא בחר/י את הזיקה העיקרית שלך לתחומי האמנות.");
+            setLoading(false);
+            return;
+        }
+        if (!goalAsVolunteer || (goalAsVolunteer === "Other" && !goalAsVolunteerOther)) {
+            toast.error("אנא בחר/י איזו מטרה היית רוצה להשיג כפעיל/ה בעמותה.");
+            setLoading(false);
+            return;
+        }
+        if (!artLeadershipConnection || (artLeadershipConnection === "Other" && !artLeadershipConnectionOther)) {
+            toast.error("אנא בחר/י מה הקשר המשמעותי ביותר בין אמנות למנהיגות.");
+            setLoading(false);
+            return;
+        }
+        if (skillsResources.length === 0 || (skillsResources.includes("Other") && !skillsResourcesOther)) {
+            toast.error("אנא בחר/י אילו כישורים או משאבים את/ה יכול/ה להביא לעמותה.");
+            setLoading(false);
+            return;
+        }
+        if (!financialSupport || (financialSupport === "Other" && !financialSupportOther)) {
+            toast.error("אנא בחר/י באיזה אופן את/ה מתכנן/ת לתמוך כספית בעמותה.");
+            setLoading(false);
+            return;
+        }
+        if (!preferredActivityArea || (preferredActivityArea === "Other" && !preferredActivityAreaOther)) {
+            toast.error("אנא בחר/י באיזה תחום פעילות היית רוצה להיות מעורב/ת במיוחד.");
+            setLoading(false);
+            return;
+        }
+
 
         try {
             const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
@@ -126,6 +208,15 @@ function Signup() {
                 phone,
                 location,
                 is_email_verified: false, // NEW: Add this field, initially false
+                // New fields for the questionnaire
+                howDidYouHear: howDidYouHear === "Other" ? howDidYouHearOther : howDidYouHear,
+                commitmentLevel: commitmentLevel === "Other" ? commitmentLevelOther : commitmentLevel,
+                artisticAffinity: artisticAffinity === "Other" ? artisticAffinityOther : artisticAffinity,
+                goalAsVolunteer: goalAsVolunteer === "Other" ? goalAsVolunteerOther : goalAsVolunteer,
+                artLeadershipConnection: artLeadershipConnection === "Other" ? artLeadershipConnectionOther : artLeadershipConnection,
+                skillsResources: skillsResources.includes("Other") ? [...skillsResources.filter(s => s !== "Other"), skillsResourcesOther] : skillsResources,
+                financialSupport: financialSupport === "Other" ? financialSupportOther : financialSupport,
+                preferredActivityArea: preferredActivityArea === "Other" ? preferredActivityAreaOther : preferredActivityArea,
             });
 
             toast.success("נשלח אימייל אימות. אנא בדוק את תיבת הדואר שלך (כולל ספאם) כדי לאמת את חשבונך.");
@@ -133,7 +224,6 @@ function Signup() {
             // *** IMPORTANT CHANGE HERE ***
             // Navigate to the dedicated email verification pending page, passing the email
             navigate("/verify-email-pending", { state: { userEmail: email } });
-
 
         } catch (err) {
             console.error(err);
@@ -170,9 +260,7 @@ function Signup() {
                 ))}
             </div>
 
-
             <div className="w-full max-w-2xl bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
-
                 {/* Heading */}
                 <div className="text-center mb-6">
                     <h2 className="text-3xl font-extrabold text-gray-900"> עמותת לגלות את האור - הנני</h2>
@@ -211,7 +299,6 @@ function Signup() {
                             className={inputStyle}
                         />
                     </div>
-
 
                     {/* Password */}
                     <div className="flex flex-col">
@@ -299,6 +386,283 @@ function Signup() {
                             className={inputStyle}
                         />
                     </div>
+
+                    {/* --- New Questions --- */}
+
+                    {/* כיצד הגעת לעמותת "לגלות את האור - הנני"? */}
+                    <div className="flex flex-col col-span-full">
+                        <label className="mb-1 text-sm font-medium text-gray-700">
+                            כיצד הגעת לעמותת "לגלות את האור - הנני"? *
+                        </label>
+                        <select
+                            required
+                            value={howDidYouHear}
+                            onChange={(e) => { setHowDidYouHear(e.target.value); if (e.target.value !== "Other") setHowDidYouHearOther(""); }}
+                            className={selectStyle}
+                        >
+                            <option value="">בחר/י...</option>
+                            <option value="דרך היכרות אישית עם אחד מחברי הוועד או הצוות">דרך היכרות אישית עם אחד מחברי הוועד או הצוות</option>
+                            <option value="חיפוש עצמאי אחר אפשרויות התנדבות בתחום האמנות והחינוך">חיפוש עצמאי אחר אפשרויות התנדבות בתחום האמנות והחינוך</option>
+                            <option value="המלצה מחבר/ה או עמית/ה">המלצה מחבר/ה או עמית/ה</option>
+                            <option value="חשיפה לפעילות העמותה באירוע או במדיה">חשיפה לפעילות העמותה באירוע או במדיה</option>
+                            <option value="Other">אחר (פרט/י)</option>
+                        </select>
+                        {howDidYouHear === "Other" && (
+                            <input
+                                type="text"
+                                required // Make required if "Other" is selected
+                                value={howDidYouHearOther}
+                                onChange={(e) => setHowDidYouHearOther(e.target.value)}
+                                placeholder="פרט/י"
+                                className={`${inputStyle} mt-2`}
+                            />
+                        )}
+                    </div>
+
+                    {/* מהי רמת המחויבות והזמינות שאתה/את יכול/ה להציע לפעילות העמותה */}
+                    <div className="flex flex-col col-span-full">
+                        <label className="mb-1 text-sm font-medium text-gray-700">
+                            מהי רמת המחויבות והזמינות שאתה/את יכול/ה להציע לפעילות העמותה? *
+                        </label>
+                        <select
+                            required
+                            value={commitmentLevel}
+                            onChange={(e) => { setCommitmentLevel(e.target.value); if (e.target.value !== "Other") setCommitmentLevelOther(""); }}
+                            className={selectStyle}
+                        >
+                            <option value="">בחר/י...</option>
+                            <option value="2-4 שעות בשבוע (כולל ישיבות והכנה)">2-4 שעות בשבוע (כולל ישיבות והכנה)</option>
+                            <option value="5-8 שעות בחודש (בעיקר ישיבות והתייעצויות)">5-8 שעות בחודש (בעיקר ישיבות והתייעצויות)</option>
+                            <option value="3-5 שעות בחודש (השתתפות בישיבות בלבד)">3-5 שעות בחודש (השתתפות בישיבות בלבד)</option>
+                            <option value="פחות מ-3 שעות בחודש">פחות מ-3 שעות בחודש</option>
+                            <option value="תלוי בתקופה, אך אני מחויב/ת לתהליך">תלוי בתקופה, אך אני מחויב/ת לתהליך</option>
+                            <option value="Other">אחר (פרט/י)</option>
+                        </select>
+                        {commitmentLevel === "Other" && (
+                            <input
+                                type="text"
+                                required
+                                value={commitmentLevelOther}
+                                onChange={(e) => setCommitmentLevelOther(e.target.value)}
+                                placeholder="פרט/י"
+                                className={`${inputStyle} mt-2`}
+                            />
+                        )}
+                    </div>
+
+                    {/* מה הזיקה העיקרית שלך לתחומי האמנות והיצירה? */}
+                    <div className="flex flex-col col-span-full">
+                        <label className="mb-1 text-sm font-medium text-gray-700">
+                            מה הזיקה העיקרית שלך לתחומי האמנות והיצירה? *
+                        </label>
+                        <select
+                            required
+                            value={artisticAffinity}
+                            onChange={(e) => { setArtisticAffinity(e.target.value); if (e.target.value !== "Other") setArtisticAffinityOther(""); }}
+                            className={selectStyle}
+                        >
+                            <option value="">בחר/י...</option>
+                            <option value="אני עוסק/ת באופן מקצועי באחד מתחומי האמנות (מוזיקה, תיאטרון, אמנות פלסטית, מחול, כתיבה וכד')">אני עוסק/ת באופן מקצועי באחד מתחומי האמנות (מוזיקה, תיאטרון, אמנות פלסטית, מחול, כתיבה וכד')</option>
+                            <option value="אני עוסק/ת בחינוך או הוראה בתחומי האמנויות">אני עוסק/ת בחינוך או הוראה בתחומי האמנויות</option>
+                            <option value="יש לי רקע או הכשרה פורמלית בתחומי האמנות אך איני עוסק/ת בכך כיום">יש לי רקע או הכשרה פורמלית בתחומי האמנות אך איני עוסק/ת בכך כיום</option>
+                            <option value="אני צרכן/ית תרבות ואמנות ומאמין/ה בכוחם לחולל שינוי">אני צרכן/ית תרבות ואמנות ומאמין/ה בכוחם לחולל שינוי</option>
+                            <option value="אין לי רקע אמנותי מובהק, אך יש לי עניין בקשר בין אמנות למנהיגות">אין לי רקע אמנותי מובהק, אך יש לי עניין בקשר בין אמנות למנהיגות</option>
+                            <option value="Other">אחר (פרט/י)</option>
+                        </select>
+                        {artisticAffinity === "Other" && (
+                            <input
+                                type="text"
+                                required
+                                value={artisticAffinityOther}
+                                onChange={(e) => setArtisticAffinityOther(e.target.value)}
+                                placeholder="פרט/י"
+                                className={`${inputStyle} mt-2`}
+                            />
+                        )}
+                    </div>
+
+                    {/* איזו מטרה היית רוצה להשיג כפעיל בעמותה ? */}
+                    <div className="flex flex-col col-span-full">
+                        <label className="mb-1 text-sm font-medium text-gray-700">
+                            איזו מטרה היית רוצה להשיג כפעיל/ה בעמותה ? *
+                        </label>
+                        <select
+                            required
+                            value={goalAsVolunteer}
+                            onChange={(e) => { setGoalAsVolunteer(e.target.value); if (e.target.value !== "Other") setGoalAsVolunteerOther(""); }}
+                            className={selectStyle}
+                        >
+                            <option value="">בחר/י...</option>
+                            <option value="לסייע בהרחבת היקף פעילות העמותה למספר גדול יותר של בני נוער">לסייע בהרחבת היקף פעילות העמותה למספר גדול יותר של בני נוער</option>
+                            <option value="לשפר את האיתנות הפיננסית של העמותה ומקורות המימון שלה">לשפר את האיתנות הפיננסית של העמותה ומקורות המימון שלה</option>
+                            <option value="ליצור שותפויות אסטרטגיות חדשות עם ארגונים משיקים">ליצור שותפויות אסטרטגיות חדשות עם ארגונים משיקים</option>
+                            <option value="לשפר את המודעות הציבורית לפעילות העמותה ולחזק את המיתוג שלה">לשפר את המודעות הציבורית לפעילות העמותה ולחזק את המיתוג שלה</option>
+                            <option value="לפתח תכניות חדשות המשלבות אמנות ומנהיגות">לפתח תכניות חדשות המשלבות אמנות ומנהיגות</option>
+                            <option value="Other">אחר (פרט/י)</option>
+                        </select>
+                        {goalAsVolunteer === "Other" && (
+                            <input
+                                type="text"
+                                required
+                                value={goalAsVolunteerOther}
+                                onChange={(e) => setGoalAsVolunteerOther(e.target.value)}
+                                placeholder="פרט/י"
+                                className={`${inputStyle} mt-2`}
+                            />
+                        )}
+                    </div>
+
+                    {/* מה לדעתך הקשר המשמעותי ביותר בין אמנות למנהיגות? */}
+                    <div className="flex flex-col col-span-full">
+                        <label className="mb-1 text-sm font-medium text-gray-700">
+                            מה לדעתך הקשר המשמעותי ביותר בין אמנות למנהיגות? *
+                        </label>
+                        <select
+                            required
+                            value={artLeadershipConnection}
+                            onChange={(e) => { setArtLeadershipConnection(e.target.value); if (e.target.value !== "Other") setArtLeadershipConnectionOther(""); }}
+                            className={selectStyle}
+                        >
+                            <option value="">בחר/י...</option>
+                            <option value="אמנות מפתחת ביטחון עצמי וקול אישי, תכונות חיוניות למנהיגות אפקטיבית">אמנות מפתחת ביטחון עצמי וקול אישי, תכונות חיוניות למנהיגות אפקטיבית</option>
+                            <option value="יצירה מלמדת התמדה, משמעת ופתרון בעיות, מיומנויות נדרשות למנהיגים">יצירה מלמדת התמדה, משמעת ופתרון בעיות, מיומנויות נדרשות למנהיגים</option>
+                            <option value="אמנות מפתחת חשיבה יצירתית וראייה חדשנית לאתגרים">אמנות מפתחת חשיבה יצירתית וראייה חדשנית לאתגרים</option>
+                            <option value="אמנות מקדמת הקשבה והבנת נקודות מבט שונות, מרכיבים מהותיים במנהיגות">אמנות מקדמת הקשבה והבנת נקודות מבט שונות, מרכיבים מהותיים במנהיגות</option>
+                            <option value="אמנות מאפשרת ביטוי אישי ויכולת השפעה על אחרים דרך רגש וחיבור">אמנות מאפשרת ביטוי אישי ויכולת השפעה על אחרים דרך רגש וחיבור</option>
+                            <option value="Other">אחר (פרט/י)</option>
+                        </select>
+                        {artLeadershipConnection === "Other" && (
+                            <input
+                                type="text"
+                                required
+                                value={artLeadershipConnectionOther}
+                                onChange={(e) => setArtLeadershipConnectionOther(e.target.value)}
+                                placeholder="פרט/י"
+                                className={`${inputStyle} mt-2`}
+                            />
+                        )}
+                    </div>
+
+                    {/* אילו כישורים או משאבים אתה/את יכול/ה להביא לעמותה? */}
+                    <div className="flex flex-col col-span-full">
+                        <label className="mb-1 text-sm font-medium text-gray-700">
+                            אילו כישורים או משאבים אתה/את יכול/ה להביא לעמותה? *
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {[
+                                "מומחיות מקצועית באחד מתחומי האמנות",
+                                "ניסיון בגיוס כספים ופיתוח משאבים",
+                                "קשרים עם גורמים רלוונטיים (רשויות, קרנות, מוסדות חינוך וכד')",
+                                "ניסיון בניהול ואסטרטגיה ארגונית",
+                                "מיומנויות שיווק, תקשורת או מדיה דיגיטלית",
+                                "יכולות חניכה, הדרכה או ליווי",
+                                "מומחיות משפטית או פיננסית",
+                                "יכולת תרומה כספית משמעותית"
+                            ].map((option) => (
+                                <div key={option} className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        id={`skill-${option}`}
+                                        value={option}
+                                        checked={skillsResources.includes(option)}
+                                        onChange={handleSkillsResourcesChange}
+                                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                    />
+                                    <label htmlFor={`skill-${option}`} className="ml-2 block text-sm text-gray-900 pr-2">
+                                        {option}
+                                    </label>
+                                </div>
+                            ))}
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="skill-other"
+                                    value="Other"
+                                    checked={skillsResources.includes("Other")}
+                                    onChange={handleSkillsResourcesChange}
+                                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                />
+                                <label htmlFor="skill-other" className="ml-2 block text-sm text-gray-900 pr-2">
+                                    אחר (פרט/י)
+                                </label>
+                            </div>
+                        </div>
+                        {skillsResources.includes("Other") && (
+                            <input
+                                type="text"
+                                required
+                                value={skillsResourcesOther}
+                                onChange={(e) => setSkillsResourcesOther(e.target.value)}
+                                placeholder="פרט/י"
+                                className={`${inputStyle} mt-2`}
+                            />
+                        )}
+                    </div>
+
+
+                    {/* באיזה אופן אתה/את מתכנן/ת לתמוך כספית בעמותה? */}
+                    <div className="flex flex-col col-span-full">
+                        <label className="mb-1 text-sm font-medium text-gray-700">
+                            באיזה אופן אתה/את מתכנן/ת לתמוך כספית בעמותה? *
+                        </label>
+                        <select
+                            required
+                            value={financialSupport}
+                            onChange={(e) => { setFinancialSupport(e.target.value); if (e.target.value !== "Other") setFinancialSupportOther(""); }}
+                            className={selectStyle}
+                        >
+                            <option value="">בחר/י...</option>
+                            <option value="תרומה אישית משמעותית (מעל 5,000 ₪)">תרומה אישית משמעותית (מעל 5,000 ₪)</option>
+                            <option value="תרומה אישית קבועה (בין 100-500 ₪)">תרומה אישית קבועה (בין 100-500 ₪)</option>
+                            <option value="סיוע בגיוס משאבים מגורמים חיצוניים (קרנות, תורמים, עסקים)">סיוע בגיוס משאבים מגורמים חיצוניים (קרנות, תורמים, עסקים)</option>
+                            <option value="תרומה חד-פעמית ו/או תמיכה במיזמים ספציפיים">תרומה חד-פעמית ו/או תמיכה במיזמים ספציפיים</option>
+                            <option value="אין באפשרותי לתרום כספית כרגע, אך אתרום מזמני וכישוריי">אין באפשרותי לתרום כספית כרגע, אך אתרום מזמני וכישוריי</option>
+                            <option value="Other">אחר (פרט/י)</option>
+                        </select>
+                        {financialSupport === "Other" && (
+                            <input
+                                type="text"
+                                required
+                                value={financialSupportOther}
+                                onChange={(e) => setFinancialSupportOther(e.target.value)}
+                                placeholder="פרט/י"
+                                className={`${inputStyle} mt-2`}
+                            />
+                        )}
+                    </div>
+
+                    {/* מבין תחומי הפעילות הבאים של העמותה, באיזה תחום היית רוצה להיות מעורב/ת במיוחד? */}
+                    <div className="flex flex-col col-span-full">
+                        <label className="mb-1 text-sm font-medium text-gray-700">
+                            מבין תחומי הפעילות הבאים של העמותה, באיזה תחום היית רוצה להיות מעורב/ת במיוחד? *
+                        </label>
+                        <select
+                            required
+                            value={preferredActivityArea}
+                            onChange={(e) => { setPreferredActivityArea(e.target.value); if (e.target.value !== "Other") setPreferredActivityAreaOther(""); }}
+                            className={selectStyle}
+                        >
+                            <option value="">בחר/י...</option>
+                            <option value="ליווי מקצועי ותכנית הלימודים האמנותית">ליווי מקצועי ותכנית הלימודים האמנותית</option>
+                            <option value="פיתוח משאבים וקשרים אסטרטגיים">פיתוח משאבים וקשרים אסטרטגיים</option>
+                            <option value="שיווק, פרסום וקידום דיגיטלי">שיווק, פרסום וקידום דיגיטלי</option>
+                            <option value="תפעול, לוגיסטיקה וארגון אירועים">תפעול, לוגיסטיקה וארגון אירועים</option>
+                            <option value="פיתוח תכניות חדשות והרחבת פעילות העמותה">פיתוח תכניות חדשות והרחבת פעילות העמותה</option>
+                            <option value="Other">אחר (פרט/י)</option>
+                        </select>
+                        {preferredActivityArea === "Other" && (
+                            <input
+                                type="text"
+                                required
+                                value={preferredActivityAreaOther}
+                                onChange={(e) => setPreferredActivityAreaOther(e.target.value)}
+                                placeholder="פרט/י"
+                                className={`${inputStyle} mt-2`}
+                            />
+                        )}
+                    </div>
+
+                    {/* --- End New Questions --- */}
 
                     {/* Submit Button */}
                     <div className="col-span-1 md:col-span-2 ">
