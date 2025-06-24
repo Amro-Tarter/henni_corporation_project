@@ -330,7 +330,7 @@ const ProgramSection = () => {
         </div>
       </div>
 
-      <style jsx>{`
+      <style>{`
         .perspective {
           perspective: 1000px;
         }

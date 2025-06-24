@@ -388,7 +388,7 @@ const RoleSection = ({
         )}
       </div>
 
-      <style jsx>{`
+      <style>{`
         .line-clamp-3 {
           display: -webkit-box;
           -webkit-line-clamp: 3;

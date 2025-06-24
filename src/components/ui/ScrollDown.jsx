@@ -36,7 +36,6 @@ const ScrollDown = ({
       const element = document.getElementById(targetId);
       if (!element) return;
 
-      // Try to detect your navbar height; fallback to different values for mobile/desktop
       const header = document.querySelector('.navbar');
       const isMobile = window.innerWidth < 768;
       const headerOffset = header instanceof HTMLElement
@@ -46,35 +45,23 @@ const ScrollDown = ({
       const elementPosition = element.getBoundingClientRect().top + window.scrollY;
       const offsetPosition = elementPosition - headerOffset;
 
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
+      window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
     } else {
-      // Scroll down by viewport minus custom offset
-      window.scrollBy({
-        top: window.innerHeight - offset,
-        behavior: 'smooth'
-      });
+      window.scrollBy({ top: window.innerHeight - offset, behavior: 'smooth' });
     }
   };
 
-  // Responsive positioning helpers
+  // Position classes helper
   const getPositionClasses = () => {
     switch (position) {
-      case "bottom-right":
-        return "fixed bottom-4 right-4 md:bottom-8 md:right-8";
-      case "bottom-left":
-        return "fixed bottom-4 left-4 md:bottom-8 md:left-8";
-      case "center-right":
-        return "fixed top-1/2 right-4 md:right-8 -translate-y-1/2";
-      case "bottom-center":
-      default:
-        return "fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2";
+      case "bottom-right": return "fixed bottom-4 right-4 md:bottom-8 md:right-8";
+      case "bottom-left":  return "fixed bottom-4 left-4 md:bottom-8 md:left-8";
+      case "center-right": return "fixed top-1/2 right-4 md:right-8 -translate-y-1/2";
+      default:              return "fixed bottom-4 md:bottom-8 left-1/2 -translate-x-1/2";
     }
   };
 
-  // Responsive style variants
+  // Style variants
   const getStyleVariant = () => {
     switch (style) {
       case "minimal":
@@ -95,7 +82,6 @@ const ScrollDown = ({
           button: "p-2 md:p-3 rounded-full bg-red-900 text-white shadow-lg transition-all",
           icon: "w-5 h-5 md:w-7 md:h-7"
         };
-      case "default":
       default:
         return {
           container: "bg-gray-900/80 dark:bg-gray-800/80 backdrop-blur-sm",
@@ -113,36 +99,23 @@ const ScrollDown = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
           className={`${getPositionClasses()} z-50 ${className}`}
         >
           <div className={`rounded-full ${styleVariant.container}`}>
             <motion.button
               onClick={scrollToTarget}
-              className={`rounded-full ${styleVariant.button}`}
+              className={`rounded-full flex items-center space-x-1 rtl:space-x-reverse ${styleVariant.button}`}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
               animate={style === "pulsing" ? {
-                scale: [1, 1.1, 1],
-                opacity: [0.7, 1, 0.7]
+                scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7]
               } : {}}
-              transition={style === "pulsing" ? {
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              } : { duration: 0.2 }}
+              transition={style === "pulsing" ? { duration: 2, repeat: Infinity, ease: 'easeInOut' } : { duration: 0.2 }}
               aria-label="Scroll down"
             >
-              <motion.div
-                animate={{ y: [0, 3, 0] }} // Reduced animation distance for mobile
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              >
-                <ChevronDown className={styleVariant.icon} />
-              </motion.div>
+              <span className="font-medium">גלול למטה</span>
+              <ChevronDown className={styleVariant.icon} />
             </motion.button>
           </div>
         </motion.div>

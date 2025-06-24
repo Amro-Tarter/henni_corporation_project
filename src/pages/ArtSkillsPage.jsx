@@ -508,7 +508,7 @@ const ArtSkillsPage = () => {
         )}
 
         {/* Styles for flip card animation */}
-        <style jsx>{`
+        <style>{`
           .perspective {
             perspective: 1000px;
           }
