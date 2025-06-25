@@ -117,8 +117,6 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
   const [sameElementUsers, setSameElementUsers] = useState([]);
   const [mentorCommunityChat, setMentorCommunityChat] = useState(null);
   const [privateMentorChat, setPrivateMentorChat] = useState(null);
-  console.log("LeftSidebar viewerProfile:", viewerProfile);
-
 
   // --- Users section logic ---
   useEffect(() => {
@@ -149,7 +147,6 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
       Array.isArray(viewerProfile.participants) &&
       viewerProfile.participants.length > 0
     ) {
-      console.log('Participants:', viewerProfile.participants);
       (async () => {
         const ids = viewerProfile.participants.slice(0, 5);
         const studentsProfiles = await Promise.all(

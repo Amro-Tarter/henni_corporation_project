@@ -283,8 +283,8 @@ const Project = ({
               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
             />
             <div className="flex flex-col">
-              <h3 className="text-lg font-bold truncate max-w-[140px]">{authorProfile?.username || '...'}</h3>
-              <p className="text-xs text-gray-500">{createdAt?.toDate?.().toLocaleDateString('he-IL', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) || ''}</p>
+              <p className="text-xl font-bold">{authorProfile?.username || '...'}</p>
+              <p className="text-sm text-gray-500">{createdAt?.toDate?.().toLocaleDateString('he-IL', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) || ''}</p>
             </div>
           </div>
           {isOwner && (

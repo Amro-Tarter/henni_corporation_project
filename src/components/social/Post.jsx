@@ -323,8 +323,8 @@ const Post = ({
               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
             />
             <div className="flex flex-col">
-              <h3 className="text-lg font-bold">{authorProfile?.username || '...'}</h3>
-              <p className="text-xs text-gray-500">{timeString}</p>
+              <p className="text-xl font-bold">{authorProfile?.username || '...'}</p>
+              <p className="text-sm text-gray-500">{timeString}</p>
             </div>
           </div>
           {isOwner && (
@@ -333,7 +333,7 @@ const Post = ({
                 onClick={() => setMenuOpen(prev => !prev)}
                 className={`p-2 rounded-full transition-colors duration-200 text-${element}-accent hover:text-${element} hover:bg-${element}-soft`}
               >
-                <MoreHorizontal size={20} />
+                <MoreHorizontal size={25} />
               </button>
               {menuOpen && (
                 <div className={`absolute left-0 top-full mt-1 w-36 border border-${element}-accent rounded-lg shadow-lg overflow-hidden z-10 bg-white`}>
@@ -360,7 +360,7 @@ const Post = ({
         </div>
 
         {/* Content */}
-        <div className="px-5 pb-4">
+        <div className="px-5 pb-2">
           {editing ? (
             <div className="relative mb-3">
               <textarea
@@ -541,7 +541,6 @@ const Post = ({
                 )}
               </AnimatePresence>
             </div>
-
 
             <button onClick={toggleCommentsSection} className="flex items-center gap-2 group" aria-label="הצג תגובות">
               <div className={`p-1.5 rounded-full transition-colors bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white`}>

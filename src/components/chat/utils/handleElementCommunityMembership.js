@@ -14,7 +14,7 @@ export const handleElementCommunityChatMembership = async (userId, userElement) 
       const userDoc = await getDoc(doc(db, "users", userId));
       const username = userDoc.data().username;
       const userRole = userDoc.data().role;
-      if (userRole === 'admin') {
+      if (userRole === 'admin' || userRole === 'staff' || userRole === 'mentor') {
         // admin members do not join community chats
         return null;
       }
