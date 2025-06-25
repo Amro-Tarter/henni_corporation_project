@@ -186,6 +186,8 @@ export default function ChatApp() {
   const [isLoadingInquiries, setIsLoadingInquiries] = useState(false);
   const [notification, setNotification] = useState(null); // { message, type, actions }
   const [selectedConversationId, setSelectedConversationId] = useState(null);
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [isCreatingDirectChat, setIsCreatingDirectChat] = useState(false);
   // File upload state/logic (moved to hook)
   const {
     file,
@@ -1292,13 +1294,25 @@ export default function ChatApp() {
             <div className="flex gap-2">
               <button
                 className='px-4 py-2 text-white rounded-lg hover:scale-105 disabled:opacity-50'
-                onClick={createNewConversation}
-                disabled={!selectedUser}
+                onClick={async () => {
+                  if (isCreatingDirectChat) return;
+                  setIsCreatingDirectChat(true);
+                  await createNewConversation();
+                  setIsCreatingDirectChat(false);
+                }}
+                disabled={!selectedUser || isCreatingDirectChat}
                 style={{ 
                   backgroundColor: elementColors.primary
                 }}
               >
-                צור
+                {isCreatingDirectChat ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                    יוצר...
+                  </span>
+                ) : (
+                  'צור'
+                )}
               </button>
               <button
                 className="px-4 py-2 border rounded-lg hover:bg-gray-200"
@@ -1421,7 +1435,8 @@ export default function ChatApp() {
               <button
                 className='px-4 py-2 text-white rounded-lg hover:scale-105 disabled:opacity-50'
                 onClick={async () => {
-                  if (!groupName.trim()) return;
+                  if (!groupName.trim() || isCreatingGroup) return;
+                  setIsCreatingGroup(true);
                   try {
                     const batch = writeBatch(db);
                     const groupRef = doc(collection(db, "conversations"));
@@ -1471,14 +1486,23 @@ export default function ChatApp() {
                         [`unread.${user.id}`]: 1
                       });
                     }
+                    setIsCreatingGroup(false);
                   } catch (error) {
                     setNotification({ message: "שגיאה ביצירת קבוצה: " + error.message, type: 'error', elementColors: elementColors });
+                    setIsCreatingGroup(false);
                   }
                 }}
-                disabled={!groupName.trim()}
+                disabled={!groupName.trim() || isCreatingGroup}
                 style={{ backgroundColor: elementColors.primary }}
               >
-                צור קבוצה
+                {isCreatingGroup ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                    יוצר...
+                  </span>
+                ) : (
+                  'צור קבוצה'
+                )}
               </button>
               <button
                 className="px-4 py-2 border rounded-lg hover:bg-gray-200"
