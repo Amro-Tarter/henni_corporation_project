@@ -136,7 +136,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
       </div>
     )}
     <div className="mb-10 flex justify-center px-4" dir="rtl">
-      <div className={`w-full max-w-4xl bg-white rounded-2xl p-6 space-y-4 border border-${element}-accent`}>
+      <div className={`w-full max-w-4xl bg-white rounded-2xl p-4 space-y-4 border border-${element}-accent`}>
         <form onSubmit={handleSubmit}>
           {/* Avatar + Textarea */}
           <div className="flex items-start gap-4">
@@ -147,7 +147,7 @@ const CreatePost = ({ addPost, profilePic, element }) => {
             />
             <textarea
               id="createpost-textarea"
-              className={`flex-1 bg-${element}-soft rounded-xl px-4 py-3 text-sm text-${element}-dark resize-none focus:outline-none focus:ring-2 focus:ring-${element}-accent transition ${mediaType === 'blog' ? 'h-40' : 'h-24'}`}
+              className={`flex-1 bg-${element}-soft rounded-xl px-4 py-2 text-sm text-${element}-dark resize-none focus:outline-none focus:ring-2 focus:ring-${element}-accent transition ${mediaType === 'blog' ? 'h-40' : 'h-24'}`}
               value={text}
               onChange={e => setText(e.target.value)}
               placeholder={mediaType === 'blog' ? 'כתוב כאן את הבלוג שלך...' : 'מה שלומך היום?'}

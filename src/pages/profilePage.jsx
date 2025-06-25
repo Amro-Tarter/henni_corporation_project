@@ -854,7 +854,7 @@ const ProfilePage = () => {
             </div>
 
             {/* Sliding Tabs */}
-            <div ref={tabsRef} className="flex flex-col items-center mb-6 mt-6 w-full">
+            <div ref={tabsRef} className="flex flex-col items-center mb-5 mt-5 w-full">
               <div className={`bg-${element}-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden`}>
                 <div
                   className={`absolute bottom-[10px] h-[2px] bg-${element} transition-all duration-300 ease-in-out`}

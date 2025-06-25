@@ -1,5 +1,5 @@
 //ProfileInfo.jsx
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { MapPin, Camera, MessageSquare, Users, Image, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from '../ui/sonner';
@@ -69,18 +69,7 @@ const ProfileInfo = ({
 
   const followingLabel = isOwner
     ? "אני עוקב אחרי"
-    : `${username}|עוקב אחרי`;
-
-  // scroll to see full profile info if not owner and on desktop
-  const profileRef = useRef(null);
-
-  useEffect(() => {
-    if (!isOwner && window.innerWidth >= 640) {
-      setTimeout(() => {
-        profileRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
-    }
-  }, [isOwner]);
+    : `${username}|עוקב אחרי`
 
   // handles personal pic change
   const handlePicChange = async e => { // e is the event from the file input
@@ -110,9 +99,9 @@ const ProfileInfo = ({
 
   return (
     <>
-      <section ref={profileRef} className="w-full overflow-visible">
+      <section className="w-full overflow-visible">
         {/* Background image */}
-        <div className={`relative w-full h-36 sm:h-48 md:h-64 bg-${element}-soft overflow-visible`}>
+        <div className={`relative w-full h-36 sm:h-48 md:h-56 bg-${element}-soft overflow-visible`}>
           {backgroundPic && (
             <img src={backgroundPic} alt="Cover background" className="object-cover w-full h-full rounded-lg" />
           )}
@@ -142,7 +131,7 @@ const ProfileInfo = ({
             {/* Profile Pic */}
             <div className="flex-shrink-0 flex flex-col items-center -mt-16" style={{ zIndex: 1 }}>
               <div className={`
-              relative w-44 h-44 sm:w-56 sm:h-56 border-4 border-${element} rounded-full overflow-hidden
+              relative w-32 h-32 sm:w-56 sm:h-56 border-4 border-${element} rounded-full overflow-hidden
               shadow-xl bg-${element}-soft hover:scale-105 transition-transform duration-300 group
             `}>
                 <img
@@ -163,17 +152,17 @@ const ProfileInfo = ({
             </div>
 
             {/* Personal Info */}
-            <div className=" flex flex-col justify-start items-start text-right pr-2 pt-2 sm:pt-4 min-w-0 overflow-hidden">
+            <div className=" flex flex-col flex-grow justify-start items-start text-right pr-2 pt-2 sm:pt-4 min-w-0 overflow-hidden">
               {/* Username */}
               <div className="flex items-center gap-3 mb-4">
-                <motion.h1
+                <motion.p
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5 }}
                   className={`text-2xl sm:text-5xl font-bold text-${element}`}
                 >
                   {username}
-                </motion.h1>
+                </motion.p>
                 {isOwner && (
                   <Tooltip text="באפשרותך לערוך את הפרטים שלך דרך עמוד ההגדרות">
                     <Info className="text-gray-500 hover:text-gray-600 w-5 h-5 cursor-pointer transition-colors" />
@@ -198,7 +187,7 @@ const ProfileInfo = ({
             </div>
 
             {/* Role + Follow */}
-            <div className="flex flex-col items-end flex-shrink-0 w-40 pt-2 sm:pt-4">
+            <div className="flex flex-col items-end flex-shrink-0 w-40 pt-2 sm:pt-4 ml:auto">
               <div className="mb-2">
                 {['mentor', 'admin'].includes(role) ? (
                   <Tooltip text="תפקיד המשתמש">
@@ -219,7 +208,7 @@ const ProfileInfo = ({
                 ) : (
                   <Tooltip text={isOwner ? "האלמנט שלך" : "האלמנט של המשתמש הזה"}>
                     <div className={`
-                    inline-flex items-center gap-2 py-3 rounded-full bg-${element}-soft text-${element}
+                    inline-flex items-center gap-2 justify-center py-3 w-40 rounded-full bg-${element}-soft text-${element}
                     shadow-lg ring-2 ring-${element}-accent hover:shadow-xl transition-shadow duration-300
                   `}
                       style={{ pointerEvents: "none", userSelect: "none" }}>
@@ -256,7 +245,7 @@ const ProfileInfo = ({
             transition={{ duration: 0.4 }}
             className={`
             grid grid-cols-3 sm:gap-x-40 gap-y-4 sm:flex sm:justify-center
-            bg-${element}-soft rounded-xl p-5 shadow-md hover:shadow-lg transition-shadow duration-300
+            bg-${element}-soft rounded-xl p-3 shadow-md hover:shadow-lg transition-shadow duration-300
           `}
           >
             <Stat element={element} icon={<MessageSquare className="w-5 h-5" />} count={postsCount} label="פוסטים" />
