@@ -25,9 +25,11 @@ import {
   Mail,
   Star,
   ChevronLeft,
+  ChevronDown,
 } from 'lucide-react';
 import CTAButton from '@/components/CTAButton';
 import { toast, Toaster } from 'sonner';
+
 
 const DEFAULT_IMAGE = '/default_user_pic.jpg';
 
@@ -482,7 +484,7 @@ const AboutSection = ({ currentUser }) => {
         </div>
 
         {/* Enhanced Team Section */}
-        <div className="text-center mb-12">
+        <div id="team-section" className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
             <h3 className="text-4xl md:text-5xl font-bold text-orange-800 py-6">צוות העמותה</h3>
           </div>
@@ -574,7 +576,16 @@ const AboutSection = ({ currentUser }) => {
           </div>
         </div>
       </div>
-
+      <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none" // pointer-events-none makes it non-clickable
+        >
+          <div className="rounded-full p-2 text-red-900 opacity-60 bottom-4 md:bottom-8 left-[45%] -translate-x-[55%]"> {/* Transparent background, gray icon, slightly less opaque */}
+            <ChevronDown className="w-8 h-8 md:w-10 md:h-10 animate-bounce" /> {/* Larger icon, subtle bounce animation */}
+          </div>
+        </motion.div>
       {/* Enhanced Member Modal */}
       <AnimatePresence>
         {selectedMember !== null && (
