@@ -1,8 +1,7 @@
 //comments
 import React, { useState, useEffect, useRef } from 'react';
 import { Trash2, Check, Edit2, X, Send, Reply, Smile } from 'lucide-react';
-import EmojiPicker from 'emoji-picker-react';
-import { createPortal } from 'react-dom';
+import EmojiPickerPopover from './EmojiPickerPopover'; // adjust path if needed
 import { containsBadWord } from './utils/containsBadWord';
 
 export const Comment = ({
@@ -324,51 +323,23 @@ export const CommentInput = ({
           rows={2}
           dir="rtl"
         />
-        <div className="flex items-center w-full sm:w-auto sm:justify-end gap-2">
+        <div className="flex items-center w-full sm:w-auto sm:justify-end gap-2 relative">
           {/* Emoji Picker Button */}
           <button
             type="button"
             ref={emojiBtnRef}
-            onClick={openEmojiPicker}
-            className={`
-          p-2 sm:px-2 sm:py-2
-          rounded-md 
-          bg-${element}-soft 
-          text-${element} 
-          hover:bg-${element}-accent 
-          hover:text-white 
-          transition-colors 
-        `}
+            onClick={() => setShowEmoji(v => !v)}
+            className={`hidden md:flex p-2 sm:px-2 sm:py-2 rounded-md bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white transition-colors`}
             aria-label="הוסף אימוג׳י"
           >
             <Smile size={18} />
           </button>
-
-          {/* Emoji Picker in Portal */}
-          {showEmoji &&
-            createPortal(
-              <div
-                ref={pickerRef}
-                style={{
-                  position: 'fixed',
-                  left: emojiPos.x,
-                  top: emojiPos.y,
-                  zIndex: 1000,
-                }}
-                className="emoji-mart-portal"
-              >
-                <EmojiPicker
-                  onEmojiClick={insertEmoji}
-                  autoFocusSearch={false}
-                  theme="light"
-                  searchDisabled={false}
-                  skinTonesDisabled={false}
-                  width={350}
-                  height={400}
-                />
-              </div>,
-              document.body
-            )}
+          <EmojiPickerPopover
+            anchorRef={emojiBtnRef}
+            open={showEmoji}
+            onClose={() => setShowEmoji(false)}
+            onEmojiClick={emojiObject => insertEmoji(emojiObject)}
+          />
 
           {onCancel && (
             <button

@@ -18,13 +18,6 @@ const ELEMENT_ICONS = {
   air: <AirIcon style={{ color: '#87ceeb' }} />,
   metal: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />,
 };
-const ELEMENT_NAMES = {
-  fire: 'אש',
-  water: 'מים',
-  earth: 'אדמה',
-  air: 'אוויר',
-  metal: 'מתכת',
-};
 
 // --- Small reusable components ---
 
@@ -35,7 +28,7 @@ function UserCard({ user, element, onClick, onFollowToggle, viewerProfile }) {
       whileHover={{ scale: 1.015 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.15 }}
-      className={`flex items-center justify-between p-2 bg-white hover:bg-${element}-soft rounded-lg shadow-sm`}
+      className={`flex items-center justify-between px-1 py-3 bg-white hover:bg-${element}-soft rounded-lg shadow-sm`}
     >
       <div
         className="flex items-center gap-3 cursor-pointer flex-grow overflow-hidden"
@@ -49,14 +42,14 @@ function UserCard({ user, element, onClick, onFollowToggle, viewerProfile }) {
         />
         <div className="text-right overflow-hidden flex flex-col">
           <p
-            className="font-semibold text-gray-800 text-sm truncate max-w-[110px]"
+            className="font-semibold text-gray-800 text-base truncate max-w-[110px]"
             title={user.username}
             dir="rtl"
           >
             {user.username}
           </p>
           {user.location && (
-            <span className="flex items-center gap-1 text-[11px] text-gray-400 font-normal truncate max-w-[110px]" dir="rtl">
+            <span className="flex items-center gap-1 text-[12px] text-gray-400 font-normal truncate max-w-[110px]" dir="rtl">
               <MapPin className="w-3 h-3 text-gray-400" />
               {user.location}
             </span>
@@ -96,20 +89,17 @@ function ChatListItem({ chat, label, onClick, element }) {
   );
 }
 
-function getSectionTitle({ viewerProfile, profileUser, isOwnProfile }) {
-  if (viewerProfile && viewerProfile.role === 'admin') return 'משתמשים באתר';
-  if (profileUser && profileUser.role === 'mentor') {
-    if (viewerProfile && profileUser.uid === viewerProfile.uid) return 'הסטודנטים שלך';
-    return `הסטודנטים של ${profileUser.username || 'המשתמש הזה'}`;
-  }
-  if (!profileUser) return 'עוד מהאלמנט';
-  if (isOwnProfile) return 'עוד מהאלמנט שלך';
-  return `עוד מהאלמנט של ${profileUser.username || 'המשתמש הזה'}`;
+function getSectionTitle({ viewerProfile }) {
+  if (!viewerProfile) return 'משתמשים';
+  if (viewerProfile.role === 'admin') return 'משתמשים באתר';
+  if (viewerProfile.role === 'mentor') return 'הסטודנטים שלך';
+  if (viewerProfile.role === 'participant') return 'עוד מהאלמנט שלך';
+  return 'משתמשים';
 }
 
 // --- Main component ---
 
-const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFollowToggle }) => {
+const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle }) => {
   const navigate = useNavigate();
 
   // State
@@ -120,6 +110,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
   const [sameElementUsers, setSameElementUsers] = useState([]);
   const [mentorCommunityChat, setMentorCommunityChat] = useState(null);
   const [privateMentorChat, setPrivateMentorChat] = useState(null);
+  const element = viewerElement;
 
   // --- Users section logic ---
   useEffect(() => {
@@ -130,9 +121,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
         let allProfiles = profilesSnap.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(
-            p => p.associated_id !== viewerProfile.uid &&
-              p.associated_id !== (profileUser && profileUser.uid) &&
-              p.role !== 'staff'
+            p => p.associated_id !== viewerProfile.uid && p.role !== 'staff'
           );
         allProfiles = allProfiles.sort(() => Math.random() - 0.5).slice(0, 5);
         setAdminRandomUsers(allProfiles);
@@ -184,7 +173,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
         const othersSnap = await getDocs(othersQuery);
         const others = othersSnap.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(u => u.associated_id !== viewerProfile.uid && u.associated_id !== (profileUser && profileUser.uid) && u.role === 'participant');
+          .filter(u => u.associated_id !== viewerProfile.uid && u.role === 'participant');
         const shuffled = others.sort(() => 0.5 - Math.random()).slice(0, 5);
         setSameElementUsers(shuffled);
       })();
@@ -292,7 +281,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
     String(viewerProfile.uid) === String(profileUser.uid);
 
   // Section title
-  const elementSectionTitle = getSectionTitle({ viewerProfile, profileUser, isOwnProfile });
+  const elementSectionTitle = getSectionTitle({ viewerProfile});
 
   // Which users to show in the top section?
   let usersToShow = [];

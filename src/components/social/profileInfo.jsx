@@ -29,7 +29,7 @@ const Stat = ({ icon, count, label, element }) => {
     <div className="flex flex-col items-center hover:scale-105 transition-transform text-center">
       {icon && <div className={`text-${element} mb-1`}>{icon}</div>}
       <div className={`text-2xl sm:text-3xl font-bold text-${element}`}>{count}</div>
-      <div className="flex flex-col leading-tight text-lg ">
+      <div className="flex flex-col leading-tight text-sm sm:text-base md:text-lg">
         <span className={`text-${element}-accent`}>{topLabel}</span>
         {bottomLabel && <span className={`text-${element}-accent`}>{bottomLabel}</span>}
       </div>
@@ -130,7 +130,7 @@ const ProfileInfo = ({
 
         {/* Main profile row */}
         <div className="px-2 sm:px-8 md:px-20 mb-4 relative z-20 overflow-visible text-right">
-          <div className="flex flex-row items-start w-full gap-4 sm:gap-8">
+          <div className="flex flex-col sm:flex-row items-center w-full gap-4 sm:gap-8">
 
             {/* Profile Pic */}
             <div className="flex-shrink-0 flex flex-col items-center -mt-16" style={{ zIndex: 1 }}>

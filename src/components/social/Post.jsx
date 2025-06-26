@@ -8,7 +8,7 @@ import { toast } from '../ui/sonner';
 import PostModalContent from './PostModalContent';
 import ConfirmationModal from './ConfirmationModal';
 import { containsBadWord } from './utils/containsBadWord';
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPickerPopover from './EmojiPickerPopover';
 
 const Post = ({
   post,
@@ -54,8 +54,6 @@ const Post = ({
 
   const [showEmoji, setShowEmoji] = useState(false);
   const emojiBtnRef = useRef();
-  const emojiPickerRef = useRef();
-  const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const commentsRef = useRef(null);
@@ -91,30 +89,9 @@ const Post = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Click-outside handler: closes only if click is not on the picker or button
-  useEffect(() => {
-    if (!showEmoji) return;
-    function handleClick(e) {
-      if (
-        emojiPickerRef.current &&
-        !emojiPickerRef.current.contains(e.target) &&
-        emojiBtnRef.current &&
-        !emojiBtnRef.current.contains(e.target)
-      ) {
-        setShowEmoji(false);
-      }
-    }
-    window.addEventListener('mousedown', handleClick);
-    return () => window.removeEventListener('mousedown', handleClick);
-  }, [showEmoji]);
-
   const openEmojiPicker = () => {
     if (emojiBtnRef.current) {
       const rect = emojiBtnRef.current.getBoundingClientRect();
-      setEmojiPos({
-        x: rect.left,
-        y: rect.bottom + 8,
-      });
     }
     setShowEmoji(true);
   };
@@ -374,25 +351,37 @@ const Post = ({
               />
               <div className="flex justify-end gap-2 mt-2 items-center">
                 {/* Emoji Button on the left */}
-                <button
-                  type="button"
-                  ref={emojiBtnRef}
-                  onClick={openEmojiPicker}
-                  className={`
+                <div className="relative">
+                  <button
+                    type="button"
+                    ref={emojiBtnRef}
+                    onClick={openEmojiPicker}
+                    className={`
+                      hidden
                     px-2 py-2 rounded-md 
                     bg-${element}-soft 
                     text-${element} 
                     hover:bg-${element}-accent 
                     hover:text-white 
                     transition-colors
-                    flex items-center
+                    md:flex items-center
                   `}
-                  aria-label="הוסף אימוג׳י"
-                  tabIndex={-1}
-                  style={{ zIndex: 10 }}
-                >
-                  <Smile size={18} />
-                </button>
+                    aria-label="הוסף אימוג׳י"
+                    tabIndex={-1}
+                    style={{ zIndex: 10 }}
+                  >
+                    <Smile size={18} />
+                  </button>
+                  {/* Emoji Picker Portal */}
+                  <EmojiPickerPopover
+                    anchorRef={emojiBtnRef}
+                    open={showEmoji}
+                    onClose={() => setShowEmoji(false)}
+                    onEmojiClick={(emojiObject) => {
+                      insertEmoji(emojiObject);
+                    }}
+                  />
+                </div>
                 {/* Cancel Button */}
                 <button
                   onClick={() => setEditing(false)}
@@ -412,30 +401,7 @@ const Post = ({
                   שמור שינויים
                 </motion.button>
               </div>
-              {/* Emoji Picker Portal */}
-              {showEmoji &&
-                createPortal(
-                  <div
-                    ref={emojiPickerRef}
-                    style={{
-                      position: 'fixed',
-                      left: emojiPos.x,
-                      top: emojiPos.y,
-                      zIndex: 1000,
-                    }}
-                  >
-                    <EmojiPicker
-                      onEmojiClick={insertEmoji}
-                      autoFocusSearch={false}
-                      theme="light"
-                      searchDisabled={false}
-                      skinTonesDisabled={false}
-                      width={350}
-                      height={400}
-                    />
-                  </div>,
-                  document.body
-                )}
+
             </div>
           ) : (
             <p className="px-5 pb-2 text-base leading-relaxed whitespace-pre-wrap break-words break all overflow-hidden">{content}</p>
@@ -452,7 +418,8 @@ const Post = ({
             }}
           >
             {editing && (
-              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm">
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black bg-opacity-40 backdrop-blur-sm cursor-pointer"
+              onClick={pickMedia}>
                 <Camera className="w-10 h-10 text-white" />
                 <p className="text-white mt-2 font-medium">החלף מדיה</p>
               </div>
