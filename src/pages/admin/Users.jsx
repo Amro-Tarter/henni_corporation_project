@@ -27,14 +27,19 @@ import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { PendingUsersButton } from "../../components/team/addUserButton";
 import { useUser } from "../../hooks/useUser";
 import ElementalLoader from "@/theme/ElementalLoader";
+import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
+import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
+import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
+
 
 // Enhanced Constants with new element structure
 const ELEMENTS = [
-  { key: 'earth', emoji: '🌱', color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100', textColor: 'text-green-600', name: 'אדמה' },
-  { key: 'metal', emoji: '⚒️', color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100', textColor: 'text-gray-600', name: 'מתכת' },
-  { key: 'air', emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100', textColor: 'text-blue-600', name: 'אוויר' },
-  { key: 'water', emoji: '💧', color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100', textColor: 'text-indigo-600', name: 'מים' },
-  { key: 'fire', emoji: '🔥', color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100', textColor: 'text-red-600', name: 'אש' },
+  { key: 'earth', emoji: <SpaRoundedIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
+  { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />, color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
+  { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
+  { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />, color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
+  { key: 'fire',  emoji: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />, color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
 ];
 
 const ROLES = [

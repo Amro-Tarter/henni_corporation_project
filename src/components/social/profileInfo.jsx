@@ -4,13 +4,17 @@ import { MapPin, Camera, MessageSquare, Users, Image, Info } from 'lucide-react'
 import { motion } from 'framer-motion';
 import { toast } from '../ui/sonner';
 import AirIcon from '@mui/icons-material/Air';
+import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
+import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
+import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 
 const elementOptions = [
-  { value: 'fire', label: 'אש', icon: '🔥' },
-  { value: 'water', label: 'מים', icon: '💧' },
+  { value: 'fire', label: 'אש', icon: <WhatshotRoundedIcon style={{color: '#fca5a1'}} /> },
+  { value: 'water', label: 'מים', icon: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} /> },
   { value: 'air', label: 'אוויר', icon: <AirIcon style={{ color: '#87ceeb' }} /> },
-  { value: 'earth', label: 'אדמה', icon: '🌱' },
-  { value: 'metal', label: 'מתכת', icon: '⚒️' },
+  { value: 'earth', label: 'אדמה', icon: <SpaRoundedIcon style={{color: '#4ade80'}} /> },
+  { value: 'metal', label: 'מתכת', icon: <ConstructionTwoToneIcon style={{color: '#4b5563'}} /> },
 ];
 
 // Helper function to find the option by value

@@ -10,13 +10,18 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { toast } from 'sonner';
 import AirIcon from '@mui/icons-material/Air';
 import Navbar from '../components/layout/Navigation';
+import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
+import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
+import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
+
 
 const ELEMENTS = [
-    { key: 'earth', type: 'emoji', value: '🌱' },
-    { key: 'metal', type: 'emoji', value: '⚒️' },
+    { key: 'earth', type: 'emoji', value: <SpaRoundedIcon style={{color: '#4ade80'}} /> },
+    { key: 'metal', type: 'emoji', value: <ConstructionTwoToneIcon style={{color: '#4b5563'}} /> },
     { key: 'air', type: 'icon', value: <AirIcon /> },
-    { key: 'water', type: 'emoji', value: '💧' },
-    { key: 'fire', type: 'emoji', value: '🔥' },
+    { key: 'water', type: 'emoji', value: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} /> },
+    { key: 'fire', type: 'emoji', value: <WhatshotRoundedIcon style={{color: '#fca5a1'}} /> },
 ];
 
 const FLOAT_POS = [
