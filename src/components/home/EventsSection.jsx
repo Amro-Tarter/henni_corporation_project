@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, X } from "lucide-react";
+import { Calendar, X, ChevronDown } from "lucide-react";
 import CTAButton from "@/components/CTAButton";
 import { db } from "@/config/firbaseConfig";
 import { collection, getDocs } from "firebase/firestore";
@@ -127,9 +127,7 @@ const EventsSection = () => {
   }, []);
 
   return (
-    <section 
-    className="relative py-12 md:py-16 bg-gradient-to-tr from-green-100 to-lime-50 overflow-hidden"
-     id="projects" dir="rtl">
+    <section id="projects" className="relative py-12 md:py-16 bg-gradient-to-tr from-green-100 to-lime-50 overflow-hidden" dir="rtl">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="font-gveret-levin font-bold text-5xl md:text-5xl text-emerald-800 mb-4">פרויקטים מהשטח</h2>
@@ -169,7 +167,17 @@ const EventsSection = () => {
             צפו בכל הפרויקטים שלנו
           </CTAButton>
         </div>
-
+        <br />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none" // pointer-events-none makes it non-clickable
+        >
+          <div className="rounded-full p-2 text-red-900 opacity-60 bottom-4 md:bottom-8 left-[45%] -translate-x-[55%]"> {/* Transparent background, gray icon, slightly less opaque */}
+            <ChevronDown className="w-8 h-8 md:w-10 md:h-10 animate-bounce" /> {/* Larger icon, subtle bounce animation */}
+          </div>
+        </motion.div>
         {/* Project Details Modal */}
         <AnimatePresence>
           {selectedProject && (

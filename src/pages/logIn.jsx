@@ -10,24 +10,20 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../config/firbaseConfig";
 import { User, Lock, Loader } from "lucide-react";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faLeaf,
-  faHammer,
-  faWind,
-  faWater,
-  faFire
-} from '@fortawesome/free-solid-svg-icons';
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from 'sonner';
 import AirIcon from '@mui/icons-material/Air';
 import Navbar from '../components/layout/Navigation';
+import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
+import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
+import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 const ELEMENTS = [
-  { key: 'earth', type: 'emoji', value: '🌱' },
-  { key: 'metal', type: 'emoji', value: '⚒️' },
-  { key: 'air',   type: 'icon',  value: <AirIcon /> },
-  { key: 'water', type: 'emoji', value: '💧' },
-  { key: 'fire',  type: 'emoji', value: '🔥' },
+  { key: 'earth', emoji: <SpaRoundedIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
+  { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />, color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
+  { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
+  { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />, color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
+  { key: 'fire',  emoji: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />, color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
 ];
 
 const FLOAT_POS = [

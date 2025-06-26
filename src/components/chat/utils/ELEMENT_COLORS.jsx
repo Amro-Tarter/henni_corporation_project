@@ -1,6 +1,8 @@
 import AirIcon from '@mui/icons-material/Air';
-
-
+import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
+import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
+import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 export const ELEMENT_COLORS = {
     fire: {
       label: 'אש',
@@ -9,7 +11,7 @@ export const ELEMENT_COLORS = {
       light: '#fff0e6',
       darkHover: '#b33000',
       background: '#fff7f2',
-      icon: '🔥'
+      icon: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />
     },
     earth: {
       label: 'אדמה',
@@ -18,7 +20,7 @@ export const ELEMENT_COLORS = {
       light: '#f5ede6',
       darkHover: '#175c17',
       background: '#fcf8f3',
-      icon: '🌱'
+      icon: <SpaRoundedIcon style={{color: '#4ade80'}} />
     },
     metal: {
       label: 'מתכת',
@@ -27,7 +29,7 @@ export const ELEMENT_COLORS = {
       light: '#e6e6e6',
       darkHover: '#333333',
       background: '#f0f0f0',
-      icon: '⚒️'
+      icon: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />
     },
     water: {
       label: 'מים',
@@ -36,7 +38,7 @@ export const ELEMENT_COLORS = {
       light: '#eef2ff',
       darkHover: '#265eb5',
       background: '#f5f8ff',
-      icon: '💧'
+      icon: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />
     },
     air: {
       label: 'אוויר',

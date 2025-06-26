@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Hammer, Activity, Sparkles, Paintbrush, Music, Move3D, Pen } from "lucide-react";
+import { Search, Hammer, Activity, Sparkles, Paintbrush, Music, Move3D, Pen, ChevronDown } from "lucide-react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMasksTheater } from '@fortawesome/free-solid-svg-icons';
 import CTAButton from "@/components/CTAButton";
@@ -9,7 +9,7 @@ import CTAButton from "@/components/CTAButton";
 
 // Color utilities
 const colorMap = {
-  red: "#DC2626", blue: "#2563EB", orange: "#EA580C", 
+  red: "#DC2626", blue: "#2563EB", orange: "#EA580C",
   green: "#16A34A", purple: "#9333EA", teal: "#0D9488",
 };
 
@@ -21,7 +21,7 @@ const getRandomColor = () => {
 // Section Header Component
 const SectionHeader = ({ title, subtitle, className = "" }) => (
   <div className={`text-center ${className}`} dir="rtl">
-    <motion.h2 
+    <motion.h2
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
@@ -30,7 +30,7 @@ const SectionHeader = ({ title, subtitle, className = "" }) => (
     >
       {title}
     </motion.h2>
-    <motion.div 
+    <motion.div
       initial={{ width: 0 }}
       whileInView={{ width: "4rem" }}
       transition={{ duration: 0.8, delay: 0.2 }}
@@ -38,7 +38,7 @@ const SectionHeader = ({ title, subtitle, className = "" }) => (
       className="h-1 bg-gradient-to-l from-red-600 to-red-500 mx-auto rounded-full mb-3"
     />
     {subtitle && (
-      <motion.p 
+      <motion.p
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.3 }}
@@ -107,8 +107,8 @@ const YearTabContent = ({ icon, title, description, features }) => {
     >
       {/* Text Content - RTL */}
       <div className="text-right order-2 lg:order-1" dir="rtl">
-        <h3 
-          style={{ color }} 
+        <h3
+          style={{ color }}
           className="text-xl md:text-2xl lg:text-3xl font-bold mb-3 leading-tight"
         >
           {title}
@@ -118,16 +118,16 @@ const YearTabContent = ({ icon, title, description, features }) => {
         </p>
         <FeatureList features={features} color={color} />
       </div>
-      
+
       {/* Interactive Visual */}
       <div
         style={{ backgroundColor: `${color}15` }}
         className="rounded-2xl p-6 h-40 md:h-48 flex items-center justify-center order-1 lg:order-2"
       >
-        <InteractiveIconButton 
-          icon={icon} 
-          color={color} 
-          onColorChange={handleColorChange} 
+        <InteractiveIconButton
+          icon={icon}
+          color={color}
+          onColorChange={handleColorChange}
           size="md"
         />
       </div>
@@ -147,9 +147,9 @@ const FlipCard = ({ title, description, icon, color, gradient, index }) => (
     <div className="relative w-full h-48 md:h-56 transform transition-transform duration-700 preserve-3d group-hover:rotate-y-180">
       {/* Front Side */}
       <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 backface-hidden ${color} border border-white/20`}>
-        <div className="mb-3 p-3 rounded-full bg-white/20 backdrop-blur-sm">
+        <h4 className="mb-3 p-3 rounded-full bg-white/20 backdrop-blur-sm">
           {icon}
-        </div>
+        </h4>
         <h4 className="text-base md:text-lg font-bold text-center leading-tight">
           {title}
         </h4>
@@ -173,9 +173,9 @@ const YearTabs = ({ years }) => (
       className="grid grid-cols-2 md:grid-cols-4 gap-2 max-w-lg md:max-w-xl mx-auto mb-8 bg-white/80 backdrop-blur-sm p-1.5 rounded-2xl shadow-lg border border-gray-200"
     >
       {years.map((yearData) => (
-        <TabsTrigger 
-          key={yearData.year} 
-          value={`year${yearData.year}`} 
+        <TabsTrigger
+          key={yearData.year}
+          value={`year${yearData.year}`}
           className="rounded-xl px-2 py-2 md:px-3 text-xs md:text-sm font-medium transition-all duration-300 data-[state=active]:bg-gradient-to-l data-[state=active]:from-red-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-md"
         >
           שנה {yearData.year}
@@ -209,7 +209,7 @@ const years = [
     description: "השלב הראשון במסע הוא שלב הגילוי – בו החניכים לומדים לזהות את הכישרונות הייחודיים שלהם.",
     features: [
       "זיהוי חוזקות אישיות וביטוי אמנותי",
-      "התנסות בסדנאות יצירה מגוונות", 
+      "התנסות בסדנאות יצירה מגוונות",
       "פיתוח ביטחון עצמי והקשבה פנימית"
     ],
   },
@@ -259,7 +259,7 @@ const artSkills = [
     gradient: "from-green-400 to-emerald-500",
   },
   {
-    title: "מוזיקה", 
+    title: "מוזיקה",
     description: "הקשבה עמוקה, שיתוף פעולה הרמוני והובלת קבוצות במטרה ליצור יצירות משותפות",
     icon: <Music className="w-6 h-6 md:w-7 md:h-7" />,
     color: "bg-blue-100 text-blue-800",
@@ -269,7 +269,7 @@ const artSkills = [
     title: "תיאטרון",
     description: "ביטחון עצמי, תקשורת אפקטיבית ומנהיגות רגשית המאפשרת השפעה והשראה",
     icon: <TheaterIcon className="w-6 h-6 md:w-7 md:h-7" />,
-    color: "bg-purple-100 text-purple-800", 
+    color: "bg-purple-100 text-purple-800",
     gradient: "from-purple-400 to-pink-500",
   },
   {
@@ -291,13 +291,13 @@ const artSkills = [
 // Main Component
 const ProgramSection = () => {
   return (
-    <section 
-      className="py-10 md:py-14 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100"
+    <section
+      className="py-10 md:py-14 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative" // Added relative here
       id="leadership-program"
     >
       <div className="container mx-auto px-4 md:px-6 max-w-6xl">
         {/* Main Header */}
-        <SectionHeader 
+        <SectionHeader
           title="מסע המנהיגות היצירתית" subtitle="ארבע שנות עומק, תרגול והובלה דרך אמנות" className="mb-10 md:mb-12 "
         />
 
@@ -306,25 +306,38 @@ const ProgramSection = () => {
 
         {/* Art Skills Section */}
         <div className="mt-12 md:mt-16">
-          <SectionHeader 
+          <SectionHeader
             title="תחומי אמנות ומיומנויות"
             subtitle="גלו כיצד כל תחום אמנותי מחזק מיומנויות מנהיגות שונות"
             className="mb-8 md:mb-10"
           />
-          
+
           <div dir="rtl">
             <ArtSkillsGrid skills={artSkills} />
           </div>
           <div className="mt-8 text-center">
-             <CTAButton
-                href="/artskills"
-                variant="inverse-air"
-                size="md"
-                className="bg-white text-orange-600 hover:bg-orange-50 transition-colors px-8 py-3"
-              >
-                <span className="text-base font-medium">לראות עוד</span>
-              </CTAButton>
+            <CTAButton
+              href="/artskills"
+              variant="inverse-air"
+              size="md"
+              className="bg-white text-orange-600 hover:bg-orange-50 transition-colors px-8 py-3"
+            >
+              <span className="text-base font-medium">לראות עוד</span>
+            </CTAButton>
           </div>
+          <br />
+          {/* Scroll Indicator */}
+          <br />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none" // pointer-events-none makes it non-clickable
+          >
+            <div className="rounded-full p-2  text-red-900 opacity-60 bottom-4 md:bottom-8 left-[45%] -translate-x-[55%]"> {/* Transparent background, gray icon, slightly less opaque */}
+              <ChevronDown className="w-8 h-8 md:w-10 md:h-10 animate-bounce" /> {/* Larger icon, subtle bounce animation */}
+            </div>
+          </motion.div>
         </div>
       </div>
 
