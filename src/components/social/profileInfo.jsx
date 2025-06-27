@@ -156,7 +156,7 @@ const ProfileInfo = ({
             </div>
 
             {/* Personal Info */}
-            <div className=" flex flex-col flex-grow justify-start items-start text-right pr-2 pt-2 sm:pt-4 min-w-0 overflow-hidden">
+            <div className=" flex flex-col flex-grow justify-start self-start md:self-auto text-right pr-2 pt-2 sm:pt-4 min-w-0 overflow-hidden">
               {/* Username */}
               <div className="flex items-center gap-3 mb-4">
                 <motion.p

@@ -108,7 +108,12 @@ const Settings = () => {
       setForm(f => ({ ...f, oldPassword: '', newPassword: '', confirmPassword: '' }));
       toast.success('🔐 הסיסמה עודכנה בהצלחה');
     } catch (err) {
-      toast.error('⚠️ עדכון הסיסמה נכשל: ' + err.message);
+      console.error('Error updating password:', err);
+      if (err.code === 'auth/invalid-credential') {
+      toast.error('הסיסמה הנוכחית שגויה');
+    } else {
+      toast.error('⚠️ עדכון הסיסמה נכשל ');
+    }
     }
   };
 
