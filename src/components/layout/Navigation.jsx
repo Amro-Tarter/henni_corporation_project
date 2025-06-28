@@ -18,14 +18,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import AirIcon from '@mui/icons-material/Air';
-import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
 import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 
 
 const sections = [
-  { id: 'about-section',      label: 'אודות העמותה',      icon: <SpaRoundedIcon style={{color: '#4ade80'}} /> },
+  { id: 'about-section',      label: 'אודות העמותה',      icon: <LocalFloristIcon style={{color: '#4ade80'}} /> },
   { id: 'leadership-program', label: 'תכנית המנהיגות',      icon: <ConstructionTwoToneIcon style={{color: '#4b5563'}} /> },
   { id: 'gallery',            label: 'גלריה',              icon: <AirIcon style={{ color: '#87ceeb' }} /> },
   { id: 'projects',           label: 'פרויקטים',           icon: <WaterDropTwoToneIcon style={{ color: '#60a5fa' }} /> },

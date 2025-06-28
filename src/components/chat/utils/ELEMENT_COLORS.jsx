@@ -1,5 +1,5 @@
 import AirIcon from '@mui/icons-material/Air';
-import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
 import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
@@ -21,7 +21,7 @@ export const ELEMENT_COLORS = {
       light: '#f5ede6',
       darkHover: '#175c17',
       background: '#fcf8f3',
-      icon: <SpaRoundedIcon style={{color: '#4ade80'}} />
+      icon: <LocalFloristIcon style={{color: '#4ade80'}} />
     },
     metal: {
       label: 'מתכת',

@@ -27,7 +27,7 @@ import { Search, Filter, FileText, Calendar, Target, TrendingUp, MessageSquare }
 import { toast } from 'sonner';
 import ElementalLoader from '../../theme/ElementalLoader'
 import AirIcon from '@mui/icons-material/Air';
-import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
 import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
@@ -52,7 +52,7 @@ function Reports() {
   const elementIcons = {
     fire: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />,
     water: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />,
-    earth: <SpaRoundedIcon style={{color: '#4ade80'}} />,
+    earth: <LocalFloristIcon style={{color: '#4ade80'}} />,
     air: <AirIcon style={{color: '#87ceeb'}} />,
     metal: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />
   };

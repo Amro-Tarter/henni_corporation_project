@@ -4,39 +4,39 @@ import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/
 import { auth, db } from "../config/firbaseConfig";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { Loader } from "lucide-react";
-import './auth.css';
+import './auth.css'; // Make sure this CSS file contains your animation keyframes
 import { Eye, EyeOff } from "lucide-react";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { toast } from 'sonner';
 import AirIcon from '@mui/icons-material/Air';
 import Navbar from '../components/layout/Navigation';
-import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
 import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 
 
 const ELEMENTS = [
-    // Note: The 'type' property is now mostly illustrative, as we'll always clone the 'value'
-    { key: 'earth', value: <SpaRoundedIcon style={{color: '#4ade80'}} /> }, // Green
-    { key: 'metal', value: <ConstructionTwoToneIcon style={{color: '#4b5563'}} /> }, // Gray
-    { key: 'air', value: <AirIcon style={{color: '#87ceeb'}} /> }, // Light Blue
-    { key: 'water', value: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} /> }, // Blue
-    { key: 'fire', value: <WhatshotRoundedIcon style={{color: '#fca5a1'}} /> }, // Red/Orange
+    { key: 'earth', emoji: <LocalFloristIcon style={{color: '#4ade80'}} /> },
+    { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} /> },
+    { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} /> },
+    { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} /> },
+    { key: 'fire',  emoji: <WhatshotRoundedIcon style={{color: '#fca5a1'}} /> },
 ];
 
+// Note: I've added more FLOAT_POS to give you more unique positions if you decide to add more icons later.
 const FLOAT_POS = [
-    { top: '15%', left: '10%', anim: 'animate-float-1' },
-    { top: '80%', left: '80%', anim: 'animate-float-2' },
-    { top: '90%', left: '10%', anim: 'animate-float-3' },
-    { top: '60%', left: '20%', anim: 'animate-float-4' },
-    { top: '15%', left: '80%', anim: 'animate-float-5' },
-    // Add more float positions if you want more than 5 icons to float
-    { top: '30%', left: '60%', anim: 'animate-float-1' }, // Reusing animation for more icons
-    { top: '70%', left: '5%', anim: 'animate-float-2' },
-    { top: '5%', left: '40%', anim: 'animate-float-3' },
+    { top: '20%', left: '10%', anim: 'animate-float-1' }, // Element 1
+    { top: '33%', right: '20%', anim: 'animate-float-2' }, // Element 2
+    { top: '50%', left: '25%', anim: 'animate-float-3' }, // Element 3
+    { top: '10%', right: '20%', anim: 'animate-float-4' }, // Element 4
+    { top: '25%', left: '5%', anim: 'animate-float-5' }, // Element 5
+    { top: '20%', left: '50%', anim: 'animate-float-6' }, // Additional 1 (Leaf)
+    { top: '76%', left: '33%', anim: 'animate-float-7' }, // Additional 2 (Air)
+    { top: '60%', left: '25%', anim: 'animate-float-8' }, // Additional 3 (Water)
+    { top: '5%', left: '70%', anim: 'animate-float-1' }, // Another one
+    { top: '85%', left: '50%', anim: 'animate-float-2' }, // Yet another
 ];
-
 
 function Signup() {
     const [email, setEmail] = useState("");
@@ -72,6 +72,7 @@ function Signup() {
 
     const navigate = useNavigate();
 
+    // Animation styles (unchanged from your original)
     useEffect(() => {
         const styleSheet = document.createElement("style");
         styleSheet.type = "text/css";
@@ -86,6 +87,9 @@ function Signup() {
             .animate-float-3 { animation: float 10s ease-in-out 2s infinite; }
             .animate-float-4 { animation: float 11s ease-in-out 3s infinite; }
             .animate-float-5 { animation: float 12s ease-in-out 4s infinite; }
+            .animate-float-6 { animation: float 8.5s ease-in-out 0.5s infinite; }
+            .animate-float-7 { animation: float 9.5s ease-in-out 1.5s infinite; }
+            .animate-float-8 { animation: float 10.5s ease-in-out 2.5s infinite; }
         `;
         document.head.appendChild(styleSheet);
         return () => {
@@ -222,7 +226,7 @@ function Signup() {
                 // New fields for the questionnaire
                 howDidYouHear: howDidYouHear === "Other" ? howDidYouHearOther : howDidYouHear,
                 commitmentLevel: commitmentLevel === "Other" ? commitmentLevelOther : commitmentLevel,
-                artisticAffinity: artisticAffinity === "Other" ? artisticAffisticAffinityOther : artisticAffinity,
+                artisticAffinity: artisticAffinity === "Other" ? artisticAffinityOther : artisticAffinity,
                 goalAsVolunteer: goalAsVolunteer === "Other" ? goalAsVolunteerOther : goalAsVolunteer,
                 artLeadershipConnection: artLeadershipConnection === "Other" ? artLeadershipConnectionOther : artLeadershipConnection,
                 skillsResources: skillsResources.includes("Other") ? [...skillsResources.filter(s => s !== "Other"), skillsResourcesOther] : skillsResources,
@@ -252,36 +256,46 @@ function Signup() {
         <div className="min-h-screen flex items-center justify-center absolute inset-0 bg-gradient-to-tl from-red-950 via-red-800 to-orange-600 opacity-95 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
             <Navbar />
             <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-                {ELEMENTS.map((el, i) => (
-                    <div
-                        key={el.key}
-                        className={`absolute ${FLOAT_POS[i % FLOAT_POS.length].anim}`}
-                        style={{
-                            top: FLOAT_POS[i % FLOAT_POS.length].top,
-                            left: FLOAT_POS[i % FLOAT_POS.length].left,
-                            opacity: 0.6,
-                        }}
-                    >
-                        {/* CORRECTED: Pass sx prop directly to the cloned MUI icon */}
-                        {React.cloneElement(el.value, {
-                            sx: { fontSize: '96px' } // This will make the icon 96px
-                        })}
-                    </div>
-                ))}
+                {/* Element 1 - Leaf */}
+                <div className="absolute top-20 left-10 animate-float-1">
+                    <LocalFloristIcon sx={{ fontSize: '96px' }} className="text-green-500" />
+                </div>
 
-                {/* For the hardcoded additional icons, apply sx directly */}
-                <div className={`absolute top-[40%] left-[70%] opacity-0.5 animate-float-4`}>
-                    <SpaRoundedIcon sx={{ fontSize: '96px' }} style={{color: '#4ade80'}} />
+                {/* Element 2 - Hammer */}
+                <div className="absolute top-1/3 right-20 animate-float-2">
+                    <ConstructionTwoToneIcon sx={{ fontSize: '88px' }} className="text-gray-600" />
                 </div>
-                <div className={`absolute top-[20%] left-[30%] opacity-0.5 animate-float-5`}>
-                    <AirIcon sx={{ fontSize: '96px' }} style={{color: '#87ceeb'}} />
+
+                {/* Element 3 - Wind */}
+                <div className="absolute top-1/2 left-1/4 animate-float-3">
+                    <AirIcon sx={{ fontSize: '88px' }} className="text-cyan-600" />
                 </div>
-                <div className={`absolute bottom-[5%] left-[50%] opacity-0.5 animate-float-1`}>
-                    <WhatshotRoundedIcon sx={{ fontSize: '96px' }} style={{color: '#fca5a1'}} />
+
+                {/* Element 4 - Water */}
+                <div className="absolute bottom-10 right-20 animate-float-4">
+                    <WaterDropTwoToneIcon sx={{ fontSize: '88px' }} className="text-blue-500" />
+                </div>
+
+                {/* Element 5 - Fire */}
+                <div className="absolute bottom-1/4 left-5 animate-float-5">
+                    <WhatshotRoundedIcon sx={{ fontSize: '88px' }} className="text-red-500" />
+                </div>
+
+                {/* Additional decorative icons */}
+                <div className="absolute top-20 left-1/2 animate-float-6">
+                    <LocalFloristIcon sx={{ fontSize: '88px' }} className="text-green-500" />
+                </div>
+
+                <div className="absolute bottom-24 left-1/3 animate-float-7">
+                    <AirIcon sx={{ fontSize: '88px' }} className="text-cyan-600" />
+                </div>
+
+                <div className="absolute top-3/5 left-1/4 animate-float-8">
+                    <WaterDropTwoToneIcon sx={{ fontSize: '88px' }} className="text-blue-500" />
                 </div>
             </div>
 
-            <div className="w-full max-w-2xl bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10 py-8">
+            <div className="w-full max-w-2xl bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
                 {/* Heading */}
                 <div className="text-center mb-6">
                     <h2 className="text-3xl font-extrabold text-gray-900"> עמותת לגלות את האור - הנני</h2>
