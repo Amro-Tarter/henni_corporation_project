@@ -878,29 +878,29 @@ const UserManagement = () => {
           </div>
 
           {/* Element Statistics */}
-          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-3">
-              <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
-              התפלגות לפי אלמנטים
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {ELEMENTS.map(element => (
-                <div key={element.key} className={`${element.bgColor} dark:bg-slate-700 rounded-2xl p-6 text-center`}>
-                  <div className="text-3xl mb-2">
-                    {typeof element.emoji === 'string' ? element.emoji : <AirIcon style={{color: '#87ceeb'}} />}
-                  </div>
-                  <div className={`text-2xl font-bold ${element.textColor} mb-1`}>
+                <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-3">
+                  <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
+                  התפלגות לפי אלמנטים
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {ELEMENTS.map(element => (
+                  <div key={element.key} className={`${element.bgColor} dark:bg-slate-700 rounded-2xl p-6 text-center`}>
+                    <div className="text-3xl mb-2">
+                    {element.emoji}
+                    </div>
+                    <div className={`text-2xl font-bold ${element.textColor} mb-1`}>
                     {stats.byElement[element.key] || 0}
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">
+                    </div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">
                     {element.name}
+                    </div>
                   </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+                </div>
 
-          {/* Search and Filters */}
+                {/* Search and Filters */}
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Search */}
