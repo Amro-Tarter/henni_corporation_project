@@ -18,6 +18,7 @@ import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
 import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
 import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
+
 const ELEMENTS = [
   { key: 'earth', emoji: <SpaRoundedIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
   { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />, color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
@@ -27,11 +28,15 @@ const ELEMENTS = [
 ];
 
 const FLOAT_POS = [
-  { top: '15%',  left: '10%', anim: 'animate-float-1' },
+  { top: '15%',  left: '10%', anim: 'animate-float-1' },
   { top: '80%', left: '80%', anim: 'animate-float-2' },
   { top: '90%', left: '10%', anim: 'animate-float-3' },
-  { top: '60%', left: '20%',  anim: 'animate-float-4' },
+  { top: '60%', left: '20%',  anim: 'animate-float-4' },
   { top: '15%', left: '80%', anim: 'animate-float-5' },
+  // Adding more positions to scatter icons around, using modulo for ELEMENTS.map
+  { top: '30%', left: '60%', anim: 'animate-float-1' },
+  { top: '70%', left: '5%', anim: 'animate-float-2' },
+  { top: '5%', left: '40%', anim: 'animate-float-3' },
 ];
 
 
@@ -216,7 +221,7 @@ const Login = () => {
     
 <div
   className="min-h-screen flex items-center justify-center absolute inset-0 bg-gradient-to-tl from-red-950 via-red-800 to-orange-600
- opacity-95 py-12 px-4 sm:px-6 lg:px-8 relative"
+  opacity-95 py-12 px-4 sm:px-6 lg:px-8 relative"
   dir="rtl"
 >
   <Navbar/>
@@ -225,22 +230,27 @@ const Login = () => {
         {ELEMENTS.map((el, i) => (
           <div
             key={el.key}
-            className={`absolute ${FLOAT_POS[i].anim}`}
+            className={`absolute ${FLOAT_POS[i % FLOAT_POS.length].anim}`} 
             style={{
-              top:     FLOAT_POS[i].top,
-              left:    FLOAT_POS[i].left,
+              top:     FLOAT_POS[i % FLOAT_POS.length].top,
+              left:    FLOAT_POS[i % FLOAT_POS.length].left,
               opacity: 0.6,
             }}
           >
-            {el.type === 'icon' ? (
-              // MUI icon, enlarge via inline style
-              React.cloneElement(el.value, { style: { fontSize: 64, color: '#87ceeb' } })
-            ) : (
-              // Emoji, use Tailwind for sizing
-              <span className="text-7xl">{el.value}</span>
-            )}
+            {/* Corrected: Apply sx prop directly to the cloned MUI icon */}
+            {React.cloneElement(el.emoji, { sx: { fontSize: '96px' } })}
           </div>
         ))}
+        {/* You can add more hardcoded instances if you want more icons */}
+        <div className={`absolute top-[40%] left-[70%] opacity-0.5 animate-float-4`}>
+             {React.cloneElement(<SpaRoundedIcon style={{color: '#4ade80'}} />, { sx: { fontSize: '150px' } })}
+        </div>
+        <div className={`absolute top-[20%] left-[30%] opacity-0.5 animate-float-5`}>
+             {React.cloneElement(<AirIcon style={{color: '#87ceeb'}} />, { sx: { fontSize: '150px' } })}
+        </div>
+        <div className={`absolute bottom-[5%] left-[50%] opacity-0.5 animate-float-1`}>
+             {React.cloneElement(<WhatshotRoundedIcon style={{color: '#fca5a1'}} />, { sx: { fontSize: '150px' } })}
+        </div>
       </div>
 
       <div className="max-w-md w-full rounded-xl bg-white shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
@@ -334,13 +344,13 @@ const Login = () => {
           </div>
 
           <div>
-             <button type="submit" disabled={loading}
+               <button type="submit" disabled={loading}
 className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white   transition hover:opacity-95 
-     shine-button ${
+      shine-button ${
     loading
       ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 cursor-not-allowed"
       : "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-  }`}              >
+  }`}             >
                 {loading ? <Loader className="animate-spin" size={20}/> : 'התחבר'}
             <span className="shine" />
 
