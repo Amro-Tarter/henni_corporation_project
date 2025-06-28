@@ -17,11 +17,12 @@ import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 
 
 const ELEMENTS = [
-    { key: 'earth', type: 'emoji', value: <SpaRoundedIcon style={{color: '#4ade80'}} /> },
-    { key: 'metal', type: 'emoji', value: <ConstructionTwoToneIcon style={{color: '#4b5563'}} /> },
-    { key: 'air', type: 'icon', value: <AirIcon /> },
-    { key: 'water', type: 'emoji', value: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} /> },
-    { key: 'fire', type: 'emoji', value: <WhatshotRoundedIcon style={{color: '#fca5a1'}} /> },
+    // Note: The 'type' property is now mostly illustrative, as we'll always clone the 'value'
+    { key: 'earth', value: <SpaRoundedIcon style={{color: '#4ade80'}} /> }, // Green
+    { key: 'metal', value: <ConstructionTwoToneIcon style={{color: '#4b5563'}} /> }, // Gray
+    { key: 'air', value: <AirIcon style={{color: '#87ceeb'}} /> }, // Light Blue
+    { key: 'water', value: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} /> }, // Blue
+    { key: 'fire', value: <WhatshotRoundedIcon style={{color: '#fca5a1'}} /> }, // Red/Orange
 ];
 
 const FLOAT_POS = [
@@ -30,7 +31,12 @@ const FLOAT_POS = [
     { top: '90%', left: '10%', anim: 'animate-float-3' },
     { top: '60%', left: '20%', anim: 'animate-float-4' },
     { top: '15%', left: '80%', anim: 'animate-float-5' },
+    // Add more float positions if you want more than 5 icons to float
+    { top: '30%', left: '60%', anim: 'animate-float-1' }, // Reusing animation for more icons
+    { top: '70%', left: '5%', anim: 'animate-float-2' },
+    { top: '5%', left: '40%', anim: 'animate-float-3' },
 ];
+
 
 function Signup() {
     const [email, setEmail] = useState("");
@@ -216,7 +222,7 @@ function Signup() {
                 // New fields for the questionnaire
                 howDidYouHear: howDidYouHear === "Other" ? howDidYouHearOther : howDidYouHear,
                 commitmentLevel: commitmentLevel === "Other" ? commitmentLevelOther : commitmentLevel,
-                artisticAffinity: artisticAffinity === "Other" ? artisticAffinityOther : artisticAffinity,
+                artisticAffinity: artisticAffinity === "Other" ? artisticAffisticAffinityOther : artisticAffinity,
                 goalAsVolunteer: goalAsVolunteer === "Other" ? goalAsVolunteerOther : goalAsVolunteer,
                 artLeadershipConnection: artLeadershipConnection === "Other" ? artLeadershipConnectionOther : artLeadershipConnection,
                 skillsResources: skillsResources.includes("Other") ? [...skillsResources.filter(s => s !== "Other"), skillsResourcesOther] : skillsResources,
@@ -249,23 +255,33 @@ function Signup() {
                 {ELEMENTS.map((el, i) => (
                     <div
                         key={el.key}
-                        className={`absolute ${FLOAT_POS[i].anim}`}
+                        className={`absolute ${FLOAT_POS[i % FLOAT_POS.length].anim}`}
                         style={{
-                            top: FLOAT_POS[i].top,
-                            left: FLOAT_POS[i].left,
+                            top: FLOAT_POS[i % FLOAT_POS.length].top,
+                            left: FLOAT_POS[i % FLOAT_POS.length].left,
                             opacity: 0.6,
                         }}
                     >
-                        {el.type === 'icon' ? (
-                            React.cloneElement(el.value, { style: { fontSize: 64, color: '#87ceeb' } })
-                        ) : (
-                            <span className="text-7xl">{el.value}</span>
-                        )}
+                        {/* CORRECTED: Pass sx prop directly to the cloned MUI icon */}
+                        {React.cloneElement(el.value, {
+                            sx: { fontSize: '96px' } // This will make the icon 96px
+                        })}
                     </div>
                 ))}
+
+                {/* For the hardcoded additional icons, apply sx directly */}
+                <div className={`absolute top-[40%] left-[70%] opacity-0.5 animate-float-4`}>
+                    <SpaRoundedIcon sx={{ fontSize: '96px' }} style={{color: '#4ade80'}} />
+                </div>
+                <div className={`absolute top-[20%] left-[30%] opacity-0.5 animate-float-5`}>
+                    <AirIcon sx={{ fontSize: '96px' }} style={{color: '#87ceeb'}} />
+                </div>
+                <div className={`absolute bottom-[5%] left-[50%] opacity-0.5 animate-float-1`}>
+                    <WhatshotRoundedIcon sx={{ fontSize: '96px' }} style={{color: '#fca5a1'}} />
+                </div>
             </div>
 
-            <div className="w-full max-w-2xl bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10">
+            <div className="w-full max-w-2xl bg-white backdrop-blur-md rounded-xl shadow-lg overflow-hidden p-8 z-10 py-8">
                 {/* Heading */}
                 <div className="text-center mb-6">
                     <h2 className="text-3xl font-extrabold text-gray-900"> עמותת לגלות את האור - הנני</h2>
