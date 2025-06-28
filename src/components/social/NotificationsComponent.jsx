@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { X, Trash2 } from 'lucide-react';
-import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnapshot, orderBy, updateDoc, limit, arrayUnion, collectionGroup } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc as firestoreDoc, getDoc, onSnapshot, orderBy, updateDoc, limit, arrayUnion, collectionGroup, doc, writeBatch, increment, deleteDoc } from 'firebase/firestore';
 import { auth, db } from '../../config/firbaseConfig';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { onAuthStateChanged } from 'firebase/auth';
+import { serverTimestamp } from 'firebase/firestore';
 
 // Create the context
 const NotificationsContext = createContext();
@@ -63,7 +64,7 @@ export const NotificationsProvider = ({ children }) => {
 
     const getUserProfile = async () => {
       try {
-        const profileDoc = await getDoc(firestoreDoc(db, 'profiles', user.uid));
+        const profileDoc = await getDoc(firestoreDoc(db, 'users', user.uid));
         if (profileDoc.exists()) {
           setUserProfile(profileDoc.data());
         }
@@ -82,7 +83,7 @@ export const NotificationsProvider = ({ children }) => {
     
     const fetchSeenPosts = async () => {
       try {
-        const profileDoc = await getDoc(firestoreDoc(db, 'profiles', user.uid));
+        const profileDoc = await getDoc(firestoreDoc(db, 'users', user.uid));
         if (profileDoc.exists()) {
           const data = profileDoc.data();
           const seenArr = Array.isArray(data.seenPostNotifications) ? data.seenPostNotifications : [];
@@ -147,7 +148,7 @@ export const NotificationsProvider = ({ children }) => {
     
     const fetchSeenComments = async () => {
       try {
-        const profileDoc = await getDoc(firestoreDoc(db, 'profiles', user.uid));
+        const profileDoc = await getDoc(firestoreDoc(db, 'users', user.uid));
         if (profileDoc.exists()) {
           const data = profileDoc.data();
           const seenArr = Array.isArray(data.seenCommentNotifications) ? data.seenCommentNotifications : [];
@@ -387,7 +388,7 @@ export const NotificationsProvider = ({ children }) => {
           if (now - postTime > dayInMs) continue;
 
           try {
-            const authorProfileDoc = await getDoc(firestoreDoc(db, 'profiles', post.authorId));
+            const authorProfileDoc = await getDoc(firestoreDoc(db, 'users', post.authorId));
             const authorProfile = authorProfileDoc.exists() ? authorProfileDoc.data() : null;
             const authorName = authorProfile?.username || post.authorName || 'משתמש';
             
@@ -482,7 +483,7 @@ export const NotificationsProvider = ({ children }) => {
               const postData = postDoc.data();
 
               // Get commenter profile
-              const commenterProfileDoc = await getDoc(firestoreDoc(db, 'profiles', comment.authorId));
+              const commenterProfileDoc = await getDoc(firestoreDoc(db, 'users', comment.authorId));
               const commenterProfile = commenterProfileDoc.exists() ? commenterProfileDoc.data() : null;
               const commenterName = commenterProfile?.username || comment.authorName || 'משתמש';
 
@@ -615,7 +616,7 @@ export const NotificationsProvider = ({ children }) => {
       for (const notification of notifications) {
         if (notification.type === 'message' || notification.type === 'post' || notification.type === 'comment' || notification.type === 'inquiry') {
           try {
-            const senderProfileRef = firestoreDoc(db, 'profiles', notification.senderId);
+            const senderProfileRef = firestoreDoc(db, 'users', notification.senderId);
             const senderProfile = await getDoc(senderProfileRef);
             if (senderProfile.exists()) {
               pictures[notification.senderId] = senderProfile.data().photoURL;
@@ -678,7 +679,7 @@ export const NotificationsProvider = ({ children }) => {
     //('persistSeenPost called for postId:', postId);
     if (!user || !postId) return;
     try {
-      await updateDoc(firestoreDoc(db, 'profiles', user.uid), {
+      await updateDoc(firestoreDoc(db, 'users', user.uid), {
         seenPostNotifications: arrayUnion(postId)
       });
     } catch (err) {
@@ -691,7 +692,7 @@ export const NotificationsProvider = ({ children }) => {
     //('persistSeenComment called for commentId:', commentId);
     if (!user || !commentId) return;
     try {
-      await updateDoc(firestoreDoc(db, 'profiles', user.uid), {
+      await updateDoc(firestoreDoc(db, 'users', user.uid), {
         seenCommentNotifications: arrayUnion(commentId)
       });
     } catch (err) {

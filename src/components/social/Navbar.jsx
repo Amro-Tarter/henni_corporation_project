@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, MessageSquare, Settings, Search, Bell, User, LogOut, BarChart2, LogIn, FileText } from 'lucide-react';
-import { collection, getDocs, doc, updateDoc, getDoc, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, getDoc, query, where, onSnapshot, addDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/config/firbaseConfig';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
@@ -99,9 +99,9 @@ const Navbar = ({ element }) => {
       try {
         //('Fetching viewer profile and role for:', viewerUid);
 
-        // Get the user's username first from profiles
-        const profileSnap = await getDoc(doc(db, 'profiles', viewerUid));
-        const username = profileSnap.exists() ? profileSnap.data().username : null;
+        // Get the user's username first from users
+        const userSnap = await getDoc(doc(db, 'users', viewerUid));
+        const username = userSnap.exists() ? userSnap.data().username : null;
 
         if (username) {
           // Fetch user role by username
@@ -117,7 +117,7 @@ const Navbar = ({ element }) => {
             // Set viewer profile with all data
             const viewerProfileData = {
               uid: viewerUid,
-              ...(profileSnap.exists() ? profileSnap.data() : {}),
+              ...(userSnap.exists() ? userSnap.data() : {}),
               role: userRole
             };
 
@@ -147,7 +147,7 @@ const Navbar = ({ element }) => {
     if (user) {
       const fetchHistory = async () => {
         try {
-          const profileDocRef = doc(db, 'profiles', user.uid);
+          const profileDocRef = doc(db, 'users', user.uid);
           const profileDoc = await getDoc(profileDocRef);
           if (profileDoc.exists()) {
             const history = profileDoc.data().searchHistory || [];
@@ -198,47 +198,51 @@ const Navbar = ({ element }) => {
       if (!searchInput) return setSearchResults([]);
 
       try {
-        const querySnapshot = await getDocs(collection(db, 'profiles'));
+        const querySnapshot = await getDocs(collection(db, 'users'));
         const searchTerm = searchInput.trim();
         const normalizedSearchTerm = normalizeText(searchTerm);
 
-        const profiles = querySnapshot.docs.map(doc => ({
+        const users = querySnapshot.docs.map(doc => ({
           ...doc.data(),
-          authorId: doc.id
+          uid: doc.id,
         }));
 
-        // Filter profiles first
-        const matchingProfiles = profiles.filter(profile => {
-          const normalizedUsername = normalizeText(profile.username || '');
-          const normalizedName = normalizeText(profile.name || '');
+        // Filter users first
+        const matchingUsers = users.filter(user => {
+          const normalizedUsername = normalizeText(user.username || '');
+          const normalizedName = normalizeText(user.name || '');
+          const normalizedBio = normalizeText(user.bio || '');
+
           return normalizedUsername.includes(normalizedSearchTerm) ||
-            normalizedName.includes(normalizedSearchTerm);
+                 normalizedName.includes(normalizedSearchTerm) ||
+                 normalizedBio.includes(normalizedSearchTerm);
         });
 
-        // Then fetch roles for matching profiles
-        const resultsWithRoles = await Promise.all(matchingProfiles.map(async (profile) => {
+        // Then fetch roles for matching users
+        const resultsWithRoles = await Promise.all(matchingUsers.map(async (user) => {
           try {
-            const userQuery = query(collection(db, 'users'), where('username', '==', profile.username));
+            const userQuery = query(collection(db, 'users'), where('associated_id', '==', user.associated_id));
             const userSnapshot = await getDocs(userQuery);
-
+            
             if (!userSnapshot.empty) {
               const userData = userSnapshot.docs[0].data();
               return {
-                ...profile,
-                role: userData.role || null
+                ...user,
+                role: userData.role || null,
+                element: userData.element,
               };
             }
-            return profile;
+            return user;
           } catch (error) {
-            console.error('Error fetching role for search result:', profile.username, error);
-            return profile;
+            console.error('Error fetching role for search result:', user.username, error);
+            return user;
           }
         }));
 
         //('Search results with roles:', resultsWithRoles);
         setSearchResults(resultsWithRoles);
       } catch (err) {
-        console.error('Error fetching profiles:', err);
+        console.error('Error fetching users:', err);
       }
     };
 
@@ -254,7 +258,7 @@ const Navbar = ({ element }) => {
   const handleSearch = async (e) => {
     e.preventDefault();
     try {
-      const querySnapshot = await getDocs(collection(db, 'profiles'));
+      const querySnapshot = await getDocs(collection(db, 'users'));
       const normalizedInput = normalizeText(searchInput);
 
       const results = querySnapshot.docs
@@ -349,7 +353,7 @@ const Navbar = ({ element }) => {
       setSearchHistory(updatedHistory);
 
       // Update in Firestore
-      const profileDocRef = doc(db, 'profiles', user.uid);
+      const profileDocRef = doc(db, 'users', user.uid);
       await updateDoc(profileDocRef, {
         searchHistory: updatedHistory
       });
@@ -412,6 +416,123 @@ const Navbar = ({ element }) => {
         )}
       </>
     );
+  };
+
+  const incrementViewCount = async (viewerUid) => {
+    if (!profile || viewerUid === profile.uid) return;
+
+    try {
+      // Get the user's username first from users
+      const userSnap = await getDoc(doc(db, 'users', viewerUid));
+      const username = userSnap.exists() ? userSnap.data().username : null;
+
+      if (!username) {
+        console.warn('Username not found for UID:', viewerUid);
+        return;
+      }
+
+      const viewsRef = collection(db, 'profileViews');
+      const existingView = await getDocs(
+        query(viewsRef, where('viewerUid', '==', viewerUid), where('profileUid', '==', profile.uid))
+      );
+
+      const viewData = {
+        viewerUid,
+        profileUid: profile.uid,
+        timestamp: serverTimestamp(),
+        viewerUsername: username,
+        ...(userSnap.exists() ? userSnap.data() : {}),
+      };
+
+      if (existingView.empty) {
+        await addDoc(viewsRef, viewData);
+      } else {
+        await updateDoc(existingView.docs[0].ref, {
+          timestamp: serverTimestamp(),
+          viewerUsername: username,
+        });
+      }
+
+      // Update profile view count
+      const profileDocRef = doc(db, 'users', user.uid);
+      await updateDoc(profileDocRef, {
+        viewCount: increment(1),
+      });
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    if (!searchInput.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const searchTerm = searchInput.trim();
+      const normalizedSearchTerm = normalizeText(searchTerm);
+
+      const users = querySnapshot.docs.map(doc => ({
+        ...doc.data(),
+        uid: doc.id,
+      }));
+
+      // Filter users first
+      const matchingUsers = users.filter(user => {
+        const normalizedUsername = normalizeText(user.username || '');
+        const normalizedName = normalizeText(user.name || '');
+        const normalizedBio = normalizeText(user.bio || '');
+
+        return normalizedUsername.includes(normalizedSearchTerm) ||
+               normalizedName.includes(normalizedSearchTerm) ||
+               normalizedBio.includes(normalizedSearchTerm);
+      });
+
+      // Then fetch roles for matching users
+      const resultsWithRoles = await Promise.all(matchingUsers.map(async (user) => {
+        try {
+          const userQuery = query(collection(db, 'users'), where('associated_id', '==', user.associated_id));
+          const userSnapshot = await getDocs(userQuery);
+          
+          if (!userSnapshot.empty) {
+            const userData = userSnapshot.docs[0].data();
+            return {
+              ...user,
+              role: userData.role || null,
+              element: userData.element,
+            };
+          }
+          return user;
+        } catch (error) {
+          console.error('Error fetching role for search result:', user.username, error);
+          return user;
+        }
+      }));
+
+      setSearchResults(resultsWithRoles);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    }
+  };
+
+  const fetchSuggestions = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      
+      const allUsers = querySnapshot.docs
+        .map(doc => ({
+          ...doc.data(),
+          uid: doc.id,
+        }))
+        .filter(user => user.uid !== auth.currentUser?.uid);
+
+      const shuffled = allUsers.sort(() => 0.5 - Math.random());
+      setSuggestions(shuffled.slice(0, 5));
+    } catch (err) {
+      console.error('Error fetching users:', err);
+    }
   };
 
   return (
@@ -622,7 +743,7 @@ const Navbar = ({ element }) => {
                 <button
                   onClick={async () => {
                     try {
-                      const docSnap = await getDoc(doc(db, 'profiles', user.uid));
+                      const docSnap = await getDoc(doc(db, 'users', user.uid));
                       if (docSnap.exists()) {
                         const username = docSnap.data().username;
                         navigate(`/profile/${username}`);
@@ -876,7 +997,7 @@ const Navbar = ({ element }) => {
                     <button
                       onClick={async () => {
                         try {
-                          const docSnap = await getDoc(doc(db, 'profiles', user.uid));
+                          const docSnap = await getDoc(doc(db, 'users', user.uid));
                           if (docSnap.exists()) {
                             const username = docSnap.data().username;
                             navigate(`/profile/${username}`);

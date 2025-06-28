@@ -78,8 +78,8 @@ const Home = () => {
           if (ud.role) fullUser.role = ud.role;
         }
 
-        // Fetch profile data from profiles collection
-        const profRef = doc(db, 'profiles', authUser.uid);
+        // Fetch profile data from users collection
+        const profRef = doc(db, 'users', authUser.uid);
         const profSnap = await getDoc(profRef);
         if (profSnap.exists()) {
           const profData = profSnap.data();
@@ -131,7 +131,7 @@ const Home = () => {
 
   const fetchFollowingPosts = async (userId) => {
     try {
-      const userProfileRef = doc(db, 'profiles', userId);
+      const userProfileRef = doc(db, 'users', userId);
       const userProfileSnap = await getDoc(userProfileRef);
 
       if (!userProfileSnap.exists()) return;
@@ -208,7 +208,7 @@ const Home = () => {
   // Fetch all users for collaborators
   const fetchAllUsers = async () => {
     try {
-      const snap = await getDocs(collection(db, 'profiles'));
+      const snap = await getDocs(collection(db, 'users'));
       setAllUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     } catch (err) {
       console.error('Error fetching users:', err);
@@ -361,7 +361,7 @@ const Home = () => {
     setPosts(prev => [{ id: docRef.id, ...newPost, liked: false }, ...prev]);
 
     // Update the user's profile postsCount
-    await updateDoc(doc(db, 'profiles', user.uid), {
+    await updateDoc(doc(db, 'users', user.uid), {
       postsCount: increment(1)
     });
   };
@@ -397,7 +397,7 @@ const Home = () => {
 
       // Update the post author's profile postsCount (only if it's the current user's post)
       if (postToDelete && postToDelete.authorId === user.uid) {
-        await updateDoc(doc(db, 'profiles', user.uid), {
+        await updateDoc(doc(db, 'users', user.uid), {
           postsCount: increment(-1)
         });
       }
@@ -531,7 +531,7 @@ const Home = () => {
 
   const getAuthorProfile = async (authorId) => {
     try {
-      const profileRef = doc(db, 'profiles', authorId);
+      const profileRef = doc(db, 'users', authorId);
       const profileSnap = await getDoc(profileRef);
       if (profileSnap.exists()) {
         return { id: profileSnap.id, ...profileSnap.data() };
@@ -560,7 +560,7 @@ const Home = () => {
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(u => u.id !== user.uid) // Exclude current user
           .map(async (u) => {
-            const profileDoc = await getDoc(doc(db, 'profiles', u.id));
+            const profileDoc = await getDoc(doc(db, 'users', u.id));
             const profileData = profileDoc.exists() ? profileDoc.data() : {};
             return { ...u, ...profileData };
           })
@@ -581,13 +581,13 @@ const Home = () => {
       const isFollowing = user.following?.includes(targetUserId);
       const batch = writeBatch(db);
 
-      const userRef = doc(db, 'profiles', user.uid);
+      const userRef = doc(db, 'users', user.uid);
       batch.update(userRef, {
         following: isFollowing ? arrayRemove(targetUserId) : arrayUnion(targetUserId),
         followingCount: increment(isFollowing ? -1 : 1)
       });
 
-      const targetRef = doc(db, 'profiles', targetUserId);
+      const targetRef = doc(db, 'users', targetUserId);
       batch.update(targetRef, {
         followers: isFollowing ? arrayRemove(user.uid) : arrayUnion(user.uid),
         followersCount: increment(isFollowing ? -1 : 1)
@@ -739,7 +739,7 @@ const Home = () => {
 
   const getUserProfile = async (uid) => {
     try {
-      const profileRef = doc(db, 'profiles', uid);
+      const profileRef = doc(db, 'users', uid);
       const profileSnap = await getDoc(profileRef);
       if (profileSnap.exists()) {
         return { uid: profileSnap.id, ...profileSnap.data() };

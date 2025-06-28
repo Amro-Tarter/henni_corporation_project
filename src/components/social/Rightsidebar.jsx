@@ -43,7 +43,7 @@ const Rightsidebar = ({ element, onExpandChange }) => {
 
   useEffect(() => {
     if (!user) return;
-    const profileRef = firestoreDoc(db, 'profiles', user.uid);
+    const profileRef = firestoreDoc(db, 'users', user.uid);
     // Listen to profile changes in real-time:
     const unsubscribe = onSnapshot(profileRef, (profileSnap) => {
       if (profileSnap.exists()) {
@@ -88,49 +88,49 @@ const Rightsidebar = ({ element, onExpandChange }) => {
         return;
       }
       try {
-        const querySnapshot = await getDocs(collection(db, 'profiles'));
+        const querySnapshot = await getDocs(collection(db, 'users'));
         const searchTerm = searchInput.trim();
         const normalizedSearchTerm = normalizeText(searchTerm);
 
-        const profiles = querySnapshot.docs.map((doc) => ({
+        const users = querySnapshot.docs.map((doc) => ({
           ...doc.data(),
           uid: doc.id
         }));
 
-        // Get all matching profiles first
-        const matchingProfiles = profiles.filter((profile) => {
-          const normalizedUsername = normalizeText(profile.username || '');
-          const normalizedName = normalizeText(profile.name || '');
-          const normalizedBio = normalizeText(profile.bio || '');
+        // Get all matching users first
+        const matchingUsers = users.filter((user) => {
+          const normalizedUsername = normalizeText(user.username || '');
+          const normalizedName = normalizeText(user.name || '');
+          const normalizedBio = normalizeText(user.bio || '');
 
           return normalizedUsername.includes(normalizedSearchTerm) ||
             normalizedName.includes(normalizedSearchTerm) ||
             normalizedBio.includes(normalizedSearchTerm);
         });
 
-        // Fetch roles for matching profiles
-        const resultsWithRoles = await Promise.all(matchingProfiles.map(async (profile) => {
+        // Fetch roles for matching users
+        const resultsWithRoles = await Promise.all(matchingUsers.map(async (user) => {
           try {
-            const userQuery = query(collection(db, 'users'), where('username', '==', profile.username));
+            const userQuery = query(collection(db, 'users'), where('associated_id', '==', user.uid));
             const userSnapshot = await getDocs(userQuery);
             
             if (!userSnapshot.empty) {
               const userData = userSnapshot.docs[0].data();
               return {
-                ...profile,
+                ...user,
                 role: userData.role || null
               };
             }
-            return profile;
+            return user;
           } catch (error) {
-            console.error('Error fetching role for search result:', profile.username, error);
-            return profile;
+            console.error('Error fetching role for search result:', user.username, error);
+            return user;
           }
         }));
 
         setSearchResults(resultsWithRoles);
       } catch (err) {
-        console.error('Error fetching profiles:', err);
+        console.error('Error fetching users:', err);
       }
     };
 
@@ -228,18 +228,18 @@ const Rightsidebar = ({ element, onExpandChange }) => {
               <div className="px-3 py-2">
                 <h3 className="font-semibold text-xs text-gray-600 mb-2">תוצאות חיפוש</h3>
                 <div className="space-y-1">
-                  {searchResults.map((profile, index) => (
+                  {searchResults.map((user, index) => (
                     <div
                       key={index}
                       className={`flex items-center gap-2 p-2 hover:bg-gray-100 rounded-md cursor-pointer transition-all duration-150`}
                       onClick={() => {
                         setSearchInput('');
-                        navigate(`/profile/${profile.username}`);
+                        navigate(`/profile/${user.username}`);
                       }}
                     >
                       <img
-                        src={profile.photoURL || '/images/default-avatar.png'}
-                        alt={profile.username}
+                        src={user.photoURL || '/images/default-avatar.png'}
+                        alt={user.username}
                         className="w-6 h-6 rounded-full object-cover border border-gray-200"
                         onError={(e) => {
                           e.target.onerror = null;
@@ -249,26 +249,26 @@ const Rightsidebar = ({ element, onExpandChange }) => {
                       <div className="flex flex-col overflow-hidden">
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-800 font-medium truncate">
-                            {profile.username}
+                            {user.username}
                           </span>
-                          {profile.role === 'admin' && (
+                          {user.role === 'admin' && (
                             <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded-full">
                               מנהל
                             </span>
                           )}
-                          {profile.role === 'staff' && (
+                          {user.role === 'staff' && (
                             <span className="text-xs bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded-full">
                               צוות
                             </span>
                           )}
-                          {profile.role === 'mentor' && (
+                          {user.role === 'mentor' && (
                             <span className="text-xs bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full">
                               מנחה
                             </span>
                           )}
                         </div>
-                        {profile.name && (
-                          <span className="text-xs text-gray-500 truncate">{profile.name}</span>
+                        {user.name && (
+                          <span className="text-xs text-gray-500 truncate">{user.name}</span>
                         )}
                       </div>
                     </div>
