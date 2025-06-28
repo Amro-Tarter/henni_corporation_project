@@ -35,11 +35,11 @@ import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 
 // Enhanced Constants with new element structure
 const ELEMENTS = [
-  { key: 'earth', emoji: <LocalFloristIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
-  { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />, color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
-  { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
-  { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />, color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
-  { key: 'fire',  emoji: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />, color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
+    { key: 'earth', emoji: <LocalFloristIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100', name: 'אדמה' },
+    { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />, color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100', name: 'מתכת' },
+    { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100', name: 'אוויר' },
+    { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />, color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100', name: 'מים' },
+    { key: 'fire',  emoji: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />, color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100', name: 'אש' },
 ];
 
 const ROLES = [
@@ -878,7 +878,7 @@ const UserManagement = () => {
           </div>
 
           {/* Element Statistics */}
-                <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-3">
                   <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
                   התפלגות לפי אלמנטים
