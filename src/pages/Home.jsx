@@ -64,36 +64,37 @@ const Home = () => {
         setIsLoading(true);
         const fullUser = { uid: authUser.uid, email: authUser.email };
 
-        // Fetch user data from users collection to get element
+        // Fetch user data from users collection to get element and role
+        let userDocSnap = null;
+        let userDocData = {};
         const userSnap = await getDocs(
           query(collection(db, 'users'), where('associated_id', '==', authUser.uid))
         );
-
         if (!userSnap.empty) {
-          const ud = userSnap.docs[0].data();
-          fullUser.username = ud.username || 'משתמש';
-          // Get element from users collection
-          fullUser.element = ud.element || 'earth';
-          // Get role from users collection
-          if (ud.role) fullUser.role = ud.role;
+          userDocSnap = userSnap.docs[0];
+          userDocData = userDocSnap.data();
+          fullUser.username = userDocData.username || 'משתמש';
+          fullUser.element = userDocData.element || 'earth';
+          if (userDocData.role) fullUser.role = userDocData.role;
         }
 
         // Fetch profile data from profiles collection
         const profRef = doc(db, 'profiles', authUser.uid);
         const profSnap = await getDoc(profRef);
-        if (profSnap.exists()) {
-          const profData = profSnap.data();
-          fullUser.photoURL = profData.photoURL;
-          fullUser.profile = profData;
-          fullUser.username = profData.username || fullUser.username;
-          fullUser.following = profData.following || [];
-          setProfile({ ...profData, element: fullUser.element, role: fullUser.role }); // Add element and role to profile
-        } else {
-          // If no profile exists, create a minimal profile with element and role from users
-          setProfile({ element: fullUser.element, role: fullUser.role });
-        }
+        let profData = profSnap.exists() ? profSnap.data() : {};
+        // Merge: users collection takes priority for element and role
+        profData = {
+          ...profData,
+          element: userDocData.element || profData.element || 'earth',
+          role: userDocData.role || profData.role,
+        };
+        fullUser.photoURL = profData.photoURL;
+        fullUser.profile = profData;
+        fullUser.username = profData.username || fullUser.username;
+        fullUser.following = profData.following || [];
+        setProfile({ ...profData, element: profData.element, role: profData.role });
+        setUser({ ...fullUser, element: profData.element, role: profData.role });
 
-        setUser(fullUser);
         await Promise.all([
           fetchPosts(authUser.uid),
           fetchFollowingPosts(authUser.uid),
@@ -802,7 +803,6 @@ const Home = () => {
         <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-[290px] border-r border-gray-200">
           <LeftSidebar
             element={element}
-            viewerElement={user?.element}
             users={sameElementUsers}
             viewerProfile={user}
             profileUser={profile}

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { MapPin, MessageSquare } from 'lucide-react';
 import AirIcon from '@mui/icons-material/Air';
@@ -99,7 +99,7 @@ function getSectionTitle({ viewerProfile }) {
 
 // --- Main component ---
 
-const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle }) => {
+const LeftSidebar = ({element, viewerProfile, profileUser, onFollowToggle }) => {
   const navigate = useNavigate();
 
   // State
@@ -110,21 +110,39 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
   const [sameElementUsers, setSameElementUsers] = useState([]);
   const [mentorCommunityChat, setMentorCommunityChat] = useState(null);
   const [privateMentorChat, setPrivateMentorChat] = useState(null);
-  const element = viewerElement;
 
   // --- Users section logic ---
   useEffect(() => {
-    // Admin: fetch 5 random profiles (not self/staff)
+    // Admin: fetch 5 random users (not self/staff)
     if (viewerProfile && viewerProfile.role === 'admin') {
       (async () => {
-        const profilesSnap = await getDocs(collection(db, 'profiles'));
-        let allProfiles = profilesSnap.docs
+        const usersSnap = await getDocs(collection(db, 'users'));
+        let allUsers = usersSnap.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(
             p => p.associated_id !== viewerProfile.uid && p.role !== 'staff'
           );
-        allProfiles = allProfiles.sort(() => Math.random() - 0.5).slice(0, 5);
-        setAdminRandomUsers(allProfiles);
+        
+        // Fetch profile data for each user and merge
+        const usersWithProfiles = await Promise.all(
+          allUsers.map(async (user) => {
+            try {
+              const profileSnap = await getDoc(doc(db, 'profiles', user.associated_id || user.id));
+              const profileData = profileSnap.exists() ? profileSnap.data() : {};
+              return {
+                ...profileData, // profile data (photos, bio, etc.)
+                ...user, // user data takes priority (role, element, etc.)
+                id: user.id
+              };
+            } catch (error) {
+              console.error('Error fetching profile for user:', user.id, error);
+              return user;
+            }
+          })
+        );
+        
+        const shuffled = usersWithProfiles.sort(() => Math.random() - 0.5).slice(0, 5);
+        setAdminRandomUsers(shuffled);
       })();
     } else {
       setAdminRandomUsers([]);
@@ -132,7 +150,7 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
   }, [viewerProfile]);
 
   useEffect(() => {
-    // Mentor: fetch up to 5 student profiles
+    // Mentor: fetch up to 5 student users
     if (
       viewerProfile &&
       viewerProfile.role === 'mentor' &&
@@ -143,11 +161,26 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
         const ids = viewerProfile.participants.slice(0, 5);
         const studentsProfiles = await Promise.all(
           ids.map(async (uid) => {
-            const profileSnap = await getDocs(query(collection(db, 'profiles'), where('associated_id', '==', uid)));
-            if (!profileSnap.empty) {
-              return { id: profileSnap.docs[0].id, ...profileSnap.docs[0].data() };
+            try {
+              // First get user data from users collection
+              const userSnap = await getDocs(query(collection(db, 'users'), where('associated_id', '==', uid)));
+              if (userSnap.empty) return null;
+              
+              const userData = userSnap.docs[0].data();
+              
+              // Then get profile data from profiles collection
+              const profileSnap = await getDoc(doc(db, 'profiles', uid));
+              const profileData = profileSnap.exists() ? profileSnap.data() : {};
+              
+              return {
+                ...profileData, // profile data (photos, bio, etc.)
+                ...userData, // user data takes priority (role, element, etc.)
+                id: userSnap.docs[0].id
+              };
+            } catch (error) {
+              console.error('Error fetching student data:', uid, error);
+              return null;
             }
-            return null;
           })
         );
         setStudents(studentsProfiles.filter(Boolean));
@@ -167,14 +200,33 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
     ) {
       (async () => {
         const othersQuery = query(
-          collection(db, 'profiles'),
+          collection(db, 'users'),
           where('element', '==', viewerProfile.element)
         );
         const othersSnap = await getDocs(othersQuery);
         const others = othersSnap.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(u => u.associated_id !== viewerProfile.uid && u.role === 'participant');
-        const shuffled = others.sort(() => 0.5 - Math.random()).slice(0, 5);
+        
+        // Fetch profile data for each user and merge
+        const usersWithProfiles = await Promise.all(
+          others.map(async (user) => {
+            try {
+              const profileSnap = await getDoc(doc(db, 'profiles', user.associated_id || user.id));
+              const profileData = profileSnap.exists() ? profileSnap.data() : {};
+              return {
+                ...profileData, // profile data (photos, bio, etc.)
+                ...user, // user data takes priority (role, element, etc.)
+                id: user.id
+              };
+            } catch (error) {
+              console.error('Error fetching profile for user:', user.id, error);
+              return user;
+            }
+          })
+        );
+        
+        const shuffled = usersWithProfiles.sort(() => 0.5 - Math.random()).slice(0, 5);
         setSameElementUsers(shuffled);
       })();
     } else {
@@ -186,17 +238,17 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
 
   // Element community chat
   useEffect(() => {
-    if (!viewerElement) return;
+    if (!element) return;
     (async () => {
       const q = query(
         collection(db, 'conversations'),
         where('type', '==', 'community'),
-        where('element', '==', viewerElement)
+        where('element', '==', element)
       );
       const snap = await getDocs(q);
       if (!snap.empty) setCommunityChat({ id: snap.docs[0].id, ...snap.docs[0].data() });
     })();
-  }, [viewerElement]);
+  }, [element]);
 
   // Mentor-specific chats (for mentor & admin)
   useEffect(() => {
@@ -345,7 +397,7 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
                 label={
                   <>
                     צ'אט קהילתי
-                    <span className="text-lg mr-2">{ELEMENT_ICONS[viewerElement]}</span>
+                    <span className="text-lg mr-2">{ELEMENT_ICONS[element]}</span>
                   </>
                 }
                 onClick={() => setTimeout(() => navigate(`/chat/${communityChat.id}`), 300)}
