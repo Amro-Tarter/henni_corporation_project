@@ -3,6 +3,7 @@ import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
 import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
 import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
+
 export const ELEMENT_COLORS = {
     fire: {
       label: 'אש',
