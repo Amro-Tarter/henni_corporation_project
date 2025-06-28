@@ -714,8 +714,17 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                     where("username", "<=", e.target.value + "\uf8ff"),
                   );
                   const snapshot = await getDocs(q);
+                  const searchValue = e.target.value.trim().toLowerCase();
                   const results = snapshot.docs
-                    .filter(doc => {doc.id !== adminUid && !memberUids.includes(doc.id) && doc.data().role !== 'staff' && doc.data().is_active && doc.data().role !== 'admin'})
+                    .filter(doc => (
+                      doc.id !== adminUid &&
+                      !memberUids.includes(doc.id) &&
+                      doc.data().role !== 'staff' &&
+                      doc.data().is_active &&
+                      doc.data().role !== 'admin' &&
+                      doc.data().username &&
+                      doc.data().username.toLowerCase().includes(searchValue)
+                    ))
                     .map(doc => ({
                       id: doc.id,
                       username: doc.data().username,
