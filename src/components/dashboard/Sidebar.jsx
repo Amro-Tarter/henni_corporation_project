@@ -385,7 +385,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
           <div className="flex items-center justify-between">
             {!isCollapsed && (
               <div className="flex flex-col">
-                <h2 className="text-xl font-bold text-white">לוח מנהל</h2>
+                <h2 className="text-xl font-bold text-white">לוח בקרה</h2>
                 <span className="text-orange-100 text-sm">ניהול המערכת</span>
               </div>
             )}
