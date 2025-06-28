@@ -89,7 +89,7 @@ const PostModalContent = ({
           className={`w-12 h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
         />
         <div className="flex flex-col">
-          <h3 className="text-lg font-bold">{authorProfile?.username || '...'}</h3>
+          <p className="text-lg font-bold">{authorProfile?.username || '...'}</p>
           <p className="text-xs text-gray-500">{timeString}</p>
         </div>
       </div>

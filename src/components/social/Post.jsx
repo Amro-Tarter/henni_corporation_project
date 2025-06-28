@@ -540,7 +540,7 @@ const Post = ({
             >
               {currentUser && currentUser.role !== 'staff' ? (
                 <div className="flex gap-3 mb-4">
-                  <img src={currentUser.photoURL || '/profile.jpg'} alt="" className="w-8 h-8 rounded-full" />
+                  <img src={currentUser.photoURL || '/profile.jpg'} className="w-8 h-8 rounded-full object-cover" />
                   <CommentInput placeholder="הוסף תגובה..." element={element} onSubmit={submitComment} />
                 </div>
               ) : (

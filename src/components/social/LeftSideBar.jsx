@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { db } from '@/config/firbaseConfig';
 import { MapPin, MessageSquare } from 'lucide-react';
 import AirIcon from '@mui/icons-material/Air';
@@ -84,7 +85,7 @@ function ChatListItem({ chat, label, onClick, element }) {
       className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-${element}-soft mb-2 border border-${element}-accent`}
       onClick={onClick}
     >
-      <span className="font-semibold text-sm">{label}</span>
+      <span className="font-semibold text-md">{label}</span>
     </motion.div>
   );
 }
@@ -110,7 +111,24 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
   const [sameElementUsers, setSameElementUsers] = useState([]);
   const [mentorCommunityChat, setMentorCommunityChat] = useState(null);
   const [privateMentorChat, setPrivateMentorChat] = useState(null);
+  const [userMentorId, setUserMentorId] = useState(null);
   const element = viewerElement;
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        setUserMentorId(userData.mentors?.[0] || null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
 
   // --- Users section logic ---
   useEffect(() => {
@@ -157,30 +175,47 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
     }
   }, [viewerProfile]);
 
+  // Participant: fetch up to 5 participants from same element (not self)
   useEffect(() => {
-    // Participant: fetch up to 5 participants from same element (not self)
     if (
       viewerProfile &&
       viewerProfile.role === 'participant' &&
-      viewerProfile.element &&
       viewerProfile.uid
     ) {
       (async () => {
-        const othersQuery = query(
-          collection(db, 'profiles'),
-          where('element', '==', viewerProfile.element)
+        // Step 1: Get users with same element and participant role
+        const usersQuery = query(
+          collection(db, 'users'),
+          where('element', '==', viewerProfile.element),
+          where('role', '==', 'participant')
         );
-        const othersSnap = await getDocs(othersQuery);
-        const others = othersSnap.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(u => u.associated_id !== viewerProfile.uid && u.role === 'participant');
-        const shuffled = others.sort(() => 0.5 - Math.random()).slice(0, 5);
+        const usersSnap = await getDocs(usersQuery);
+        const matchingUsers = usersSnap.docs
+          .map(doc => ({ uid: doc.id, ...doc.data() }))
+          .filter(u => u.uid !== viewerProfile.uid); // exclude self
+
+        // Step 2: Get their profiles
+        const profiles = await Promise.all(
+          matchingUsers.map(async (user) => {
+            const profileSnap = await getDocs(
+              query(collection(db, 'profiles'), where('associated_id', '==', user.uid))
+            );
+            if (!profileSnap.empty) {
+              return { id: profileSnap.docs[0].id, ...profileSnap.docs[0].data() };
+            }
+            return null;
+          })
+        );
+
+        const validProfiles = profiles.filter(Boolean);
+        const shuffled = validProfiles.sort(() => 0.5 - Math.random()).slice(0, 5);
         setSameElementUsers(shuffled);
       })();
     } else {
       setSameElementUsers([]);
     }
   }, [viewerProfile]);
+
 
   // --- Chats logic ---
 
@@ -241,7 +276,7 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
 
   // Participant: fetch mentor community chat & private chat with mentor
   useEffect(() => {
-    if (!viewerProfile || viewerProfile.role !== 'participant' || !viewerProfile.mentorId) {
+    if (!viewerProfile || viewerProfile.role !== 'participant' || !userMentorId) {
       setMentorCommunityChat(null);
       setPrivateMentorChat(null);
       return;
@@ -251,7 +286,7 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
       const q = query(
         collection(db, 'conversations'),
         where('communityType', '==', 'mentor_community'),
-        where('mentorId', '==', viewerProfile.mentorId)
+        where('mentorId', '==', userMentorId)
       );
       const snap = await getDocs(q);
       setMentorCommunityChat(snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() });
@@ -269,25 +304,24 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .find(chat =>
           Array.isArray(chat.participants) &&
-          chat.participants.includes(viewerProfile.mentorId)
+          chat.participants.includes(userMentorId)
         );
       setPrivateMentorChat(chat || null);
     })();
   }, [viewerProfile]);
 
-  // Helper: are we viewing our own profile?
-  const isOwnProfile =
-    viewerProfile && profileUser &&
-    String(viewerProfile.uid) === String(profileUser.uid);
-
   // Section title
   const elementSectionTitle = getSectionTitle({ viewerProfile});
-
+  
   // Which users to show in the top section?
   let usersToShow = [];
   if (viewerProfile?.role === 'admin') usersToShow = adminRandomUsers;
   else if (viewerProfile?.role === 'mentor') usersToShow = students;
   else if (viewerProfile?.role === 'participant') usersToShow = sameElementUsers;
+
+  if (viewerProfile?.role === 'participant' && userMentorId === null) {
+    return null;
+  }
 
   return (
     <div className="w-90 h-[calc(100vh-56.8px)] bg-white shadow-lg overflow-y-auto">
@@ -295,7 +329,7 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
         {/* Section Title */}
         <div className="mb-4 text-right flex items-center justify-between">
           <div>
-            <p className={`text-${element} text-xl mb-1 flex items-center gap-2`}>
+            <p className={`text-${element} text-2xl mb-1 flex items-center gap-2`}>
               {elementSectionTitle}
               <span className="text-lg">{ELEMENT_ICONS[element]}</span>
             </p>
@@ -328,7 +362,7 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
 
         {/* Chats Section Title */}
         <div className="mt-8 mb-2 text-right">
-          <p className={`text-${element} text-xl mb-1 flex items-center gap-2`}>
+          <p className={`text-${element} text-2xl mb-1 flex items-center gap-2`}>
             צ'אטים
             <MessageSquare className={`w-5 h-5 text-${element}`} />
           </p>

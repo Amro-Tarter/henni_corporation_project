@@ -8,6 +8,9 @@ import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
 import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
+import SchoolIcon from '@mui/icons-material/School';
+import StarIcon from '@mui/icons-material/Star';
+
 
 const elementOptions = [
   { value: 'fire', label: 'אש', icon: <WhatshotRoundedIcon style={{color: '#fca5a1'}} /> },
@@ -169,7 +172,7 @@ const ProfileInfo = ({
                 </motion.p>
                 {isOwner && (
                   <Tooltip text="באפשרותך לערוך את הפרטים שלך דרך עמוד ההגדרות">
-                    <Info className="text-gray-500 hover:text-gray-600 w-5 h-5 cursor-pointer transition-colors" />
+                    <Info className="text-gray-500 hover:text-gray-600 w-6 h-6 cursor-pointer transition-colors" />
                   </Tooltip>
                 )}
               </div>
@@ -200,9 +203,9 @@ const ProfileInfo = ({
                     shadow-lg ring-2 ring-${element}-accent hover:shadow-xl transition-shadow duration-300
                   `}
                       style={{ pointerEvents: "none", userSelect: "none" }}>
-                      <span className="text-3xl">
-                        {role === 'mentor' && '🧑‍🏫'}
-                        {role === 'admin' && '⭐'}
+                      <span className="text-2xl md:text-3xl">
+                        {role === 'mentor' && <SchoolIcon style={{ fontSize: '1.8rem' }} />}
+                        {role === 'admin' && <StarIcon style={{ fontSize: '1.8rem' }} />}
                       </span>
                       <span className="text-lg font-semibold">
                         {role === 'mentor' ? 'מנחה' : 'מנהל'}
@@ -216,7 +219,7 @@ const ProfileInfo = ({
                     shadow-lg ring-2 ring-${element}-accent hover:shadow-xl transition-shadow duration-300
                   `}
                       style={{ pointerEvents: "none", userSelect: "none" }}>
-                      <span className="text-3xl">{findOption(element).icon}</span>
+                      <span className="text-2xl md:text-3xl">{findOption(element).icon}</span>
                       <span className="text-lg font-semibold">{findOption(element).label}</span>
                     </div>
                   </Tooltip>

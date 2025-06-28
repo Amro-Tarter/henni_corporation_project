@@ -64,7 +64,7 @@ export const Comment = ({
           <div className={`p-3 rounded-lg bg-${element}-soft relative`}>
             <div className="flex justify-between">
               {/* Placeholder username */}
-              <h4 className="font-semibold text-sm text-gray-500">משתמש שנמחק</h4>
+              <p className="font-semibold text-sm text-gray-500">משתמש שנמחק</p>
 
               {/* Trash button if post owner */}
               {isPostOwner && (
@@ -101,7 +101,7 @@ export const Comment = ({
       <div className="flex-1">
         <div className={`p-3 rounded-lg bg-${element}-soft relative`}>
           <div className="flex justify-between">
-            <h4 className="font-semibold text-sm">{authorProfile?.username}</h4>
+            <p className="font-semibold text-sm">{authorProfile?.username}</p>
             {canEditOrDelete && !isEditing && (
               <div className="flex gap-2">
                 <button
@@ -273,18 +273,6 @@ export const CommentInput = ({
     window.addEventListener('mousedown', handleClick);
     return () => window.removeEventListener('mousedown', handleClick);
   }, [showEmoji]);
-
-  // Open and position picker
-  const openEmojiPicker = () => {
-    if (emojiBtnRef.current) {
-      const rect = emojiBtnRef.current.getBoundingClientRect();
-      setEmojiPos({
-        x: rect.left,
-        y: rect.bottom + 8,
-      });
-    }
-    setShowEmoji(true);
-  };
 
   return (
     <>
