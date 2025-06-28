@@ -114,11 +114,11 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
 
   // --- Users section logic ---
   useEffect(() => {
-    // Admin: fetch 5 random users (not self/staff)
+    // Admin: fetch 5 random profiles (not self/staff)
     if (viewerProfile && viewerProfile.role === 'admin') {
       (async () => {
-        const usersSnap = await getDocs(collection(db, 'users'));
-        let allUsers = usersSnap.docs
+        const profilesSnap = await getDocs(collection(db, 'profiles'));
+        let allProfiles = profilesSnap.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(
             p => p.associated_id !== viewerProfile.uid && p.role !== 'staff'
@@ -132,7 +132,7 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
   }, [viewerProfile]);
 
   useEffect(() => {
-    // Mentor: fetch up to 5 student users
+    // Mentor: fetch up to 5 student profiles
     if (
       viewerProfile &&
       viewerProfile.role === 'mentor' &&
@@ -143,9 +143,9 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
         const ids = viewerProfile.participants.slice(0, 5);
         const studentsProfiles = await Promise.all(
           ids.map(async (uid) => {
-            const userSnap = await getDocs(query(collection(db, 'users'), where('associated_id', '==', uid)));
-            if (!userSnap.empty) {
-              return { id: userSnap.docs[0].id, ...userSnap.docs[0].data() };
+            const profileSnap = await getDocs(query(collection(db, 'profiles'), where('associated_id', '==', uid)));
+            if (!profileSnap.empty) {
+              return { id: profileSnap.docs[0].id, ...profileSnap.docs[0].data() };
             }
             return null;
           })
@@ -167,7 +167,7 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
     ) {
       (async () => {
         const othersQuery = query(
-          collection(db, 'users'),
+          collection(db, 'profiles'),
           where('element', '==', viewerProfile.element)
         );
         const othersSnap = await getDocs(othersQuery);

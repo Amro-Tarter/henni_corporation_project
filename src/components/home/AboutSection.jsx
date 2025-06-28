@@ -367,7 +367,7 @@ const AboutSection = ({ currentUser }) => {
   const saveEdit = async () => {
     const member = teamMembers[selectedMember];
     try {
-      await updateDoc(doc(db, 'users', member.associated_id), {
+      await updateDoc(doc(db, 'profiles', member.associated_id), {
         bio: editData.bio,
         title: editData.title,
       });
