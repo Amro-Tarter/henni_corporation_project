@@ -502,36 +502,36 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
           </div>
 
         {/* Contact Info */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
-              <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" />
-              <span className="text-sm truncate">{user.email}</span>
-            </div>
-            {user.location && (
+              <div className="space-y-3">
               <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
+                <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" />
+                <span className="text-sm truncate">{user.email}</span>
+              </div>
+              {user.location && (
+                <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
                 <FontAwesomeIcon icon={faMapMarkerAlt} className="w-4 h-4" />
                 <span className="text-sm truncate">{user.location}</span>
+                </div>
+              )}
               </div>
-            )}
-          </div>
 
-          {/* Element Info for Participants */}
-          {user.role === 'participant' && user.element && (
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
-              <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${elementConfig.textColor} ${elementConfig.bgColor} dark:bg-opacity-20`}>
-                {typeof elementConfig.emoji === 'string' ? (
-                  <span>{elementConfig.emoji}</span>
-                ) : (
-                  <div className="w-4 h-4">
-                    {elementConfig.emoji}
-                  </div>
-                )}
+              {/* Element Info for Participants */}
+              {user.role === 'participant' && user.element && (
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
+                <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${elementConfig.textColor} ${elementConfig.bgColor} dark:bg-opacity-20`}>
+                <span className="flex items-center justify-center w-5 h-5">
+                  {typeof elementConfig.emoji === 'string' ? (
+                  elementConfig.emoji
+                  ) : (
+                  elementConfig.emoji
+                  )}
+                </span>
                 <span>אלמנט {elementConfig.name}</span>
+                </div>
               </div>
-            </div>
-          )}
+              )}
 
-          {/* Bio Preview */}
+              {/* Bio Preview */}
           {user.profile?.bio && (
             <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
               <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
