@@ -181,7 +181,7 @@ const ProfileInfo = ({
               {/* Bio */}
               <div className="mb-0">
                 {bio ? (
-                  <p className={`text-${element} text-sm sm:text-lg leading-relaxed break-words break-all whitespace-pre-line text-right`}>
+                  <p className={`text-${element} text-sm sm:text-lg leading-relaxed break-words whitespace-pre-line text-right`}>
                     {bio}
                   </p>
                 ) : (
