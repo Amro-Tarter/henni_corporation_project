@@ -100,7 +100,7 @@ function getSectionTitle({ viewerProfile }) {
 
 // --- Main component ---
 
-const LeftSidebar = ({element, viewerProfile, profileUser, onFollowToggle }) => {
+const LeftSidebar = ({element, viewerProfile, onFollowToggle }) => {
   const navigate = useNavigate();
 
   // State
@@ -148,31 +148,43 @@ const LeftSidebar = ({element, viewerProfile, profileUser, onFollowToggle }) => 
     }
   }, [viewerProfile]);
 
+  // mentors
   useEffect(() => {
-    // Mentor: fetch up to 5 student profiles
-    if (
-      viewerProfile &&
-      viewerProfile.role === 'mentor' &&
-      Array.isArray(viewerProfile.participants) &&
-      viewerProfile.participants.length > 0
-    ) {
-      (async () => {
-        const ids = viewerProfile.participants.slice(0, 5);
-        const studentsProfiles = await Promise.all(
-          ids.map(async (uid) => {
-            const profileSnap = await getDocs(query(collection(db, 'profiles'), where('associated_id', '==', uid)));
+    const fetchMentorParticipants = async () => {
+      if (!viewerProfile || viewerProfile.role !== 'mentor' || viewerProfile.uid == null) {
+        return;
+      }
+
+      try {
+        const userDocRef = doc(db, 'users', viewerProfile.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (!userSnap.exists()) return;
+
+        const userData = userSnap.data();
+        const participantIds = userData.participants?.slice(0, 5) || [];
+
+        const studentProfiles = await Promise.all(
+          participantIds.map(async (uid) => {
+            const profileSnap = await getDocs(
+              query(collection(db, 'profiles'), where('associated_id', '==', uid))
+            );
             if (!profileSnap.empty) {
               return { id: profileSnap.docs[0].id, ...profileSnap.docs[0].data() };
             }
             return null;
           })
         );
-        setStudents(studentsProfiles.filter(Boolean));
-      })();
-    } else {
-      setStudents([]);
-    }
+
+        setStudents(studentProfiles.filter(Boolean));
+      } catch (error) {
+        console.error('Error fetching mentor participants:', error);
+      }
+    };
+
+    fetchMentorParticipants();
   }, [viewerProfile]);
+
 
   // Participant: fetch up to 5 participants from same element (not self)
   useEffect(() => {
