@@ -214,7 +214,8 @@ export default function ChatApp() {
           return doc.id !== currentUser.uid && 
                  username.toLowerCase().includes(searchTerm.toLowerCase()) &&
                  doc.data().role !== 'admin' &&
-                 doc.data().role !== 'staff';
+                 doc.data().role !== 'staff' &&
+                 doc.data().is_active;
         })
         .map(doc => ({
           id: doc.id,
@@ -259,6 +260,7 @@ export default function ChatApp() {
             role: userRole,
             associated_id,
             mentorName: mentorName,
+            is_active: userDoc.data().is_active,
           };
           setCurrentUser(userData);
 
@@ -286,6 +288,9 @@ export default function ChatApp() {
     const unsubscribe = onSnapshot(collection(db, "users"), async (snapshot) => {
       const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       for (const user of users) {
+        if (!user.is_active) {
+          continue;
+        }
         // Element community
         if (user.element) {
           await handleElementCommunityChatMembership(user.id, user.element);
@@ -1383,7 +1388,8 @@ export default function ChatApp() {
                              !selectedGroupUsers.some(u => u.id === doc.id) &&
                              username.toLowerCase().includes(e.target.value.toLowerCase()) &&
                              doc.data().role !== 'admin' &&
-                             doc.data().role !== 'staff';
+                             doc.data().role !== 'staff' &&
+                             doc.data().is_active;
                     })
                     .map(doc => ({
                       id: doc.id,

@@ -156,14 +156,14 @@ export default function SystemInquiries({ onClose, currentUser, elementColors, o
             const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             let filtered = [];
             if (currentUser.role === 'admin') {
-                filtered = users.filter(u => u.id !== currentUser.uid && (u.role === 'mentor' || u.role === 'participant'));
+                filtered = users.filter(u => u.id !== currentUser.uid && (u.role === 'mentor' || u.role === 'participant') && u.is_active);
             } else {
                 filtered = users.filter(u => u.role === 'admin');
             }
             setPossibleRecipients(filtered);
             // Map for quick username lookup
             const map = {};
-            users.forEach(u => { map[u.id] = u.username || u.id; });
+            users.forEach(u => { if (u.is_active) map[u.id] = u.username || u.id; });
             setUserMap(map);
         };
         fetchRecipients();

@@ -13,6 +13,27 @@ import {
   faFire
 } from '@fortawesome/free-solid-svg-icons';
 import Navbar from '../components/layout/Navigation';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
+import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
+import AirIcon from '@mui/icons-material/Air';
+import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
+import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
+
+const ELEMENTS = [
+  { key: 'earth', emoji: <LocalFloristIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
+  { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />, color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
+  { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
+  { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />, color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
+  { key: 'fire',  emoji: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />, color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
+];
+
+const FLOAT_POS = [
+  { top: '15%',  left: '10%', anim: 'animate-float-1' },
+  { top: '80%', left: '80%', anim: 'animate-float-2' },
+  { top: '90%', left: '10%', anim: 'animate-float-3' },
+  { top: '60%', left: '20%',  anim: 'animate-float-4' },
+  { top: '15%', left: '80%', anim: 'animate-float-5' },
+];
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState("");
@@ -69,46 +90,53 @@ const ForgotPassword = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-tl from-red-950 via-red-800 to-orange-600 py-12 px-4 sm:px-6 lg:px-8 relative" dir="rtl">
       <Navbar/>
       {/* Floating Element Icons */}
-      {/* Floating Element Icons */}
-<div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-  {/* Element 1 - Leaf */}
-  <div className="absolute top-10 left-10 opacity-40 animate-float-1">
-    <FontAwesomeIcon icon={faLeaf} className="w-16 h-16 text-green-500" />
-  </div>
-  
-  {/* Element 2 - Hammer */}
-  <div className="absolute top-1/3 right-5 opacity-50 animate-float-2">
-    <FontAwesomeIcon icon={faHammer} className="w-14 h-14 text-indigo-600" />
-  </div>
-  
-  {/* Element 3 - Wind */}
-  <div className="absolute top-1/2 left-1/4 opacity-45 animate-float-3">
-    <FontAwesomeIcon icon={faWind} className="w-12 h-12 text-cyan-600" />
-  </div>
-  
-  {/* Element 4 - Water */}
-  <div className="absolute bottom-10 right-20 opacity-50 animate-float-4">
-    <FontAwesomeIcon icon={faWater} className="w-14 h-14 text-blue-500" />
-  </div>
-  
-  {/* Element 5 - Fire */}
-  <div className="absolute bottom-1/4 left-5 opacity-40 animate-float-5">
-    <FontAwesomeIcon icon={faFire} className="w-16 h-16 text-red-500" />
-  </div>
-  
-  {/* Additional decorative icons */}
-  <div className="absolute top-16 right-10 opacity-30 animate-float-6">
-    <FontAwesomeIcon icon={faLeaf} className="w-12 h-12 text-green-400" />
-  </div>
-  
-  <div className="absolute bottom-24 left-1/3 opacity-30 animate-float-7">
-    <FontAwesomeIcon icon={faWind} className="w-10 h-10 text-teal-500" />
-  </div>
-  
-  <div className="absolute top-3/5 left-1/4 opacity-35 animate-float-8">
-    <FontAwesomeIcon icon={faWater} className="w-12 h-12 text-blue-400" />
-  </div>
-</div>
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        {/* Element 1 - Leaf */}
+        <div className="absolute top-20 left-10 animate-float-1">
+          {/* Using sx prop for explicit pixel size */}
+          <LocalFloristIcon sx={{ fontSize: '96px' }} className="text-green-500" />
+        </div>
+
+        {/* Element 2 - Hammer */}
+        <div className="absolute top-1/3 right-20 animate-float-2">
+          {/* Using sx prop for explicit pixel size */}
+          <ConstructionTwoToneIcon sx={{ fontSize: '88px' }} className="text-gray-600" />
+        </div>
+
+        {/* Element 3 - Wind */}
+        <div className="absolute top-1/2 left-1/4  animate-float-3">
+          {/* Using a very large Tailwind text size class */}
+          <AirIcon sx={{ fontSize: '88px' }} className="text-8xl text-cyan-600" />
+        </div>
+
+        {/* Element 4 - Water */}
+        <div className="absolute bottom-10 right-20 animate-float-4">
+          {/* Using sx prop for explicit pixel size */}
+          <WaterDropTwoToneIcon sx={{ fontSize: '88px' }} className="text-blue-500" />
+        </div>
+
+        {/* Element 5 - Fire */}
+        <div className="absolute bottom-1/4 left-5 animate-float-5">
+          {/* Using a very large Tailwind text size class */}
+          <WhatshotRoundedIcon sx={{ fontSize: '88px' }} className="text-8xl text-red-500" />
+        </div>
+
+        {/* Additional decorative icons */}
+        <div className="absolute top-20 left-1/2 animate-float-6">
+          {/* Using a large Tailwind text size class */}
+          <LocalFloristIcon sx={{ fontSize: '88px' }} className="text-7xl text-green-400" />
+        </div>
+
+        <div className="absolute bottom-24 left-1/3  animate-float-7">
+          {/* Using a large Tailwind text size class */}
+          <AirIcon sx={{ fontSize: '88px' }} className="text-6xl text-teal-500" />
+        </div>
+
+        <div className="absolute top-3/5 left-1/4 animate-float-8">
+          {/* Using a large Tailwind text size class */}
+          <WaterDropTwoToneIcon sx={{ fontSize: '88px' }} className="text-7xl text-blue-400" />
+        </div>
+      </div>
 
 
       <div className="max-w-md w-full bg-white rounded-xl shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
