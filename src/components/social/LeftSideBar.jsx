@@ -100,7 +100,7 @@ function getSectionTitle({ viewerProfile }) {
 
 // --- Main component ---
 
-const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle }) => {
+const LeftSidebar = ({element, viewerProfile, profileUser, onFollowToggle }) => {
   const navigate = useNavigate();
 
   // State
@@ -112,7 +112,6 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
   const [mentorCommunityChat, setMentorCommunityChat] = useState(null);
   const [privateMentorChat, setPrivateMentorChat] = useState(null);
   const [userMentorId, setUserMentorId] = useState(null);
-  const element = viewerElement;
 
   useEffect(() => {
     const auth = getAuth();
@@ -221,17 +220,17 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
 
   // Element community chat
   useEffect(() => {
-    if (!viewerElement) return;
+    if (!element) return;
     (async () => {
       const q = query(
         collection(db, 'conversations'),
         where('type', '==', 'community'),
-        where('element', '==', viewerElement)
+        where('element', '==', element)
       );
       const snap = await getDocs(q);
       if (!snap.empty) setCommunityChat({ id: snap.docs[0].id, ...snap.docs[0].data() });
     })();
-  }, [viewerElement]);
+  }, [element]);
 
   // Mentor-specific chats (for mentor & admin)
   useEffect(() => {
@@ -379,7 +378,7 @@ const LeftSidebar = ({viewerElement, viewerProfile, profileUser, onFollowToggle 
                 label={
                   <>
                     צ'אט קהילתי
-                    <span className="text-lg mr-2">{ELEMENT_ICONS[viewerElement]}</span>
+                    <span className="text-lg mr-2">{ELEMENT_ICONS[element]}</span>
                   </>
                 }
                 onClick={() => setTimeout(() => navigate(`/chat/${communityChat.id}`), 300)}
