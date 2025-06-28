@@ -715,7 +715,7 @@ export default function ChatInfoSidebar({ open, onClose, conversation, currentUs
                   );
                   const snapshot = await getDocs(q);
                   const results = snapshot.docs
-                    .filter(doc => {doc.id !== adminUid && !memberUids.includes(doc.id) && doc.role !== 'staff'})
+                    .filter(doc => {doc.id !== adminUid && !memberUids.includes(doc.id) && doc.data().role !== 'staff' && doc.data().is_active && doc.data().role !== 'admin'})
                     .map(doc => ({
                       id: doc.id,
                       username: doc.data().username,
