@@ -35,11 +35,11 @@ import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 
 // Enhanced Constants with new element structure
 const ELEMENTS = [
-  { key: 'earth', emoji: <LocalFloristIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
-  { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />, color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
-  { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
-  { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />, color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
-  { key: 'fire',  emoji: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />, color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
+    { key: 'earth', emoji: <LocalFloristIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100', name: 'אדמה' },
+    { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />, color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100', name: 'מתכת' },
+    { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100', name: 'אוויר' },
+    { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />, color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100', name: 'מים' },
+    { key: 'fire',  emoji: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />, color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100', name: 'אש' },
 ];
 
 const ROLES = [
@@ -502,36 +502,36 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
           </div>
 
         {/* Contact Info */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
-              <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" />
-              <span className="text-sm truncate">{user.email}</span>
-            </div>
-            {user.location && (
+              <div className="space-y-3">
               <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
+                <FontAwesomeIcon icon={faEnvelope} className="w-4 h-4" />
+                <span className="text-sm truncate">{user.email}</span>
+              </div>
+              {user.location && (
+                <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
                 <FontAwesomeIcon icon={faMapMarkerAlt} className="w-4 h-4" />
                 <span className="text-sm truncate">{user.location}</span>
+                </div>
+              )}
               </div>
-            )}
-          </div>
 
-          {/* Element Info for Participants */}
-          {user.role === 'participant' && user.element && (
-            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
-              <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${elementConfig.textColor} ${elementConfig.bgColor} dark:bg-opacity-20`}>
-                {typeof elementConfig.emoji === 'string' ? (
-                  <span>{elementConfig.emoji}</span>
-                ) : (
-                  <div className="w-4 h-4">
-                    {elementConfig.emoji}
-                  </div>
-                )}
+              {/* Element Info for Participants */}
+              {user.role === 'participant' && user.element && (
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
+                <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium ${elementConfig.textColor} ${elementConfig.bgColor} dark:bg-opacity-20`}>
+                <span className="flex items-center justify-center w-5 h-5">
+                  {typeof elementConfig.emoji === 'string' ? (
+                  elementConfig.emoji
+                  ) : (
+                  elementConfig.emoji
+                  )}
+                </span>
                 <span>אלמנט {elementConfig.name}</span>
+                </div>
               </div>
-            </div>
-          )}
+              )}
 
-          {/* Bio Preview */}
+              {/* Bio Preview */}
           {user.profile?.bio && (
             <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-600">
               <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
@@ -878,29 +878,29 @@ const UserManagement = () => {
           </div>
 
           {/* Element Statistics */}
-          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
-            <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-3">
-              <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
-              התפלגות לפי אלמנטים
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              {ELEMENTS.map(element => (
-                <div key={element.key} className={`${element.bgColor} dark:bg-slate-700 rounded-2xl p-6 text-center`}>
-                  <div className="text-3xl mb-2">
-                    {typeof element.emoji === 'string' ? element.emoji : <AirIcon style={{color: '#87ceeb'}} />}
-                  </div>
-                  <div className={`text-2xl font-bold ${element.textColor} mb-1`}>
+            <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-6 flex items-center gap-3">
+                  <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
+                  התפלגות לפי אלמנטים
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {ELEMENTS.map(element => (
+                  <div key={element.key} className={`${element.bgColor} dark:bg-slate-700 rounded-2xl p-6 text-center`}>
+                    <div className="text-3xl mb-2">
+                    {element.emoji}
+                    </div>
+                    <div className={`text-2xl font-bold ${element.textColor} mb-1`}>
                     {stats.byElement[element.key] || 0}
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">
+                    </div>
+                    <div className="text-sm text-slate-600 dark:text-slate-400">
                     {element.name}
+                    </div>
                   </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+                </div>
 
-          {/* Search and Filters */}
+                {/* Search and Filters */}
           <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-lg p-8 border border-slate-200 dark:border-slate-700">
             <div className="flex flex-col lg:flex-row gap-6">
               {/* Search */}

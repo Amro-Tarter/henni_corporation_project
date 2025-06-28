@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import CTAButton from '@/components/CTAButton';
 import { toast, Toaster } from 'sonner';
+import { useUser } from '@/hooks/useUser';
 
 
 const DEFAULT_IMAGE = '/default_user_pic.jpg';
@@ -215,7 +216,10 @@ const TeamMemberCard = ({ member, index, onClick, isFounder = false }) => {
   );
 };
 
-const AboutSection = ({ currentUser }) => {
+const AboutSection = () => {
+  // Get current user from useUser hook
+  const { user: currentUser } = useUser();
+  
   // State
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
@@ -367,7 +371,7 @@ const AboutSection = ({ currentUser }) => {
   const saveEdit = async () => {
     const member = teamMembers[selectedMember];
     try {
-      await updateDoc(doc(db, 'profiles', member.associated_id), {
+      await updateDoc(doc(db, 'users', member.associated_id), {
         bio: editData.bio,
         title: editData.title,
       });

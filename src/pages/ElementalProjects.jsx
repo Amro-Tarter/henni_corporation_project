@@ -30,11 +30,11 @@ import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 
 
 const ELEMENTS = [
-  { key: 'earth', emoji: <LocalFloristIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
-  { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />, color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
-  { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
-  { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />, color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
-  { key: 'fire',  emoji: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />, color: 'from-red-600 to-orange-500', bgColor: 'bg-red-100' },
+  { key: 'earth', emoji: <LocalFloristIcon style={{color: '#4ade80', fontSize: '32px'}} />, title: 'פרויקטי אדמה', description: 'פעילויות המקדמות יציבות, חיבור לאדמה ולעבודה עם חומרים טבעיים.', color: 'from-green-600 to-emerald-500', lightColor: 'bg-green-100', sound: '/sounds/earth.mp3' },
+  { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563', fontSize: '32px'}} />, title: 'פרויקטי מתכת', description: 'עיסוק בטכניקות מדויקות, פיתוח מיומנויות ועבודת ידיים.', color: 'from-gray-600 to-slate-500', lightColor: 'bg-gray-100', sound: '/sounds/metal.mp3' },
+  { key: 'air', emoji: <AirIcon style={{color: '#87ceeb', fontSize: '32px'}} />, title: 'פרויקטי אוויר', description: 'תכנים המעודדים חשיבה יצירתית, מדיטציה ותודעה.', color: 'from-sky-400 to-blue-50', lightColor: 'bg-blue-100', sound: '/sounds/air.mp3' },
+  { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa', fontSize: '32px'}} />, title: 'פרויקטי מים', description: 'תכנים העוסקים ברגש, ביטוי אישי וזרימה פנימית.', color: 'from-blue-500 to-cyan-400', lightColor: 'bg-cyan-100', sound: '/sounds/water.mp3' },
+  { key: 'fire', emoji: <WhatshotRoundedIcon style={{color: '#fca5a1', fontSize: '32px'}} />, title: 'פרויקטי אש', description: 'פעילויות עם אנרגיה גבוהה, יצירה נלהבת ומוטיבציה.', color: 'from-red-600 to-orange-500', lightColor: 'bg-red-100', sound: '/sounds/fire.mp3' },
 ];
 
 const ElementalProjects = () => {

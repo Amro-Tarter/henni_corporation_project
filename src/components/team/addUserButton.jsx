@@ -47,7 +47,7 @@ const PendingUsersButton = ({ onUserProcessed }) => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setShowModal(true)}
-        className="relative px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 flex items-center gap-2 font-medium shadow-lg transition-all duration-200"
+        className="relative px-4 py-2 bg-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 flex items-center gap-2 font-medium shadow-lg transition-all duration-200"
       >
         <FaUserClock className="text-lg" />
         <span>בקשות הצטרפות</span>
