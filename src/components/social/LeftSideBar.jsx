@@ -6,7 +6,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
 import { MapPin, MessageSquare } from 'lucide-react';
 import AirIcon from '@mui/icons-material/Air';
-import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
 import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
@@ -14,7 +14,7 @@ import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 const ELEMENT_ICONS = {
   fire: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />,
   water: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />,
-  earth: <SpaRoundedIcon style={{color: '#4ade80'}} />,
+  earth: <LocalFloristIcon style={{color: '#4ade80'}} />,
   air: <AirIcon style={{ color: '#87ceeb' }} />,
   metal: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />,
 };

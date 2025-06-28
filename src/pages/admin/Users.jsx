@@ -27,7 +27,7 @@ import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { PendingUsersButton } from "../../components/team/addUserButton";
 import { useUser } from "../../hooks/useUser";
 import ElementalLoader from "@/theme/ElementalLoader";
-import SpaRoundedIcon from '@mui/icons-material/SpaRounded';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
 import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
@@ -35,7 +35,7 @@ import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 
 // Enhanced Constants with new element structure
 const ELEMENTS = [
-  { key: 'earth', emoji: <SpaRoundedIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
+  { key: 'earth', emoji: <LocalFloristIcon style={{color: '#4ade80'}} />, color: 'from-green-600 to-emerald-500', bgColor: 'bg-green-100' },
   { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />, color: 'from-gray-600 to-slate-500', bgColor: 'bg-gray-100' },
   { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} />, color: 'from-blue-500 to-cyan-400', bgColor: 'bg-blue-100' },
   { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />, color: 'from-indigo-500 to-purple-400', bgColor: 'bg-indigo-100' },
