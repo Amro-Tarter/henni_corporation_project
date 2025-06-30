@@ -348,34 +348,53 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
     };
 
     const filterAndSortUsers = () => {
-        let filtered = pendingUsers.filter(user =>
-            user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (user.phone && user.phone.includes(searchTerm)) ||
-            (user.location && user.location.toLowerCase().includes(searchTerm.toLowerCase()))
-            // Consider adding search for new fields if relevant for filtering
-            // || (user.howDidYouHear && user.howDidYouHear.toLowerCase().includes(searchTerm.toLowerCase()))
-            // || (Array.isArray(user.skillsResources) && user.skillsResources.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())))
-        );
-
+    if (!searchTerm.trim()) {
+        let sorted = [...pendingUsers];
         switch (sortBy) {
             case 'name':
-                filtered = filtered.sort((a, b) => a.displayName.localeCompare(b.displayName));
+                sorted = sorted.sort((a, b) => a.displayName.localeCompare(b.displayName));
                 break;
             case 'email':
-                filtered = filtered.sort((a, b) => a.email.localeCompare(b.email));
+                sorted = sorted.sort((a, b) => a.email.localeCompare(b.email));
                 break;
             case 'role':
-                filtered = filtered.sort((a, b) => a.role.localeCompare(b.role));
+                sorted = sorted.sort((a, b) => a.role.localeCompare(b.role));
                 break;
             case 'date':
             default:
-                filtered = filtered.sort((a, b) => b.createdAt - a.createdAt);
+                sorted = sorted.sort((a, b) => b.createdAt - a.createdAt);
                 break;
         }
+        setFilteredUsers(sorted);
+        return;
+    }
 
-        setFilteredUsers(filtered);
-    };
+    let filtered = pendingUsers.filter(user =>
+        user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.phone && user.phone.includes(searchTerm)) ||
+        (user.location && user.location.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    switch (sortBy) {
+        case 'name':
+            filtered = filtered.sort((a, b) => a.displayName.localeCompare(b.displayName));
+            break;
+        case 'email':
+            filtered = filtered.sort((a, b) => a.email.localeCompare(b.email));
+            break;
+        case 'role':
+            filtered = filtered.sort((a, b) => a.role.localeCompare(b.role));
+            break;
+        case 'date':
+        default:
+            filtered = filtered.sort((a, b) => b.createdAt - a.createdAt);
+            break;
+    }
+
+    setFilteredUsers(filtered);
+};
+
 
     const handleAcceptUser = (userToAccept) => {
         setRoleSelectionUser(userToAccept);
@@ -493,6 +512,16 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
         return roleMap[role] || role;
     };
 
+    function InfoItem({ label, value }) {
+  return (
+    <div>
+      <h4 className="font-semibold mb-1">{label}</h4>
+      <p className="text-sm truncate">{value || "לא סופק"}</p>
+    </div>
+  );
+}
+
+
     const getRoleColor = (role) => {
         const colorMap = {
             'admin': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
@@ -529,7 +558,7 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
                     animate={{ y: 0, opacity: 1, scale: 1 }}
                     exit={{ y: 50, opacity: 0, scale: 0.95 }}
                     transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                    className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl p-6 max-h-[90vh] overflow-hidden flex flex-col"
+                    className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-6xl p-6 max-h-full overflow-hidden flex flex-col"
                     dir="rtl"
                     onClick={(e) => e.stopPropagation()}
                 >
@@ -588,7 +617,7 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 overflow-hidden">
+                    <div className="flex-1 overflow-y-auto">
                         {isLoading ? (
                             <div className="flex flex-col items-center justify-center py-20">
                                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
@@ -605,134 +634,127 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
                                 </p>
                             </div>
                         ) : (
-                            <div className="overflow-y-auto max-h-full">
-                                <div className="space-y-4">
-                                    {filteredUsers.map((pendingUser) => (
-                                        <motion.div
-                                            key={pendingUser.id}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 rounded-xl p-6 border border-slate-200 dark:border-slate-600 hover:shadow-lg transition-all duration-300"
-                                        >
-                                            <div className="flex flex-col lg:flex-row gap-6">
-                                                {/* User Info Section */}
-                                                <div className="flex-1">
-                                                    <div className="flex items-start gap-4 mb-4">
-                                                        <img
-                                                            src={pendingUser.photoURL}
-                                                            alt={pendingUser.displayName}
-                                                            className="w-16 h-16 rounded-full object-cover border-2 border-white dark:border-slate-600 shadow-md"
-                                                            onError={(e) => {
-                                                                e.target.onerror = null;
-                                                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(pendingUser.displayName)}&background=random`;
-                                                            }}
-                                                        />
-                                                        <div className="flex-1">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <h3 className="text-lg font-bold text-slate-800 dark:text-white">
-                                                                    {pendingUser.displayName}
-                                                                </h3>
-                                                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${getRoleColor(pendingUser.role)}`}>
-                                                                    {getRoleDisplay(pendingUser.role)}
-                                                                </span>
-                                                            </div>
-                                                            <div className="space-y-1">
-                                                                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                                                    <FaEnvelope className="text-blue-500" />
-                                                                    <span>{pendingUser.email}</span>
-                                                                </div>
-                                                                {pendingUser.phone && (
-                                                                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                                                        <FaPhone className="text-green-500" />
-                                                                        <span>{pendingUser.phone}</span>
-                                                                    </div>
-                                                                )}
-                                                                {pendingUser.location && (
-                                                                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                                                        <FaMapMarkerAlt className="text-red-500" />
-                                                                        <span>{pendingUser.location}</span>
-                                                                    </div>
-                                                                )}
-                                                                <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                                                    <FaCalendarAlt className="text-purple-500" />
-                                                                    <span>הצטרף: {formatDate(pendingUser.createdAt)}</span>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                           <div className="overflow-y-auto max-h-full p-6 bg-white dark:bg-slate-900 rounded-lg shadow-lg">
+  <div className="space-y-8 p-2">
+     {filteredUsers.map((user) => {
+      const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`;
+      const displayName = user.displayName || "לא ידוע";
 
-                                                    {/* Additional Info - Questionnaire Fields */}
-                                                    <div className="bg-white dark:bg-slate-700 rounded-lg p-4 mt-4 space-y-3 shadow-inner">
-                                                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                                                            <strong>כיצד הגיעו לעמותה:</strong> {pendingUser.howDidYouHear}
-                                                        </p>
-                                                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                                                            <strong>רמת מחויבות:</strong> {pendingUser.commitmentLevel}
-                                                        </p>
-                                                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                                                            <strong>זיקה לאמנות:</strong> {pendingUser.artisticAffinity}
-                                                        </p>
-                                                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                                                            <strong>מטרה כמתנדב:</strong> {pendingUser.goalAsVolunteer}
-                                                        </p>
-                                                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                                                            <strong>קשר אמנות-מנהיגות:</strong> {pendingUser.artLeadershipConnection}
-                                                        </p>
-                                                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                                                            <strong>כישורים / משאבים:</strong> {Array.isArray(pendingUser.skillsResources) && pendingUser.skillsResources.length > 0
-                                                                ? pendingUser.skillsResources.join(', ')
-                                                                : 'לא הוזן'}
-                                                        </p>
-                                                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                                                            <strong>תמיכה כספית:</strong> {pendingUser.financialSupport}
-                                                        </p>
-                                                        <p className="text-sm text-slate-700 dark:text-slate-200">
-                                                            <strong>תחום פעילות מועדף:</strong> {pendingUser.preferredActivityArea}
-                                                        </p>
-                                                    </div>
-                                                </div>
+      return (
+        <div
+          key={user.id}
+          className="flex flex-col lg:flex-row items-start bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900 dark:to-indigo-800 rounded-xl p-6 border border-indigo-200 dark:border-indigo-700 shadow-md hover:shadow-lg transition-shadow duration-300"
+        >
+          {/* User Photo */}
+          <img
+            src={photoURL}
+            alt={displayName}
+            className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-md flex-shrink-0"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`;
+            }}
+          />
 
-                                                {/* Actions Section */}
-                                                <div className="flex flex-col gap-3 lg:w-48">
-                                                    <motion.button
-                                                        whileHover={{ scale: 1.05 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        onClick={() => handleAcceptUser(pendingUser)}
-                                                        disabled={processingUserId === pendingUser.id}
-                                                        className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-md transition-all duration-200"
-                                                    >
-                                                        {processingUserId === pendingUser.id ? (
-                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                                                        ) : (
-                                                            <>
-                                                                <FaCheck />
-                                                                <span>אשר</span>
-                                                            </>
-                                                        )}
-                                                    </motion.button>
+          {/* User Info */}
+          <div className="flex flex-col flex-1 ml-0 lg:ml-6 mt-4 lg:mt-0 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="text-xl font-semibold text-indigo-900 dark:text-indigo-200 truncate">
+                {displayName}
+              </h3>
+              <span
+                className={`text-xs px-3 py-1 rounded-full font-semibold whitespace-nowrap bg-indigo-200 text-indigo-800 dark:bg-indigo-700 dark:text-indigo-100`}
+              >
+                {getRoleDisplay(user.role)}
+              </span>
+            </div>
 
-                                                    <motion.button
-                                                        whileHover={{ scale: 1.05 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        onClick={() => handleRejectUser(pendingUser)}
-                                                        disabled={processingUserId === pendingUser.id}
-                                                        className="w-full px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium shadow-md transition-all duration-200"
-                                                    >
-                                                        {processingUserId === pendingUser.id ? (
-                                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                                                        ) : (
-                                                            <>
-                                                                <FaTimes />
-                                                                <span>דחה</span>
-                                                            </>
-                                                        )}
-                                                    </motion.button>
-                                                </div>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            </div>
+            {/* Contact Info */}
+            <div className="mt-2 space-y-1 text-sm text-indigo-700 dark:text-indigo-300">
+              <div className="flex items-center gap-2">
+                <FaEnvelope className="text-indigo-500" />
+                <span className="truncate">{user.email || "לא סופק"}</span>
+              </div>
+              {user.phone && (
+                <div className="flex items-center gap-2">
+                  <FaPhone className="text-green-500" />
+                  <span className="truncate">{user.phone}</span>
+                </div>
+              )}
+              {user.location && (
+                <div className="flex items-center gap-2">
+                  <FaMapMarkerAlt className="text-red-500" />
+                  <span className="truncate">{user.location}</span>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <FaCalendarAlt className="text-purple-500" />
+                <span>הצטרף: {user.createdAt ? formatDate(user.createdAt) : "לא ידוע"}</span>
+              </div>
+            </div>
+
+            {/* Questionnaire Info */}
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-indigo-800 dark:text-indigo-300">
+              <InfoItem label="כיצד הגיעו לעמותה" value={user.howDidYouHear} />
+              <InfoItem label="רמת מחויבות" value={user.commitmentLevel} />
+              <InfoItem label="זיקה לאמנות" value={user.artisticAffinity} />
+              <InfoItem label="מטרה כמתנדב" value={user.goalAsVolunteer} />
+              <InfoItem label="קשר אמנות-מנהיגות" value={user.artLeadershipConnection} />
+              <InfoItem
+                label="כישורים / משאבים"
+                value={
+                  Array.isArray(user.skillsResources) && user.skillsResources.length > 0
+                    ? user.skillsResources.join(", ")
+                    : "לא הוזן"
+                }
+              />
+              <InfoItem label="תמיכה כספית" value={user.financialSupport} />
+              <InfoItem label="תחום פעילות מועדף" value={user.preferredActivityArea} />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-6 lg:mt-0 lg:ml-6 flex flex-col gap-3 w-full sm:w-48">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleAcceptUser(user)}
+              disabled={processingUserId === user.id}
+              className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg shadow-md flex items-center justify-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {processingUserId === user.id ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+              ) : (
+                <>
+                  <FaCheck />
+                  <span>אשר</span>
+                </>
+              )}
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleRejectUser(user)}
+              disabled={processingUserId === user.id}
+              className="w-full px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg shadow-md flex items-center justify-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {processingUserId === user.id ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+              ) : (
+                <>
+                  <FaTimes />
+                  <span>דחה</span>
+                </>
+              )}
+            </motion.button>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>
+
                         )}
                     </div>
 
