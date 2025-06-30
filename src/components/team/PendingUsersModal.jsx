@@ -310,7 +310,7 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
             const usersSnap = await getDocs(collection(db, 'users'));
             const pendingUsersData = await Promise.all(
                 usersSnap.docs
-                    .filter(doc => !doc.data().is_active)
+                    .filter(doc => !doc.data().is_active &&  doc.data().is_email_verified)
                     .map(async (userDoc) => {
                         const userData = userDoc.data();
                         // Assuming profile data is still needed from 'profiles' collection if it exists
