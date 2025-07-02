@@ -2,11 +2,6 @@
 import Layout from '@/components/layout/Layout';
 import React, { useEffect, useState } from "react";
 import {
-  Palette,
-  Music,
-  PenTool,
-  Users,
-  // Clapperboard, // Keeping Clapperboard for consistency if it's available. If not, fallback to FontAwesome.
   Plus,
   Edit3,
   Trash2,
@@ -15,7 +10,7 @@ import {
   Star,
   Search,
 } from "lucide-react";
-import { db, auth } from "../config/firbaseConfig";
+import { db, auth, storage } from "../config/firbaseConfig"; // Import storage
 import {
   collection,
   onSnapshot,
@@ -25,27 +20,14 @@ import {
   doc,
   getDocs,
 } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"; // Import storage functions
 import { onAuthStateChanged } from "firebase/auth";
 import { motion } from "framer-motion";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faMasksTheater, // Already used for Theater
-  faCameraRetro, // New: for Photography
-  faHammer,      // New: for Sculpture/Crafts
-  faFilm         // New: for Filmmaking
-} from '@fortawesome/free-solid-svg-icons';
 
-/* ---------- icon + colour helpers ---------- */
-const ICONS = {
-  Paintbrush: Palette,
-  Music: Music,
-  TheaterIcon: (props) => <FontAwesomeIcon icon={faMasksTheater} {...props} />,
-  Move3D: Users,
-  Pen: PenTool,
-  Photography: (props) => <FontAwesomeIcon icon={faCameraRetro} {...props} />,
-  Sculpture: (props) => <FontAwesomeIcon icon={faHammer} {...props} />,
-  Filmmaking: (props) => <FontAwesomeIcon icon={faFilm} {...props} />,
-};
+/* ---------- icon + colour helpers (ICONS will be removed/modified) ---------- */
+// We will remove ICONS as we are now using image uploads
+// You might keep it for fallback or if you still want a mixed approach.
+// For this solution, we'll focus on replacing icons entirely with images.
 
 const COLOR_SCHEMES = [
   {
@@ -128,6 +110,7 @@ const ArtSkillsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [newSkill, setNewSkill] = useState(initialSkill());
   const [isLoading, setIsLoading] = useState(true);
+  const [imageFile, setImageFile] = useState(null); // New state for image file
 
   /* -------- Firestore listeners + auth -------- */
   useEffect(() => {
@@ -185,21 +168,58 @@ const ArtSkillsPage = () => {
       color: def.color,
       gradient: def.gradient,
       accent: def.accent,
-      icon: "Paintbrush", // Default icon name
+      imageUrl: "", // New: Store image URL
+      imagePath: "", // New: Store image storage path for deletion
     };
   }
 
   /* -------- CRUD actions -------- */
   const handleAddOrUpdateSkill = async () => {
+    if (!newSkill.title.trim() || !newSkill.description.trim()) {
+      alert("כותרת ותיאור הם שדות חובה.");
+      return;
+    }
+
     const scheme =
       COLOR_SCHEMES.find((c) => c.color === newSkill.color) ?? COLOR_SCHEMES[0];
+
+    let finalImageUrl = newSkill.imageUrl;
+    let finalImagePath = newSkill.imagePath;
+
+    // If a new image file is selected, upload it
+    if (imageFile) {
+      const storageRef = ref(storage, `skill_images/${imageFile.name}-${Date.now()}`);
+      try {
+        await uploadBytes(storageRef, imageFile);
+        finalImageUrl = await getDownloadURL(storageRef);
+        finalImagePath = storageRef.fullPath;
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        alert("נכשל בהעלאת התמונה. אנא נסה שוב.");
+        return;
+      }
+    } else if (editingSkillId && !newSkill.imageUrl) {
+        // If editing and no new image is selected and existing image is cleared, delete the old image
+        if (newSkill.imagePath) {
+            const oldImageRef = ref(storage, newSkill.imagePath);
+            try {
+                await deleteObject(oldImageRef);
+                console.log("Old image deleted successfully from storage.");
+            } catch (error) {
+                console.error("Error deleting old image from storage:", error);
+            }
+        }
+    }
+
+
     const payload = {
       title: newSkill.title.trim(),
       description: newSkill.description.trim(),
       color: scheme.color,
       gradient: scheme.gradient,
       accent: scheme.accent,
-      iconName: newSkill.icon, // Store icon name
+      imageUrl: finalImageUrl, // Save image URL
+      imagePath: finalImagePath, // Save image path for potential deletion
     };
 
     try {
@@ -212,16 +232,27 @@ const ArtSkillsPage = () => {
       setNewSkill(initialSkill());
       setEditingSkillId(null);
       setShowForm(false);
+      setImageFile(null); // Clear image file input
     } catch (err) {
       console.error("🔥 failed to save skill:", err);
+      alert("נכשל לשמור כישור. אנא נסה שוב.");
     }
   };
 
-  const handleDeleteSkill = async (id) => {
-    try {
-      await deleteDoc(doc(db, "artSkills", id));
-    } catch (err) {
-      console.error("🔥 failed to delete skill:", err);
+  const handleDeleteSkill = async (skillId, imagePath) => {
+    if (window.confirm("האם אתה בטוח שברצונך למחוק כישור זה?")) {
+      try {
+        // Delete image from storage if it exists
+        if (imagePath) {
+          const imageRef = ref(storage, imagePath);
+          await deleteObject(imageRef);
+          console.log("Image deleted from storage.");
+        }
+        await deleteDoc(doc(db, "artSkills", skillId));
+      } catch (err) {
+        console.error("🔥 failed to delete skill:", err);
+        alert("נכשל למחוק כישור. אנא נסה שוב.");
+      }
     }
   };
 
@@ -232,10 +263,20 @@ const ArtSkillsPage = () => {
       color: skill.color,
       gradient: skill.gradient,
       accent: skill.accent,
-      icon: skill.iconName, // Set icon name for editing
+      imageUrl: skill.imageUrl || "", // Set existing image URL
+      imagePath: skill.imagePath || "", // Set existing image path
     });
     setEditingSkillId(skill.id);
     setShowForm(true);
+    setImageFile(null); // Clear any previously selected file when editing
+  };
+
+  const handleImageChange = (e) => {
+    if (e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+      // Also update newSkill.imageUrl for preview if needed, though not directly stored in Firestore until save
+      setNewSkill({ ...newSkill, imageUrl: URL.createObjectURL(e.target.files[0]) });
+    }
   };
 
   /* -------- derived list -------- */
@@ -292,6 +333,7 @@ const ArtSkillsPage = () => {
                   setShowForm(true);
                   setEditingSkillId(null);
                   setNewSkill(initialSkill());
+                  setImageFile(null); // Clear image file when adding new skill
                 }}
                 className="inline-flex items-center gap-2 bg-white text-orange-600 px-6 py-3 rounded-xl font-medium shadow-lg hover:bg-orange-50 transition-all duration-200 hover:scale-[1.02] active:scale-95"
               >
@@ -317,7 +359,7 @@ const ArtSkillsPage = () => {
                     index={idx}
                     isAdmin={isAdmin}
                     onEdit={() => handleEditSkill(skill)}
-                    onDelete={() => handleDeleteSkill(skill.id)}
+                    onDelete={() => handleDeleteSkill(skill.id, skill.imagePath)}
                   />
                 ))}
               </div>
@@ -367,6 +409,7 @@ const ArtSkillsPage = () => {
                     setShowForm(false);
                     setEditingSkillId(null);
                     setNewSkill(initialSkill());
+                    setImageFile(null); // Clear image file input on close
                   }}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
@@ -408,7 +451,7 @@ const ArtSkillsPage = () => {
                   />
                 </div>
 
-                {/* colour + icon pickers */}
+                {/* colour + image pickers */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* colours */}
                   <div>
@@ -445,40 +488,34 @@ const ArtSkillsPage = () => {
                     </div>
                   </div>
 
-                  {/* icons */}
+                  {/* Image Upload */}
                   <div>
                     <label className="block mb-2 font-medium text-gray-700">
-                      איקון
+                      העלה תמונה
                     </label>
-                    <div className="space-y-2">
-                      {Object.entries(ICONS).map(([key, IconCmp]) => (
-                        <label
-                          key={key}
-                          className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-                        >
-                          <input
-                            type="radio"
-                            name="icon"
-                            value={key}
-                            checked={newSkill.icon === key}
-                            onChange={() => setNewSkill({ ...newSkill, icon: key })}
-                            className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
-                          />
-                          {/* Render FontAwesomeIcon for specific keys, otherwise Lucide icon */}
-                          {['TheaterIcon', 'Photography', 'Sculpture', 'Filmmaking'].includes(key) ? (
-                            <FontAwesomeIcon icon={
-                              key === 'TheaterIcon' ? faMasksTheater :
-                              key === 'Photography' ? faCameraRetro :
-                              key === 'Sculpture' ? faHammer :
-                              faFilm // Default to faFilm if something unexpected
-                            } className="w-5 h-5 text-gray-700" />
-                          ) : (
-                            <IconCmp className="w-5 h-5 text-gray-700" />
-                          )}
-                          {key}
-                        </label>
-                      ))}
-                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                    {(newSkill.imageUrl || imageFile) && (
+                      <div className="mt-4 flex items-center gap-2">
+                        <img
+                          src={imageFile ? URL.createObjectURL(imageFile) : newSkill.imageUrl}
+                          alt="תמונה מקדימה"
+                          className="w-24 h-24 object-cover rounded-lg shadow-sm"
+                        />
+                        {newSkill.imageUrl && ( // Show clear button only if there's an existing image URL
+                            <button
+                                onClick={() => setNewSkill({...newSkill, imageUrl: "", imagePath: ""})}
+                                className="text-red-500 hover:text-red-700 text-sm"
+                            >
+                                נקה תמונה
+                            </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -496,6 +533,7 @@ const ArtSkillsPage = () => {
                       setShowForm(false);
                       setEditingSkillId(null);
                       setNewSkill(initialSkill());
+                      setImageFile(null); // Clear image file input on cancel
                     }}
                     className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors hover:shadow-sm"
                   >
@@ -529,8 +567,6 @@ const ArtSkillsPage = () => {
 
 /* ---------- Enhanced Flip Card Component ---------- */
 const FlipCard = ({ skill, index, isAdmin, onEdit, onDelete }) => {
-  const IconCmp = ICONS[skill.iconName] || Palette;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -544,16 +580,17 @@ const FlipCard = ({ skill, index, isAdmin, onEdit, onDelete }) => {
         <div
           className={`absolute inset-0 flex flex-col items-center justify-center rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 backface-hidden ${skill.color} border border-white/20`}
         >
-          <div className="mb-3 p-3 rounded-full bg-white/20 backdrop-blur-sm">
-            {['TheaterIcon', 'Photography', 'Sculpture', 'Filmmaking'].includes(skill.iconName) ? (
-              <FontAwesomeIcon icon={
-                skill.iconName === 'TheaterIcon' ? faMasksTheater :
-                skill.iconName === 'Photography' ? faCameraRetro :
-                skill.iconName === 'Sculpture' ? faHammer :
-                faFilm
-              } className="w-8 h-8 text-gray-800" />
+          <div className="mb-3 p-3 rounded-full bg-white/20 backdrop-blur-sm w-20 h-20 flex items-center justify-center overflow-hidden">
+            {skill.imageUrl ? (
+              <img
+                src={skill.imageUrl}
+                alt={skill.title}
+                className="w-full h-full object-cover rounded-full"
+                style={{ objectFit: 'cover' }} // Ensure image covers the circular area
+              />
             ) : (
-              <IconCmp className="w-8 h-8 text-gray-800" />
+              // Fallback if no image is present (e.g., for older skills or if image is removed)
+              <Star className="w-8 h-8 text-gray-800" />
             )}
           </div>
           <h4 className="text-base md:text-lg font-bold text-center leading-tight">
@@ -565,15 +602,15 @@ const FlipCard = ({ skill, index, isAdmin, onEdit, onDelete }) => {
         <div
           className={`absolute inset-0 bg-gradient-to-br ${skill.gradient} text-white text-center flex flex-col items-center justify-center rounded-2xl p-4 backface-hidden rotate-y-180 shadow-lg`}
         >
-          {['TheaterIcon', 'Photography', 'Sculpture', 'Filmmaking'].includes(skill.iconName) ? (
-            <FontAwesomeIcon icon={
-              skill.iconName === 'TheaterIcon' ? faMasksTheater :
-              skill.iconName === 'Photography' ? faCameraRetro :
-              skill.iconName === 'Sculpture' ? faHammer :
-              faFilm
-            } className="w-6 h-6 mb-2 opacity-80" />
+          {skill.imageUrl ? (
+            <img
+              src={skill.imageUrl}
+              alt={skill.title}
+              className="w-12 h-12 mb-2 opacity-80 object-cover rounded-full"
+            />
           ) : (
-            <IconCmp className="w-6 h-6 mb-2 opacity-80" />
+            // Fallback for back side too
+            <Star className="w-6 h-6 mb-2 opacity-80" />
           )}
           <p dir="rtl" className="text-xs md:text-sm leading-relaxed text-white/95">
             {skill.description}

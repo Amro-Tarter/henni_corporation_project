@@ -1,6 +1,6 @@
 import React from 'react';
 import Layout from '../components/layout/Layout'; // Importing the Layout component for consistent page structure
-import { Target, Users, Sparkles, Handshake, Speech, MapPin, Building, Heart } from 'lucide-react'; // Importing relevant icons from lucide-react
+import { Sparkles, Handshake, Speech, MapPin, Building, Sun } from 'lucide-react'; // Importing relevant icons from lucide-react
 
 const GoalsPage = () => {
   return (
@@ -11,7 +11,7 @@ const GoalsPage = () => {
         <header className="text-center mb-20 relative">
           {/* Large, subtle background icon */}
           <h1 className="text-4xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-700 to-yellow-700 mb-4 drop-shadow-lg relative z-10 py-6">
-            המטרות שלנו ב" עמותת לגלות את האור - הנני"
+            המטרות שלנו בעמותת לגלות את האור - הנני
           </h1>
           <p className="text-xl md:text-2xl text-gray-700 mb-8 max-w-3xl mx-auto relative z-10 font-medium">
             מציתים את הניצוץ הפנימי, בונים מנהיגות משפיעה ויוצרים חיבורים בחברה הישראלית.
@@ -24,7 +24,7 @@ const GoalsPage = () => {
           {/* Introduction/Core Mission */}
           <div className="bg-white rounded-3xl shadow-xl p-8 md:p-12 border border-green-200 transform transition-all duration-300 hover:scale-[1.005] hover:shadow-2xl">
             <h2 className="text-2xl md:text-4xl font-extrabold text-green-800 mb-8 text-center leading-tight">
-              הליבה של פעילותנו: גילוי, יצירה והובלה
+              הליבה של פעילותנו - גילוי, יצירה והובלה
             </h2>
             <div className="space-y-6 text-lg md:text-xl leading-relaxed text-gray-700">
               <p className="text-xl md:text-2xl font-semibold text-green-900 border-r-6 border-green-400 pr-6 pl-2 italic">
@@ -106,7 +106,7 @@ const GoalsPage = () => {
               <Building className="w-20 h-20 text-purple-600 flex-shrink-0 drop-shadow-md" />
               <div className="text-center md:text-right">
                 <h3 className="text-2xl md:text-3xl font-extrabold text-purple-800 mb-4">
-                  החזון של ענת זגרון בוג'יו
+                  החזון של המייסדת והמנכ״לית
                 </h3>
                 <p className="text-gray-700 text-lg leading-relaxed font-semibold">
                   העמותה הוקמה על ידי <span className="text-purple-700">ענת זגרון בוג'יו</span> – שהבינה שהשינוי האמיתי בישראל
@@ -119,9 +119,9 @@ const GoalsPage = () => {
 
           {/* Call to Action */}
           <div className="bg-gradient-to-r from-green-100 to-yellow-100 rounded-3xl shadow-2xl p-8 md:p-12 text-center border border-green-300 animate-pulse-subtle">
-            <Heart className="w-24 h-24 text-green-600 mx-auto mb-6 opacity-80" />
+            <Sun className="w-24 h-24 text-green-600 mx-auto mb-6 opacity-80" />
             <p className="text-xl md:text-2xl font-extrabold text-green-800 leading-tight mb-6">
-              אם מה שאמרנו נוגע בך, אפילו במעט –
+              אם מה שאמרנו נוגע בך, אפילו במעט 
               <br className="hidden sm:block"/> <span className="text-yellow-700">יש לך מקום איתנו.</span>
             </p>
             <p className="text-lg md:text-xl text-gray-700">
