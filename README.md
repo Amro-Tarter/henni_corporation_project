@@ -1,4 +1,4 @@
-📘 README — Project: לגלות את האור - הנני
+## 📘 README — Project: לגלות את האור - הנני
 
 ## 👥 Authors
 
@@ -41,19 +41,13 @@ This project is a web platform that includes:
 
 > These instructions assume you have **Node.js** and **npm** installed.
 
-### 1. Clone the repository
+### Clone the repository, install dependencies, and start the development server
 
 ```bash
 git clone <repository-url>
 cd <project-folder>
-
-### 2. Install dependencies
-
 npm install
-
-### 3. Start the development server
 npm run dev
 
-
-The app should now be running at:
-👉 http://localhost:5173
+# The app should now be running at:
+# 👉 http://localhost:5173
