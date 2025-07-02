@@ -128,19 +128,19 @@ const App = () => {
                   <Route path="/report" element={<MentorReportForm />} />
 
                   {/* Admin Pages */}
-                  <Route path="/admin" element={<DashboardHome />} />
-                  <Route path="/admin/Users" element={<Users />} />
-                  <Route path="/admin/Partners" element={<PartnerForm />} />
-                  <Route path="/admin/Reports" element={<Reports />} />
-                  <Route path="/admin/Settings" element={<Settings />} />
-                  <Route path="/admin/donations" element={<DonationForm/>} />
-                  <Route path="/admin/Mentorship" element={<Mentorship/>} />
-                  <Route path="/admin/forms" element={<AdminFormManager />} />
-                  <Route path="/admin/submissions/:formId" element={<SubmissionViewer />} />
-                  <Route path="/form/:formId" element={<PublicForm />} />
-                  <Route path="/admin/staff" element={<Staff />} />
-                  <Route path="/admin/contactMessages" element={<ContactMessages />} />
+                  <Route path="/admin" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
+                  <Route path="/admin/Users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+                  <Route path="/admin/Partners" element={<ProtectedRoute><PartnerForm /></ProtectedRoute>} />
+                  <Route path="/admin/Reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                  <Route path="/admin/Settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="/admin/donations" element={<ProtectedRoute><DonationForm/></ProtectedRoute>} />
+                  <Route path="/admin/Mentorship" element={<ProtectedRoute><Mentorship/></ProtectedRoute>} />
+                  <Route path="/admin/forms" element={<ProtectedRoute><AdminFormManager /></ProtectedRoute>} />
+                  <Route path="/admin/submissions/:formId" element={<ProtectedRoute><SubmissionViewer /></ProtectedRoute>} />
+                  <Route path="/admin/staff" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
+                  <Route path="/admin/contactMessages" element={<ProtectedRoute><ContactMessages /></ProtectedRoute>} />
 
+                  <Route path="/form/:formId" element={<PublicForm />} />
 
                   
                   {/* 404 Page */}
