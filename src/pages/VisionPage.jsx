@@ -14,7 +14,7 @@ const VisionPage = () => {
               bg-gradient-to-r from-orange-700 to-orange-900
               mb-4 drop-shadow-lg relative z-10
               leading-tight py-6 ">
-              חזון עמותת "לגלות את האור – הנני"
+              חזון עמותת לגלות את האור – הנני
             </h1>
             <div className="w-28 h-2 bg-gradient-to-r from-orange-500 to-yellow-500 mx-auto rounded-full shadow-inner"></div>
           </header>

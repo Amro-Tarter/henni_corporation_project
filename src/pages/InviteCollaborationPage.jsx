@@ -35,25 +35,6 @@ const InviteCollaborationPage = () => {
           </div>
         </section>
 
-        {/* Vision & Purpose */}
-        <section className="mb-16 animate-fade-in-up">
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-3xl p-8 md:p-12 border border-purple-200 transform transition-all duration-300 hover:scale-[1.005] hover:shadow-xl">
-            <div className="flex items-center justify-center mb-6">
-              <Lightbulb className="w-20 h-20 text-purple-600 drop-shadow-md" />
-            </div>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-purple-800 mb-8 text-center leading-tight">
-              החזון והמטרה שלנו
-            </h2>
-            <p className="text-lg md:text-xl text-gray-700 text-center leading-relaxed">
-              עמותת "לגלות את האור - הנני" (ע.ר. 580775732) פועלת במטרה נעלה:
-              לטיפוח דור חדש של מנהיגים צעירים מכל קצוות החברה הישראלית,
-              וכל זאת דרך העוצמה הטרנספורמטיבית של עולם האמנות והיצירה.
-              אנו משוכנעים שכל נער ונערה נושאים בתוכם ניצוץ מנהיגותי ייחודי – כישרון, קול והשפעה –
-              שמחכים להתגלות ולהתפתחות למנהיגות אותנטית, משמעותית ובעלת אימפקט חברתי.
-            </p>
-          </div>
-        </section>
-
         {/* Main Projects */}
         <section className="mb-16 animate-fade-in-up">
           <div className="bg-white rounded-3xl shadow-xl p-8 md:p-12 border border-blue-200">
