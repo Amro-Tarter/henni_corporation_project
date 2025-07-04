@@ -10,34 +10,23 @@ import {
 } from "firebase/firestore";
 import { auth, db } from "../config/firbaseConfig";
 import { User, Lock, Loader } from "lucide-react";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faLeaf,
-  faHammer,
-  faWind,
-  faWater,
-  faFire
-} from '@fortawesome/free-solid-svg-icons';
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from 'sonner';
 import AirIcon from '@mui/icons-material/Air';
 import Navbar from '../components/layout/Navigation';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
+import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
+import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
+import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
+
+// Defined ELEMENTS array - consistent with your structure
 const ELEMENTS = [
-  { key: 'earth', type: 'emoji', value: '🌱' },
-  { key: 'metal', type: 'emoji', value: '⚒️' },
-  { key: 'air',   type: 'icon',  value: <AirIcon /> },
-  { key: 'water', type: 'emoji', value: '💧' },
-  { key: 'fire',  type: 'emoji', value: '🔥' },
+  { key: 'earth', emoji: <LocalFloristIcon style={{color: '#4ade80'}} /> },
+  { key: 'metal', emoji: <ConstructionTwoToneIcon style={{color: '#4b5563'}} /> },
+  { key: 'air',   emoji: <AirIcon style={{color: '#87ceeb'}} /> },
+  { key: 'water', emoji: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} /> },
+  { key: 'fire',  emoji: <WhatshotRoundedIcon style={{color: '#fca5a1'}} /> },
 ];
-
-const FLOAT_POS = [
-  { top: '15%',  left: '10%', anim: 'animate-float-1' },
-  { top: '80%', left: '80%', anim: 'animate-float-2' },
-  { top: '90%', left: '10%', anim: 'animate-float-3' },
-  { top: '60%', left: '20%',  anim: 'animate-float-4' },
-  { top: '15%', left: '80%', anim: 'animate-float-5' },
-];
-
 
 const Login = () => {
   const navigate = useNavigate();
@@ -55,7 +44,7 @@ const Login = () => {
     }
   }, []);
 
-  // Add animation styles (unchanged)
+  // Add animation styles (unchanged from your original)
   useEffect(() => {
     const styleSheet = document.createElement("style");
     styleSheet.type = "text/css";
@@ -131,7 +120,6 @@ const Login = () => {
     const user = userCredential.user; // The authenticated Firebase user object
 
     // 2. Fetch user data from Firestore using the UID (document ID)
-    // This is now direct, efficient, and aligns with the security rules.
     const userDocRef = doc(db, "users", user.uid);
     let userDocSnap;
     try {
@@ -157,8 +145,6 @@ const Login = () => {
     }
 
     const userData = userDocSnap.data();
-    // No need to check `userData.associated_id === user.uid` here anymore
-    // because `userDocSnap.id` (which is `user.uid`) already matches the rule.
 
     // 3. Check if user is active
     if (!userData.is_active) {
@@ -220,31 +206,49 @@ const Login = () => {
     
 <div
   className="min-h-screen flex items-center justify-center absolute inset-0 bg-gradient-to-tl from-red-950 via-red-800 to-orange-600
- opacity-95 py-12 px-4 sm:px-6 lg:px-8 relative"
+  opacity-95 py-12 px-4 sm:px-6 lg:px-8 relative"
   dir="rtl"
 >
   <Navbar/>
       {/* Floating Element Icons */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        {ELEMENTS.map((el, i) => (
-          <div
-            key={el.key}
-            className={`absolute ${FLOAT_POS[i].anim}`}
-            style={{
-              top:     FLOAT_POS[i].top,
-              left:    FLOAT_POS[i].left,
-              opacity: 0.6,
-            }}
-          >
-            {el.type === 'icon' ? (
-              // MUI icon, enlarge via inline style
-              React.cloneElement(el.value, { style: { fontSize: 64, color: '#87ceeb' } })
-            ) : (
-              // Emoji, use Tailwind for sizing
-              <span className="text-7xl">{el.value}</span>
-            )}
-          </div>
-        ))}
+        {/* Element 1 - Leaf */}
+        <div className="absolute top-20 left-10 animate-float-1">
+          <LocalFloristIcon sx={{ fontSize: '96px' }} className="text-green-500" />
+        </div>
+
+        {/* Element 2 - Hammer */}
+        <div className="absolute top-1/3 right-20 animate-float-2">
+          <ConstructionTwoToneIcon sx={{ fontSize: '88px' }} className="text-gray-600" />
+        </div>
+
+        {/* Element 3 - Wind */}
+        <div className="absolute top-1/2 left-1/4 animate-float-3">
+          <AirIcon sx={{ fontSize: '88px' }} className="text-cyan-600" />
+        </div>
+
+        {/* Element 4 - Water */}
+        <div className="absolute bottom-10 right-20 animate-float-4">
+          <WaterDropTwoToneIcon sx={{ fontSize: '88px' }} className="text-blue-500" />
+        </div>
+
+        {/* Element 5 - Fire */}
+        <div className="absolute bottom-1/4 left-5 animate-float-5">
+          <WhatshotRoundedIcon sx={{ fontSize: '88px' }} className="text-red-500" />
+        </div>
+
+        {/* Additional decorative icons */}
+        <div className="absolute top-20 left-1/2 animate-float-6">
+          <LocalFloristIcon sx={{ fontSize: '88px' }} className="text-green-500" />
+        </div>
+
+        <div className="absolute bottom-24 left-1/3 animate-float-7">
+          <AirIcon sx={{ fontSize: '88px' }} className="text-cyan-600" />
+        </div>
+
+        <div className="absolute top-3/5 left-1/4 animate-float-8">
+          <WaterDropTwoToneIcon sx={{ fontSize: '88px' }} className="text-blue-500" />
+        </div>
       </div>
 
       <div className="max-w-md w-full rounded-xl bg-white shadow-2xl p-8 space-y-8 relative overflow-hidden z-10">
@@ -338,13 +342,13 @@ const Login = () => {
           </div>
 
           <div>
-             <button type="submit" disabled={loading}
+               <button type="submit" disabled={loading}
 className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white   transition hover:opacity-95 
-     shine-button ${
+      shine-button ${
     loading
       ? "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 cursor-not-allowed"
       : "bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 hover:bg-gradient-to-r from-amber-500 via-orange-500 to-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-  }`}              >
+  }`}             >
                 {loading ? <Loader className="animate-spin" size={20}/> : 'התחבר'}
             <span className="shine" />
 

@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { UserPlus, X, Smile } from 'lucide-react';
 import { FaPhotoVideo, FaVideo } from 'react-icons/fa';
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPickerPopover from '../social/EmojiPickerPopover';
 import { containsBadWord } from '../social/utils/containsBadWord';
 import ElementalLoader from '/src/theme/ElementalLoader.jsx';
 
@@ -21,7 +21,6 @@ const CreateProject = ({
   const [showUsers, setShowUsers] = useState(false);
   const [warning, setWarning] = useState('');
   const [showEmoji, setShowEmoji] = useState(false);
-  const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
   const [collabSearch, setCollabSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const textareaRef = useRef();
@@ -46,15 +45,6 @@ const CreateProject = ({
     window.addEventListener('mousedown', handleClick);
     return () => window.removeEventListener('mousedown', handleClick); // cleanup
   }, [showUsers]);
-
-
-  // Emoji picker positioning so it appears below the emoji button
-  useEffect(() => {
-    if (showEmoji && emojiBtnRef.current) {
-      const rect = emojiBtnRef.current.getBoundingClientRect();
-      setEmojiPos({ x: rect.left, y: rect.bottom + 8 });
-    }
-  }, [showEmoji]);
 
   // Insert emoji at cursor
   const insertEmoji = (emojiObject) => {
@@ -129,21 +119,6 @@ const CreateProject = ({
     setCollaborators([]);
     setWarning('');
   };
-
-  // Close emoji picker on outside click
-  useEffect(() => {
-    if (!showEmoji) return;
-    function handleClick(e) {
-      if (
-        !emojiBtnRef.current?.contains(e.target) &&
-        !document.getElementById('emoji-picker-portal')?.contains(e.target)
-      ) {
-        setShowEmoji(false);
-      }
-    }
-    window.addEventListener('mousedown', handleClick);
-    return () => window.removeEventListener('mousedown', handleClick);
-  }, [showEmoji]);
 
   return (
     <>
@@ -234,38 +209,27 @@ const CreateProject = ({
                 ref={emojiBtnRef}
                 onClick={() => setShowEmoji(val => !val)}
                 className={`
-                mt-2 sm:mt-0 ml-0 sm:ml-2 px-2 py-2
+                hidden mt-2 sm:mt-0 ml-0 sm:ml-2 px-2 py-2
                 rounded-md 
                 bg-${element}-soft
                 text-${element}
                 hover:bg-${element}-accent
                 hover:text-white
                 transition-colors
-                flex items-center emoji-picker-btn
+                md:flex items-center emoji-picker-btn
               `}
                 aria-label="הוסף אימוג׳י"
               >
                 <Smile size={18} />
               </button>
-              {showEmoji && (
-                <div
-                  id="emoji-picker-portal"
-                  style={{
-                    position: 'fixed',
-                    left: emojiPos.x,
-                    top: emojiPos.y,
-                    zIndex: 1200,
-                  }}
-                >
-                  <EmojiPicker
-                    onEmojiClick={insertEmoji}
-                    autoFocusSearch={false}
-                    theme="light"
-                    width={320}
-                    height={380}
-                  />
-                </div>
-              )}
+              <EmojiPickerPopover
+                anchorRef={emojiBtnRef}
+                open={showEmoji}
+                onClose={() => setShowEmoji(false)}
+                onEmojiClick={emojiObject => {
+                  insertEmoji(emojiObject);
+                }}
+              />
             </div>
 
             {/* Collaborators Row: Button + Chips + Search Popup */}

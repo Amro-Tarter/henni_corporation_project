@@ -1,5 +1,5 @@
 //profilepage.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ThemeProvider } from '../theme/ThemeProvider';
 import ElementalLoader from '../theme/ElementalLoader';
 import { useParams } from 'react-router-dom';
@@ -60,6 +60,7 @@ const ProfilePage = () => {
   const [activeProfileTab, setActiveProfileTab] = useState('posts'); // 'posts' or 'projects'
   const navigate = useNavigate();
   const viewerId = viewerProfile?.uid;
+  const tabsRef = useRef(null);
 
   // find the UID by username
   useEffect(() => {
@@ -89,7 +90,7 @@ const ProfilePage = () => {
     return () => clearTimeout(retryTimeout); //cancel the retry timeout so it doesn’t run unnecessarily
   }, [username]);
 
-  // Fetch viewer profile
+  // Fetch viewer profile (the logged-in user)
   useEffect(() => {
     const fetchViewerProfile = async () => {
       const auth = getAuth();
@@ -101,11 +102,14 @@ const ProfilePage = () => {
         const profileSnap = await getDoc(doc(db, 'profiles', viewerUid));
         let viewerProfileData = { uid: viewerUid, ...(profileSnap.exists() ? profileSnap.data() : {}) };
 
-        // Fetch user doc for role
+        // Fetch user doc to get role, element, participants
         const userSnap = await getDoc(doc(db, 'users', viewerUid));
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          if (userData.role) viewerProfileData.role = userData.role;
+          viewerProfileData = {
+            ...viewerProfileData,
+            ...userData, // ⬅️ Merge everything from users, including `participants`
+          };
         }
 
         setViewerProfile(viewerProfileData);
@@ -133,7 +137,11 @@ const ProfilePage = () => {
       const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
         const userData = userSnap.data();
-        if (userData.role) profileData = { ...profileData, role: userData.role };
+        profileData = {
+          ...profileData,
+          role: userData.role || profileData.role,
+          element: userData.element || profileData.element, // <-- optional merge
+        };
       }
       if (profileData) setProfile({ ...profileData, uid });
 
@@ -412,7 +420,7 @@ const ProfilePage = () => {
         return;
       }
       // Use a batch to update both collections
-      const batch = writeBatch(db); 
+      const batch = writeBatch(db);
       batch.update(profileRef, { username: value, updatedAt: serverTimestamp() });
       batch.update(userRef, { username: value });
       await batch.commit();
@@ -782,7 +790,7 @@ const ProfilePage = () => {
       console.error('Error deleting comment:', error);
     }
   };
-  
+
   const isPrivilegedRole = ['mentor', 'admin'].includes(profile?.role);
   const element = isPrivilegedRole || !profile?.element ? 'red' : profile.element;
   const isViewerPrivileged = ['mentor', 'admin'].includes(viewerProfile?.role);
@@ -803,10 +811,10 @@ const ProfilePage = () => {
 
   return (
     <ThemeProvider element={element}>
-      <div dir="rtl" className="min-h-screen flex flex-col bg-white">
+      <div dir="rtl" className="min-h-screen flex flex-col bg-gray-100">
         <Navbar element={element} />
         <div className="flex flex-1 pt-[56.8px]">
-          <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200 z-20">
+          <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-[290px] border-r border-gray-200 z-20">
             <LeftSidebar
               element={element}
               viewerElement={viewerElement}
@@ -818,13 +826,13 @@ const ProfilePage = () => {
 
           <main
             className={`
-            flex-1 pt-2 space-y-12 sm:pb-6 pb-20 transition-all duration-500 ease-in-out
+            flex-1 pt-2 sm:pb-6 pb-20 transition-all duration-500 ease-in-out
             px-2 sm:px-0
-            lg:ml-64 ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}
+            lg:ml-[290px] ${isRightOpen ? 'lg:mr-64' : 'lg:mr-16'}
           `}
           >
             {/* Profile Info */}
-            <div className="w-full mx-auto mb-6">
+            <div className="w-full mx-auto">
               <ProfileInfo
                 isOwner={uid === getAuth().currentUser?.uid}
                 isFollowing={isFollowing}
@@ -846,7 +854,7 @@ const ProfilePage = () => {
             </div>
 
             {/* Sliding Tabs */}
-            <div className="flex flex-col items-center mb-6 w-full">
+            <div ref={tabsRef} className="flex flex-col items-center mb-5 mt-5 w-full">
               <div className={`bg-${element}-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden`}>
                 <div
                   className={`absolute bottom-[10px] h-[2px] bg-${element} transition-all duration-300 ease-in-out`}
@@ -860,7 +868,12 @@ const ProfilePage = () => {
                 <div className="flex-1">
                   <button
                     type="button"
-                    onClick={() => setActiveProfileTab('posts')}
+                    onClick={() => {
+                      setActiveProfileTab('posts');
+                      setTimeout(() => {
+                        tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 50); // small delay ensures render
+                    }}
                     className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
                       ${activeProfileTab === 'posts'
                         ? `text-${element} font-bold`
@@ -888,7 +901,12 @@ const ProfilePage = () => {
                 <div className="flex-1">
                   <button
                     type="button"
-                    onClick={() => setActiveProfileTab('projects')}
+                    onClick={() => {
+                      setActiveProfileTab('projects');
+                      setTimeout(() => {
+                        tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }, 50);
+                    }}
                     className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
                       ${activeProfileTab === 'projects'
                         ? `text-${element} font-bold`

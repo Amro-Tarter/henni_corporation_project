@@ -1,5 +1,4 @@
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
-
 import {
   faLeaf,
   faHammer,
@@ -27,6 +26,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Search, Filter, FileText, Calendar, Target, TrendingUp, MessageSquare } from "lucide-react";
 import { toast } from 'sonner';
 import ElementalLoader from '../../theme/ElementalLoader'
+import AirIcon from '@mui/icons-material/Air';
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
+import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
+import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
+import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
 
 function Reports() {
   const [reports, setReports] = useState([]);
@@ -46,11 +50,11 @@ function Reports() {
   };
 
   const elementIcons = {
-    fire: faFire,
-    water: faWater,
-    earth: faLeaf,
-    air: faWind,
-    metal: faHammer
+    fire: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />,
+    water: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />,
+    earth: <LocalFloristIcon style={{color: '#4ade80'}} />,
+    air: <AirIcon style={{color: '#87ceeb'}} />,
+    metal: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />
   };
 
   const elementColors = {
@@ -220,7 +224,7 @@ function Reports() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-2">
             <FontAwesomeIcon icon={faChartLine} className="text-3xl text-indigo-600" />
-            <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5]  px-4">דוחות מערכת CRM</h1>
+            <h1 className="text-4xl font-bold bg-black bg-clip-text text-transparent leading-[1.5]  px-4">דוחות</h1>
           </div>
         </div>
 

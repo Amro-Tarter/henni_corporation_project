@@ -10,151 +10,163 @@ import { db } from "@/config/firbaseConfig"
 import { toast } from "@/components/ui/sonner"
 
 import {
-  UserCheck,
-  Users2,
-  Crown
+  UserCheck,
+  Users2,
+  Crown
 } from "lucide-react"
 
 function useStaffMembers(searchQuery = "") {
-  const [ceoData, setCeoData] = useState([])
-  const [staffData, setStaffData] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [ceoData, setCeoData] = useState([])
+  const [staffData, setStaffData] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function fetchStaff() {
-      setLoading(true)
-      try {
-        const docs = await getDocs(collection(db, "staff"))
-        let allStaff = docs.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
+  useEffect(() => {
+    async function fetchStaff() {
+      setLoading(true)
+      try {
+        const docs = await getDocs(collection(db, "staff"))
+        let allStaff = docs.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
 
-        // Filter by search query if provided
-        if (searchQuery) {
-          const q = searchQuery.toLowerCase()
-          allStaff = allStaff.filter(s =>
-            (s.username || "").toLowerCase().includes(q) ||
-            (s.in_role || "").toLowerCase().includes(q) ||
-            (s.bio || "").toLowerCase().includes(q) ||
-            (s.email || "").toLowerCase().includes(q) ||
-            (s.mentorName || "").toLowerCase().includes(q)
-          )
-        }
+        // Define the usernames to exclude (case-insensitive)
+        const excludedUsernames = [
+          "עליזה עמיר",
+          "ענת בר ושדי",
+          "ענת זגרון בוג'יו"
+        ].map(name => name.toLowerCase());
 
-        // Separate CEO from other staff
-        const ceo = allStaff.filter(s => 
-          (s.in_role || "").toLowerCase() === "ceo" || 
-          (s.in_role || "").toLowerCase() === "מנכ״ל"
-        )
-        const otherStaff = allStaff.filter(s => 
-          (s.in_role || "").toLowerCase() !== "ceo" && 
-          (s.in_role || "").toLowerCase() !== "מנכ״ל"
-        )
+        // **NEW: Filter out excluded usernames client-side from allStaff**
+        allStaff = allStaff.filter(s =>
+          !excludedUsernames.includes((s.username || "").toLowerCase())
+        );
 
-        setCeoData(ceo)
-        setStaffData(otherStaff)
-      } catch (error) {
-        console.error("Error fetching staff:", error)
-        setCeoData([])
-        setStaffData([])
-        toast.error("שגיאה בטעינת רשימת הצוות")
-      }
-      setLoading(false)
-    }
-    fetchStaff()
-  }, [searchQuery])
+        // Filter by search query if provided (existing logic)
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase()
+          allStaff = allStaff.filter(s =>
+            (s.username || "").toLowerCase().includes(q) ||
+            (s.in_role || "").toLowerCase().includes(q) ||
+            (s.bio || "").toLowerCase().includes(q) ||
+            (s.email || "").toLowerCase().includes(q) ||
+            (s.mentorName || "").toLowerCase().includes(q)
+          )
+        }
 
-  return { ceoData, staffData, loading }
+        // Separate CEO from other staff
+        const ceo = allStaff.filter(s =>
+          (s.in_role || "").toLowerCase() === "ceo" ||
+          (s.in_role || "").toLowerCase() === "מנכ״ל"
+        )
+        const otherStaff = allStaff.filter(s =>
+          (s.in_role || "").toLowerCase() !== "ceo" &&
+          (s.in_role || "").toLowerCase() !== "מנכ״ל"
+        )
+
+        setCeoData(ceo)
+        setStaffData(otherStaff)
+      } catch (error) {
+        console.error("Error fetching staff:", error)
+        setCeoData([])
+        setStaffData([])
+        toast.error("שגיאה בטעינת רשימת הצוות")
+      }
+      setLoading(false)
+    }
+    fetchStaff()
+  }, [searchQuery])
+
+  return { ceoData, staffData, loading }
 }
 
 // --- Custom Hook: Mentors Fetching ---
 function useMentors(searchQuery = "") {
-  const [mentors, setMentors] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [mentors, setMentors] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function fetchMentors() {
-      setLoading(true)
-      try {
-        // Fetch users with mentor role
-        const mentorQuery = query(
-          collection(db, "users"),
-          where("role", "==", "mentor")
-        )
-        const mentorDocs = await getDocs(mentorQuery)
-        
-        let mentorList = mentorDocs.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }))
+  useEffect(() => {
+    async function fetchMentors() {
+      setLoading(true)
+      try {
+        // Fetch users with mentor role
+        const mentorQuery = query(
+          collection(db, "users"),
+          where("role", "==", "mentor")
+        )
+        const mentorDocs = await getDocs(mentorQuery)
+        
+        let mentorList = mentorDocs.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
 
-        // Filter by search query if provided
-        if (searchQuery) {
-          const q = searchQuery.toLowerCase()
-          mentorList = mentorList.filter(m =>
-            (m.username || "").toLowerCase().includes(q) ||
-            (m.displayName || "").toLowerCase().includes(q) ||
-            (m.mentorName || "").toLowerCase().includes(q)
-          )
-        }
+        // Filter by search query if provided
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase()
+          mentorList = mentorList.filter(m =>
+            (m.username || "").toLowerCase().includes(q) ||
+            (m.displayName || "").toLowerCase().includes(q) ||
+            (m.mentorName || "").toLowerCase().includes(q)
+          )
+        }
 
-        setMentors(mentorList)
-      } catch (error) {
-        console.error("Error fetching mentors:", error)
-        setMentors([])
-        toast.error("שגיאה בטעינת רשימת המנטורים")
-      }
-      setLoading(false)
-    }
-    fetchMentors()
-  }, [searchQuery])
+        setMentors(mentorList)
+      } catch (error) {
+        console.error("Error fetching mentors:", error)
+        setMentors([])
+        toast.error("שגיאה בטעינת רשימת המנטורים")
+      }
+      setLoading(false)
+    }
+    fetchMentors()
+  }, [searchQuery])
 
-  return { mentors, loading }
+  return { mentors, loading }
 }
 
 export default function Team() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [showLoader, setShowLoader] = useState(true)
-  const [sectionInView, setSectionInView] = useState(null)
-  const element = useElement()
-  const { ceoData, staffData, loading: loadingStaff } = useStaffMembers(searchQuery)
-  const { mentors, loading: loadingMentors } = useMentors(searchQuery)
-  // Loader staged
-  useEffect(() => {
-    const timer = setTimeout(() => setShowLoader(false), 900)
-    return () => clearTimeout(timer)
-  }, [])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showLoader, setShowLoader] = useState(true)
+  const [sectionInView, setSectionInView] = useState(null)
+  const element = useElement()
+  const { ceoData, staffData, loading: loadingStaff } = useStaffMembers(searchQuery)
+  const { mentors, loading: loadingMentors } = useMentors(searchQuery)
+  // Loader staged
+  useEffect(() => {
+    const timer = setTimeout(() => setShowLoader(false), 900)
+    return () => clearTimeout(timer)
+  }, [])
 
-  // Section tracking
-  const ceoRef = useRef(null)
-  const staffRef = useRef(null)
-  const mentorRef = useRef(null)
+  // Section tracking
+  const ceoRef = useRef(null)
+  const staffRef = useRef(null)
+  const mentorRef = useRef(null)
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const sections = [
-        { ref: ceoRef, key: "ceo" },
-        { ref: staffRef, key: "staff" },
-        { ref: mentorRef, key: "mentors" },
-      ]
-      const scrollY = window.scrollY + 100
-      for (let s of sections) {
-        if (s.ref.current) {
-          const top = s.ref.current.offsetTop
-          const height = s.ref.current.offsetHeight
-          if (scrollY >= top && scrollY < top + height) {
-            setSectionInView(s.key)
-            break
-          }
-        }
-      }
-    }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [])
+  useEffect(() => {
+    const handleScroll = () => {
+      const sections = [
+        { ref: ceoRef, key: "ceo" },
+        { ref: staffRef, key: "staff" },
+        { ref: mentorRef, key: "mentors" },
+      ]
+      const scrollY = window.scrollY + 100
+      for (let s of sections) {
+        if (s.ref.current) {
+          const top = s.ref.current.offsetTop
+          const height = s.ref.current.offsetHeight
+          if (scrollY >= top && scrollY < top + height) {
+            setSectionInView(s.key)
+            break
+          }
+        }
+      }
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
-  if (showLoader) return <ElementalLoader />
+  if (showLoader) return <ElementalLoader />
 
   return (
     <ThemeProvider element={element}>

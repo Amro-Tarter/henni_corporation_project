@@ -108,7 +108,12 @@ const Settings = () => {
       setForm(f => ({ ...f, oldPassword: '', newPassword: '', confirmPassword: '' }));
       toast.success('🔐 הסיסמה עודכנה בהצלחה');
     } catch (err) {
-      toast.error('⚠️ עדכון הסיסמה נכשל: ' + err.message);
+      console.error('Error updating password:', err);
+      if (err.code === 'auth/invalid-credential') {
+      toast.error('הסיסמה הנוכחית שגויה');
+    } else {
+      toast.error('⚠️ עדכון הסיסמה נכשל ');
+    }
     }
   };
 
@@ -141,19 +146,19 @@ const Settings = () => {
             transition-all duration-500 ease-in-out
           `}
             >
-              <h1 className="text-3xl font-bold mb-6 flex items-center gap-2">
+              <p className="text-3xl font-bold mb-6 flex items-center gap-2">
                 <SettingsIcon className={`w-7 h-7 text-${element}`} />
                 הגדרות חשבון
-              </h1>
+              </p>
 
               <div className="space-y-6">
 
                 {/* Profile Info */}
                 <section className={`bg-white rounded-xl p-6 shadow-md space-y-4 border-2 border-${element}`}>
-                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <p className="text-xl font-semibold flex items-center gap-2">
                     <User2 className={`w-5 h-5 text-${element}`} />
                     פרופיל
-                  </h2>
+                  </p>
 
                   {['username', 'location', 'bio'].map(field => (
                     <div key={field} className="flex flex-col gap-1">
@@ -198,10 +203,10 @@ const Settings = () => {
 
                 {/* Password */}
                 <section className={`bg-white rounded-xl p-6 shadow-md space-y-4 border-2 border-${element}`}>
-                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                  <p className="text-xl font-semibold flex items-center gap-2">
                     <Lock className={`w-5 h-5 text-${element}`} />
                     שינוי סיסמה
-                  </h2>
+                  </p>
 
                   {/* Current Password */}
                   <div className="relative">
@@ -292,10 +297,10 @@ const Settings = () => {
                 {/* Deactivate Account */}
                 {form.isActive && (
                   <section className={`bg-white rounded-xl p-6 shadow-md space-y-4 border-2 border-${element}`}>
-                    <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <p className="text-xl font-semibold flex items-center gap-2">
                       <Power className={`w-5 h-5 text-${element}`} />
                       ניהול חשבון
-                    </h2>
+                    </p>
                     <p className="text-sm text-gray-600">
                       החשבון שלך פעיל. השבתת החשבון תמנע ממך להשתמש במערכת.
                     </p>

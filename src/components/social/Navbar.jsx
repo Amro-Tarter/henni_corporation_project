@@ -464,7 +464,7 @@ const Navbar = ({ element }) => {
             <div className="mt-2 bg-white rounded-lg shadow-lg max-h-40 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               {showHistory && searchHistory.length > 0 && !searchInput && (
                 <div className="p-3">
-                  <h3 className="font-semibold text-sm text-gray-800 mb-2">פרופילים אחרונים</h3>
+                  <p className="font-semibold text-sm text-gray-800 mb-2">פרופילים אחרונים</p>
                   <div className="space-y-2">
                     {searchHistory.map((profile, index) => (
                       <div
@@ -617,7 +617,7 @@ const Navbar = ({ element }) => {
                   <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <User size={18} className="text-white" />
                   </div>
-                  <span>{user.displayName || user.email}</span>
+                  <span>{viewerProfile?.username || user.displayName || user.email}</span>
                 </div>
                 <button
                   onClick={async () => {
@@ -702,7 +702,7 @@ const Navbar = ({ element }) => {
                   <div className="absolute top-full left-0 right-0 bg-white mt-1 border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] z-50">
                     {showHistory && searchHistory.length > 0 && !searchInput && (
                       <div className="p-3">
-                        <h3 className="font-semibold text-sm text-gray-800 mb-2">פרופילים אחרונים</h3>
+                        <p className="font-semibold text-sm text-gray-800 mb-2">פרופילים אחרונים</p>
                         <div className="space-y-2">
                           {searchHistory.map((profile, index) => (
                             <div
@@ -842,7 +842,7 @@ const Navbar = ({ element }) => {
               >
                 <Bell size={20} />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
@@ -861,7 +861,7 @@ const Navbar = ({ element }) => {
                     <User size={18} className="text-white" />
                   </div>
                   <span className="text-sm font-medium">
-                    {user ? (user.displayName || 'החשבון שלי') : 'החשבון שלי'}
+                    {user ? (viewerProfile?.username || user.displayName || user.email || 'החשבון שלי') : 'החשבון שלי'}
                   </span>
                 </button>
 

@@ -2,25 +2,22 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { db } from '@/config/firbaseConfig';
 import { MapPin, MessageSquare } from 'lucide-react';
 import AirIcon from '@mui/icons-material/Air';
-
-// Element icons and names in Hebrew
+import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
+import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
+import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
+import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
+// Element icons
 const ELEMENT_ICONS = {
-  fire: '🔥',
-  water: '💧',
-  earth: '🌱',
+  fire: <WhatshotRoundedIcon style={{color: '#fca5a1'}} />,
+  water: <WaterDropTwoToneIcon style={{color: '#60a5fa'}} />,
+  earth: <LocalFloristIcon style={{color: '#4ade80'}} />,
   air: <AirIcon style={{ color: '#87ceeb' }} />,
-  metal: '⚒️',
-};
-const ELEMENT_NAMES = {
-  fire: 'אש',
-  water: 'מים',
-  earth: 'אדמה',
-  air: 'אוויר',
-  metal: 'מתכת',
+  metal: <ConstructionTwoToneIcon style={{color: '#4b5563'}} />,
 };
 
 // --- Small reusable components ---
@@ -32,7 +29,7 @@ function UserCard({ user, element, onClick, onFollowToggle, viewerProfile }) {
       whileHover={{ scale: 1.015 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.15 }}
-      className={`flex items-center justify-between p-2 bg-white hover:bg-${element}-soft rounded-lg shadow-sm`}
+      className={`flex items-center justify-between px-1 py-3 bg-white hover:bg-${element}-soft rounded-lg shadow-sm`}
     >
       <div
         className="flex items-center gap-3 cursor-pointer flex-grow overflow-hidden"
@@ -45,15 +42,15 @@ function UserCard({ user, element, onClick, onFollowToggle, viewerProfile }) {
           className="w-10 h-10 rounded-full object-cover border border-gray-200 shadow-sm shrink-0"
         />
         <div className="text-right overflow-hidden flex flex-col">
-          <h3
-            className="font-semibold text-gray-800 text-sm truncate max-w-[110px]"
+          <p
+            className="font-semibold text-gray-800 text-base truncate max-w-[110px]"
             title={user.username}
             dir="rtl"
           >
             {user.username}
-          </h3>
+          </p>
           {user.location && (
-            <span className="flex items-center gap-1 text-[11px] text-gray-400 font-normal truncate max-w-[110px]" dir="rtl">
+            <span className="flex items-center gap-1 text-[12px] text-gray-400 font-normal truncate max-w-[110px]" dir="rtl">
               <MapPin className="w-3 h-3 text-gray-400" />
               {user.location}
             </span>
@@ -88,25 +85,22 @@ function ChatListItem({ chat, label, onClick, element }) {
       className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer hover:bg-${element}-soft mb-2 border border-${element}-accent`}
       onClick={onClick}
     >
-      <span className="font-semibold text-sm">{label}</span>
+      <span className="font-semibold text-md">{label}</span>
     </motion.div>
   );
 }
 
-function getSectionTitle({ viewerProfile, profileUser, isOwnProfile }) {
-  if (viewerProfile && viewerProfile.role === 'admin') return 'משתמשים באקראי';
-  if (profileUser && profileUser.role === 'mentor') {
-    if (viewerProfile && profileUser.uid === viewerProfile.uid) return 'הסטודנטים שלך';
-    return `הסטודנטים של ${profileUser.username || 'המשתמש הזה'}`;
-  }
-  if (!profileUser) return 'עוד מהאלמנט';
-  if (isOwnProfile) return 'עוד מהאלמנט שלך';
-  return `עוד מהאלמנט של ${profileUser.username || 'המשתמש הזה'}`;
+function getSectionTitle({ viewerProfile }) {
+  if (!viewerProfile) return 'משתמשים';
+  if (viewerProfile.role === 'admin') return 'משתמשים באתר';
+  if (viewerProfile.role === 'mentor') return 'הסטודנטים שלך';
+  if (viewerProfile.role === 'participant') return 'עוד מהאלמנט שלך';
+  return 'משתמשים';
 }
 
 // --- Main component ---
 
-const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFollowToggle }) => {
+const LeftSidebar = ({element, viewerProfile, onFollowToggle }) => {
   const navigate = useNavigate();
 
   // State
@@ -117,6 +111,23 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
   const [sameElementUsers, setSameElementUsers] = useState([]);
   const [mentorCommunityChat, setMentorCommunityChat] = useState(null);
   const [privateMentorChat, setPrivateMentorChat] = useState(null);
+  const [userMentorId, setUserMentorId] = useState(null);
+
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!user) return;
+
+      const userRef = doc(db, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data();
+        setUserMentorId(userData.mentors?.[0] || null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
 
   // --- Users section logic ---
   useEffect(() => {
@@ -127,9 +138,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
         let allProfiles = profilesSnap.docs
           .map(doc => ({ id: doc.id, ...doc.data() }))
           .filter(
-            p => p.associated_id !== viewerProfile.uid &&
-              p.associated_id !== (profileUser && profileUser.uid) &&
-              p.role !== 'staff'
+            p => p.associated_id !== viewerProfile.uid && p.role !== 'staff'
           );
         allProfiles = allProfiles.sort(() => Math.random() - 0.5).slice(0, 5);
         setAdminRandomUsers(allProfiles);
@@ -139,50 +148,78 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
     }
   }, [viewerProfile]);
 
+  // mentors
   useEffect(() => {
-    // Mentor: fetch up to 5 student profiles
-    if (
-      viewerProfile &&
-      viewerProfile.role === 'mentor' &&
-      Array.isArray(viewerProfile.participants) &&
-      viewerProfile.participants.length > 0
-    ) {
-      (async () => {
-        const ids = viewerProfile.participants.slice(0, 5);
-        const studentsProfiles = await Promise.all(
-          ids.map(async (uid) => {
-            const profileSnap = await getDocs(query(collection(db, 'profiles'), where('uid', '==', uid)));
+    const fetchMentorParticipants = async () => {
+      if (!viewerProfile || viewerProfile.role !== 'mentor' || viewerProfile.uid == null) {
+        return;
+      }
+
+      try {
+        const userDocRef = doc(db, 'users', viewerProfile.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (!userSnap.exists()) return;
+
+        const userData = userSnap.data();
+        const participantIds = userData.participants?.slice(0, 5) || [];
+
+        const studentProfiles = await Promise.all(
+          participantIds.map(async (uid) => {
+            const profileSnap = await getDocs(
+              query(collection(db, 'profiles'), where('associated_id', '==', uid))
+            );
             if (!profileSnap.empty) {
               return { id: profileSnap.docs[0].id, ...profileSnap.docs[0].data() };
             }
             return null;
           })
         );
-        setStudents(studentsProfiles.filter(Boolean));
-      })();
-    } else {
-      setStudents([]);
-    }
+
+        setStudents(studentProfiles.filter(Boolean));
+      } catch (error) {
+        console.error('Error fetching mentor participants:', error);
+      }
+    };
+
+    fetchMentorParticipants();
   }, [viewerProfile]);
 
+
+  // Participant: fetch up to 5 participants from same element (not self)
   useEffect(() => {
-    // Participant: fetch up to 5 participants from same element (not self)
     if (
       viewerProfile &&
       viewerProfile.role === 'participant' &&
-      viewerProfile.element &&
       viewerProfile.uid
     ) {
       (async () => {
-        const othersQuery = query(
-          collection(db, 'profiles'),
-          where('element', '==', viewerProfile.element)
+        // Step 1: Get users with same element and participant role
+        const usersQuery = query(
+          collection(db, 'users'),
+          where('element', '==', viewerProfile.element),
+          where('role', '==', 'participant')
         );
-        const othersSnap = await getDocs(othersQuery);
-        const others = othersSnap.docs
-          .map(doc => ({ id: doc.id, ...doc.data() }))
-          .filter(u => u.associated_id !== viewerProfile.uid && u.associated_id !== (profileUser && profileUser.uid) && u.role === 'participant');
-        const shuffled = others.sort(() => 0.5 - Math.random()).slice(0, 5);
+        const usersSnap = await getDocs(usersQuery);
+        const matchingUsers = usersSnap.docs
+          .map(doc => ({ uid: doc.id, ...doc.data() }))
+          .filter(u => u.uid !== viewerProfile.uid); // exclude self
+
+        // Step 2: Get their profiles
+        const profiles = await Promise.all(
+          matchingUsers.map(async (user) => {
+            const profileSnap = await getDocs(
+              query(collection(db, 'profiles'), where('associated_id', '==', user.uid))
+            );
+            if (!profileSnap.empty) {
+              return { id: profileSnap.docs[0].id, ...profileSnap.docs[0].data() };
+            }
+            return null;
+          })
+        );
+
+        const validProfiles = profiles.filter(Boolean);
+        const shuffled = validProfiles.sort(() => 0.5 - Math.random()).slice(0, 5);
         setSameElementUsers(shuffled);
       })();
     } else {
@@ -190,21 +227,22 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
     }
   }, [viewerProfile]);
 
+
   // --- Chats logic ---
 
   // Element community chat
   useEffect(() => {
-    if (!viewerElement) return;
+    if (!element) return;
     (async () => {
       const q = query(
         collection(db, 'conversations'),
         where('type', '==', 'community'),
-        where('element', '==', viewerElement)
+        where('element', '==', element)
       );
       const snap = await getDocs(q);
       if (!snap.empty) setCommunityChat({ id: snap.docs[0].id, ...snap.docs[0].data() });
     })();
-  }, [viewerElement]);
+  }, [element]);
 
   // Mentor-specific chats (for mentor & admin)
   useEffect(() => {
@@ -249,7 +287,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
 
   // Participant: fetch mentor community chat & private chat with mentor
   useEffect(() => {
-    if (!viewerProfile || viewerProfile.role !== 'participant' || !viewerProfile.mentorId) {
+    if (!viewerProfile || viewerProfile.role !== 'participant' || !userMentorId) {
       setMentorCommunityChat(null);
       setPrivateMentorChat(null);
       return;
@@ -259,7 +297,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
       const q = query(
         collection(db, 'conversations'),
         where('communityType', '==', 'mentor_community'),
-        where('mentorId', '==', viewerProfile.mentorId)
+        where('mentorId', '==', userMentorId)
       );
       const snap = await getDocs(q);
       setMentorCommunityChat(snap.empty ? null : { id: snap.docs[0].id, ...snap.docs[0].data() });
@@ -277,36 +315,35 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .find(chat =>
           Array.isArray(chat.participants) &&
-          chat.participants.includes(viewerProfile.mentorId)
+          chat.participants.includes(userMentorId)
         );
       setPrivateMentorChat(chat || null);
     })();
   }, [viewerProfile]);
 
-  // Helper: are we viewing our own profile?
-  const isOwnProfile =
-    viewerProfile && profileUser &&
-    String(viewerProfile.uid) === String(profileUser.uid);
-
   // Section title
-  const elementSectionTitle = getSectionTitle({ viewerProfile, profileUser, isOwnProfile });
-
+  const elementSectionTitle = getSectionTitle({ viewerProfile});
+  
   // Which users to show in the top section?
   let usersToShow = [];
   if (viewerProfile?.role === 'admin') usersToShow = adminRandomUsers;
   else if (viewerProfile?.role === 'mentor') usersToShow = students;
   else if (viewerProfile?.role === 'participant') usersToShow = sameElementUsers;
 
+  if (viewerProfile?.role === 'participant' && userMentorId === null) {
+    return null;
+  }
+
   return (
-    <div className="w-64 h-[calc(100vh-56.8px)] bg-white shadow-lg overflow-y-auto">
+    <div className="w-90 h-[calc(100vh-56.8px)] bg-white shadow-lg overflow-y-auto">
       <div className="p-6">
         {/* Section Title */}
         <div className="mb-4 text-right flex items-center justify-between">
           <div>
-            <h2 className={`text-${element} text-lg mb-1 flex items-center gap-2`}>
+            <p className={`text-${element} text-2xl mb-1 flex items-center gap-2`}>
               {elementSectionTitle}
               <span className="text-lg">{ELEMENT_ICONS[element]}</span>
-            </h2>
+            </p>
             <div className={`w-12 h-0.5 bg-${element} rounded-full ml-auto`} />
           </div>
         </div>
@@ -329,18 +366,18 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
             {viewerProfile?.role === 'mentor'
               ? 'לא נמצאו סטודנטים משויכים למנחה זה'
               : viewerProfile?.role === 'participant'
-                ? 'לא נמצאו משתמשים מאותו היסוד'
+                ? 'לא נמצאו משתמשים מאותו אלמנט'
                 : 'לא נמצאו משתמשים'}
           </p>
         )}
 
         {/* Chats Section Title */}
         <div className="mt-8 mb-2 text-right">
-          <h2 className={`text-${element} text-lg mb-1 flex items-center gap-2`}>
+          <p className={`text-${element} text-2xl mb-1 flex items-center gap-2`}>
             צ'אטים
             <MessageSquare className={`w-5 h-5 text-${element}`} />
-          </h2>
-          <div className={`w-10 h-0.5 bg-${element} rounded-full ml-auto`} />
+          </p>
+          <div className={`w-12 h-0.5 bg-${element} rounded-full ml-auto`} />
         </div>
         {/* Chats (role-based) */}
         {/* Participant */}
@@ -353,7 +390,7 @@ const LeftSidebar = ({ element, viewerElement, viewerProfile, profileUser, onFol
                 label={
                   <>
                     צ'אט קהילתי
-                    <span className="text-lg">{ELEMENT_ICONS[viewerElement]}</span>
+                    <span className="text-lg mr-2">{ELEMENT_ICONS[element]}</span>
                   </>
                 }
                 onClick={() => setTimeout(() => navigate(`/chat/${communityChat.id}`), 300)}

@@ -6,13 +6,12 @@ import {
   doc,
   getDoc,
   updateDoc,
-  increment,
-  setDoc,
   query,
   where,
+  addDoc,
 } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
-import { Card, CardContent } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   HandHeart,
@@ -20,231 +19,285 @@ import {
   Heart,
   TreePine,
   X,
-  Eye,
   Edit2,
   Check,
-  TrendingUp,
   MapPin,
-  Lightbulb,
+  Mail,
+  Star,
+  ChevronLeft,
+  ChevronDown,
 } from 'lucide-react';
 import CTAButton from '@/components/CTAButton';
-import { Link } from 'react-router-dom';
-import ScrollDown from '@/components/ui/ScrollDown';
+import { toast, Toaster } from 'sonner';
+import { useUser } from '@/hooks/useUser';
+
 
 const DEFAULT_IMAGE = '/default_user_pic.jpg';
 
-// Animated Counter Component
-const AnimatedCounter = ({ endValue, isVisible, duration = 2000 }) => {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!isVisible) return;
-
-    let startTime;
-    const animate = timestamp => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
-      setCount(Math.floor(progress * endValue));
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    requestAnimationFrame(animate);
-  }, [isVisible, endValue, duration]);
-
-  return <span>{count.toLocaleString()}+</span>;
-};
-
 // Custom image component with fallback
-function AvatarImg({ src, alt }) {
+function AvatarImg({ src, alt, className = "" }) {
   const [imgSrc, setImgSrc] = useState(src || DEFAULT_IMAGE);
+  const [isLoading, setIsLoading] = useState(true);
+  
   return (
-    <img
-      src={imgSrc}
-      alt={alt}
-      onError={() => setImgSrc(DEFAULT_IMAGE)}
-      className="w-full h-full object-cover"
-      draggable={false}
-    />
+    <div className={`relative ${className}`}>
+      {isLoading && (
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-orange-200 animate-pulse rounded-full" />
+      )}
+      <img
+        src={imgSrc}
+        alt={alt}
+        onError={() => setImgSrc(DEFAULT_IMAGE)}
+        onLoad={() => setIsLoading(false)}
+        className="w-full h-full object-cover transition-opacity duration-300"
+        draggable={false}
+        style={{ opacity: isLoading ? 0 : 1 }}
+      />
+    </div>
   );
 }
 
-const AboutSection = ({ currentUser }) => {
+
+// Newsletter Modal Component
+const NewsletterModal = ({ isOpen, closeNewsletter }) => {
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await addDoc(collection(db, "newsletterSubscribers"), {
+        email,
+        createdAt: new Date(),
+      });
+      toast.success("נרשמת בהצלחה!");
+      closeNewsletter();
+      setEmail("");
+    } catch (err) {
+      toast.error("אירעה שגיאה, אנא נסה שוב.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center relative"
+          >
+            <button
+              className="absolute top-4 left-4 bg-white rounded-full p-2 hover:bg-gray-100 shadow-md transition-colors"
+              onClick={closeNewsletter}
+              aria-label="סגור"
+            >
+              <X className="h-5 w-5 text-gray-600" />
+            </button>
+            <TreePine className="mx-auto h-10 w-10 text-green-600 animate-pulse mb-2" />
+            <h2 className="font-bold text-xl mb-3 text-orange-800">הרשמה לניוזלטר</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                placeholder="האימייל שלך"
+                className="border rounded-lg px-4 py-2 w-full text-right focus:outline-none focus:border-orange-400 transition-colors"
+              />
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg py-2 disabled:opacity-50"
+              >
+                {isSubmitting ? "נרשם..." : "הירשם"}
+              </Button>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// Enhanced Team Member Card Component
+const TeamMemberCard = ({ member, index, onClick, isFounder = false }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1 }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
+      className={`group relative cursor-pointer transform transition-all duration-300 hover:-translate-y-2 hover:scale-[1.02] ${
+        isFounder ? 'col-span-full sm:col-span-1' : ''
+      }`}
+    >
+      <div
+        className={`relative bg-white rounded-2xl p-6 shadow-lg border-2 transition-all duration-300 overflow-hidden ${isHovered ? 'shadow-2xl shadow-orange-200/50' : ''}`}
+      >
+
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-0 right-0 w-20 h-20 bg-orange-300 rounded-full transform translate-x-8 -translate-y-8" />
+          <div className="absolute bottom-0 left-0 w-16 h-16 bg-pink-300 rounded-full transform -translate-x-6 translate-y-6" />
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center text-center">
+          {/* Avatar with enhanced effects */}
+          <div className="relative mb-4">
+            <div
+              className={`w-40 h-40 md:w-48 md:h-48 rounded-full overflow-hidden border-4 transition-all duration-300 ${
+                isFounder
+                  ? 'border-gradient-to-r from-yellow-400 to-orange-500 shadow-lg'
+                  : 'border-orange-200 group-hover:border-orange-400'
+              } ${isHovered ? 'shadow-xl' : 'shadow-md'}`}
+            >
+              <AvatarImg src={member.photoURL} alt={member.username} className="rounded-full" />
+            </div>
+            
+            {/* Hover effect ring */}
+            <div
+              className={`absolute inset-0 rounded-full border-2 border-orange-400 transition-all duration-300 ${
+                isHovered ? 'scale-110 opacity-50' : 'scale-100 opacity-0'
+              }`}
+            />
+          </div>
+
+          {/* Name and Title */}
+          <div className="space-y-2 mb-4">
+            <h4 className="text-lg font-bold text-gray-900 transition-colors group-hover:text-orange-700">
+              {member.username}
+            </h4>
+            <div className="flex items-center justify-center gap-2">
+              {isFounder && <Star className="h-4 w-4 text-yellow-500" />}
+              <p className="text-sm font-medium text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
+                {member.title}
+              </p>
+            </div>
+          </div>
+
+          {/* Bio Preview */}
+          <p className="text-sm text-gray-600 line-clamp-2 mb-4 leading-relaxed">
+            {member.bio}
+          </p>
+
+          {/* Action Button */}
+          <div
+            className={`flex items-center gap-2 text-sm font-medium transition-all duration-300 ${
+              isHovered ? 'text-orange-600' : 'text-orange-500'
+            }`}
+          >
+            <span>הצג פרופיל מלא</span>
+            <ChevronLeft className={`h-4 w-4 transition-transform duration-300 ${isHovered ? 'translate-x-1' : ''}`} />
+          </div>
+        </div>
+
+        {/* Hover overlay */}
+        <div
+          className={`absolute inset-0 bg-gradient-to-t from-orange-500/10 to-transparent rounded-2xl transition-opacity duration-300 ${
+            isHovered ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      </div>
+    </motion.div>
+  );
+};
+
+const AboutSection = () => {
+  // Get current user from useUser hook
+  const { user: currentUser } = useUser();
+  
   // State
   const [hoveredIndex, setHoveredIndex] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [selectedFeature, setSelectedFeature] = useState(null);
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newsletterModal, setNewsletterModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
-  const [isStatsInView, setIsStatsInView] = useState(false);
-  const [statsData, setStatsData] = useState({ 
-    visits: 0, 
-    uniqueVisits: 0, // Added uniqueVisits
-    users: 0, 
-    projects: 0 
-  });
 
   const isAdmin = currentUser?.role === 'admin';
 
   // Refs
   const modalRef = useRef();
-  const statsRef = useRef(null);
 
-  // --- NEW UNIQUE VISITOR LOGIC ---
   useEffect(() => {
-    const UNIQUE_VISITOR_KEY = 'site_unique_visit';
-    const VISIT_EXPIRATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+  let active = true;
+  const fetchSpecificStaff = async () => {
+    setLoading(true);
+    try {
+      // Define the exact usernames in the desired left→middle→right order
+      const targetUsernames = [
+        "עליזה עמיר",            // left
+        "ענת זגרון בוג'יו",     // middle (make sure this matches the exact DB value!)
+        "דקלה בר"                // right
+      ];
 
-    const recordUniqueVisit = async () => {
-      const lastVisit = localStorage.getItem(UNIQUE_VISITOR_KEY);
-      const currentTime = new Date().getTime();
+      // Query only those three docs
+      const adminQuery = query(
+        collection(db, "staff"),
+        where("username", "in", targetUsernames)
+      );
+      const snapshot = await getDocs(adminQuery);
 
-      // If no last visit recorded or last visit was more than 24 hours ago
-      if (!lastVisit || (currentTime - parseInt(lastVisit, 10)) > VISIT_EXPIRATION_MS) {
-        localStorage.setItem(UNIQUE_VISITOR_KEY, currentTime.toString());
-
-        const statsRefDoc = doc(db, 'siteStats', 'counters');
-        try {
-          // Atomically increment uniqueVisits
-          await updateDoc(statsRefDoc, { uniqueVisits: increment(1) });
-        } catch (error) {
-          // If document doesn't exist, create it with uniqueVisits: 1
-          const snap = await getDoc(statsRefDoc);
-          if (!snap.exists()) {
-            await setDoc(statsRefDoc, { uniqueVisits: 1, visits: 0, users: 0, projects: 0 });
-          } else {
-            console.error("Error incrementing unique visits, but document exists:", error);
-          }
-        }
-      }
-
-      // Always increment total visits (if you still want to track them separately)
-      const statsRefDoc = doc(db, 'siteStats', 'counters');
-      try {
-        await updateDoc(statsRefDoc, { visits: increment(1) });
-      } catch (error) {
-        const snap = await getDoc(statsRefDoc);
-        if (!snap.exists()) {
-          await setDoc(statsRefDoc, { visits: 1, uniqueVisits: 0, users: 0, projects: 0 });
-        } else {
-          console.error("Error incrementing total visits, but document exists:", error);
-        }
-      }
-    };
-
-    recordUniqueVisit();
-  }, []); // Run once on mount
-
-  // Fetch stats data (updated to fetch uniqueVisits)
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const statsDocRef = doc(db, 'siteStats', 'counters');
-        const snap = await getDoc(statsDocRef);
-
-        const visits = snap.exists() ? snap.data().visits || 0 : 0;
-        const uniqueVisits = snap.exists() ? snap.data().uniqueVisits || 0 : 0; // Fetch uniqueVisits
-
-        const elemSnap = await getDocs(collection(db, 'elemental_projects'));
-        const persSnap = await getDocs(collection(db, 'personal_projects'));
-        const projects = elemSnap.size + persSnap.size;
-
-        const usersSnap = await getDocs(collection(db, 'users'));
-        const users = usersSnap.size;
-
-        setStatsData({ visits, uniqueVisits, users, projects }); // Update state
-      } catch (err) {
-        console.error('Error loading stats:', err);
-      }
-    }
-    fetchStats();
-  }, []);
-
-  // Animate counters on view
-  useEffect(() => {
-    const obs = new IntersectionObserver(
-      ([e]) => e.isIntersecting && setIsStatsInView(true),
-      { threshold: 0.3 }
-    );
-    if (statsRef.current) obs.observe(statsRef.current);
-    return () => {
-      if (statsRef.current) obs.disconnect();
-    };
-  }, []);
-
-  // Fetch admins on mount
-  useEffect(() => {
-    let active = true;
-    const fetchAdminUsers = async () => {
-      setLoading(true);
-      try {
-        const adminQuery = query(
-          collection(db, 'staff'),
-          where('in_role', 'not-in', ['staff'])
-        );
-        const querySnapshot = await getDocs(adminQuery);
-        const admins = [];
-        for (const userDoc of querySnapshot.docs) {
-          const userData = userDoc.data();
-          const associatedId = userData.associated_id || userDoc.id;
-          let profileData = {};
-          try {
-            const profileDoc = await getDoc(doc(db, 'profiles', associatedId));
-            profileData = profileDoc.exists() ? profileDoc.data() : {};
-          } catch (e) {
-            console.error('Error fetching profile for staff member:', e);
-          }
-          const admin = {
-            id: userDoc.id,
-            associated_id: associatedId,
-            username:
-              profileData.username ||
-              userData.username ||
-              userData.email?.split('@')[0] ||
-              'מנהל',
-            role: userData.role,
-            in_role: userData.in_role,
+      // Map into your admin shape and filter out inactive if needed
+      const admins = snapshot.docs
+        .map((docSnap) => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
+            associated_id: data.associated_id || docSnap.id,
+            username: data.username,
+            in_role: data.in_role,
             title:
-              userData.title ||
-              profileData.title ||
-              (userData.in_role === 'ceo' ? 'מייסדת ומנכ"לית' : userData.in_role),
-            photoURL: profileData.photoURL || userData.photoURL || DEFAULT_IMAGE,
-            bio:
-              profileData.bio ||
-              userData.bio ||
-              (userData.in_role === 'ceo'
-                ? 'מנכ"ל העמותה, מוביל את החזון והפעילות למען בני הנוער בישראל.'
-                : 'מנהל מערכת מנוסה המוביל את פעילות העמותה ומחויב לחזון ולמטרות שלנו.'),
-            email: userData.email,
-            is_active: userData.is_active !== false,
+              data.title ||
+              (data.in_role === "מייסדת ומנכ\"לית"
+                ? "מייסדת ומנכ\"לית"
+                : data.in_role),
+            photoURL: data.photoURL || DEFAULT_IMAGE,
+            bio: data.bio || "",
+            email: data.email,
+            is_active: data.is_active !== false,
           };
-          if (admin.is_active) admins.push(admin);
-        }
+        })
+        .filter((adm) => adm.is_active);
 
-        // Sort: CEO first, then staff members by name
-        admins.sort((a, b) => {
-          if (a.in_role === 'ceo' && b.in_role !== 'ceo') return -1;
-          if (b.in_role === 'ceo' && a.in_role !== 'ceo') return 1;
-          return a.username.localeCompare(b.username);
-        });
+      // Sort by the index in our targetUsernames array
+      admins.sort(
+        (a, b) =>
+          targetUsernames.indexOf(a.username) -
+          targetUsernames.indexOf(b.username)
+      );
 
-        if (active) setTeamMembers(admins);
-      } catch (error) {
-        console.error('Error fetching admin users:', error);
-        setTeamMembers([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAdminUsers();
-    return () => {
-      active = false;
-    };
-  }, []);
+      if (active) setTeamMembers(admins);
+    } catch (err) {
+      console.error("Error fetching specific staff:", err);
+      setTeamMembers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchSpecificStaff();
+  return () => {
+    active = false;
+  };
+}, []);
+
 
   // Modal close on ESC
   useEffect(() => {
@@ -261,47 +314,27 @@ const AboutSection = ({ currentUser }) => {
 
   // Feature cards data
   const features = [
-    {
-      title: 'החזון שלנו',
-      icon: <Heart className="h-8 w-8 text-pink-600" />,
-      description:
-        'ב"עמותת לגלות את האור - הנני" אנו מאמינים שכל נער ונערה בישראל נושאים בתוכם אור ייחודי.',
-    },
-    {
-      title: 'המטרה שלנו',
-      icon: <Users className="h-8 w-8 text-orange-500" />,
-      description:
-        'יצירת דור חדש של מנהיגים צעירים, רגישים ומודעים – דרך הבמה היצירתית.',
-    },
-    {
-      title: 'ההשפעה שלנו',
-      icon: <HandHeart className="h-8 w-8 text-green-600" />,
-      description:
-        'התוכניות שלנו משנות חיים. אנו רואים את הנוער לא רק כאמנים – אלא ככוחות של שינוי.',
-    },
-  ];
-
-  // Combined stats config (updated to show uniqueVisits)
-  const combinedStatsConfig = [
-    
-    {
-      value: statsData.users,
-      label: 'משתמשים נרשמים',
-      icon: <Users className="h-6 w-6 text-blue-500" />,
-      color: 'blue',
-    },
-    {
-      value: statsData.projects,
-      label: 'פרויקטים שבוצעו',
-      icon: <TrendingUp className="h-6 w-6 text-green-500" />,
-      color: 'green',
-    },
-    {
-      value: statsData.uniqueVisits,
-      label: 'צפיות כוללות',
-      icon: <Eye className="h-6 w-6 text-purple-500" />,
-      color: 'purple',
-    },
+   {
+  title: 'החזון שלנו',
+  subtitle: 'לגלות את האור הייחודי בכל נער ונערה',
+  icon: <Heart className="h-8 w-8 text-pink-600" />,
+  description: 'ב"עמותת לגלות את האור - הנני" אנו מאמינים שכל נער ונערה בישראל נושאים בתוכם אור ייחודי.',
+  link: '/vision'                // ← here
+},
+{
+  title: 'המטרה שלנו',
+  subtitle: 'פיתוח מנהיגות אותנטית דרך האמנות',
+  icon: <Users className="h-8 w-8 text-orange-500" />,
+  description: 'יצירת דור חדש של מנהיגים צעירים, רגישים ומודעים – דרך הבמה היצירתית.',
+  link: '/goals' 
+  },
+  {
+    title: 'ההשפעה שלנו',
+    subtitle: 'יצירת מהפכה שקטה דרך האמנות',
+    icon: <HandHeart className="h-8 w-8 text-green-600" />,
+    description: 'יוצרים מהפכה שקטה מפתחים מנהיגות אותנטית דרך כוחה המעצים של האמנות',
+    link: '/invite-collaboration'
+  }
   ];
 
   // Modal logic
@@ -316,7 +349,6 @@ const AboutSection = ({ currentUser }) => {
     setSelectedMember(null);
     setEditData({});
   }, []);
-
   const openNewsletter = useCallback(() => setNewsletterModal(true), []);
   const closeNewsletter = useCallback(() => setNewsletterModal(false), []);
 
@@ -339,99 +371,39 @@ const AboutSection = ({ currentUser }) => {
   const saveEdit = async () => {
     const member = teamMembers[selectedMember];
     try {
-      // Save to "profiles" collection
-      await updateDoc(doc(db, 'profiles', member.associated_id), {
+      await updateDoc(doc(db, 'users', member.associated_id), {
         bio: editData.bio,
         title: editData.title,
       });
-      // Update local state
       const newTeam = teamMembers.map((m, i) =>
         i === selectedMember ? { ...m, bio: editData.bio, title: editData.title } : m
       );
       setTeamMembers(newTeam);
       setEditMode(false);
+      toast.success('הפרופיל נשמר בהצלחה!');
     } catch (err) {
-      alert('שגיאה בשמירת הפרופיל');
-      console.error('Error saving profile:', err);
+      toast.error('שגיאה בשמירת הפרופיל');
     }
   };
 
-  // Newsletter dummy logic
-  function NewsletterModal() {
-    return (
-      <AnimatePresence>
-        {newsletterModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          >
-            <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 text-center relative">
-              <button
-                className="absolute top-4 left-4 bg-white rounded-full p-2 hover:bg-gray-100 shadow-md"
-                onClick={closeNewsletter}
-                aria-label="סגור"
-              >
-                <X className="h-5 w-5 text-gray-600" />
-              </button>
-              <TreePine className="mx-auto h-10 w-10 text-green-600 animate-pulse mb-2" />
-              <h2 className="font-bold text-xl mb-3 text-orange-800">הרשמה לניוזלטר</h2>
-              <form
-                onSubmit={e => {
-                  e.preventDefault();
-                  alert('נרשמת בהצלחה! (הדמיה)');
-                  closeNewsletter();
-                }}
-                className="space-y-4"
-              >
-                <input
-                  type="email"
-                  required
-                  placeholder="האימייל שלך"
-                  className="border rounded-lg px-4 py-2 w-full text-right focus:outline-none focus:border-orange-400"
-                />
-                <Button className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg py-2">
-                  הירשם
-                </Button>
-              </form>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    );
-  }
-
-  // Get color classes for stats
-  const getColorClasses = color => {
-    const colorMap = {
-      pink: {
-        bg: 'from-pink-100 to-pink-50',
-        text: 'text-pink-800',
-        icon: 'text-pink-600',
-        border: 'border-pink-200',
-      },
-      orange: {
-        bg: 'from-orange-100 to-orange-50',
-        text: 'text-orange-800',
-        icon: 'text-orange-600',
-        border: 'border-orange-200',
-      },
-      green: {
-        bg: 'from-green-100 to-green-50',
-        text: 'text-green-800',
-        icon: 'text-green-600',
-        border: 'border-green-200',
-      },
-      blue: {
-        bg: 'from-blue-100 to-blue-50',
-        text: 'text-blue-800',
-        icon: 'text-blue-600',
-        border: 'border-blue-200',
-      },
-    };
-    return colorMap[color] || colorMap.orange;
-  };
+  // Loading component
+  const LoadingCard = ({ index }) => (
+    <div className="animate-pulse">
+      <div className="bg-white rounded-2xl p-6 border-2 border-gray-100">
+        <div className="flex flex-col items-center text-center space-y-4">
+          <div className="w-20 h-20 md:w-24 md:h-24 bg-gray-200 rounded-full" />
+          <div className="space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-24" />
+            <div className="h-3 bg-gray-200 rounded w-32" />
+          </div>
+          <div className="space-y-2 w-full">
+            <div className="h-3 bg-gray-200 rounded" />
+            <div className="h-3 bg-gray-200 rounded w-3/4" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   // --- UI ---
   return (
@@ -439,67 +411,145 @@ const AboutSection = ({ currentUser }) => {
       id="about-section"
       className="relative py-12 md:py-16 bg-gradient-to-br from-orange-50 via-orange-100 to-yellow-100 overflow-hidden"
     >
-      {/* Decorative */}
-      <div className="absolute top-0 left-0 w-32 h-32 rounded-full bg-pink-200/20 -translate-x-1/2 -translate-y-1/2 blur-2xl"></div>
-      <div className="absolute bottom-0 right-0 w-48 h-48 rounded-full bg-orange-300/15 translate-x-1/3 translate-y-1/3 blur-2xl"></div>
+      {/* Decorative elements */}
+      <div className="absolute top-0 left-0 w-32 h-32 rounded-full bg-pink-200/20 -translate-x-1/2 -translate-y-1/2 blur-2xl" />
+      <div className="absolute bottom-0 right-0 w-48 h-48 rounded-full bg-orange-300/15 translate-x-1/3 translate-y-1/3 blur-2xl" />
 
       {/* Newsletter modal */}
-      <NewsletterModal />
-
+      <NewsletterModal isOpen={newsletterModal} closeNewsletter={closeNewsletter} />
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Compact Header */}
+        {/* Header */}
         <div className="text-center mb-8 md:mb-12">
-          <h2 className="font-bold text-3xl md:text-4xl text-orange-800 mb-3">
-            נוצצים של אור – החזון שמוביל אותנו
+          <h2 className="font-bold text-5xl md:text-5xl text-orange-800 mb-3 py-2">
+            מנהיגות דיאלוגית של דור המחר
           </h2>
-          <div className="h-1 w-20 bg-orange-500 mx-auto mb-4 rounded-full"></div>
+          <div className="h-1 w-20 bg-orange-500 mx-auto mb-4 rounded-full" />
           <p className="text-base md:text-lg text-gray-700 max-w-xl mx-auto leading-relaxed">
-            כל ילד וילדה נולדים עם אור פנימי חד-פעמי. דרך אמנות, יצירה וחיבורים אנושיים,
-            אנו יוצרים עבורם קרקע לצמיחה.
+            בלב כל נער ונערה בישראל טמון אור ייחודי – כישרון שממתין להתגלות, קול שמבקש להישמע, והשפעה שעתידה לשנות עולמות
           </p>
         </div>
 
-        {/* Features */}
+        {/* Enhanced Features with Click to Expand */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-12">
           {features.map((feature, index) => (
             <div
               key={index}
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
-              className={`transition-all duration-300 ${
-                hoveredIndex === index ? 'transform -translate-y-1' : ''
+              onClick={() => openFeatureModal(feature)}
+              className={`group cursor-pointer transform transition-all duration-300 hover:-translate-y-1 ${
+                hoveredIndex === index ? 'scale-[1.02]' : ''
               }`}
             >
-              <Card
-                className={`h-full bg-white/90 backdrop-blur-sm border-0 shadow-md rounded-2xl ${
-                  hoveredIndex === index ? 'shadow-lg shadow-orange-200/50' : ''
-                }`}
-              >
-                <CardContent className="p-4 md:p-6 text-center h-full flex flex-col">
-                  <div className="mb-3 flex justify-center">
-                    <div
-                      className={`p-2 rounded-full bg-orange-50 ${
-                        hoveredIndex === index ? 'scale-110' : ''
-                      } transition-all duration-300`}
-                    >
-                      {feature.icon}
-                    </div>
+              <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-transparent hover:border-orange-200 transition-all duration-300 h-full">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  {/* Icon */}
+                  <div className={`p-4 rounded-full transition-all duration-300 ${
+                    hoveredIndex === index 
+                      ? 'bg-gradient-to-br from-orange-100 to-orange-200 scale-110' 
+                      : 'bg-gradient-to-br from-orange-50 to-orange-100'
+                  }`}>
+                    {feature.icon}
                   </div>
-                  <h3 className="text-lg md:text-xl font-bold mb-2 text-gray-900">
+                  
+                  {/* Title */}
+                  <h3 className="font-bold text-lg text-orange-800 group-hover:text-orange-900 transition-colors">
                     {feature.title}
                   </h3>
-                  <p className="text-sm md:text-base text-gray-600 leading-relaxed flex-grow">
+                  
+                  {/* Subtitle */}
+                  <p className="text-sm font-medium text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
+                    {feature.subtitle}
+                  </p>
+                  
+                  {/* Description */}
+                  <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">
                     {feature.description}
                   </p>
-                </CardContent>
-              </Card>
+                  
+                  {/* Click to expand indicator */}
+                  <Link
+                    to={feature.link}
+                    onClick={e => e.stopPropagation()}
+                    className={`inline-flex items-center gap-2 text-xs font-medium transition-all duration-300 ${
+                      hoveredIndex === index ? 'text-orange-600' : 'text-orange-500'
+                    }`}
+                  >
+                    <span>לחץ לקריאה נוספת</span>
+                    <ChevronLeft className={`h-3 w-3 transition-transform duration-300 ${
+                      hoveredIndex === index ? 'translate-x-1' : ''
+                    }`} />
+                  </Link>
+                </div>
+              </div>
             </div>
           ))}
         </div>
 
+        {/* Enhanced Team Section */}
+        <div id="team-section" className="text-center mb-12">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <h3 className="text-4xl md:text-5xl font-bold text-orange-800 py-6">צוות העמותה</h3>
+          </div>
+          <p className="text-gray-600 mb-8 text-sm md:text-base max-w-2xl mx-auto">
+            הכירו את האנשים המחויבים והמסורים שמובילים את החזון שלנו ופועלים יום יום למען קהילת הנוער בישראל
+          </p>
+
+          {loading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+              {[0, 1, 2].map((index) => (
+                <LoadingCard key={index} index={index} />
+              ))}
+            </div>
+          ) : teamMembers.length === 0 ? (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-12 bg-white/50 rounded-2xl border-2 border-dashed border-orange-200"
+            >
+              <Users className="h-16 w-16 mx-auto mb-4 text-orange-300" />
+              <h4 className="text-lg font-semibold text-gray-600 mb-2">אין חברי צוות זמינים</h4>
+              <p className="text-gray-500">לא נמצאו עובדים פעילים במערכת כרגע</p>
+            </motion.div>
+          ) : (
+            <>
+              {/* Enhanced Team Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                {teamMembers.slice(0, 3).map((member, idx) => (
+                  <TeamMemberCard
+                    key={member.id}
+                    member={member}
+                    index={idx}
+                    onClick={() => openMemberModal(idx)}
+                    isFounder={member.in_role === 'מייסדת ומנכ"לית'}
+                  />
+                ))}
+              </div>
+
+              {/* Enhanced View All Button */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Button
+                  asChild
+                  className="group bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-xl px-8 py-3 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+                >
+                  <Link to="/team" className="flex items-center gap-3">
+                    <Users className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                    <span>הכירו את כל הצוות</span>
+                    <ChevronLeft className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </Button>
+              </motion.div>
+            </>
+          )}
+        </div>
+
         {/* Newsletter/CTA */}
-        <div className="text-center mb-12 rounded-2xl p-8 mx-auto max-w-3xl transition-all duration-300 border border-orange-100">
+        <div className="text-center rounded-2xl p-8 mx-auto max-w-3xl transition-all duration-300 border border-orange-100">
           <div className="inline-flex items-center gap-3 mb-4 bg-green-50 px-4 py-2 rounded-full">
             <TreePine className="h-6 w-6 text-green-600 animate-pulse" />
             <span className="text-green-700 font-semibold">חדש! הניוזלטר שלנו</span>
@@ -529,110 +579,18 @@ const AboutSection = ({ currentUser }) => {
             </CTAButton>
           </div>
         </div>
-
-        {/* Animated Statistics */}
-        <div ref={statsRef} className="mb-12">
-          <motion.h3
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-2xl md:text-3xl font-bold text-orange-800 mb-8 text-center"
-          >
-            ההשפעה שלנו – במספרים
-          </motion.h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {combinedStatsConfig.map((stat, index) => {
-              const colors = getColorClasses(stat.color);
-              return (
-                <div key={index} className="relative">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.6 }}
-                    className={`bg-white/90 rounded-xl shadow-lg border ${colors.border} p-6 text-center hover:shadow-xl transition-all hover:-translate-y-1 backdrop-blur-sm mt-8`}
-                  >
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2">
-                      <div
-                        className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/80 ${colors.icon} shadow-sm border ${colors.border}`}
-                      >
-                        {stat.icon}
-                      </div>
-                    </div>
-                    <div className={`text-4xl md:text-5xl font-bold ${colors.text} mt-2 mb-2`}>
-                      <AnimatedCounter
-                        endValue={stat.value}
-                        isVisible={isStatsInView}
-                        duration={2000 + index * 500}
-                      />
-                    </div>
-                    <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-                      {stat.label}
-                    </p>
-                  </motion.div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Team Section */}
-        <div className="text-center">
-          <h3 className="text-2xl md:text-3xl font-bold text-orange-800 mb-2">צוות העמותה</h3>
-          <p className="text-gray-600 mb-6 text-sm md:text-base">
-            הכירו את האנשים שמובילים את החזון שלנו
-          </p>
-
-          {loading ? (
-            <div className="flex justify-center items-center py-8">
-              <div className="flex flex-col items-center">
-                <Users className="h-12 w-12 animate-spin text-orange-500 mb-3" />
-                <span className="mr-3 text-gray-600">טוען ...</span>
-              </div>
-            </div>
-          ) : teamMembers.length === 0 ? (
-            <div className="text-center py-8 text-gray-600">
-              <Users className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-              <p>לא נמצאו עובדים במערכת</p>
-            </div>
-          ) : (
-            <>
-              {/* Team Grid - CEO first, then 2 staff members */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                {teamMembers.slice(0, 3).map((member, idx) => (
-                  <div
-                    key={member.id}
-                    onClick={() => openMemberModal(idx)}
-                    className={`bg-white/60 rounded-xl p-4 shadow-md cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border ${
-                      member.in_role === 'ceo'
-                        ? 'border-orange-300 bg-gradient-to-br from-orange-50 to-orange-100'
-                        : 'border-orange-100'
-                    }`}
-                  >
-                    <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-full mx-auto mb-3 overflow-hidden bg-orange-100">
-                      <AvatarImg src={member.photoURL} alt={member.username} />
-                    </div>
-                    <h4 className="text-sm md:text-base font-bold text-gray-900 mb-1">
-                      {member.username}
-                    </h4>
-                    <p className="text-gray-600 text-xs md:text-sm mb-1">{member.title}</p>
-                    <p className="text-orange-500 text-xs">לחץ לפרטים נוספים</p>
-                  </div>
-                ))}
-              </div>
-              {/* View all team button */}
-              <Button
-                asChild
-                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white rounded-lg px-6 py-2 shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                <Link to="/team">הכירו את כל הצוות</Link>
-              </Button>
-            </>
-          )}
-        </div>
       </div>
-
-      {/* Member modal */}
+      <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none" // pointer-events-none makes it non-clickable
+        >
+          <div className="rounded-full p-2 text-red-900 opacity-60 bottom-4 md:bottom-8 left-[45%] -translate-x-[55%]"> {/* Transparent background, gray icon, slightly less opaque */}
+            <ChevronDown className="w-8 h-8 md:w-10 md:h-10 animate-bounce" /> {/* Larger icon, subtle bounce animation */}
+          </div>
+        </motion.div>
+      {/* Enhanced Member Modal */}
       <AnimatePresence>
         {selectedMember !== null && (
           <motion.div
@@ -641,8 +599,11 @@ const AboutSection = ({ currentUser }) => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50 backdrop-blur-sm"
           >
-            <div
-              className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto transform transition-all duration-300 scale-100"
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto"
               ref={modalRef}
             >
               <button
@@ -652,67 +613,92 @@ const AboutSection = ({ currentUser }) => {
               >
                 <X className="h-5 w-5 text-gray-600" />
               </button>
+              
               {teamMembers[selectedMember] && (
-                <div className="p-6 flex flex-col md:flex-row gap-6 items-center md:items-start text-right">
-                  <div className="w-32 h-32 rounded-full overflow-hidden flex-shrink-0 border-4 border-orange-200 shadow-lg">
-                    <AvatarImg
-                      src={teamMembers[selectedMember].photoURL}
-                      alt={teamMembers[selectedMember].username}
-                    />
-                  </div>
-                  <div className="flex-1 text-center md:text-right">
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                      {teamMembers[selectedMember].username}
-                    </h3>
-                    {!editMode ? (
-                      <>
-            <p className="text-gray-600 leading-relaxed mb-4">
-                          {teamMembers[selectedMember].bio}
-                        </p>
-                        <div className="flex items-center justify-center md:justify-start gap-2 text-sm text-gray-500 mb-4">
-                          <MapPin className="h-4 w-4" />
-                          <span>{teamMembers[selectedMember].email}</span>
+                <div className="relative">
+                  {/* Header with gradient background */}
+                  <div className="bg-gradient-to-br from-orange-100 via-orange-50 to-yellow-50 p-6 rounded-t-2xl">
+                    <div className="flex flex-col md:flex-row gap-6 items-center md:items-start text-center md:text-right">
+                      <div className="relative">
+                        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-xl">
+                          <AvatarImg
+                            src={teamMembers[selectedMember].photoURL}
+                            alt={teamMembers[selectedMember].username}
+                            className="rounded-full"
+                          />
                         </div>
-                        {isAdmin && (
-                          <Button
-                            onClick={startEdit}
-                            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 mx-auto md:mx-0"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                            עריכת פרופיל
-                          </Button>
-                        )}
-                      </>
-                    ) : (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            תפקיד
-                          </label>
+                      </div>
+                      
+                      <div className="flex-1">
+                        <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
+                          <h3 className="text-2xl font-bold text-gray-900">
+                            {teamMembers[selectedMember].username}
+                          </h3>
+                        </div>
+                        
+                        {editMode ? (
                           <input
                             type="text"
                             name="title"
-                            value={editData.title || ''}
+                            value={editData.title}
                             onChange={handleEditChange}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-right focus:outline-none focus:border-orange-400"
+                            className="text-lg font-medium text-orange-600 bg-white border border-orange-200 rounded px-3 py-1 w-full mb-4"
                           />
+                        ) : (
+                          <p className="text-lg font-medium text-orange-600 bg-orange-50 px-4 py-2 rounded-full inline-block mb-4">
+                            {teamMembers[selectedMember].title}
+                          </p>
+                        )}
+
+                        {/* Contact Info */}
+                        <div className="flex items-center justify-center md:justify-start gap-4 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-4 w-4" />
+                            <span>{teamMembers[selectedMember].email}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>ישראל</span>
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            ביוגרפיה
-                          </label>
-                          <textarea
-                            name="bio"
-                            value={editData.bio || ''}
-                            onChange={handleEditChange}
-                            rows={4}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-right focus:outline-none focus:border-orange-400 resize-none"
-                          />
-                        </div>
-                        <div className="flex gap-3 justify-center md:justify-start">
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-6">
+                    <div className="mb-6">
+                      <h4 className="text-lg font-semibold text-gray-900 mb-3">אודות</h4>
+                      {editMode ? (
+                        <textarea
+                          name="bio"
+                          value={editData.bio}
+                          onChange={handleEditChange}
+                          rows={4}
+                          className="w-full text-gray-700 leading-relaxed border border-gray-200 rounded-lg p-3 resize-none focus:outline-none focus:border-orange-400"
+                        />
+                      ) : (
+                        <p className="text-gray-700 leading-relaxed">
+                          {teamMembers[selectedMember].bio}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Role Badge */}
+                    <div className="mb-6">
+                      <span className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-full text-sm font-medium">
+                        <Users className="h-4 w-4" />
+                        {teamMembers[selectedMember].in_role}
+                      </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-3 pt-4 border-t border-gray-100">
+                      {editMode ? (
+                        <>
                           <Button
                             onClick={saveEdit}
-                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2"
+                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
                           >
                             <Check className="h-4 w-4" />
                             שמור
@@ -720,20 +706,42 @@ const AboutSection = ({ currentUser }) => {
                           <Button
                             onClick={cancelEdit}
                             variant="outline"
-                            className="border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg text-sm"
+                            className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors"
                           >
+                            <X className="h-4 w-4" />
                             ביטול
                           </Button>
-                        </div>
-                      </div>
-                    )}
+                        </>
+                      ) : (
+                        <>
+                          {isAdmin && (
+                            <Button
+                              onClick={startEdit}
+                              variant="outline"
+                              className="flex items-center gap-2 border-orange-300 text-orange-700 hover:bg-orange-50 px-4 py-2 rounded-lg transition-colors"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                              ערוך
+                            </Button>
+                          )}
+                          <Button
+                            onClick={closeMemberModal}
+                            className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+                          >
+                            סגור
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Toaster position="top-center" />
     </section>
   );
 };

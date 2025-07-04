@@ -64,36 +64,37 @@ const Home = () => {
         setIsLoading(true);
         const fullUser = { uid: authUser.uid, email: authUser.email };
 
-        // Fetch user data from users collection to get element
+        // Fetch user data from users collection to get element and role
+        let userDocSnap = null;
+        let userDocData = {};
         const userSnap = await getDocs(
           query(collection(db, 'users'), where('associated_id', '==', authUser.uid))
         );
-
         if (!userSnap.empty) {
-          const ud = userSnap.docs[0].data();
-          fullUser.username = ud.username || 'משתמש';
-          // Get element from users collection
-          fullUser.element = ud.element || 'earth';
-          // Get role from users collection
-          if (ud.role) fullUser.role = ud.role;
+          userDocSnap = userSnap.docs[0];
+          userDocData = userDocSnap.data();
+          fullUser.username = userDocData.username || 'משתמש';
+          fullUser.element = userDocData.element || 'earth';
+          if (userDocData.role) fullUser.role = userDocData.role;
         }
 
         // Fetch profile data from profiles collection
         const profRef = doc(db, 'profiles', authUser.uid);
         const profSnap = await getDoc(profRef);
-        if (profSnap.exists()) {
-          const profData = profSnap.data();
-          fullUser.photoURL = profData.photoURL;
-          fullUser.profile = profData;
-          fullUser.username = profData.username || fullUser.username;
-          fullUser.following = profData.following || [];
-          setProfile({ ...profData, element: fullUser.element, role: fullUser.role }); // Add element and role to profile
-        } else {
-          // If no profile exists, create a minimal profile with element and role from users
-          setProfile({ element: fullUser.element, role: fullUser.role });
-        }
+        let profData = profSnap.exists() ? profSnap.data() : {};
+        // Merge: users collection takes priority for element and role
+        profData = {
+          ...profData,
+          element: userDocData.element || profData.element || 'earth',
+          role: userDocData.role || profData.role,
+        };
+        fullUser.photoURL = profData.photoURL;
+        fullUser.profile = profData;
+        fullUser.username = profData.username || fullUser.username;
+        fullUser.following = profData.following || [];
+        setProfile({ ...profData, element: profData.element, role: profData.role });
+        setUser({ ...fullUser, element: profData.element, role: profData.role });
 
-        setUser(fullUser);
         await Promise.all([
           fetchPosts(authUser.uid),
           fetchFollowingPosts(authUser.uid),
@@ -798,11 +799,10 @@ const Home = () => {
 
   return (
     <ThemeProvider element={element}>
-      <div className="flex min-h-screen bg-element-base">
-        <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-64 border-r border-gray-200">
+      <div className="flex min-h-screen bg-gray-100">
+        <aside className="hidden lg:block fixed top-[56.8px] bottom-0 left-0 w-[290px] border-r border-gray-200">
           <LeftSidebar
             element={element}
-            viewerElement={user?.element}
             users={sameElementUsers}
             viewerProfile={user}
             profileUser={profile}
@@ -810,7 +810,7 @@ const Home = () => {
           />
         </aside>
 
-        <div className={`flex-1 transition-all duration-300 lg:ml-64 ${isRightSidebarExpanded ? 'lg:mr-64' : 'lg:mr-16'}`}>
+        <div className={`flex-1 transition-all duration-300 lg:ml-[290px] ${isRightSidebarExpanded ? 'lg:mr-64' : 'lg:mr-16'}`}>
           <Navbar
             element={element}
             isLeftSidebarOpen={isLeftSidebarOpen}
@@ -821,134 +821,126 @@ const Home = () => {
           <div className={`mt-12 px-2 sm:px-4 flex justify-center transition-all duration-300 ${isLeftSidebarOpen ? 'lg:pl-50' : 'lg:pl-0'
             } ${isRightSidebarExpanded ? 'lg:pr-50' : 'lg:pr-0'
             }`}>
-            <div className="w-full max-w-4xl space-y-4 sm:space-y-6 mx-auto px-2 sm:px-4 lg:px-8 mb-16 lg:mb-0">
+            <div className="w-full max-w-4xl space-y-2 sm:space-y-3 mx-auto px-2 sm:px-4 lg:px-8 mb-16 lg:mb-0">
               {isLoading ? (
                 <div className="flex items-center justify-center h-64">
                   <ElementalLoader />
                 </div>
               ) : (
                 <>
-                  {/* CreatePost */}
-                  <div className='pt-12'>
-                    <CreatePost
-                      addPost={addPost}
-                      profilePic={profile.photoURL || '/default-avatar.png'}
-                      element={element}
-                      className="shadow-md bg-element-post rounded-xl p-3 sm:p-4 w-full"
-                    />
-                  </div>
-                  {/* Creative Tab Navigation */}
-                  <div className="flex flex-col items-center mb-6 sm:mb-8 w-full">
-                    <div className="bg-element-post p-2 rounded-2xl shadow-md relative flex items-center justify-center gap-3 w-full max-w-md mx-auto overflow-hidden">
-                      {/* Sliding Underline */}
-                      <div
-                        className={`absolute bottom-[10px] h-[2px] bg-${element} transition-all duration-300 ease-in-out`}
-                        style={{
-                          left: '0',
-                          width: '47%',
-                          transform: activeTab === 'all' ? 'translateX(113%)' : 'translateX(3%)'
-                        }}
+                  {/* CreatePost - Hidden for staff users */}
+                  {user?.role !== 'staff' && (
+                    <div className='pt-8'>
+                      <CreatePost
+                        addPost={addPost}
+                        profilePic={profile.photoURL || '/default-avatar.png'}
+                        element={element}
+                        className="shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-2 sm:p-4 w-full hover:-translate-y-1 border border-gray-100 mb-2"
                       />
+                    </div>
+                  )}
+                  {/* Creative Tab Navigation - Hidden for staff users */}
+                  {user?.role !== 'staff' && (
+                    <div className="flex flex-col items-center w-full -mt-1">
+                      <div className="bg-white p-1 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 relative flex items-center justify-center gap-2 w-full max-w-md mx-auto overflow-hidden border border-gray-100 -mt-2">
+                        {/* Sliding Underline */}
+                        <div
+                          className={`absolute bottom-[10px] h-[2px] bg-${element} transition-all duration-300 ease-in-out`}
+                          style={{
+                            left: '0',
+                            width: '47%',
+                            transform: activeTab === 'all' ? 'translateX(113%)' : 'translateX(3%)'
+                          }}
+                        />
 
-                      {/* All Posts Button */}
-                      <div className="flex-1">
-                        <button
-                          onClick={() => setActiveTab('all')}
-                          className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
-                            ${activeTab === 'all'
-                              ? `text-${element} font-bold`
-                              : 'text-element-text'
-                            }
-                            hover:bg-element-hover/10
-                            focus:outline-none
-                            group
-                            `}
-                        >
-                          <div className="flex items-center justify-center gap-2">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className={`w-5 h-5 transition-colors duration-300 ${activeTab === 'all'
+                        {/* All Posts Button */}
+                        <div className="flex-1">
+                          <button
+                            onClick={() => setActiveTab('all')}
+                            className={`relative w-full px-3 sm:px-4 py-2 rounded-xl font-semibold transition-colors duration-300
+                              ${activeTab === 'all'
+                                ? `text-${element} font-bold`
+                                : 'text-element-text'
+                              }
+                              hover:bg-element-hover/10
+                              focus:outline-none
+                              group
+                              `}
+                          >
+                            <div className="flex items-center justify-center gap-2">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`w-5 h-5 transition-colors duration-300 ${activeTab === 'all'
+                                    ? `text-${element}`
+                                    : `opacity-70 group-hover:opacity-100 group-hover:text-${element}`
+                                  }`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                                />
+                              </svg>
+                              <span className={`text-sm sm:text-base transition-colors duration-300 ${activeTab === 'all'
                                   ? `text-${element}`
-                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${element}`
-                                }`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                              />
-                            </svg>
-                            <span className={`text-sm sm:text-base transition-colors duration-300 ${activeTab === 'all'
-                                ? `text-${element}`
-                                : `group-hover:text-${element}`
-                              }`}>כל הפוסטים</span>
-                          </div>
-                        </button>
-                      </div>
+                                  : `group-hover:text-${element}`
+                                }`}>כל הפוסטים</span>
+                            </div>
+                          </button>
+                        </div>
 
-                      {/* Divider */}
-                      <div className="h-8 w-px bg-element-border/30 self-center"></div>
+                        {/* Divider */}
+                        <div className="h-8 w-px bg-element-border/30 self-center"></div>
 
-                      {/* Following Posts Button */}
-                      <div className="flex-1">
-                        <button
-                          onClick={() => setActiveTab('following')}
-                          className={`relative w-full px-4 sm:px-6 py-3 rounded-xl font-semibold transition-colors duration-300
-                            ${activeTab === 'following'
-                              ? `text-${element} font-bold`
-                              : 'text-element-text'
-                            }
-                            hover:bg-element-hover/10
-                            focus:outline-none
-                            group
-                            `}
-                        >
-                          <div className="flex items-center justify-center gap-2">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className={`w-5 h-5 transition-colors duration-300 ${activeTab === 'following'
+                        {/* Following Posts Button */}
+                        <div className="flex-1">
+                          <button
+                            onClick={() => setActiveTab('following')}
+                            className={`relative w-full px-3 sm:px-4 py-2 rounded-xl font-semibold transition-colors duration-300
+                              ${activeTab === 'following'
+                                ? `text-${element} font-bold`
+                                : 'text-element-text'
+                              }
+                              hover:bg-element-hover/10
+                              focus:outline-none
+                              group
+                              `}
+                          >
+                            <div className="flex items-center justify-center gap-2">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className={`w-5 h-5 transition-colors duration-300 ${activeTab === 'following'
+                                    ? `text-${element}`
+                                    : `opacity-70 group-hover:opacity-100 group-hover:text-${element}`
+                                  }`}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                                />
+                              </svg>
+                              <span className={`text-sm sm:text-base transition-colors duration-300 ${activeTab === 'following'
                                   ? `text-${element}`
-                                  : `opacity-70 group-hover:opacity-100 group-hover:text-${element}`
-                                }`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                              />
-                            </svg>
-                            <span className={`text-sm sm:text-base transition-colors duration-300 ${activeTab === 'following'
-                                ? `text-${element}`
-                                : `group-hover:text-${element}`
-                              }`}>עוקב אחרי</span>
-                          </div>
-                        </button>
+                                  : `group-hover:text-${element}`
+                                }`}>עוקב אחרי</span>
+                            </div>
+                          </button>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Posts Count Indicator */}
-                    <div className="mt-4 flex gap-4 sm:gap-8 text-sm text-element-text opacity-75 flex-wrap justify-center">
-                      <span className={`flex items-center gap-1 transition-all duration-300 ${activeTab === 'all' ? `text-${element} font-semibold` : ''
-                        }`}>
-                        <span className="font-medium">{posts.length + projects.length}</span> פוסטים כלליים
-                      </span>
-                      <span className={`flex items-center gap-1 transition-all duration-300 ${activeTab === 'following' ? `text-${element} font-semibold` : ''
-                        }`}>
-                        <span className="font-medium">{followingPosts.length + followingProjects.length}</span> פוסטים מעוקבים
-                      </span>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Posts Container with consistent margins */}
-                  <div className="w-full space-y-4 pb-24">
+                  <div className={`w-full space-y-4 pb-24 ${user?.role === 'staff' ? 'pt-8' : ''}`}>
                     {/* --- Combined Posts & Projects Section --- */}
                     {(() => {
                       // Helper to get JS Date from Firestore Timestamp or Date
@@ -1006,7 +998,7 @@ const Home = () => {
 
                       return (
                         <PostList
-                          posts={activeTab === 'all' ? allFeed : followingFeed}
+                          posts={user?.role === 'staff' ? allFeed : (activeTab === 'all' ? allFeed : followingFeed)}
                           onLike={handleLike}
                           onDelete={handleDeletePost}
                           onUpdate={handleUpdatePost}
@@ -1016,7 +1008,7 @@ const Home = () => {
                           onEditComment={handleEditCommentCombined}
                           onDeleteComment={handleDeleteCommentCombined}
                           element={element}
-                          postClassName="shadow-sm hover:shadow-md transition-shadow bg-element-post rounded-xl p-4 mb-4"
+                          postClassName="shadow-lg hover:shadow-xl transition-all duration-300 bg-white rounded-xl p-6 mb-6 hover:-translate-y-1 border border-gray-100"
                           getAuthorProfile={getAuthorProfile}
                           isLoading={isLoading}
                         />

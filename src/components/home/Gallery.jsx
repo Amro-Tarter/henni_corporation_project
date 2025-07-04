@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronLeft, 
-  ChevronRight, 
+  ChevronRight,
+  ChevronDown, 
   Play, 
   Pause, 
   Plus, 
@@ -358,7 +359,7 @@ const Gallery = () => {
   }, [previewUrl]);
 
   return (
-    <section id="gallery" className="py-16 bg-gradient-to-br from-slate-50 via-white to-blue-50" dir="rtl">
+    <section id="gallery" className="py-16 bg-gradient-to-br from-slate-50 via-white to-blue-50 relative" dir="rtl">
       <div className="container mx-auto px-6 max-w-7xl">
         
         {/* Header with Controls */}
@@ -369,7 +370,7 @@ const Gallery = () => {
           viewport={{ once: true }}
           className="text-center mb-8"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-blue-700 mb-3">
+          <h2 className="font-bold text-5xl md:text-5xl text-blue-700 mb-3">
             גלריית היצירות שלנו
           </h2>
           <p className="text-lg text-blue-600/80 max-w-2xl mx-auto mb-8">
@@ -677,7 +678,17 @@ const Gallery = () => {
             ))}
           </div>
         )}
-
+        <br />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none" // pointer-events-none makes it non-clickable
+        >
+          <div className="rounded-full p-2 text-red-900 opacity-60 bottom-4 md:bottom-8 left-[45%] -translate-x-[55%]"> {/* Transparent background, gray icon, slightly less opaque */}
+            <ChevronDown className="w-8 h-8 md:w-10 md:h-10 animate-bounce" /> {/* Larger icon, subtle bounce animation */}
+          </div>
+        </motion.div>
         {/* Fullscreen Modal */}
         <AnimatePresence>
           {isFullscreen && (

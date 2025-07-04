@@ -18,8 +18,9 @@ import Mentorship from'./pages/admin/Mentorship'
 import AdminFormManager from './pages/admin/AdminFormManager'
 import SubmissionViewer from './pages/admin/SubmissionViewer'
 import PublicForm from './pages/admin/PublicForm'
-
-
+import GoalsPage from './pages/GoalsPage';
+import InviteCollaborationPage from './pages/InviteCollaborationPage';
+import VisionPage from './pages/VisionPage';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import AccessibilityStatement from './pages/AccessibilityStatement';
@@ -41,7 +42,8 @@ import Team from './pages/Team';
 import NewsletterPage from './pages/NewsletterPage';
 import ArtSkillsPage from './pages/ArtSkillsPage';
 import Staff from './pages/admin/Staff';  
-import ContactMessages from './pages/admin/ContactMessages'; // Import the new ContactMessages page
+import ContactMessages from './pages/admin/ContactMessages'; 
+import EmailVerificationPending from './pages/EmailVerificationPending'; 
 
 
 const queryClient = new QueryClient();
@@ -106,6 +108,11 @@ const App = () => {
                   <Route path="/team" element={<Team />} />
                   <Route path="/newsletter" element={<NewsletterPage />} />
                   <Route path="/artSkills" element={<ArtSkillsPage />} />
+                  <Route path="/verify-email-pending" element={<EmailVerificationPending />} />
+                  <Route path="/invite-collaboration" element={<InviteCollaborationPage />} />
+                  <Route path="/goals" element={<GoalsPage />} />
+                  <Route path="/vision" element={<VisionPage />} />
+
 
                   {/* Protected Pages */}
                   <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
@@ -121,19 +128,19 @@ const App = () => {
                   <Route path="/report" element={<MentorReportForm />} />
 
                   {/* Admin Pages */}
-                  <Route path="/admin" element={<DashboardHome />} />
-                  <Route path="/admin/Users" element={<Users />} />
-                  <Route path="/admin/Partners" element={<PartnerForm />} />
-                  <Route path="/admin/Reports" element={<Reports />} />
-                  <Route path="/admin/Settings" element={<Settings />} />
-                  <Route path="/admin/donations" element={<DonationForm/>} />
-                  <Route path="/admin/Mentorship" element={<Mentorship/>} />
-                  <Route path="/admin/forms" element={<AdminFormManager />} />
-                  <Route path="/admin/submissions/:formId" element={<SubmissionViewer />} />
-                  <Route path="/form/:formId" element={<PublicForm />} />
-                  <Route path="/admin/staff" element={<Staff />} />
-                  <Route path="/admin/contactMessages" element={<ContactMessages />} />
+                  <Route path="/admin" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
+                  <Route path="/admin/Users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
+                  <Route path="/admin/Partners" element={<ProtectedRoute><PartnerForm /></ProtectedRoute>} />
+                  <Route path="/admin/Reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+                  <Route path="/admin/Settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                  <Route path="/admin/donations" element={<ProtectedRoute><DonationForm/></ProtectedRoute>} />
+                  <Route path="/admin/Mentorship" element={<ProtectedRoute><Mentorship/></ProtectedRoute>} />
+                  <Route path="/admin/forms" element={<ProtectedRoute><AdminFormManager /></ProtectedRoute>} />
+                  <Route path="/admin/submissions/:formId" element={<ProtectedRoute><SubmissionViewer /></ProtectedRoute>} />
+                  <Route path="/admin/staff" element={<ProtectedRoute><Staff /></ProtectedRoute>} />
+                  <Route path="/admin/contactMessages" element={<ProtectedRoute><ContactMessages /></ProtectedRoute>} />
 
+                  <Route path="/form/:formId" element={<PublicForm />} />
 
                   
                   {/* 404 Page */}

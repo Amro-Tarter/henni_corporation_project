@@ -1,8 +1,7 @@
 //comments
 import React, { useState, useEffect, useRef } from 'react';
 import { Trash2, Check, Edit2, X, Send, Reply, Smile } from 'lucide-react';
-import EmojiPicker from 'emoji-picker-react';
-import { createPortal } from 'react-dom';
+import EmojiPickerPopover from './EmojiPickerPopover'; // adjust path if needed
 import { containsBadWord } from './utils/containsBadWord';
 
 export const Comment = ({
@@ -65,7 +64,7 @@ export const Comment = ({
           <div className={`p-3 rounded-lg bg-${element}-soft relative`}>
             <div className="flex justify-between">
               {/* Placeholder username */}
-              <h4 className="font-semibold text-sm text-gray-500">משתמש שנמחק</h4>
+              <p className="font-semibold text-sm text-gray-500">משתמש שנמחק</p>
 
               {/* Trash button if post owner */}
               {isPostOwner && (
@@ -102,7 +101,7 @@ export const Comment = ({
       <div className="flex-1">
         <div className={`p-3 rounded-lg bg-${element}-soft relative`}>
           <div className="flex justify-between">
-            <h4 className="font-semibold text-sm">{authorProfile?.username}</h4>
+            <p className="font-semibold text-sm">{authorProfile?.username}</p>
             {canEditOrDelete && !isEditing && (
               <div className="flex gap-2">
                 <button
@@ -152,7 +151,7 @@ export const Comment = ({
 
         <div className="flex items-center text-xs mt-1 text-gray-500 gap-4">
           <span>{formattedTime}{comment.edited && ' (נערך)'}</span>
-          {!isReply && !currentUser.role === 'staff' && (
+          {!isReply && currentUser.role !== 'staff' && (
             <button
               onClick={() => onReply(comment.id)}
               className={`flex items-center gap-1 text-${element} hover:bg-${element}-soft transition-colors rounded-lg px-2 py-1`}
@@ -275,18 +274,6 @@ export const CommentInput = ({
     return () => window.removeEventListener('mousedown', handleClick);
   }, [showEmoji]);
 
-  // Open and position picker
-  const openEmojiPicker = () => {
-    if (emojiBtnRef.current) {
-      const rect = emojiBtnRef.current.getBoundingClientRect();
-      setEmojiPos({
-        x: rect.left,
-        y: rect.bottom + 8,
-      });
-    }
-    setShowEmoji(true);
-  };
-
   return (
     <>
       {warning &&
@@ -324,51 +311,23 @@ export const CommentInput = ({
           rows={2}
           dir="rtl"
         />
-        <div className="flex items-center w-full sm:w-auto sm:justify-end gap-2">
+        <div className="flex items-center w-full sm:w-auto sm:justify-end gap-2 relative">
           {/* Emoji Picker Button */}
           <button
             type="button"
             ref={emojiBtnRef}
-            onClick={openEmojiPicker}
-            className={`
-          p-2 sm:px-2 sm:py-2
-          rounded-md 
-          bg-${element}-soft 
-          text-${element} 
-          hover:bg-${element}-accent 
-          hover:text-white 
-          transition-colors 
-        `}
+            onClick={() => setShowEmoji(v => !v)}
+            className={`hidden md:flex p-2 sm:px-2 sm:py-2 rounded-md bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white transition-colors`}
             aria-label="הוסף אימוג׳י"
           >
             <Smile size={18} />
           </button>
-
-          {/* Emoji Picker in Portal */}
-          {showEmoji &&
-            createPortal(
-              <div
-                ref={pickerRef}
-                style={{
-                  position: 'fixed',
-                  left: emojiPos.x,
-                  top: emojiPos.y,
-                  zIndex: 1000,
-                }}
-                className="emoji-mart-portal"
-              >
-                <EmojiPicker
-                  onEmojiClick={insertEmoji}
-                  autoFocusSearch={false}
-                  theme="light"
-                  searchDisabled={false}
-                  skinTonesDisabled={false}
-                  width={350}
-                  height={400}
-                />
-              </div>,
-              document.body
-            )}
+          <EmojiPickerPopover
+            anchorRef={emojiBtnRef}
+            open={showEmoji}
+            onClose={() => setShowEmoji(false)}
+            onEmojiClick={emojiObject => insertEmoji(emojiObject)}
+          />
 
           {onCancel && (
             <button

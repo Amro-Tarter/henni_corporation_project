@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ThumbsUp, MessageCircle, MoreHorizontal, Camera, Trash2, Check, X, Smile, Edit2, Users } from 'lucide-react';
+import { ThumbsUp, MessageCircle, MoreHorizontal, Trash2, Check, X, Smile, Edit2, Users } from 'lucide-react';
 import { Comment, CommentInput } from '../social/comments';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '../ui/sonner';
 import ConfirmationModal from '../social/ConfirmationModal';
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPickerPopover from '../social/EmojiPickerPopover';
 import { containsBadWord } from '../social/utils/containsBadWord';
 
 const Project = ({
@@ -52,8 +52,6 @@ const Project = ({
   const [showEmoji, setShowEmoji] = useState(false);
   const [floatLike, setFloatLike] = useState(false);
   const emojiBtnRef = useRef();
-  const emojiPickerRef = useRef();
-  const [emojiPos, setEmojiPos] = useState({ x: 0, y: 0 });
   const [newTitle, setNewTitle] = useState(title);
   const [newCollaborators, setNewCollaborators] = useState(collaborators);
   const [showUsers, setShowUsers] = useState(false);
@@ -108,30 +106,8 @@ const Project = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (!showEmoji) return;
-    function handleClick(e) {
-      if (
-        emojiPickerRef.current &&
-        !emojiPickerRef.current.contains(e.target) &&
-        emojiBtnRef.current &&
-        !emojiBtnRef.current.contains(e.target)
-      ) {
-        setShowEmoji(false);
-      }
-    }
-    window.addEventListener('mousedown', handleClick);
-    return () => window.removeEventListener('mousedown', handleClick);
-  }, [showEmoji]);
 
   const openEmojiPicker = () => {
-    if (emojiBtnRef.current) {
-      const rect = emojiBtnRef.current.getBoundingClientRect();
-      setEmojiPos({
-        x: rect.left,
-        y: rect.bottom + 8,
-      });
-    }
     setShowEmoji(true);
   };
 
@@ -283,8 +259,8 @@ const Project = ({
               className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover ring-2 ring-${element}-accent ring-offset-1`}
             />
             <div className="flex flex-col">
-              <h3 className="text-lg font-bold truncate max-w-[140px]">{authorProfile?.username || '...'}</h3>
-              <p className="text-xs text-gray-500">{createdAt?.toDate?.().toLocaleDateString('he-IL', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) || ''}</p>
+              <p className="text-xl font-bold">{authorProfile?.username || '...'}</p>
+              <p className="text-sm text-gray-500">{createdAt?.toDate?.().toLocaleDateString('he-IL', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) || ''}</p>
             </div>
           </div>
           {isOwner && (
@@ -412,7 +388,8 @@ const Project = ({
                   onChange={e => setNewDescription(e.target.value)}
                   rows={4}
                   dir="rtl"
-                  className={`w-full border rounded-lg p-3 resize-none focus:ring-2 focus:ring-${element}-accent focus:border-${element}-accent border-${element}-soft transition-all outline-none`}
+                  className={`w-full border rounded-lg p-3 resize-none focus:ring-2 focus:ring-${element}-accent 
+                  focus:border-${element}-accent border-${element}-soft transition-all outline-none`}
                   placeholder="מה בליבך?"
                 />
                 <div className="flex justify-end gap-2 mt-2 items-center">
@@ -420,13 +397,23 @@ const Project = ({
                     type="button"
                     ref={emojiBtnRef}
                     onClick={openEmojiPicker}
-                    className={`px-2 py-2 rounded-md bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white transition-colors flex items-center`}
+                    className={` hidden px-2 py-2 rounded-md bg-${element}-soft text-${element} hover:bg-${element}-accent hover:text-white
+                     transition-colors md:flex items-center`}
                     aria-label="הוסף אימוג׳י"
                     tabIndex={-1}
                     style={{ zIndex: 10 }}
                   >
                     <Smile size={18} />
                   </button>
+                  <EmojiPickerPopover
+                    anchorRef={emojiBtnRef}
+                    open={showEmoji}
+                    onClose={() => setShowEmoji(false)}
+                    onEmojiClick={emojiObject => {
+                      insertEmoji(emojiObject);
+                    }}
+                  />
+                  {/* cancel editting button */}
                   <button
                     onClick={() => setEditing(false)}
                     className={`px-4 py-2 text-sm rounded-md text-${element}-accent bg-${element}-soft hover:bg-${element}-accent hover:text-white transition-colors`}
@@ -444,33 +431,14 @@ const Project = ({
                     שמור שינויים
                   </motion.button>
                 </div>
-                {showEmoji && (
-                  <div
-                    ref={emojiPickerRef}
-                    style={{
-                      position: 'fixed',
-                      left: emojiPos.x,
-                      top: emojiPos.y,
-                      zIndex: 1000,
-                    }}
-                  >
-                    <EmojiPicker
-                      onEmojiClick={insertEmoji}
-                      autoFocusSearch={false}
-                      theme="light"
-                      width={350}
-                      height={400}
-                    />
-                  </div>
-                )}
               </div>
             </div>
           </>
         ) : (
-          // -------- NOT EDITING MODE: SPACING ADDED! --------
+          // -------- NOT EDITING MODE! --------
           <div className="px-3 sm:px-5 pb-4 flex flex-col gap-6">
             <div>
-              <h2 className={`font-bold text-xl sm:text-2xl text-${element}`}>{title}</h2>
+              <p className={`font-bold text-xl sm:text-2xl text-${element}`}>{title}</p>
             </div>
             {collaboratorProfiles.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
