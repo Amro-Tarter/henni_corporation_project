@@ -11,6 +11,7 @@ import Gallery from '@/components/home/Gallery';
 import AboutSection from '../components/home/AboutSection';
 import MusicPlayer from '../components/MusicPlayer';
 import ScrollDown from '../components/ui/ScrollDown';
+import PartnerLogoGallery from '../components/home/PartnerLogoGallery';
 
 const HomePage = () => {
   return (
@@ -25,6 +26,7 @@ const HomePage = () => {
         <Gallery />
         <EventsSection/>
         <JoinUs />
+        <PartnerLogoGallery />
       </main>
       <MusicPlayer />
       <Footer />
