@@ -13,8 +13,7 @@ import { Newspaper, PlusCircle, Calendar, User, MapPin, FileText, Image, X, Edit
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import Skeleton from '@/components/ui/skeleton';
-
+import Layout from '@/components/layout/Layout';
 const ITEMS_PER_PAGE = 5;
 
 // Sample news data
@@ -348,7 +347,8 @@ export default function NewsletterPage() {
     : newsletters.filter(n => (n.tags || []).includes(currentTag));
 
   return (
-    <div className="bg-gradient-to-b from-blue-50 to-neutral-100 min-h-screen py-12 px-4">
+    <Layout>
+    <div className="bg-gradient-to-b from-blue-50 to-neutral-100 min-h-screen py-24 px-4 ">
       <div className="max-w-4xl mx-auto">
         {/* Page Header */}
         <div className="flex flex-col items-center mb-8 text-center">
@@ -658,6 +658,7 @@ export default function NewsletterPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </Layout>
   );
 }
 

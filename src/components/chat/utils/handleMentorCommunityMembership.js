@@ -142,9 +142,10 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
     } else {
       // Update existing community
       const currentData = mentorCommunityDoc.data();
+
       // Check if update needed
       const needsUpdate = 
-        allIds.length !== currentData.participants.length ||
+        allIds.length !== currentData.participants.length || currentData.mentorName !== mentorUsername || currentData.mentorId !== mentorId ||
         !allIds.every(id => currentData.participants.includes(id));
       if (needsUpdate) {
         // Update unread status
@@ -156,6 +157,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
         await updateDoc(mentorCommunityRef, {
           participants: allIds,
           participantNames: allNames,
+          mentorName: mentorUsername,
           unread: newUnread,
           lastMessage: "קהילת המנחה עודכנה!",
           lastUpdated: serverTimestamp(),
@@ -239,7 +241,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
       const data = docSnap.data();
       // Check if update needed
       if (
-        mentorIds.length !== data.participants.length ||
+        mentorIds.length !== data.participants.length || mentorNames !== data.participantNames ||
         !mentorIds.every(id => data.participants.includes(id))
       ) {
         await updateDoc(docRef, {
@@ -290,7 +292,7 @@ export const handleMentorCommunityMembership = async (userId, userRole, mentorNa
       const data = docSnap.data();
       // Check if update needed
       if (
-        mentorAdminIds.length !== data.participants.length ||
+        mentorAdminIds.length !== data.participants.length || mentorAdminNames !== data.participantNames ||
         !mentorAdminIds.every(id => data.participants.includes(id))
       ) {
         await updateDoc(docRef, {

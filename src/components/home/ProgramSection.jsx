@@ -1,11 +1,9 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Hammer, Activity, Sparkles, Paintbrush, Music, Move3D, Pen, ChevronDown } from "lucide-react";
+import { Paintbrush, Music, Move3D, Pen, ChevronDown } from "lucide-react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMasksTheater } from '@fortawesome/free-solid-svg-icons';
-import CTAButton from "@/components/CTAButton";
-
 
 // Color utilities
 const colorMap = {
@@ -66,26 +64,36 @@ const FeatureList = ({ features, color }) => (
   </ul>
 );
 
-// Interactive Icon Button Component
-const InteractiveIconButton = ({ icon, color, onColorChange, size = "md" }) => {
-  const sizeClasses = {
+// InteractiveIconButton - only the image is clickable
+const InteractiveImageButton = ({ icon, onColorChange, size = "md", className = "" }) => {
+ const sizeClasses = {
     sm: "w-20 h-20",
-    md: "w-24 h-24 md:w-28 md:h-28",
-    lg: "w-28 h-28 md:w-32 md:h-32"
+    md: "w-44 h-44",
+    lg: "w-48 h-48"
   };
 
   return (
-    <button
-      onClick={onColorChange}
-      style={{ backgroundColor: color }}
-      className={`${sizeClasses[size]} rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 active:scale-95`}
-    >
-      {icon}
-    </button>
+    <div className={` ${className}`}>
+      {typeof icon === 'string' ? (
+        <img
+          src={icon}
+          alt="interactive icon"
+          onClick={onColorChange}
+          className={`${sizeClasses[size]} cursor-pointer transition-all duration-300`}
+        />
+      ) : (
+        <span
+          onClick={onColorChange}
+          style={{ backgroundColor: '#DC2626' }}
+        >
+          {icon}
+        </span>
+      )}
+    </div>
   );
 };
 
-// Year Tab Content Component
+// YearTabContent - Centered version
 const YearTabContent = ({ icon, title, description, features }) => {
   const [color, setColor] = useState(getRandomColor());
 
@@ -98,40 +106,38 @@ const YearTabContent = ({ icon, title, description, features }) => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      viewport={{ once: true, amount: 0.2 }}
-      className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center"
-    >
-      {/* Text Content - RTL */}
-      <div className="text-right order-2 lg:order-1" dir="rtl">
-        <h3
-          style={{ color }}
-          className="text-xl md:text-2xl lg:text-3xl font-bold mb-3 leading-tight"
-        >
-          {title}
-        </h3>
-        <p className="mb-4 text-sm md:text-base leading-relaxed text-gray-700">
-          {description}
-        </p>
-        <FeatureList features={features} color={color} />
-      </div>
-
-      {/* Interactive Visual */}
-      <div
-        style={{ backgroundColor: `${color}15` }}
-        className="rounded-2xl p-6 h-40 md:h-48 flex items-center justify-center order-1 lg:order-2"
+    <div className="flex justify-center items-center w-full">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        viewport={{ once: true, amount: 0.2 }}
+        className="flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-8 max-w-4xl mx-auto text-center lg:text-right"
       >
-        <InteractiveIconButton
-          icon={icon}
-          color={color}
-          onColorChange={handleColorChange}
-          size="md"
-        />
-      </div>
-    </motion.div>
+        {/* Text content */}
+        <div className="text-right flex-1" dir="rtl">
+          <h3
+            style={{ color }}
+            className="text-xl md:text-2xl lg:text-3xl font-bold mb-4 leading-tight"
+          >
+            {title}
+          </h3>
+          <p className="mb-6 text-sm md:text-base leading-relaxed text-gray-700">
+            {description}
+          </p>
+          <FeatureList features={features} color={color} />
+        </div>
+
+        {/* Icon */}
+        <div className="flex justify-center items-center">
+          <InteractiveImageButton
+            icon={icon}
+            onColorChange={handleColorChange}
+            size="md"
+          />
+        </div>
+      </motion.div>
+    </div>
   );
 };
 
@@ -204,7 +210,7 @@ const ArtSkillsGrid = ({ skills }) => (
 const years = [
   {
     year: 1,
-    icon: <Search size={32} />,
+    icon: "/1st.png",
     title: "שנה 1 – גילוי הקול האישי",
     description: "השלב הראשון במסע הוא שלב הגילוי – בו החניכים לומדים לזהות את הכישרונות הייחודיים שלהם.",
     features: [
@@ -215,7 +221,7 @@ const years = [
   },
   {
     year: 2,
-    icon: <Hammer size={32} />,
+    icon: "/2nd.png",
     title: "שנה 2 – פיתוח הכלים",
     description: "בשלב זה מתבצעת העמקה בתחום האמנותי. החניכים מפתחים מיומנויות מתקדמות.",
     features: [
@@ -226,7 +232,7 @@ const years = [
   },
   {
     year: 3,
-    icon: <Activity size={32} />,
+    icon: "/3rd.png",
     title: "שנה 3 – יישום מעשי",
     description: "החניכים יוזמים פרויקטים אמנותיים ומשפיעים על סביבתם באופן יצירתי וחברתי.",
     features: [
@@ -237,7 +243,7 @@ const years = [
   },
   {
     year: 4,
-    icon: <Sparkles size={32} />,
+    icon: "/4th.png",
     title: "שנה 4 – השפעה ומנטורינג",
     description: "החניכים יוצרים פרויקט גמר ומלווים דור חדש במסע אישי מלא בגדילה.",
     features: [
@@ -247,9 +253,11 @@ const years = [
     ],
   },
 ];
+
 const TheaterIcon = (props) => (
   <FontAwesomeIcon icon={faMasksTheater} {...props} />
 );
+
 const artSkills = [
   {
     title: "אמנות פלסטית",
@@ -292,13 +300,15 @@ const artSkills = [
 const ProgramSection = () => {
   return (
     <section
-      className="py-10 md:py-14 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative" // Added relative here
+      className="py-10 md:py-14 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative"
       id="leadership-program"
     >
       <div className="container mx-auto px-4 md:px-6 max-w-6xl">
         {/* Main Header */}
         <SectionHeader
-          title="מסע המנהיגות היצירתית" subtitle="ארבע שנות עומק, תרגול והובלה דרך אמנות" className="mb-10 md:mb-12 "
+          title="מסע המנהיגות היצירתית" 
+          subtitle="ארבע שנות עומק, תרגול והובלה דרך אמנות" 
+          className="mb-10 md:mb-12"
         />
 
         {/* Year Tabs */}
@@ -315,27 +325,25 @@ const ProgramSection = () => {
           <div dir="rtl">
             <ArtSkillsGrid skills={artSkills} />
           </div>
+          
           <div className="mt-8 text-center">
-            <CTAButton
-              href="/artskills"
-              variant="inverse-air"
-              size="md"
-              className="bg-white text-orange-600 hover:bg-orange-50 transition-colors px-8 py-3"
-            >
-              <span className="text-base font-medium">לראות עוד</span>
-            </CTAButton>
+            <button className="bg-white text-orange-600 hover:bg-orange-50 transition-colors px-8 py-3 rounded-lg font-medium">
+              לראות עוד
+            </button>
           </div>
+          
           <br />
+          <br />
+          
           {/* Scroll Indicator */}
-          <br />
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none" // pointer-events-none makes it non-clickable
+            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-none"
           >
-            <div className="rounded-full p-2  text-red-900 opacity-60 bottom-4 md:bottom-8 left-[45%] -translate-x-[55%]"> {/* Transparent background, gray icon, slightly less opaque */}
-              <ChevronDown className="w-8 h-8 md:w-10 md:h-10 animate-bounce" /> {/* Larger icon, subtle bounce animation */}
+            <div className="rounded-full p-2 text-red-900 opacity-60 bottom-4 md:bottom-8 left-[45%] -translate-x-[55%]">
+              <ChevronDown className="w-8 h-8 md:w-10 md:h-10 animate-bounce" />
             </div>
           </motion.div>
         </div>

@@ -1121,7 +1121,7 @@ export default function ChatApp() {
   }
 
   const elementColors = ELEMENT_COLORS[currentUser.element];
-  const userElement = currentUser.element;
+  const userElement = currentUser.element; 
 
 
   return (
@@ -1529,5 +1529,6 @@ export default function ChatApp() {
         </div>
       )}
     </ThemeProvider>
-  );
-}
+)}
+
+
