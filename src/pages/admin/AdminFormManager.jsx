@@ -35,11 +35,13 @@ const StatCard = ({ icon, label, value, iconBgColor, iconColor }) => (
 );
 
 
+
 export default function AdminFormManager() {
     const [allForms, setAllForms] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [newFormTitle, setNewFormTitle] = useState("טופס חדש");
+    const [editingFormId, setEditingFormId] = useState(null);
     const [newFormFields, setNewFormFields] = useState([
         {
             id: generateClientId(),
@@ -156,64 +158,101 @@ export default function AdminFormManager() {
         setNewFormFields(prev => prev.filter(q => q.id !== questionId));
     };
 
+
     const saveForm = async () => {
-        if (!newFormTitle.trim()) {
-            setError("כותרת הטופס אינה יכולה להיות ריקה");
+    if (!newFormTitle.trim()) {
+        setError("כותרת הטופס אינה יכולה להיות ריקה");
+        return;
+    }
+
+    for (const field of newFormFields) {
+        if (
+            ["multipleChoice", "checkboxes", "dropdown"].includes(field.type) &&
+            (!field.options || field.options.length === 0)
+        ) {
+            setError(`שאלה "${field.label}" דורשת לפחות אפשרות אחת.`);
             return;
         }
+    }
 
-        for (const field of newFormFields) {
-            if (['multipleChoice', 'checkboxes', 'dropdown'].includes(field.type) && (!field.options || field.options.length === 0)) {
-                setError(`שאלה "${field.label}" דורשת לפחות אפשרות אחת.`);
-                return;
-            }
-        }
-        setError(null);
-        setLoading(true);
+    setError(null);
+    setLoading(true);
 
-        try {
-            const formToSave = {
-                title: newFormTitle,
-                type: 'user',
+    try {
+        const formToSave = {
+            title: newFormTitle,
+            fields: newFormFields.map(({ id, ...rest }) => rest),
+        };
+
+        if (editingFormId) {
+            // 🔧 Editing an existing form
+            const formRef = doc(db, "forms", editingFormId);
+            await updateDoc(formRef, formToSave);
+
+            setAllForms(prev =>
+                prev.map(f =>
+                    f.id === editingFormId
+                        ? { ...f, ...formToSave, fields: newFormFields }
+                        : f
+                )
+            );
+        } else {
+            // ➕ Creating new form
+            const docRef = await addDoc(collection(db, "forms"), {
+                ...formToSave,
+                type: "user",
                 built_in: false,
                 createdAt: serverTimestamp(),
                 responses: 0,
-                fields: newFormFields.map(({ id, ...rest }) => rest)
-            };
-
-            const docRef = await addDoc(collection(db, "forms"), formToSave);
+            });
 
             await addDoc(collection(db, "publicForms"), {
                 formId: docRef.id,
                 title: newFormTitle,
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
             });
 
-            const newFormWithId = {
-                id: docRef.id,
-                ...formToSave,
-                createdAt: new Date(),
-                fields: newFormFields
-            };
+            setAllForms(prev => [
+                {
+                    id: docRef.id,
+                    ...formToSave,
+                    createdAt: new Date(),
+                    fields: newFormFields,
+                    built_in: false,
+                    type: "user",
+                    responses: 0,
+                },
+                ...prev,
+            ]);
 
-            setAllForms(prev => [newFormWithId, ...prev]);
-            setStats(prev => ({ ...prev, total: prev.total + 1, user: prev.user + 1 }));
-            setShowModal(false);
-            setNewFormTitle("טופס חדש");
-            setNewFormFields([{
+            setStats(prev => ({
+                ...prev,
+                total: prev.total + 1,
+                user: prev.user + 1,
+            }));
+        }
+
+        // ✅ Reset and close
+        setShowModal(false);
+        setEditingFormId(null);
+        setNewFormTitle("טופס חדש");
+        setNewFormFields([
+            {
                 id: generateClientId(),
                 label: "שאלה חדשה",
                 type: "text",
                 required: false,
                 options: [],
-            }]);
-        } catch (err) {
-            console.error("Error saving form:", err);
-            setError("שגיאה בשמירת הטופס.");
-        } finally {
-            setLoading(false);
-        }
-    };
+            },
+        ]);
+    } catch (err) {
+        console.error("Error saving form:", err);
+        setError("שגיאה בשמירת הטופס.");
+    } finally {
+        setLoading(false);
+    }
+};
+
 
     const deleteForm = async (formId, isBuiltIn) => {
         if (isBuiltIn) {
@@ -286,7 +325,7 @@ export default function AdminFormManager() {
             <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
                 {/* Main Title */}
                 <div className="flex items-center gap-4 mb-8">
-                    <h1 className="text-4xl sm:text-5xl font-extrabold text-right leading-tight bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold text-right leading-tight bg-black bg-clip-text text-transparent">
                         ניהול טפסים
                     </h1>
                     <BarChart2 size={40} className="text-gray-700" />
@@ -376,95 +415,134 @@ export default function AdminFormManager() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {allForms.map((form) => (
-                                <div key={form.id} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <h3 className="text-xl font-bold text-gray-900 leading-tight flex-grow ml-3 min-w-0">
-                                            {form.title}
-                                        </h3>
-                                        <div className="flex items-center gap-2 flex-shrink-0">
-                                            {form.built_in ? (
-                                                <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">מובנה</span>
-                                            ) : (
-                                                <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">משלי</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-3 mb-6 text-gray-600 text-sm">
-                                        <div className="flex justify-between items-center">
-                                            <span>שדות: {form.fields?.length || 0}</span>
-                                            <span className="flex items-center gap-1">
-                                                <ExternalLink size={14} />
-                                                תגובות: {form.responses || 0}
-                                            </span>
-                                        </div>
-                                        <div className="text-xs text-gray-500 text-right">
-                                            נוצר: {form.createdAt?.toDate ? form.createdAt.toDate().toLocaleDateString('he-IL') : new Date(form.createdAt).toLocaleDateString('he-IL')}
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row gap-3">
-                                        <Link
-                                            to={`/form/${form.id}`}
-                                            className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 text-center rounded-xl hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
-                                        >
-                                            <Eye size={18} />
-                                            צפייה
-                                        </Link>
-                                        <Link
-                                            to={`/admin/submissions/${form.id}`}
-                                            className="flex-1 px-4 py-2.5 bg-blue-50 text-blue-600 text-center rounded-xl hover:bg-blue-100 transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
-                                        >
-                                            <ExternalLink size={18} />
-                                            תגובות
-                                        </Link>
-                                        <button
-                                            onClick={() => setCopiedFormId(copiedFormId === form.id ? null : form.id)}
-                                            className="flex-1 px-4 py-2.5 bg-purple-50 text-purple-600 text-center rounded-xl hover:bg-purple-100 transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
-                                        >
-                                            <Share2 size={18} />
-                                            קישור
-                                        </button>
-                                    </div>
-                                    {copiedFormId === form.id && (
-                                        <div className="mt-4 flex items-center gap-2 bg-gray-100 p-2 rounded-lg">
-                                            <input
-                                                type="text"
-                                                readOnly
-                                                value={`${window.location.origin}/form/${form.id}`}
-                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none"
-                                            />
-                                            <button
-                                                onClick={() => handleCopyLink(form.id)}
-                                                className="p-2 bg-purple-200 text-purple-700 hover:bg-purple-300 rounded-lg transition-colors duration-200"
-                                                title="העתק קישור"
-                                            >
-                                                <Share2 size={16} />
-                                            </button>
-                                        </div>
-                                    )}
-                                    <div className="mt-4 flex justify-between gap-3">
-                                        <button
-                                            onClick={() => toggleBuiltInStatus(form.id, form.built_in)}
-                                            className="flex-1 px-4 py-2.5 bg-red-100 text-red-600 text-center rounded-xl hover:bg-red-200 transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
-                                            title={form.built_in ? "הגדר כטופס רגיל" : "הגדר כטופס מובנה"}
-                                        >
-                                            <Bookmark size={18} />
-                                            {form.built_in ? "הסר מובנה" : "הגדר מובנה"}
-                                        </button>
-                                        {!form.built_in && (
-                                            <button
-                                                onClick={() => deleteForm(form.id, form.built_in)}
-                                                className="flex-1 px-4 py-2.5 bg-gray-200 text-gray-700 text-center rounded-xl hover:bg-gray-300 transition-colors duration-200 flex items-center justify-center gap-2 font-medium"
-                                                title="מחק טופס"
-                                            >
-                                                <Trash2 size={18} />
-                                                מחק
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+  {allForms.map((form) => (
+    <div
+      key={form.id}
+      className=" bg-white border border-gray-200 rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2"
+    >
+      {/* Title & Type Badge */}
+      <div className="min-h-[50px] flex items-start justify-between mb-4">
+        <h3 className="text-xl font-bold text-gray-900 leading-tight flex-grow ml-3 min-w-0">
+          {form.title}
+        </h3>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {form.built_in ? (
+            <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+              מובנה
+            </span>
+          ) : (
+            <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+              משלי
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Info: Fields, Responses, Created At */}
+      <div className="space-y-3 mb-6 text-gray-600 text-sm">
+        <div className="flex justify-between items-center">
+          <span>שדות: {form.fields?.length || 0}</span>
+          <span className="flex items-center gap-1">
+            <ExternalLink size={14} />
+            תגובות: {form.responses || 0}
+          </span>
+        </div>
+        <div className="text-xs text-gray-500 text-right">
+          נוצר:{" "}
+          {form.createdAt?.toDate
+            ? form.createdAt.toDate().toLocaleDateString("he-IL")
+            : new Date(form.createdAt).toLocaleDateString("he-IL")}
+        </div>
+      </div>
+
+      {/* Responsive Button Group */}
+      <div className="flex flex-wrap gap-3 mb-2">
+        <Link
+          to={`/form/${form.id}`}
+          className="flex-1 min-w-[120px] px-4 py-2.5 bg-gray-100 text-gray-700 text-center rounded-xl hover:bg-gray-200 transition duration-200 flex items-center justify-center gap-2 font-medium"
+        >
+          <Eye size={18} />
+          צפייה
+        </Link>
+        <Link
+          to={`/admin/submissions/${form.id}`}
+          className="flex-1 min-w-[120px] px-4 py-2.5 bg-blue-50 text-blue-600 text-center rounded-xl hover:bg-blue-100 transition duration-200 flex items-center justify-center gap-2 font-medium"
+        >
+          <ExternalLink size={18} />
+          תגובות
+        </Link>
+        <button
+          onClick={() =>
+            setCopiedFormId(copiedFormId === form.id ? null : form.id)
+          }
+          className="flex-1 min-w-[120px] px-4 py-2.5 bg-purple-50 text-purple-600 text-center rounded-xl hover:bg-purple-100 transition duration-200 flex items-center justify-center gap-2 font-medium"
+        >
+          <Share2 size={18} />
+          קישור
+        </button>
+        <button
+          onClick={() => {
+            setEditingFormId(form.id);
+            setNewFormTitle(form.title);
+            setNewFormFields(
+              (form.fields || []).map((field) => ({
+                id: generateClientId(),
+                ...field,
+              }))
+            );
+            setShowModal(true);
+          }}
+          className="flex-1 min-w-[120px] px-4 py-2.5 bg-red-100 text-red-700 text-center rounded-xl hover:bg-red-200 transition duration-200 flex items-center justify-center gap-2 font-medium"
+        >
+          <Pencil size={18} />
+          ערוך
+        </button>
+      </div>
+
+      {/* Copy Link Field */}
+      {copiedFormId === form.id && (
+        <div className="mt-4 flex items-center gap-2 bg-gray-100 p-2 rounded-lg">
+          <input
+            type="text"
+            readOnly
+            value={`${window.location.origin}/form/${form.id}`}
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-50 focus:outline-none"
+          />
+          <button
+            onClick={() => handleCopyLink(form.id)}
+            className="p-2 bg-purple-200 text-purple-700 hover:bg-purple-300 rounded-lg transition duration-200"
+            title="העתק קישור"
+          >
+            <Share2 size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Footer Buttons: Built-in Toggle + Delete */}
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button
+          onClick={() => toggleBuiltInStatus(form.id, form.built_in)}
+          className="flex-1 min-w-[120px] px-4 py-2.5 bg-red-100 text-red-600 text-center rounded-xl hover:bg-red-200 transition duration-200 flex items-center justify-center gap-2 font-medium"
+          title={form.built_in ? "הגדר כטופס רגיל" : "הגדר כטופס מובנה"}
+        >
+          <Bookmark size={18} />
+          {form.built_in ? "הסר מובנה" : "הגדר מובנה"}
+        </button>
+        {!form.built_in && (
+          <button
+            onClick={() => deleteForm(form.id, form.built_in)}
+            className="flex-1 min-w-[120px] px-4 py-2.5 bg-gray-200 text-gray-700 text-center rounded-xl hover:bg-gray-300 transition duration-200 flex items-center justify-center gap-2 font-medium"
+            title="מחק טופס"
+          >
+            <Trash2 size={18} />
+            מחק
+          </button>
+        )}
+      </div>
+    </div>
+  ))}
+</div>
+
                     )}
                 </div>
             </div>
@@ -475,8 +553,9 @@ export default function AdminFormManager() {
                     <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all duration-300 scale-100 opacity-100 shadow-2xl">
                         <div className="sticky top-0 bg-white p-6 rounded-t-3xl border-b border-gray-200">
                             <div className="flex items-center justify-between">
-                                <h2 className="text-2xl font-bold text-gray-900">צור טופס חדש</h2>
-                                <button
+                                <h2 className="text-2xl font-bold text-black">
+                                    {editingFormId ? "ערוך טופס" : "צור טופס חדש"}
+                                </h2>                                <button
                                     onClick={() => setShowModal(false)}
                                     className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors duration-200"
                                 >

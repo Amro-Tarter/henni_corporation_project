@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FaUserClock } from 'react-icons/fa';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { and, collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../../config/firbaseConfig';
 import PendingUsersModal from './PendingUsersModal';
 
@@ -16,8 +16,8 @@ const PendingUsersButton = ({ onUserProcessed }) => {
     const q = query(
       usersRef,
       where('is_active', '==', false),
-      where('is_email_verified', '==', true) // ✅ only verified users
-    );
+      where('is_email_verified', '==', true)
+      );
 
     const unsubscribe = onSnapshot(
       q,

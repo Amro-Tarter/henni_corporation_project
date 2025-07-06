@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaUserClock, FaTimes, FaCheck, FaMapMarkerAlt, FaUser, FaEnvelope, FaPhone, FaCalendarAlt, FaSearch, FaUsers, FaTrash, FaExclamationTriangle, FaBell } from 'react-icons/fa';
-import { doc, getDocs, collection, updateDoc, serverTimestamp, getDoc, deleteDoc, setDoc } from 'firebase/firestore';
-import { db } from '../../config/firbaseConfig';
+import { FaUserClock, FaTimes, FaCheck, FaMapMarkerAlt,FaFileAlt , FaUser, FaEnvelope, FaPhone, FaCalendarAlt, FaSearch, FaUsers, FaTrash, FaExclamationTriangle, FaBell } from 'react-icons/fa';
+import { doc, getDocs, collection, updateDoc, serverTimestamp, getDoc, deleteDoc, setDoc,  query, where } from 'firebase/firestore';
+import { db,functions  } from '../../config/firbaseConfig';
 import { useUser } from '../../hooks/useUser';
 import { toast } from 'sonner';
+import { httpsCallable } from "firebase/functions";
+
+const deleteUserAuth = httpsCallable(functions, 'cascadeDeleteUserCallable');
 
 // Rejection Confirmation Modal Component (unchanged, for brevity)
 const RejectionConfirmationModal = ({ user, onConfirm, onCancel, isProcessing }) => {
     const [notifyUser, setNotifyUser] = useState(false);
 
+    
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -85,7 +89,16 @@ const RejectionConfirmationModal = ({ user, onConfirm, onCancel, isProcessing })
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => onConfirm(notifyUser)}
+                        onClick={async () => {
+                           
+                            try {
+                                await deleteUserAuth({ uid: user.id }); // Pass UID to backend
+                                onConfirm(notifyUser); // Continue local cleanup
+                            } catch (error) {
+                                console.error("Error deleting user from Auth:", error);
+                                toast.error("שגיאה במחיקת המשתמש ממערכת האימות");
+                            }
+                        }}
                         disabled={isProcessing}
                         className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center transition-colors"
                     >
@@ -310,12 +323,34 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
             const usersSnap = await getDocs(collection(db, 'users'));
             const pendingUsersData = await Promise.all(
                 usersSnap.docs
-                    .filter(doc => !doc.data().is_active &&  doc.data().is_email_verified)
+                    .filter(doc => {
+                    const data = doc.data();
+                    return !data.is_active && data.is_email_verified === true;
+                    })
                     .map(async (userDoc) => {
                         const userData = userDoc.data();
+                        //to bring the username 
+                        const username = userData.username;
                         // Assuming profile data is still needed from 'profiles' collection if it exists
                         const profileSnap = await getDoc(doc(db, 'profiles', userDoc.id));
                         const profileData = profileSnap.exists() ? profileSnap.data() : {};
+
+                        // Find submission by username
+                        // Try to fetch submission by same username as user
+                        let formId = null;
+                       try {
+                        const q = query(
+                            collection(db, 'submissions'),
+                            where('username', '==', userData.username)
+                        );
+                        const submissionSnap = await getDocs(q);
+                        if (!submissionSnap.empty) {
+                            formId = submissionSnap.docs[0].data().formId;
+                        }
+                        } catch (error) {
+                        console.warn(`No submission found for user ${userDoc.username}`);
+                        }
+
 
                         return {
                             id: userDoc.id,
@@ -325,16 +360,8 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
                             photoURL: profileData.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.username || 'User')}&background=random`,
                             createdAt: userData.createdAt?.toDate?.() || new Date(),
                             role: userData.role || 'participant',
-                            // --- NEW FIELDS FETCHED HERE ---
-                            howDidYouHear: userData.howDidYouHear || 'לא הוזן',
-                            commitmentLevel: userData.commitmentLevel || 'לא הוזן',
-                            artisticAffinity: userData.artisticAffinity || 'לא הוזן',
-                            goalAsVolunteer: userData.goalAsVolunteer || 'לא הוזן',
-                            artLeadershipConnection: userData.artLeadershipConnection || 'לא הוזן',
-                            skillsResources: userData.skillsResources || [],
-                            financialSupport: userData.financialSupport || 'לא הוזן',
-                            preferredActivityArea: userData.preferredActivityArea || 'לא הוזן',
-                            // --- END NEW FIELDS ---
+                            formId,
+                            
                         };
                     })
             );
@@ -436,16 +463,7 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
                     photoURL: roleSelectionUser.photoURL || "",
                     role: selectedRole,
                     ...(selectedRole === "participant" && { associatedMentor: mentorId || null }),
-                    // --- NEW FIELDS ADDED TO PROFILE ON CREATION ---
-                    howDidYouHear: roleSelectionUser.howDidYouHear || 'לא הוזן',
-                    commitmentLevel: roleSelectionUser.commitmentLevel || 'לא הוזן',
-                    artisticAffinity: roleSelectionUser.artisticAffinity || 'לא הוזן',
-                    goalAsVolunteer: roleSelectionUser.goalAsVolunteer || 'לא הוזן',
-                    artLeadershipConnection: roleSelectionUser.artLeadershipConnection || 'לא הוזן',
-                    skillsResources: roleSelectionUser.skillsResources || [],
-                    financialSupport: roleSelectionUser.financialSupport || 'לא הוזן',
-                    preferredActivityArea: roleSelectionUser.preferredActivityArea || 'לא הוזן',
-                    // --- END NEW FIELDS ---
+                    
                 });
             } else {
                 // If profile exists, update its role and mentor, no need to touch other questionnaire data unless explicitly desired
@@ -635,125 +653,119 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
                             </div>
                         ) : (
                            <div className="overflow-y-auto max-h-full p-6 bg-white dark:bg-slate-900 rounded-lg shadow-lg">
-  <div className="space-y-8 p-2">
-     {filteredUsers.map((user) => {
-      const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`;
-      const displayName = user.displayName || "לא ידוע";
+                            <div className="space-y-8 p-2">
+                                {filteredUsers.map((user) => {
+                                const photoURL = user.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName)}&background=random`;
+                                const displayName = user.displayName || "לא ידוע";
 
-      return (
-        <div
-          key={user.id}
-          className="flex flex-col lg:flex-row items-start bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900 dark:to-indigo-800 rounded-xl p-6 border border-indigo-200 dark:border-indigo-700 shadow-md hover:shadow-lg transition-shadow duration-300"
-        >
-          {/* User Photo */}
-          <img
-            src={photoURL}
-            alt={displayName}
-            className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-md flex-shrink-0"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`;
-            }}
-          />
+                                return (
+                                    <div
+                                    key={user.id}
+                                    className="flex flex-col lg:flex-row items-start bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-900 dark:to-indigo-800 rounded-xl p-6 border border-indigo-200 dark:border-indigo-700 shadow-md hover:shadow-lg transition-shadow duration-300"
+                                    >
+                                    {/* User Photo */}
+                                    <img
+                                        src={photoURL}
+                                        alt={displayName}
+                                        className="w-20 h-20 rounded-full object-cover border-4 border-white dark:border-slate-900 shadow-md flex-shrink-0"
+                                        onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`;
+                                        }}
+                                    />
 
-          {/* User Info */}
-          <div className="flex flex-col flex-1 ml-0 lg:ml-6 mt-4 lg:mt-0 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h3 className="text-xl font-semibold text-indigo-900 dark:text-indigo-200 truncate">
-                {displayName}
-              </h3>
-              <span
-                className={`text-xs px-3 py-1 rounded-full font-semibold whitespace-nowrap bg-indigo-200 text-indigo-800 dark:bg-indigo-700 dark:text-indigo-100`}
-              >
-                {getRoleDisplay(user.role)}
-              </span>
-            </div>
+                                    {/* User Info */}
+                                    <div className="flex flex-col flex-1 ml-0 lg:ml-6 mt-4 lg:mt-0 min-w-0">
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                        <h3 className="text-xl font-semibold text-indigo-900 dark:text-indigo-200 truncate">
+                                            {displayName}
+                                        </h3>
+                                        <span
+                                            className={`text-xs px-3 py-1 rounded-full font-semibold whitespace-nowrap bg-indigo-200 text-indigo-800 dark:bg-indigo-700 dark:text-indigo-100`}
+                                        >
+                                            {getRoleDisplay(user.role)}
+                                        </span>
+                                        </div>
 
-            {/* Contact Info */}
-            <div className="mt-2 space-y-1 text-sm text-indigo-700 dark:text-indigo-300">
-              <div className="flex items-center gap-2">
-                <FaEnvelope className="text-indigo-500" />
-                <span className="truncate">{user.email || "לא סופק"}</span>
-              </div>
-              {user.phone && (
-                <div className="flex items-center gap-2">
-                  <FaPhone className="text-green-500" />
-                  <span className="truncate">{user.phone}</span>
-                </div>
-              )}
-              {user.location && (
-                <div className="flex items-center gap-2">
-                  <FaMapMarkerAlt className="text-red-500" />
-                  <span className="truncate">{user.location}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-2">
-                <FaCalendarAlt className="text-purple-500" />
-                <span>הצטרף: {user.createdAt ? formatDate(user.createdAt) : "לא ידוע"}</span>
-              </div>
-            </div>
+                                        {/* Contact Info */}
+                                        <div className="mt-2 space-y-1 text-sm text-indigo-700 dark:text-indigo-300">
+                                        <div className="flex items-center gap-2">
+                                            <FaEnvelope className="text-indigo-500" />
+                                            <span className="truncate">{user.email || "לא סופק"}</span>
+                                        </div>
+                                        {user.phone && (
+                                            <div className="flex items-center gap-2">
+                                            <FaPhone className="text-green-500" />
+                                            <span className="truncate">{user.phone}</span>
+                                            </div>
+                                        )}
+                                        {user.location && (
+                                            <div className="flex items-center gap-2">
+                                            <FaMapMarkerAlt className="text-red-500" />
+                                            <span className="truncate">{user.location}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-2">
+                                            <FaCalendarAlt className="text-purple-500" />
+                                            <span>הצטרף: {user.createdAt ? formatDate(user.createdAt) : "לא ידוע"}</span>
+                                        </div>
+                                        </div>
 
-            {/* Questionnaire Info */}
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4 text-indigo-800 dark:text-indigo-300">
-              <InfoItem label="כיצד הגיעו לעמותה" value={user.howDidYouHear} />
-              <InfoItem label="רמת מחויבות" value={user.commitmentLevel} />
-              <InfoItem label="זיקה לאמנות" value={user.artisticAffinity} />
-              <InfoItem label="מטרה כמתנדב" value={user.goalAsVolunteer} />
-              <InfoItem label="קשר אמנות-מנהיגות" value={user.artLeadershipConnection} />
-              <InfoItem
-                label="כישורים / משאבים"
-                value={
-                  Array.isArray(user.skillsResources) && user.skillsResources.length > 0
-                    ? user.skillsResources.join(", ")
-                    : "לא הוזן"
-                }
-              />
-              <InfoItem label="תמיכה כספית" value={user.financialSupport} />
-              <InfoItem label="תחום פעילות מועדף" value={user.preferredActivityArea} />
-            </div>
-          </div>
 
-          {/* Actions */}
-          <div className="mt-6 lg:mt-0 lg:ml-6 flex flex-col gap-3 w-full sm:w-48">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleAcceptUser(user)}
-              disabled={processingUserId === user.id}
-              className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg shadow-md flex items-center justify-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              {processingUserId === user.id ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-              ) : (
-                <>
-                  <FaCheck />
-                  <span>אשר</span>
-                </>
-              )}
-            </motion.button>
+                                    </div>
 
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => handleRejectUser(user)}
-              disabled={processingUserId === user.id}
-              className="w-full px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg shadow-md flex items-center justify-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
-            >
-              {processingUserId === user.id ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-              ) : (
-                <>
-                  <FaTimes />
-                  <span>דחה</span>
-                </>
-              )}
-            </motion.button>
-          </div>
-        </div>
-      );
-    })}
-  </div>
-</div>
+                                    {/* Actions */}
+                                    <div className="mt-6 lg:mt-0 lg:ml-6 flex flex-col gap-3 w-full sm:w-48">
+                                        <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => handleAcceptUser(user)}
+                                        disabled={processingUserId === user.id}
+                                        className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg shadow-md flex items-center justify-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                        >
+                                        {processingUserId === user.id ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                                        ) : (
+                                            <>
+                                            <FaCheck />
+                                            <span>אשר</span>
+                                            </>
+                                        )}
+                                        </motion.button>
+
+                                        <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => handleRejectUser(user)}
+                                        disabled={processingUserId === user.id}
+                                        className="w-full px-4 py-3 bg-gradient-to-r from-red-500 to-red-700 text-white rounded-lg shadow-md flex items-center justify-center gap-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition"
+                                        >
+                                        {processingUserId === user.id ? (
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                                        ) : (
+                                            <>
+                                            <FaTimes />
+                                            <span>דחה</span>
+                                            </>
+                                        )}
+                                        </motion.button>
+                                        
+                                         <motion.button
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => window.open(`/admin/submissions/${user.formId}`, '_blank')}
+                                            className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg shadow-md flex items-center justify-center gap-2 font-semibold transition"
+                                        >
+                                                <FaFileAlt />                                            
+                                            <span>צפה בהגשת הטופס</span>
+                                        </motion.button>
+
+                                    </div>
+                                    </div>
+                                );
+                                })}
+                            </div>
+                            </div>
 
                         )}
                     </div>

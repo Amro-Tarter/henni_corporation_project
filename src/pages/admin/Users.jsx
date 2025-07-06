@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { collection, query, getDocs, orderBy, updateDoc, doc, deleteDoc, getDoc, where, setDoc } from "firebase/firestore";
-import { db } from "../../config/firbaseConfig";
+import { db, functions  } from "../../config/firbaseConfig";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit,
@@ -31,6 +31,7 @@ import LocalFloristIcon from '@mui/icons-material/LocalFlorist';
 import ConstructionTwoToneIcon from '@mui/icons-material/ConstructionTwoTone';
 import WaterDropTwoToneIcon from '@mui/icons-material/WaterDropTwoTone';
 import WhatshotRoundedIcon from '@mui/icons-material/WhatshotRounded';
+import { httpsCallable } from 'firebase/functions';
 
 
 // Enhanced Constants with new element structure
@@ -362,66 +363,35 @@ const DeleteConfirmModal = ({ user, onConfirm, onCancel, isLoading }) => {
   );
 };
 
+
+
+const deleteUserCallable = httpsCallable(functions, 'cascadeDeleteUserCallable');
+
 // Cascade delete function
+
 async function cascadeDeleteUser(uid, db) {
-  try {
-    await deleteDoc(doc(db, "users", uid));
-    //(`User ${uid} deleted from users collection.`);
+       try {
+        console.log(`Attempting to delete user ${uid} via Cloud Function...`);
+        // Call the Cloud Function, passing the UID as data
+        const result = await deleteUserCallable({ uid: uid });
+        console.log("Cloud Function response:", result.data);
 
-    await deleteDoc(doc(db, "profiles", uid));
-    //(`Profile ${uid} deleted.`);
-
-    const messagesRef = collection(db, "conversations", uid, "messages");
-    const messagesSnap = await getDocs(messagesRef);
-    for (const msgDoc of messagesSnap.docs) {
-      await deleteDoc(doc(db, "conversations", uid, "messages", msgDoc.id));
-    }
-    await deleteDoc(doc(db, "conversations", uid));
-    //(`Messages for user ${uid} deleted.`);
-
-    const postsQuery = query(collection(db, "posts"), where("authorId", "==", uid));
-    const postsSnapshot = await getDocs(postsQuery);
-    for (const postDoc of postsSnapshot.docs) {
-      const commentsRef = collection(db, "posts", postDoc.id, "comments");
-      const commentsSnapshot = await getDocs(commentsRef);
-      for (const commentDoc of commentsSnapshot.docs) {
-        await deleteDoc(doc(db, "posts", postDoc.id, "comments", commentDoc.id));
-      }
-      await deleteDoc(doc(db, "posts", postDoc.id));
-    }
-    //(`Posts and comments for user ${uid} deleted.`);
-
-    const allPostsQuery = query(collection(db, "posts"));
-    const allPostsSnapshot = await getDocs(allPostsQuery);
-    for (const postDoc of allPostsSnapshot.docs) {
-      const commentsRef = collection(db, "posts", postDoc.id, "comments");
-      const commentsSnapshot = await getDocs(commentsRef);
-      for (const commentDoc of commentsSnapshot.docs) {
-        if (commentDoc.data().authorId === uid) {
-          await deleteDoc(doc(db, "posts", postDoc.id, "comments", commentDoc.id));
+        // Check the success from the Cloud Function's return value
+        if (result.data.success) {
+            console.log("User and associated data successfully deleted.");
+            return true; // Indicate success to the calling part of your frontend
+        } else {
+            // This path would only be hit if the Cloud Function returns success: false
+            // but we've structured it to throw an HttpsError on failure.
+            // Still good to have for robustness.
+            throw new Error(result.data.message || "Cloud Function indicated failure.");
         }
-      }
+    } catch (error) {
+        console.error("Error calling cascadeDeleteUserCallable:", error);
+        // You would typically use toast.error here to inform the user
+        // toast.error(`Failed to delete user: ${error.message}`);
+        throw error; // Re-throw the error so calling code can handle it
     }
-    //(`Comments by user ${uid} in other posts deleted.`);
-
-    const mentorQuery = query(collection(db, "mentorship"), where("mentorId", "==", uid));
-    const mentorSnapshot = await getDocs(mentorQuery);
-    for (const msDoc of mentorSnapshot.docs) {
-      await deleteDoc(doc(db, "mentorship", msDoc.id));
-    }
-
-    const participantQuery = query(collection(db, "mentorship"), where("participantId", "==", uid));
-    const participantSnapshot = await getDocs(participantQuery);
-    for (const msDoc of participantSnapshot.docs) {
-      await deleteDoc(doc(db, "mentorship", msDoc.id));
-    }
-    //(`Mentorship relationships for user ${uid} deleted.`);
-
-    return true;
-  } catch (error) {
-    console.error("Error in cascadeDeleteUser:", error);
-    throw error;
-  }
 }
 
 // Enhanced User Card Component

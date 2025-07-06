@@ -3,10 +3,11 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
-  "functions": [
+  "functions": [ // <--- BACK TO AN ARRAY FOR GEN 2
     {
       "source": "functions",
-      "codebase": "default",
+      "runtime": "nodejs18", // You can keep this
+      "codebase": "default", // Add codebase back for Gen 2
       "ignore": [
         "node_modules",
         ".git",

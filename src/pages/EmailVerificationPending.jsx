@@ -3,7 +3,7 @@ import { auth, db } from "../config/firbaseConfig"; // Assuming you export auth 
 import { sendEmailVerification, onAuthStateChanged } from "firebase/auth";
 import { useNavigate, useLocation } from "react-router-dom"; // Import useLocation
 import { toast } from 'sonner';
-import { doc, updateDoc } from "firebase/firestore"; // Import updateDoc for client-side Firestore update (optional)
+import { doc,getDoc, updateDoc } from "firebase/firestore"; // Import updateDoc for client-side Firestore update (optional)
 import { Link } from "react-router-dom";
 import Layout from '../components/layout/Layout';
 import { motion } from 'framer-motion';
@@ -35,45 +35,59 @@ const EmailVerificationPending = () => {
         }
     }, [location.state, navigate]);
 
+    const EmailVerificationPending = ({ onClose }) => {
+        <button onClick={onClose} className="absolute top-4 left-4 text-gray-400 hover:text-red-500 text-xl font-bold">
+        ✕
+        </button>
+    }
+
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // Reload user to get the latest emailVerified status
-                user.reload().then(() => {
-                    if (user.emailVerified) {
-                        toast.success("האימייל שלך אומת בהצלחה! מנתב אותך לדף הבית.");
-                        // Optional: client-side update of Firestore field
-                        // This is less secure than a Cloud Function, but works if CF is not feasible.
-                        // If you deployed the Cloud Function I provided, you can remove this client-side update.
-                        if (db) { // Check if db is imported/available
-                             updateDoc(doc(db, "users", user.uid), { is_email_verified: true })
-                                .then(() => console.log("Firestore email_verified updated client-side"))
-                                .catch(e => console.error("Error updating client-side Firestore:", e));
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+            const checkEmailVerification = async () => {
+                await user.reload();
+                if (user.emailVerified) {
+                    toast.success("האימייל שלך אומת בהצלחה!");
+
+                    try {
+                        const userRef = doc(db, "users", user.uid);
+                        const userSnap = await getDoc(userRef);
+
+                        if (userSnap.exists()) {
+                            const userData = userSnap.data();
+
+                            // Optional: mark verified on Firestore
+                            await updateDoc(userRef, { is_email_verified: true });
+
+                            const selectedRole = userData.role;
+
+                            if (selectedRole === "participant") {
+                                navigate("/form/mDdp9oVf7RPfxW7zglcf");
+                            } else if (selectedRole === "mentor") {
+                                navigate("/form/jw0JV5OLP7TxRaV5KaEa");
+                            } else {
+                                navigate("/"); // fallback for "other" or null
+                            }
+                        } else {
+                            console.error("User document not found.");
+                            navigate("/");
                         }
-                        navigate("/"); // Navigate to dashboard or home
+                    } catch (error) {
+                        console.error("Error fetching user data:", error);
+                        navigate("/");
                     }
-                });
-            } else {
-                // No user logged in, navigate to login
-                navigate("/login");
-            }
-        });
+                }
+            };
 
-        // Set up cooldown timer
-        let timer;
-        if (resendCooldown > 0) {
-            timer = setInterval(() => {
-                setResendCooldown((prev) => prev - 1);
-            }, 1000);
-        } else if (timer) {
-            clearInterval(timer);
+            checkEmailVerification(); // Call the async function
+        } else {
+            navigate("/login");
         }
+    });
 
-        return () => {
-            unsubscribe();
-            if (timer) clearInterval(timer);
-        };
-    }, [navigate, resendCooldown, userEmail]); // Add userEmail to dependency array if you plan to use it dynamically here
+    return () => unsubscribe();
+}, [navigate]);
+
 
     const handleResendVerification = async () => {
         const user = auth.currentUser;
@@ -93,9 +107,8 @@ const EmailVerificationPending = () => {
     };
 
     return (
-        <Layout>
-            <main className="flex-grow pt-24 min-h-screen bg-gradient-to-b from-amber-50 to-white">
-                <div className="container mx-auto px-6 py-16 relative overflow-hidden min-h-[calc(100vh-6rem)] flex items-center justify-center">
+            <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="bg-white rounded-xl shadow-xl p-6 max-w-3xl w-full mx-4">
                     <motion.div
                         className="flex flex-col items-center justify-center text-center max-w-3xl mx-auto relative z-10"
                         initial={{ opacity: 0, y: 20 }}
@@ -171,9 +184,9 @@ const EmailVerificationPending = () => {
                             </motion.div>
                         </motion.div>
                     </motion.div>
+                    </div>
                 </div>
-            </main>
-        </Layout>
+      
     );
 };
 

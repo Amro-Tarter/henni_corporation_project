@@ -34,8 +34,8 @@ const storage = getStorage(app);
 const functions = getFunctions(app, 'us-central1');
 
 // Connect to emulator in development
-if (process.env.NODE_ENV === 'development') {
-  connectFunctionsEmulator(functions, 'localhost', 5001);
-}
+//if (process.env.NODE_ENV === 'development') {
+//  connectFunctionsEmulator(functions, 'localhost', 5001);
+//}
 
 export { app, db, auth, storage, functions };

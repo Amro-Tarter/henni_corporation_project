@@ -340,11 +340,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       label: "דוחות", 
       icon: FileText 
     },
-    { 
-      path: "/admin/donations", 
-      label: "תרומות", 
-      icon: Heart 
-    },
+    
     {
       path: "/admin/contactMessages",
       label: "הודעות קשר",

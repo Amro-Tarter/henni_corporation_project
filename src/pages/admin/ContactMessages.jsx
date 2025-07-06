@@ -98,16 +98,14 @@ const ContactMessages = () => {
     );
     setContacts(updatedContacts);
   };
-
-  // New function to mark a message as replied
-  const markAsReplied = (contactId) => {
-    const updatedContacts = contacts.map(contact =>
-      contact.id === contactId
-        ? { ...contact, isReplied: true }
-        : contact
-    );
-    setContacts(updatedContacts);
-  };
+const markAsReplied = (contactId) => {
+  const updatedContacts = contacts.map(contact =>
+    contact.id === contactId
+      ? { ...contact, isReplied: true }
+      : contact
+  );
+  setContacts(updatedContacts);
+};
 
   const formatDate = (timestamp) => {
     if (!timestamp) return 'תאריך לא זמין';

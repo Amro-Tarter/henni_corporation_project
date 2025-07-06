@@ -145,13 +145,10 @@ function Reports() {
 
       // Filter by participant name
       if (searchParticipant) {
-        filtered = filtered.filter(report => {
-          const participant = allUsers[report.participant_id];
-          if (!participant) return false;
-
-          const participantName = participant.profile?.displayName || participant.username || '';
-          return participantName.toLowerCase().includes(searchParticipant.toLowerCase());
-        });
+         filtered = filtered.filter(report => {
+    const participantName = report.participant_name || '';
+    return participantName.toLowerCase().includes(searchParticipant.toLowerCase());
+  });
       }
 
       setDisplayedReports(filtered);
@@ -344,7 +341,7 @@ function Reports() {
                       <div className="flex items-center gap-3"> {/* Increased gap */}
                         <FontAwesomeIcon icon={faUser} className="text-green-600 text-lg" /> {/* Larger icon */}
                         <span className="text-base font-medium text-gray-700">משתתף:</span> {/* Larger text */}
-                        <span className="text-base text-gray-900 font-semibold">{getUserDisplayName(report.participant_id)}</span> {/* Larger text */}
+                        <span className="text-base text-gray-900 font-semibold">{report.participant_name|| 'לא מוגדר'}</span> {/* Larger text */}
                       </div>
                     </div>
 
