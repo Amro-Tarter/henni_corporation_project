@@ -251,6 +251,14 @@ export default function NewsletterPage() {
         }
       }
 
+      // inside handleSubmit, after you check form fields and maybe upload image:
+      const authorId = user.associated_id ?? user.uid;
+      if (!authorId) {
+        toast.error("No valid authorId on user");
+        setSubmitting(false);
+        return;
+      }
+
       const newsData = {
         title: form.title,
         body: form.body,
@@ -260,10 +268,11 @@ export default function NewsletterPage() {
         createdAt: editMode ? selectedNews.createdAt : serverTimestamp(),
         updatedAt: serverTimestamp(),
         author: user.username || user.displayName || user.email || "מערכת",
-        authorId: user.associated_id,
+        authorId: user.associated_id || user.uid, // ← now defined
         authorElement: user.element || "",
         authorLocation: user.location || ""
       };
+
 
       if (editMode && selectedNews) {
         // Delete old image if it's being replaced

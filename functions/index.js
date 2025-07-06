@@ -4,6 +4,7 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentUpdated } = require("firebase-functions/v2/firestore"); // Use onDocumentUpdated for onUpdate equivalent
 
+const functions = require('firebase-functions');
 const admin = require('firebase-admin'); // Firebase Admin SDK
 const nodemailer = require('nodemailer'); // For sendRequestNotification (currently commented out)
 
@@ -227,3 +228,45 @@ exports.cascadeDeleteUserCallable = onCall(
         throw new HttpsError('internal', 'Failed to perform cascade deletion.', error.message);
     }
 });
+
+
+// Configure your Gmail credentials
+const GMAIL_USER = 'laithmimi03@gmail.com';
+const GMAIL_PASS = 'phpe mgty mtwn jvrc'; // Use an App Password, not your main password!
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: GMAIL_USER,
+    pass: GMAIL_PASS,
+  },
+});
+
+exports.sendNewsletterOnCreate = functions.firestore
+  .document('newsletters/{newsletterId}')
+  .onCreate(async (snap, context) => {
+    const newsletter = snap.data();
+
+    // Get all subscriber emails
+    const subscribersSnapshot = await admin.firestore().collection('newsletterSubscribers').get();
+    const emails = subscribersSnapshot.docs.map(doc => doc.data().email);
+
+    if (!emails.length) return null;
+
+    // Prepare email
+    const mailOptions = {
+      from: `"Henni" <${GMAIL_USER}>`,
+      bcc: emails, // Use BCC to hide emails from each other
+      subject: newsletter.title,
+      html: newsletter.body,
+    };
+
+    // Send email
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log('Newsletter sent to:', emails.length, 'subscribers');
+    } catch (error) {
+      console.error('Error sending newsletter:', error);
+    }
+    return null;
+  });
