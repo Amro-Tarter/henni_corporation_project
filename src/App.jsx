@@ -43,7 +43,6 @@ import NewsletterPage from './pages/NewsletterPage';
 import ArtSkillsPage from './pages/ArtSkillsPage';
 import Staff from './pages/admin/Staff';  
 import ContactMessages from './pages/admin/ContactMessages'; 
-import EmailVerificationPending from './pages/EmailVerificationPending'; 
 
 
 const queryClient = new QueryClient();
@@ -108,7 +107,6 @@ const App = () => {
                   <Route path="/team" element={<Team />} />
                   <Route path="/newsletter" element={<NewsletterPage />} />
                   <Route path="/artSkills" element={<ArtSkillsPage />} />
-                  <Route path="/verify-email-pending" element={<EmailVerificationPending />} />
                   <Route path="/invite-collaboration" element={<InviteCollaborationPage />} />
                   <Route path="/goals" element={<GoalsPage />} />
                   <Route path="/vision" element={<VisionPage />} />

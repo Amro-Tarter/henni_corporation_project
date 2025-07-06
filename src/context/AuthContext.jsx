@@ -10,9 +10,10 @@ import {
 import {
   doc,
   getDoc,
+  setDoc,
   updateDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
-import { useNavigate } from 'react-router-dom';
 import { auth, db } from '@/config/firbaseConfig';
 
 const AuthContext = createContext();
@@ -23,16 +24,19 @@ export const useAuth = () => useContext(AuthContext);
 /* ------------------------------------------------------------------ */
 
 const insistOnVerified = async (user) => {
+  await user.reload();
+
   if (user.emailVerified) return;
 
   // Throttle email sends to once per minute
   if (!user._lastV || Date.now() - user._lastV > 60_000) {
     await sendEmailVerification(user, {
-      url: `${window.location.origin}/verify-email`,
+      url: `${window.location.origin}/`, // ✅ Redirect to homepage after verify
       handleCodeInApp: true,
     });
     user._lastV = Date.now();
   }
+
   throw new Error('אשר את המייל לפני שממשיכים (בדוק את תיבת הדואר הנכנס).');
 };
 
@@ -48,20 +52,29 @@ const login = async (email, password) => {
 
 const signup = async (email, password) => {
   const { user } = await createUserWithEmailAndPassword(auth, email, password);
+
   await sendEmailVerification(user, {
-    url: `${window.location.origin}/verify-email`,
+    url: `${window.location.origin}/`, // ✅ Redirect to homepage after verify
     handleCodeInApp: true,
   });
+
+  const userRef = doc(db, 'users', user.uid);
+  await setDoc(userRef, {
+    email: user.email,
+    is_email_verified: false,
+    createdAt: serverTimestamp(),
+    // Add other fields like username, role, etc. if needed
+  });
+
   return user;
 };
 
 const logout = () => signOut(auth);
 const resetPassword = (email) => sendPasswordResetEmail(auth, email);
-
 const resendVerification = () => {
   if (!auth.currentUser) throw new Error('לא מחובר.');
   return sendEmailVerification(auth.currentUser, {
-    url: `${window.location.origin}/verify-email`,
+    url: `${window.location.origin}/`, // ✅ Redirect to homepage after verify
     handleCodeInApp: true,
   });
 };
@@ -83,13 +96,13 @@ export const AuthProvider = ({ children }) => {
         const snap = await getDoc(userRef);
         const data = snap.exists() ? snap.data() : {};
 
-        // Update Firestore if email is now verified
+        // Update Firestore if Firebase email is verified but field is not
         if (user.emailVerified && data.is_email_verified === false) {
           try {
             await updateDoc(userRef, { is_email_verified: true });
-            console.log('Firestore: is_email_verified updated to true');
+            console.log('✅ Firestore: is_email_verified updated');
           } catch (err) {
-            console.error('Failed to update is_email_verified in Firestore:', err);
+            console.error('❌ Failed to update is_email_verified:', err);
           }
         }
 
@@ -120,12 +133,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && (
-        <>
-          <RedirectAfterVerification currentUser={currentUser} />
-          {children}
-        </>
-      )}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
