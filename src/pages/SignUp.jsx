@@ -344,6 +344,22 @@ function Signup() {
                         />
                     </div>
 
+                        {/* Role Selection */}
+                        <div className="flex flex-col col-span-1 md:col-span-2">
+                        <label className="mb-1 text-sm font-medium text-gray-700">בחר/י את תפקידך בעמותה</label>
+                        <select
+                            required
+                            value={selectedRole}
+                            onChange={(e) => setSelectedRole(e.target.value)}
+                            className={selectStyle}
+                        >
+                            <option value="">בחר/י תפקיד</option>
+                            <option value="participant">משתתף</option>
+                            <option value="mentor">מנטור</option>
+                            <option value="other">אחר</option>
+                        </select>
+                        </div>
+
                     {/* Submit Button */}
                     <div className="col-span-1 md:col-span-2 ">
                         <button
@@ -360,23 +376,6 @@ function Signup() {
                             <span className="shine" />
                         </button>
                     </div>
-
-
-                        {/* Role Selection */}
-                        <div className="flex flex-col col-span-1 md:col-span-2">
-                        <label className="mb-1 text-sm font-medium text-gray-700">בחר/י את תפקידך בעמותה</label>
-                        <select
-                            required
-                            value={selectedRole}
-                            onChange={(e) => setSelectedRole(e.target.value)}
-                            className={selectStyle}
-                        >
-                            <option value="">בחר/י תפקיד</option>
-                            <option value="participant">משתתף</option>
-                            <option value="mentor">מנטור</option>
-                            <option value="other">אחר</option>
-                        </select>
-                        </div>
                         
                         <VerificationModal
                             isOpen={showVerificationModal}

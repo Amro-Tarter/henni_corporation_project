@@ -9,10 +9,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faBuilding, faUser, faEnvelope, faPhone, faMapMarkerAlt, faCalendarAlt,
   faHandshake, faTag, faGlobe, faImage, faInfoCircle, faPlus, faTimes,
-  faEdit, faTrash // Added Edit and Trash icons
+  faEdit, faTrash , faCloudUploadAlt
 } from '@fortawesome/free-solid-svg-icons';
 import ElementalLoader from '../../theme/ElementalLoader'
-
 
 // Reusable Modal Component
 const Modal = ({ children, onClose, title }) => { // Added title prop
@@ -68,7 +67,7 @@ const DeleteConfirmationModal = ({ onClose, onConfirm, partnerName }) => {
 
 function Partners() {
   const navigate = useNavigate();
-
+  const [selectedLogoFile, setSelectedLogoFile] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -98,6 +97,16 @@ function Partners() {
   // Tailwind CSS input/textarea style for consistency
   const inputStyle = "appearance-none rounded-md w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right shadow-sm pr-10";
   const textareaStyle = "appearance-none rounded-md w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-right h-24 shadow-sm";
+
+  
+
+  const handleLogoFileChange = (e) => {
+    if (e.target.files[0]) {
+      setSelectedLogoFile(e.target.files[0]);
+    } else {
+      setSelectedLogoFile(null);
+    }
+  };
 
   // Helper to reset form fields
   const resetFormFields = useCallback(() => {
@@ -157,6 +166,7 @@ function Partners() {
     }
   }, []);
 
+  
   // Handles the submission of the Add Partner form
   const handleAddPartner = async (e) => {
     e.preventDefault();
@@ -201,6 +211,7 @@ function Partners() {
       toast.error("אירעה שגיאה בהוספת השותף. אנא נסה שנית.");
     }
   };
+
 
   // Handles clicking the edit icon
   const handleEditClick = (partner) => {
@@ -321,196 +332,203 @@ function Partners() {
 
     {/* Add Partner Modal */}
     {showAddPartnerForm && (
-      <Modal onClose={() => setShowAddPartnerForm(false)} title="טופס הוספת שותף">
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6" onSubmit={handleAddPartner}> {/* Adjusted gap */}
-          {/* Partner Name */}
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">שם הארגון/שותף</label>
-            <div className="relative">
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="שם הארגון/שותף *"
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faBuilding} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
+     <Modal onClose={() => setShowAddPartnerForm(false)} title="טופס הוספת שותף">
+  <form className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6" onSubmit={handleAddPartner}>
+    {/* Partner Name */}
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">שם הארגון/שותף</label>
+      <div className="relative">
+        <input
+          type="text"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="שם הארגון/שותף *"
+          className={inputStyle}
+        />
+        <FontAwesomeIcon icon={faBuilding} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
 
-          {/* Contact Person */}
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">איש קשר</label>
-            <div className="relative">
-              <input
-                type="text"
-                required
-                value={contactPerson}
-                onChange={(e) => setContactPerson(e.target.value)}
-                placeholder="שם איש קשר *"
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faUser} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">אימייל איש קשר</label>
-            <div className="relative">
-              <input
-                type="email"
-                required
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder="אימייל איש קשר *"
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faEnvelope} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">טלפון איש קשר</label>
-            <div className="relative">
-              <input
-                type="tel"
-                value={contactPhone}
-                onChange={(e) => setContactPhone(e.target.value)}
-                placeholder="טלפון איש קשר"
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faPhone} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">כתובת</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="כתובת"
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faMapMarkerAlt} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
+    {/* Contact Person */}
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">איש קשר</label>
+      <div className="relative">
+        <input
+          type="text"
+          required
+          value={contactPerson}
+          onChange={(e) => setContactPerson(e.target.value)}
+          placeholder="שם איש קשר *"
+          className={inputStyle}
+        />
+        <FontAwesomeIcon icon={faUser} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">אימייל איש קשר</label>
+      <div className="relative">
+        <input
+          type="email"
+          required
+          value={contactEmail}
+          onChange={(e) => setContactEmail(e.target.value)}
+          placeholder="אימייל איש קשר *"
+          className={inputStyle}
+        />
+        <FontAwesomeIcon icon={faEnvelope} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">טלפון איש קשר</label>
+      <div className="relative">
+        <input
+          type="tel"
+          value={contactPhone}
+          onChange={(e) => setContactPhone(e.target.value)}
+          placeholder="טלפון איש קשר"
+          className={inputStyle}
+        />
+        <FontAwesomeIcon icon={faPhone} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">כתובת</label>
+      <div className="relative">
+        <input
+          type="text"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="כתובת"
+          className={inputStyle}
+        />
+        <FontAwesomeIcon icon={faMapMarkerAlt} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
 
-          {/* Partnership Details */}
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">תאריך תחילת שותפות</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={partnershipStart}
-                onChange={(e) => setPartnershipStart(e.target.value)}
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faCalendarAlt} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">תאריך סיום שותפות</label>
-            <div className="relative">
-              <input
-                type="date"
-                value={partnershipEnd}
-                onChange={(e) => setPartnershipEnd(e.target.value)}
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faCalendarAlt} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">סטטוס</label>
-            <div className="relative">
-              <select
-                required
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className={inputStyle}
-              >
-                <option value="active">פעיל</option>
-                <option value="inactive">לא פעיל</option>
-                <option value="pending">ממתין</option>
-              </select>
-              <FontAwesomeIcon icon={faInfoCircle} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">סוג ארגון</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={organizationType}
-                onChange={(e) => setOrganizationType(e.target.value)}
-                placeholder="לדוגמא: עמותה, חברה, מוסד חינוכי"
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faTag} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">סוג תרומה/שיתוף פעולה</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={contributionType}
-                onChange={(e) => setContributionType(e.target.value)}
-                placeholder="לדוגמא: תמיכה כספית, מתנדבים, ציוד"
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faHandshake} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">אתר אינטרנט</label>
-            <div className="relative">
-              <input
-                type="url"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                placeholder="כתובת אתר אינטרנט (URL)"
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faGlobe} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-          <div className="relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">לוגו (URL)</label>
-            <div className="relative">
-              <input
-                type="url"
-                value={logo}
-                onChange={(e) => setLogo(e.target.value)}
-                placeholder="כתובת URL ללוגו"
-                className={inputStyle}
-              />
-              <FontAwesomeIcon icon={faImage} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
+    {/* Partnership Details */}
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">תאריך תחילת שותפות</label>
+      <div className="relative">
+        <input
+          type="date"
+          value={partnershipStart}
+          onChange={(e) => setPartnershipStart(e.target.value)}
+          className={inputStyle}
+        />
+        <FontAwesomeIcon icon={faCalendarAlt} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">תאריך סיום שותפות</label>
+      <div className="relative">
+        <input
+          type="date"
+          value={partnershipEnd}
+          onChange={(e) => setPartnershipEnd(e.target.value)}
+          className={inputStyle}
+        />
+        <FontAwesomeIcon icon={faCalendarAlt} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">סטטוס</label>
+      <div className="relative">
+        <select
+          required
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className={inputStyle}
+        >
+          <option value="active">פעיל</option>
+          <option value="inactive">לא פעיל</option>
+          <option value="pending">ממתין</option>
+        </select>
+        <FontAwesomeIcon icon={faInfoCircle} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">סוג ארגון</label>
+      <div className="relative">
+        <input
+          type="text"
+          value={organizationType}
+          onChange={(e) => setOrganizationType(e.target.value)}
+          placeholder="לדוגמא: עמותה, חברה, מוסד חינוכי"
+          className={inputStyle}
+        />
+        <FontAwesomeIcon icon={faTag} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">סוג תרומה/שיתוף פעולה</label>
+      <div className="relative">
+        <input
+          type="text"
+          value={contributionType}
+          onChange={(e) => setContributionType(e.target.value)}
+          placeholder="לדוגמא: תמיכה כספית, מתנדבים, ציוד"
+          className={inputStyle}
+        />
+        <FontAwesomeIcon icon={faHandshake} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">אתר אינטרנט</label>
+      <div className="relative">
+        <input
+          type="url"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+          placeholder="כתובת אתר אינטרנט (URL)"
+          className={inputStyle}
+        />
+        <FontAwesomeIcon icon={faGlobe} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+      </div>
+    </div>
 
-          {/* Description */}
-          <div className="md:col-span-2 relative flex flex-col">
-            <label className="mb-1 text-sm font-medium text-gray-700">תיאור השותפות</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="תיאור מפורט של השותפות והפעילות המשותפת"
-              className={textareaStyle}
-            ></textarea>
-          </div>
+    {/* New: Logo File Input */}
+    <div className="relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">לוגו (קובץ)</label>
+      <div className="relative border-2 border-dashed border-gray-300 rounded-md p-4 text-center cursor-pointer hover:border-indigo-500 transition-colors duration-200">
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleLogoFileChange} 
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+        {selectedLogoFile ? (
+          <p className="text-sm text-gray-600">קובץ נבחר: {selectedLogoFile.name}</p>
+        ) : (
+          <p className="text-sm text-gray-500">גרור ושחרר קובץ לכאן, או לחץ לבחירה</p>
+        )}
+        <FontAwesomeIcon icon={faCloudUploadAlt} className="mt-2 text-indigo-500 text-3xl" />
+      </div>
+    </div>
 
-          {/* Submit Button */}
-          <div className="col-span-1 md:col-span-2 mt-4 md:mt-6"> {/* Adjusted margin-top for smaller screens */}
-            <button
-              type="submit"
-              className="w-full py-2 sm:py-3 px-3 sm:px-4 rounded-md font-medium text-white text-base sm:text-lg bg-indigo-600 hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md" 
-            >
-              הוסף שותף
-            </button>
-          </div>
-        </form>
-      </Modal>
+
+    {/* Description */}
+    <div className="md:col-span-2 relative flex flex-col">
+      <label className="mb-1 text-sm font-medium text-gray-700">תיאור השותפות</label>
+      <textarea
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        placeholder="תיאור מפורט של השותפות והפעילות המשותפת"
+        className={textareaStyle}
+      ></textarea>
+    </div>
+
+    {/* Submit Button */}
+    <div className="col-span-1 md:col-span-2 mt-4 md:mt-6">
+      <button
+        type="submit"
+        className="w-full py-2 sm:py-3 px-3 sm:px-4 rounded-md font-medium text-white text-base sm:text-lg bg-indigo-600 hover:bg-indigo-700 transition duration-300 ease-in-out shadow-md"
+      >
+        הוסף שותף
+      </button>
+    </div>
+  </form>
+</Modal>
     )}
 
     {/* Edit Partner Modal */}
