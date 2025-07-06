@@ -7,24 +7,28 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
 } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  updateDoc,
+} from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from '@/config/firbaseConfig';
 
 const AuthContext = createContext();
 export const useAuth = () => useContext(AuthContext);
 
 /* ------------------------------------------------------------------ */
-/* helpers                                                            */
+/* Helpers                                                            */
 /* ------------------------------------------------------------------ */
 
-// send another email (throttled) and block the flow until verified
 const insistOnVerified = async (user) => {
   if (user.emailVerified) return;
 
-  // spam-guard: 1 min between resends
+  // Throttle email sends to once per minute
   if (!user._lastV || Date.now() - user._lastV > 60_000) {
     await sendEmailVerification(user, {
-      url: `${window.location.origin}/verify-email`, // handle link here
+      url: `${window.location.origin}/verify-email`,
       handleCodeInApp: true,
     });
     user._lastV = Date.now();
@@ -33,12 +37,12 @@ const insistOnVerified = async (user) => {
 };
 
 /* ------------------------------------------------------------------ */
-/* auth functions                                                     */
+/* Auth Actions                                                       */
 /* ------------------------------------------------------------------ */
 
 const login = async (email, password) => {
   const { user } = await signInWithEmailAndPassword(auth, email, password);
-  await insistOnVerified(user); // block unverified login
+  await insistOnVerified(user);
   return user;
 };
 
@@ -63,7 +67,7 @@ const resendVerification = () => {
 };
 
 /* ------------------------------------------------------------------ */
-/* provider                                                           */
+/* Provider                                                           */
 /* ------------------------------------------------------------------ */
 
 export const AuthProvider = ({ children }) => {
@@ -73,13 +77,13 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        await user.reload(); // pull fresh emailVerified flag
+        await user.reload();
 
         const userRef = doc(db, 'users', user.uid);
         const snap = await getDoc(userRef);
         const data = snap.exists() ? snap.data() : {};
 
-        // If email is now verified but Firestore field is still false → update it
+        // Update Firestore if email is now verified
         if (user.emailVerified && data.is_email_verified === false) {
           try {
             await updateDoc(userRef, { is_email_verified: true });
@@ -116,7 +120,12 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {!loading && (
+        <>
+          <RedirectAfterVerification currentUser={currentUser} />
+          {children}
+        </>
+      )}
     </AuthContext.Provider>
   );
 };
