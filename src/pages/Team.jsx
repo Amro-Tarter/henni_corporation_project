@@ -33,7 +33,7 @@ function useStaffMembers(searchQuery = "") {
         // Define the usernames to exclude (case-insensitive)
         const excludedUsernames = [
           "עליזה עמיר",
-          "ענת בר ושדי",
+          "דקלה בר",
           "ענת זגרון בוג'יו"
         ].map(name => name.toLowerCase());
 
@@ -267,26 +267,6 @@ export default function Team() {
                 />
               )}
             </motion.section>
-
-            {/* Call To Action */}
-            <motion.div
-              className="mt-32 text-center py-12 bg-gradient-to-r from-blue-100/50 via-white/60 to-purple-100/60 rounded-3xl shadow-2xl backdrop-blur-md border border-element/10"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.7 }}
-              transition={{ delay: 0.3 }}
-            >
-              <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-purple-500 bg-clip-text text-transparent mb-4">
-                רוצים להצטרף לצוות שלנו?
-              </h3>
-              <p className="mb-8 text-gray-700">בואו להיות חלק מהעשייה. לחצו מטה להשארת פרטים או לפנייה ישירה.</p>
-              <a
-                href="/contact"
-                className="inline-block px-8 py-3 rounded-full bg-gradient-to-r from-blue-600 to-purple-500 text-white font-bold shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all text-lg"
-              >
-                השאר פרטים
-              </a>
-            </motion.div>
           </div>
         </div>
       </Layout>
