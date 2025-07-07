@@ -534,18 +534,48 @@ export default function ChatApp() {
         createdAt: doc.data().createdAt?.toDate() 
       }));
 
+      // --- NEW: Check and update senderName for all messages if needed ---
+      const senderUids = Array.from(new Set(msgs.map(m => m.sender).filter(Boolean)));
+      // Fetch all usernames for senders
+      const uidToUsername = {};
+      await Promise.all(senderUids.map(async (uid) => {
+        try {
+          const userDoc = await getDoc(doc(db, "users", uid));
+          if (userDoc.exists()) {
+            uidToUsername[uid] = userDoc.data().username;
+          }
+        } catch (e) {
+          // fallback: don't update
+        }
+      }));
+      // For each message, if senderName is wrong, update it in Firestore
+      await Promise.all(msgs.map(async (msg) => {
+        if (!msg.sender) return;
+        const correctName = uidToUsername[msg.sender];
+        if (correctName && msg.senderName !== correctName) {
+          try {
+            await updateDoc(doc(db, "conversations", selectedConversation.id, "messages", msg.id), {
+              senderName: correctName
+            });
+          } catch (e) {
+            // ignore update errors
+          }
+        }
+      }));
+      // --- END NEW ---
+
       setMessages(msgs);
       setIsLoadingMessages(false);
       // Build a set of unique sender UIDs (including currentUser)
-      const senderUids = new Set(msgs.map(m => m.sender).filter(Boolean));
-      if (currentUser.uid) senderUids.add(currentUser.uid);
+      const senderUidsSet = new Set(msgs.map(m => m.sender).filter(Boolean));
+      if (currentUser.uid) senderUidsSet.add(currentUser.uid);
       // Add all participants for group/community chats
       if (selectedConversation.participants) {
-        selectedConversation.participants.filter(Boolean).forEach(uid => senderUids.add(uid));
+        selectedConversation.participants.filter(Boolean).forEach(uid => senderUidsSet.add(uid));
       }
       // Fetch avatars for all senders and participants
       const avatarEntries = await Promise.all(
-        Array.from(senderUids)
+        Array.from(senderUidsSet)
           .filter(Boolean)
           .map(async uid => [uid, await fetchUserAvatar(uid)])
       );
@@ -1060,6 +1090,44 @@ export default function ChatApp() {
               return b.createdAt.toDate() - a.createdAt.toDate();
             });
           }
+          // --- NEW: Check and update senderName and recipientName for all inquiries if needed ---
+          const senderUids = Array.from(new Set(docs.map(i => i.sender).filter(Boolean)));
+          const recipientUids = Array.from(new Set(docs.map(i => i.recipient).filter(Boolean)));
+          const allUids = Array.from(new Set([...senderUids, ...recipientUids]));
+          const uidToUsername = {};
+          await Promise.all(allUids.map(async (uid) => {
+            try {
+              const userDoc = await getDoc(doc(db, "users", uid));
+              if (userDoc.exists()) {
+                uidToUsername[uid] = userDoc.data().username;
+              }
+            } catch (e) {
+              // fallback: don't update
+            }
+          }));
+          await Promise.all(docs.map(async (inq) => {
+            let updateObj = {};
+            if (inq.sender) {
+              const correctSenderName = uidToUsername[inq.sender];
+              if (correctSenderName && inq.senderName !== correctSenderName) {
+                updateObj.senderName = correctSenderName;
+              }
+            }
+            if (inq.recipient) {
+              const correctRecipientName = uidToUsername[inq.recipient];
+              if (correctRecipientName && inq.recipientName !== correctRecipientName) {
+                updateObj.recipientName = correctRecipientName;
+              }
+            }
+            if (Object.keys(updateObj).length > 0) {
+              try {
+                await updateDoc(doc(db, "system_of_inquiries", inq.id), updateObj);
+              } catch (e) {
+                // ignore update errors
+              }
+            }
+          }));
+          // --- END NEW ---
           setInquiries(docs);
         } catch (err) {
           setInquiries([]);
