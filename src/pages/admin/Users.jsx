@@ -55,55 +55,6 @@ const getElementConfig = (elementKey) => {
   return ELEMENTS.find(el => el.key === elementKey) || ELEMENTS[0];
 };
 
-const handleSaveUser = async (uid, formData) => {
-  const {
-    username,
-    email,
-    element,
-    location,
-    role,
-    displayName,
-    bio,
-    photoURL,
-    mentors,
-  } = formData;
-
-  // Prepare references
-  const userRef = doc(db, 'users', uid);
-  const profileRef = doc(db, 'profiles', uid);
-
-  // Update users/{uid}
-  await updateDoc(userRef, {
-    username,
-    email,
-    element,
-    location,
-    role,
-    mentors: mentors || [],
-  });
-
-  // Check if profile exists
-  const profileSnap = await getDoc(profileRef);
-
-  if (profileSnap.exists()) {
-    // Update existing profile
-    await updateDoc(profileRef, {
-      username,
-      displayName,
-      bio,
-      photoURL,
-    });
-  } else {
-    // Create new profile if missing
-    await setDoc(profileRef, {
-      username,
-      displayName,
-      bio,
-      photoURL,
-      createdAt: new Date(),
-    });
-  }
-};
 
 // Enhanced Edit User Modal
 const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
@@ -189,15 +140,7 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">שם תצוגה</label>
-                <input
-                  type="text"
-                  value={formData.displayName}
-                  onChange={(e) => setFormData({...formData, displayName: e.target.value})}
-                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                />
-              </div>
+              
             </div>
           </div>
 
@@ -770,7 +713,7 @@ const UserManagement = () => {
 
       // Update or create profile document
       await setDoc(profileRef, {
-        displayName: formData.displayName || formData.username,
+        username: formData.username,
         bio: formData.bio || '',
         photoURL: formData.photoURL || '',
         updatedAt: new Date()
