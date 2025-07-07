@@ -46,7 +46,7 @@ const GoalsPage = () => {
             <div className="bg-white rounded-3xl shadow-lg p-6 md:p-8 border border-yellow-200 flex flex-col items-center text-center transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
               <Sparkles className="w-16 h-16 text-yellow-600 mb-6 drop-shadow-md" />
               <h3 className="text-2xl md:text-3xl font-extrabold text-yellow-800 mb-4">
-                שילוב ייחודי: חינוך ואמנות
+                שילוב ייחודי - חינוך ואמנות
               </h3>
               <p className="text-gray-700 text-lg leading-relaxed">
                 אנו משלבים בין חינוך לאמנות, בין עומק רגשי לפרקטיקה מנהיגותית – בגישה חדשנית הנקראת מנהיגות דיאלוגית:
@@ -73,7 +73,7 @@ const GoalsPage = () => {
               <Handshake className="w-20 h-20 text-blue-600 flex-shrink-0 drop-shadow-md" />
               <div className="text-center md:text-right">
                 <h3 className="text-2xl md:text-3xl font-extrabold text-blue-800 mb-4">
-                  מערך תמיכה מקיף: מנטור אישי וליווי משפחתי
+                  מערך תמיכה מקיף - מנטור אישי וליווי משפחתי
                 </h3>
                 <p className="text-gray-700 text-lg leading-relaxed">
                   לכל משתתף ומשתתפת בתוכניותינו מוצמד מנטור אישי המלווה אותו צעד אחר צעד, והמשפחה כולה זוכה לליווי ותמיכה –
@@ -89,7 +89,7 @@ const GoalsPage = () => {
               <MapPin className="w-20 h-20 text-orange-600 flex-shrink-0 drop-shadow-md" />
               <div className="text-center md:text-right">
                 <h3 className="text-2xl md:text-3xl font-extrabold text-orange-800 mb-4">
-                  אנו חלוצים בתחום: גישה שאין כדוגמתה
+                  אנו חלוצים בתחום - גישה שאין כדוגמתה
                 </h3>
                 <p className="text-gray-700 text-lg leading-relaxed">
                   אין עוד גוף בארץ או בעולם שפועל בגילאים אלו (נוער),

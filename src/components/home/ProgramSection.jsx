@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Paintbrush, Music, Move3D, Pen, ChevronDown } from "lucide-react";
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMasksTheater } from '@fortawesome/free-solid-svg-icons';
-
+import {  ChevronDown } from "lucide-react";
+import { db } from "../../config/firbaseConfig"; 
+import { collection, getDocs} from "firebase/firestore";
 // Color utilities
 const colorMap = {
   red: "#DC2626", blue: "#2563EB", orange: "#EA580C",
@@ -142,7 +142,7 @@ const YearTabContent = ({ icon, title, description, features }) => {
 };
 
 // Flip Card Component
-const FlipCard = ({ title, description, icon, color, gradient, index }) => (
+const FlipCard = ({ title, description, imageUrl, color, gradient, index }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
@@ -152,17 +152,40 @@ const FlipCard = ({ title, description, icon, color, gradient, index }) => (
   >
     <div className="relative w-full h-48 md:h-56 transform transition-transform duration-700 preserve-3d group-hover:rotate-y-180">
       {/* Front Side */}
-      <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 backface-hidden ${color} border border-white/20`}>
-        <h4 className="mb-3 p-3 rounded-full bg-white/20 backdrop-blur-sm">
-          {icon}
-        </h4>
+      <div
+        className={`absolute inset-0 flex flex-col items-center justify-center rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 backface-hidden ${color} border border-white/20`}
+      >
+        <div className="mb-3 w-40 aspect-square rounded-2xl overflow-hidden backdrop-blur-sm">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-white/20 flex items-center justify-center">
+              <span className="text-gray-800 font-semibold">?</span>
+            </div>
+          )}
+        </div>
         <h4 className="text-base md:text-lg font-bold text-center leading-tight">
           {title}
         </h4>
       </div>
 
       {/* Back Side */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} text-white text-center flex items-center justify-center rounded-2xl p-4 backface-hidden rotate-y-180 shadow-lg`}>
+      <div
+        className={`absolute inset-0 bg-gradient-to-br ${gradient} text-white text-center flex flex-col items-center justify-center rounded-2xl p-4 backface-hidden rotate-y-180 shadow-lg`}
+      >
+        {imageUrl && (
+          <div className="mb-2 w-40 aspect-square rounded-2xl overflow-hidden opacity-80">
+            <img
+              src={imageUrl}
+              alt={title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
         <p className="text-xs md:text-sm leading-relaxed" dir="rtl">
           {description}
         </p>
@@ -170,6 +193,7 @@ const FlipCard = ({ title, description, icon, color, gradient, index }) => (
     </div>
   </motion.div>
 );
+
 
 // Main Tabs Component
 const YearTabs = ({ years }) => (
@@ -198,13 +222,41 @@ const YearTabs = ({ years }) => (
 );
 
 // Art Skills Grid Component
-const ArtSkillsGrid = ({ skills }) => (
-  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-    {skills.map((skill, index) => (
-      <FlipCard key={index} {...skill} index={index} />
-    ))}
-  </div>
-);
+const ArtSkillsGrid = () => {
+  const [skills, setSkills] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'artSkills'));
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setSkills(docs);
+      } catch (err) {
+        console.error('Error fetching art skills:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSkills();
+  }, []);
+
+  if (loading) {
+    return <p className="text-center py-4">טוען כישורי אמנות…</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      {skills.slice(0, 5).map((skill, idx) => (
+        <FlipCard
+          key={skill.id}
+          {...skill}   
+          index={idx}
+        />
+      ))}
+    </div>
+  );
+};
 
 // Data
 const years = [
@@ -254,50 +306,9 @@ const years = [
   },
 ];
 
-const TheaterIcon = (props) => (
-  <FontAwesomeIcon icon={faMasksTheater} {...props} />
-);
 
-const artSkills = [
-  {
-    title: "אמנות פלסטית",
-    description: "חשיבה יצירתית וחדשנית המאפשרת פתרון בעיות בדרכים לא שגרתיות",
-    icon: <Paintbrush className="w-6 h-6 md:w-7 md:h-7" />,
-    color: "bg-green-100 text-green-800",
-    gradient: "from-green-400 to-emerald-500",
-  },
-  {
-    title: "מוזיקה",
-    description: "הקשבה עמוקה, שיתוף פעולה הרמוני והובלת קבוצות במטרה ליצור יצירות משותפות",
-    icon: <Music className="w-6 h-6 md:w-7 md:h-7" />,
-    color: "bg-blue-100 text-blue-800",
-    gradient: "from-blue-400 to-indigo-500",
-  },
-  {
-    title: "תיאטרון",
-    description: "ביטחון עצמי, תקשורת אפקטיבית ומנהיגות רגשית המאפשרת השפעה והשראה",
-    icon: <TheaterIcon className="w-6 h-6 md:w-7 md:h-7" />,
-    color: "bg-purple-100 text-purple-800",
-    gradient: "from-purple-400 to-pink-500",
-  },
-  {
-    title: "מחול",
-    description: "משמעת אישית, התמדה ודוגמה אישית המחזקת כושר גופני ומנטלי",
-    icon: <Move3D className="w-6 h-6 md:w-7 md:h-7" />,
-    color: "bg-sky-100 text-sky-800",
-    gradient: "from-sky-400 to-cyan-500",
-  },
-  {
-    title: "כתיבה יוצרת",
-    description: "פיתוח קול אישי והשפעה תרבותית דרך יכולת ביטוי מילולי מדויק",
-    icon: <Pen className="w-6 h-6 md:w-7 md:h-7" />,
-    color: "bg-orange-100 text-orange-800",
-    gradient: "from-orange-400 to-red-500",
-  },
-];
-
-// Main Component
 const ProgramSection = () => {
+  const navigate = useNavigate();
   return (
     <section
       className="py-10 md:py-14 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative"
@@ -323,11 +334,14 @@ const ProgramSection = () => {
           />
 
           <div dir="rtl">
-            <ArtSkillsGrid skills={artSkills} />
+            <ArtSkillsGrid />
           </div>
           
           <div className="mt-8 text-center">
-            <button className="bg-white text-orange-600 hover:bg-orange-50 transition-colors px-8 py-3 rounded-lg font-medium">
+            <button
+              className="bg-white text-orange-600 hover:bg-orange-50 transition-colors px-8 py-3 rounded-lg font-medium"
+              onClick={() => navigate('/artSkills')}
+            >
               לראות עוד
             </button>
           </div>
@@ -349,7 +363,8 @@ const ProgramSection = () => {
         </div>
       </div>
 
-      <style>{`
+      <style>
+        {`
         .perspective {
           perspective: 1000px;
         }
@@ -362,7 +377,8 @@ const ProgramSection = () => {
         .rotate-y-180 {
           transform: rotateY(180deg);
         }
-      `}</style>
+      `}
+      </style>
     </section>
   );
 };

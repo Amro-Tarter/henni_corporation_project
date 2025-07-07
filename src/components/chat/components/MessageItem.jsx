@@ -183,6 +183,7 @@ const MessageItem = ({
 
   // Fetch usernames for all participants in the selected chat
   useEffect(() => {
+    
     if (selectedConversation && Array.isArray(selectedConversation.participants)) {
       const idsToFetch = selectedConversation.participants.filter(id => !usernames[id]);
       if (idsToFetch.length === 0) return;
