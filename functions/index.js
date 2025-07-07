@@ -231,8 +231,8 @@ exports.cascadeDeleteUserCallable = onCall(
 
 
 // Configure your Gmail credentials
-const GMAIL_USER = 'laithmimi03@gmail.com';
-const GMAIL_PASS = 'phpe mgty mtwn jvrc'; // Use an App Password, not your main password!
+const GMAIL_USER = 'boggio3@gmail.com';
+const GMAIL_PASS = 'uxbg btgbm qfii illm'; // Use an App Password, not your main password!
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
