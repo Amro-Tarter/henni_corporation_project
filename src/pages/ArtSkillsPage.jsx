@@ -24,10 +24,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage
 import { onAuthStateChanged } from "firebase/auth";
 import { motion } from "framer-motion";
 
-/* ---------- icon + colour helpers (ICONS will be removed/modified) ---------- */
-// We will remove ICONS as we are now using image uploads
-// You might keep it for fallback or if you still want a mixed approach.
-// For this solution, we'll focus on replacing icons entirely with images.
+/* ---------- icon + color helpers ---------- */
 
 const COLOR_SCHEMES = [
   {
@@ -282,8 +279,8 @@ const ArtSkillsPage = () => {
   /* -------- derived list -------- */
   const filteredSkills = skills.filter(
     (s) =>
-      s.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      s.description.toLowerCase().includes(searchTerm.toLowerCase())
+      s.title.toLowerCase() ||
+      s.description.toLowerCase()
   );
 
   /* -------- jsx -------- */
@@ -297,25 +294,6 @@ const ArtSkillsPage = () => {
             subtitle="גלה את העולם המדהים של יצירה אמנותית וחקור כישורים יחודיים"
             className="mb-10"
           />
-
-          {/* search - visible to all users */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            viewport={{ once: true }}
-            className="mt-8 max-w-md mx-auto relative"
-          >
-            <input
-              dir="rtl"
-              type="text"
-              placeholder="חפש כישור..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-3 pr-12 rounded-full border border-gray-300 text-gray-900 placeholder-gray-500 shadow-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all duration-200"
-            />
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          </motion.div>
         </header>
 
         <main className="max-w-7xl mx-auto px-6 pb-24">
@@ -353,7 +331,7 @@ const ArtSkillsPage = () => {
               {/* skills grid - visible to all users */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredSkills.map((skill, idx) => (
-                  <FlipCard
+                  <FlipCa
                     key={skill.id}
                     skill={skill}
                     index={idx}
@@ -580,12 +558,12 @@ const FlipCard = ({ skill, index, isAdmin, onEdit, onDelete }) => {
         <div
           className={`absolute inset-0 flex flex-col items-center justify-center rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-4 backface-hidden ${skill.color} border border-white/20`}
         >
-          <div className="mb-3 p-3 rounded-full bg-white/20 backdrop-blur-sm w-20 h-20 flex items-center justify-center overflow-hidden">
+          <div className="mb-3 backdrop-blur-sm w-40 h-40 flex items-center rounded-2xl justify-center overflow-hidden">
             {skill.imageUrl ? (
               <img
                 src={skill.imageUrl}
                 alt={skill.title}
-                className="w-full h-full object-cover rounded-full"
+                className="w-full h-full object-cover rounded-2xl"
                 style={{ objectFit: 'cover' }} // Ensure image covers the circular area
               />
             ) : (
@@ -606,7 +584,7 @@ const FlipCard = ({ skill, index, isAdmin, onEdit, onDelete }) => {
             <img
               src={skill.imageUrl}
               alt={skill.title}
-              className="w-12 h-12 mb-2 opacity-80 object-cover rounded-full"
+              className="w-40 h-40 mb-2 opacity-80 object-cover  rounded-2xl"
             />
           ) : (
             // Fallback for back side too

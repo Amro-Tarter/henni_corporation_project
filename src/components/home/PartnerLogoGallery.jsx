@@ -104,7 +104,8 @@ const PartnerLogoGallery = () => {
       </div>
 
       {/* Enhanced CSS animations */}
-      <style jsx>{`
+      <style>
+        {`
         @keyframes scroll {
           0% {
             transform: translateX(0);
@@ -145,7 +146,8 @@ const PartnerLogoGallery = () => {
             animation-duration: 60s;
           }
         }
-      `}</style>
+      `}
+      </style>
     </section>
   );
 };
