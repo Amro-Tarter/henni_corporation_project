@@ -753,7 +753,15 @@ const PendingUsersModal = ({ isOpen, onClose }) => {
                                          <motion.button
                                             whileHover={{ scale: 1.05 }}
                                             whileTap={{ scale: 0.95 }}
-                                            onClick={() => window.open(`/admin/submissions/${user.formId}`, '_blank')}
+                                            onClick={() => {
+                                                if (user.formId) {
+                                                // Open form submissions page
+                                                window.open(`/admin/submissions/${user.formId}`, '_blank');
+                                                } else {
+                                                // Show toast if no form submitted
+                                                toast.warning("לא נמצאה הגשה עבור המשתמש הזה");
+                                                }
+                                            }}
                                             className="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg shadow-md flex items-center justify-center gap-2 font-semibold transition"
                                         >
                                                 <FaFileAlt />                                            

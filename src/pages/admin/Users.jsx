@@ -55,6 +55,55 @@ const getElementConfig = (elementKey) => {
   return ELEMENTS.find(el => el.key === elementKey) || ELEMENTS[0];
 };
 
+const handleSaveUser = async (uid, formData) => {
+  const {
+    username,
+    email,
+    element,
+    location,
+    role,
+    displayName,
+    bio,
+    photoURL,
+    mentors,
+  } = formData;
+
+  // Prepare references
+  const userRef = doc(db, 'users', uid);
+  const profileRef = doc(db, 'profiles', uid);
+
+  // Update users/{uid}
+  await updateDoc(userRef, {
+    username,
+    email,
+    element,
+    location,
+    role,
+    mentors: mentors || [],
+  });
+
+  // Check if profile exists
+  const profileSnap = await getDoc(profileRef);
+
+  if (profileSnap.exists()) {
+    // Update existing profile
+    await updateDoc(profileRef, {
+      username,
+      displayName,
+      bio,
+      photoURL,
+    });
+  } else {
+    // Create new profile if missing
+    await setDoc(profileRef, {
+      username,
+      displayName,
+      bio,
+      photoURL,
+      createdAt: new Date(),
+    });
+  }
+};
 
 // Enhanced Edit User Modal
 const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
@@ -467,7 +516,7 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
         <div className="text-center space-y-4">
           <div>
             <h3 className="text-xl font-bold text-slate-800 dark:text-white truncate mb-2">
-              {user.profile?.displayName || user.username}
+              { user.username}
             </h3>     
           </div>
 
