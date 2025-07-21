@@ -123,7 +123,7 @@ const App = () => {
                   <Route path="/settings" element={<ProtectedRoute><PrivateSettings /></ProtectedRoute>} />
 
                   {/* Mentor Report Form */}
-                  <Route path="/report" element={<MentorReportForm />} />
+                  <Route path="/report" element={<ProtectedRoute><MentorReportForm /></ProtectedRoute>   } />
 
                   {/* Admin Pages */}
                   <Route path="/admin" element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />

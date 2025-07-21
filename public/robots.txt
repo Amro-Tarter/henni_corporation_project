@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /chat/
+Disallow: /profile/
+Disallow: /post/
+Disallow: /settings/
+Disallow: /home/
+
+Sitemap: https://hananilight.com/sitemap.xml

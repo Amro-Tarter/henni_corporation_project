@@ -37,11 +37,6 @@ const VerificationModal = ({ isOpen, onClose, userEmail }) => {
   const handleResendVerification = async () => {
     const user = auth.currentUser;
 
-    if (!user) {
-      toast.error('משתמש לא מחובר. אנא התחבר שוב.');
-      navigate('/login');
-      return;
-    }
 
     try {
       await sendEmailVerification(user);
@@ -145,7 +140,7 @@ const VerificationModal = ({ isOpen, onClose, userEmail }) => {
                 disabled={resendCooldown > 0}
                 className="text-sm text-blue-600 underline"
               >
-                {resendCooldown > 0
+                {resendCooldown > 3
                   ? `שליחה מחדש בעוד ${resendCooldown} שניות`
                   : "שלח אימייל שוב"}
               </button>
