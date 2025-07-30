@@ -140,15 +140,7 @@ const EditUserModal = ({ user, onClose, onSave, availableMentors }) => {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">שם תצוגה</label>
-                <input
-                  type="text"
-                  value={formData.displayName}
-                  onChange={(e) => setFormData({...formData, displayName: e.target.value})}
-                  className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
-                />
-              </div>
+              
             </div>
           </div>
 
@@ -467,7 +459,7 @@ const UserCard = React.memo(({ user, isAdmin, onEdit, onDelete, onView }) => {
         <div className="text-center space-y-4">
           <div>
             <h3 className="text-xl font-bold text-slate-800 dark:text-white truncate mb-2">
-              {user.profile?.displayName || user.username}
+              { user.username}
             </h3>     
           </div>
 
@@ -721,7 +713,7 @@ const UserManagement = () => {
 
       // Update or create profile document
       await setDoc(profileRef, {
-        displayName: formData.displayName || formData.username,
+        username: formData.username,
         bio: formData.bio || '',
         photoURL: formData.photoURL || '',
         updatedAt: new Date()
