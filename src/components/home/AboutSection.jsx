@@ -11,7 +11,7 @@ import {
   addDoc,
 } from 'firebase/firestore';
 import { db } from '@/config/firbaseConfig';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams  } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   HandHeart,
@@ -227,9 +227,20 @@ const AboutSection = () => {
   const [teamMembers, setTeamMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [newsletterModal, setNewsletterModal] = useState(false);
+ 
+  const [searchParams] = useSearchParams();
+
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState({});
 
+
+  useEffect(()=>{
+    if (searchParams.get('newsletter') === '1') {
+      setNewsletterModal(true);
+    }
+  }, [searchParams])
+
+  
   const isAdmin = currentUser?.role === 'admin';
 
   // Refs
@@ -567,8 +578,10 @@ const AboutSection = () => {
                              text-white px-8 py-3 rounded-lg shadow-md transition-all duration-300 
                              hover:shadow-xl hover:-translate-y-1 flex items-center gap-2"
             >
+            <Link to="?newsletter=1" className="flex items-center gap-2 w-full h-full">
               <span>הרשמו לניוזלטר</span>
               <Edit2 className="h-4 w-4" />
+            </Link>
             </Button>
             <CTAButton
               variant="inverse-fire"
