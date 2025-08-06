@@ -575,7 +575,11 @@ const UserManagement = () => {
   setLoading(true);
   try {
     const usersRef = collection(db, "users");
-    const usersQuery = query(usersRef, orderBy("createdAt", "desc"));
+    const usersQuery = query( 
+    collection(db, "users"),
+  where("is_active", "==", true),
+  orderBy("createdAt", "desc")
+);
     const snapshot = await getDocs(usersQuery);
     
     // Extract user IDs for batch profile fetching
